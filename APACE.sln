@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2026
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APACE", "APACE\APACE.csproj", "{E750AF42-4959-4FAE-918B-95EF58A8DF1E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APACELib", "APACE\APACELib.csproj", "{E750AF42-4959-4FAE-918B-95EF58A8DF1E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APACE", "..\..\..\Box Sync\Codes\MyCShrpResearchCode\APACE\APACE\APACE.csproj", "{945442FA-7355-4006-898F-721AC49061D6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{E750AF42-4959-4FAE-918B-95EF58A8DF1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E750AF42-4959-4FAE-918B-95EF58A8DF1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E750AF42-4959-4FAE-918B-95EF58A8DF1E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{945442FA-7355-4006-898F-721AC49061D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{945442FA-7355-4006-898F-721AC49061D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{945442FA-7355-4006-898F-721AC49061D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{945442FA-7355-4006-898F-721AC49061D6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
