@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using SimulationLib;
-using RandomNumberGeneratorLib;
+using RandomVariateLib;
 using ComputationLib;
 using OptimizationLib;
 
@@ -40,7 +40,7 @@ namespace APACE_lib
         //private int _distanceBtwRNGSeeds;
         //private int[] _rndSeeds;
         //private double[] _rndSeedsGoodnessOfFit;
-        RandomNumberGeneratorLib.Discrete _discreteDistributionOverSeeds;
+        RandomVariateLib.Discrete _discreteDistributionOverSeeds;
         private int[] _sampledRNDSeeds;
 
         // simulation outputs

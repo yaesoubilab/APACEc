@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using RandomNumberGeneratorLib;
+using RandomVariateLib;
 
 namespace APACE_lib
 {

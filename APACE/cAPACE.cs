@@ -5,10 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ComputationLib;
-using OptimizationLib;
-using RandomNumberGeneratorLib;
+using RandomVariateLib;
 using SimulationLib;
-using FourierTransformLib;
 using System.Runtime.InteropServices;
 
 namespace APACE_lib
@@ -22,7 +20,7 @@ namespace APACE_lib
 
         private ExcelInterface _excelInterface;
         private ModelSettings _modelSettings = new ModelSettings();
-        ThreadSpecificRNG _threadSpecificRNG = new ThreadSpecificRNG();
+        RNG _rng;
         private EpidemicModeller _epidemicModeller;
         private ArrayList _epidemicModellers = new ArrayList();
 

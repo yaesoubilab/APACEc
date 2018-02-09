@@ -6,9 +6,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-using RandomNumberGeneratorLib;
+using RandomVariateLib;
 using SimulationLib;
-using OptimizationLib;
 using ComputationLib;
 
 namespace APACE_lib
@@ -32,7 +31,7 @@ namespace APACE_lib
         private int[] _pathogenIDs;
         private int _numOfPathogens;
         // simulation setting
-        ThreadSpecificRNG _threadSpecificRNG = new ThreadSpecificRNG();        
+        RNG _rng;        
         private int _rndSeedResultedInAnAcceptibleTrajectory;
         private double[] _arrSampledParameterValues;
         private enumModelUse _modelUse = enumModelUse.Simulation;
@@ -118,7 +117,7 @@ namespace APACE_lib
         private enumSimulationRNDSeedsSource _simulationRNDSeedsSource = enumSimulationRNDSeedsSource.StartFrom0;
         private int _adpSimItr; // the index of simulation runs that should be done before doing back-propagation
         private int[] _rndSeeds;
-        Discrete _discreteDistributionOverSeeds;        
+        Discrete _discreteDistOverSeeds;        
         private bool _storeADPIterationResults;
         private double[][] _arrADPIterationResults;
         // calibration
@@ -639,7 +638,7 @@ namespace APACE_lib
                 arrProb[i] = arrProb[i] * sumInv;
 
             // define the sampling object
-            _discreteDistributionOverSeeds = new Discrete("Discrete distribution over RND seeds", SupportFunctions.ConvertArrayToDouble(rndSeeds), arrProb);            
+            _discreteDistOverSeeds = new Discrete("Discrete distribution over RND seeds", arrProb);            
         }
         // find the approximately optimal dynamic policy
         public void FindOptimalDynamicPolicy()
@@ -648,10 +647,10 @@ namespace APACE_lib
             int[,] sampledRNDseeds = new int[_POMDP_ADP.NumberOfADPIterations, _POMDP_ADP.NumOfSimRunsToBackPropogate];
             if (_simulationRNDSeedsSource == enumSimulationRNDSeedsSource.WeightedPrespecifiedSquence)
             {
-                _threadSpecificRNG.Reset(0);
+                _rng = new RNG(0);
                 for (int itr = 1; itr <= _POMDP_ADP.NumberOfADPIterations; ++itr)
                     for (int j = 1; j <= _POMDP_ADP.NumOfSimRunsToBackPropogate; ++j)
-                        sampledRNDseeds[itr - 1, j - 1] = (int)_discreteDistributionOverSeeds.sample(_threadSpecificRNG);
+                        sampledRNDseeds[itr - 1, j - 1] = _rndSeeds[_discreteDistOverSeeds.SampleDiscrete(_rng)];
             }
 
             int rndSeedForThisItr = 0;
@@ -1321,7 +1320,7 @@ namespace APACE_lib
 
                                 case enumModelUse.Optimization:
                                     {
-                                        selectedActionCombinationDynamicallyControlled = _POMDP_ADP.FindAnEpsilongGreedyActionCombinationsDynamicallyControlled(_threadSpecificRNG, _arrCurrentValuesOfFeatures);//, ref _currentPeriodCost);
+                                        selectedActionCombinationDynamicallyControlled = _POMDP_ADP.FindAnEpsilongGreedyActionCombinationsDynamicallyControlled(_rng, _arrCurrentValuesOfFeatures);//, ref _currentPeriodCost);
                                     }
                                     break;
                             }
@@ -1463,10 +1462,10 @@ namespace APACE_lib
                                 {
                                     switch (thisIntervention.ThresholdBasedEmployment_EpidemiologicalObservation)
                                     {
-                                        case Intervention.enumEpidemiologicalObservation.Accumulating:
+                                        case Intervention.EnumEpidemiologicalObservation.Accumulating:
                                             observedEpidemiologicalMeasure = thisSumStat.ObservedAccumulatedNewMembers;
                                             break;
-                                        case Intervention.enumEpidemiologicalObservation.OverPastObservationPeriod:
+                                        case Intervention.EnumEpidemiologicalObservation.OverPastObservationPeriod:
                                             observedEpidemiologicalMeasure = thisSumStat.NewMembersOverPastObservableObsPeriod;
                                             break;
                                     }
@@ -1489,7 +1488,7 @@ namespace APACE_lib
                                 // find the type of threshold
                                 switch (thisIntervention.ThresholdBasedEmployment_EpidemiologicalObservation)
                                 {
-                                    case Intervention.enumEpidemiologicalObservation.Accumulating:
+                                    case Intervention.EnumEpidemiologicalObservation.Accumulating:
                                         #region
                                         {
                                             // compare the observation with the triggering threshold
@@ -1516,7 +1515,7 @@ namespace APACE_lib
                                         }
                                         #endregion
                                         break;
-                                    case Intervention.enumEpidemiologicalObservation.OverPastObservationPeriod:
+                                    case Intervention.EnumEpidemiologicalObservation.OverPastObservationPeriod:
                                         #region
                                         {
                                             // compare the observation with the triggering threshold
@@ -1545,7 +1544,7 @@ namespace APACE_lib
                                 // find the type of threshold
                                 switch (thisIntervention.ThresholdBasedEmployment_EpidemiologicalObservation)
                                 {
-                                    case Intervention.enumEpidemiologicalObservation.Accumulating:
+                                    case Intervention.EnumEpidemiologicalObservation.Accumulating:
                                         #region
                                         {
                                             // compare the observation with the triggering threshold
@@ -1567,7 +1566,7 @@ namespace APACE_lib
                                         }
                                         #endregion
                                         break;
-                                    case Intervention.enumEpidemiologicalObservation.OverPastObservationPeriod:
+                                    case Intervention.EnumEpidemiologicalObservation.OverPastObservationPeriod:
                                         #region
                                         {
                                             // compare the observation with the triggering threshold
@@ -1708,10 +1707,10 @@ namespace APACE_lib
                                     {
                                         switch (thisIntervention.ThresholdBasedEmployment_EpidemiologicalObservation)
                                         {
-                                            case Intervention.enumEpidemiologicalObservation.Accumulating: 
+                                            case Intervention.EnumEpidemiologicalObservation.Accumulating: 
                                                 observedEpidemiologicalMeasure = thisSumStat.ObservedAccumulatedNewMembers;
                                                 break;
-                                            case Intervention.enumEpidemiologicalObservation.OverPastObservationPeriod:
+                                            case Intervention.EnumEpidemiologicalObservation.OverPastObservationPeriod:
                                                 observedEpidemiologicalMeasure = thisSumStat.NewMembersOverPastObservableObsPeriod;
                                                 break;
                                         }
@@ -1725,7 +1724,7 @@ namespace APACE_lib
                                     // find the type of threshold
                                     switch (thisIntervention.ThresholdBasedEmployment_EpidemiologicalObservation)
                                     {
-                                        case Intervention.enumEpidemiologicalObservation.Accumulating:
+                                        case Intervention.EnumEpidemiologicalObservation.Accumulating:
                                             #region
                                             {
                                                 // compare the observation with the triggering threshold
@@ -1752,7 +1751,7 @@ namespace APACE_lib
                                             }
                                             #endregion
                                             break;
-                                        case Intervention.enumEpidemiologicalObservation.OverPastObservationPeriod:
+                                        case Intervention.EnumEpidemiologicalObservation.OverPastObservationPeriod:
                                             #region
                                             {
                                                 // compare the observation with the triggering threshold
@@ -1781,7 +1780,7 @@ namespace APACE_lib
                                     // find the type of threshold
                                     switch (thisIntervention.ThresholdBasedEmployment_EpidemiologicalObservation)
                                     {
-                                        case Intervention.enumEpidemiologicalObservation.Accumulating:
+                                        case Intervention.EnumEpidemiologicalObservation.Accumulating:
                                             #region
                                             {
                                                 // compare the observation with the triggering threshold
@@ -1803,7 +1802,7 @@ namespace APACE_lib
                                             }
                                             #endregion
                                             break;
-                                        case Intervention.enumEpidemiologicalObservation.OverPastObservationPeriod:
+                                        case Intervention.EnumEpidemiologicalObservation.OverPastObservationPeriod:
                                             #region
                                             {
                                                 // compare the observation with the triggering threshold
@@ -2504,7 +2503,7 @@ namespace APACE_lib
                 foreach (Class thisClass in _classes.Where(c => c.IfNeedsToBeProcessed))
                 {                    
                     // calculate the number of members to be sent out from each class
-                    thisClass.SendOutMembers(_deltaT, _threadSpecificRNG);
+                    thisClass.SendOutMembers(_deltaT, _rng);
                     // update the array of available resources
                     if (_arrAvailableResources.Length > 0)
                         UpdateResourceAvailabilityBasedOnConsumptionOfThisClass((thisClass).ArrResourcesConsumed);
@@ -2748,10 +2747,10 @@ namespace APACE_lib
         {
             ResetForAnotherSimulation(threadSpecificSeedNumber, true, new double[0]);
         }        
-        private void ResetForAnotherSimulation(int threadSpecificSeedNumber, bool sampleParameters, double[] parameterValues)
+        private void ResetForAnotherSimulation(int seed, bool sampleParameters, double[] parameterValues)
         {
             // reset the rnd object
-            _threadSpecificRNG.Reset(threadSpecificSeedNumber);
+            _rng = new RNG(seed);
 
             // sample from parameters
             _arrSampledParameterValues = new double[_parameters.Count];
@@ -2900,24 +2899,24 @@ namespace APACE_lib
             switch (thisPar.Type)
             {
                 // independent parameter
-                case Parameter.enumType.Independet:
+                case Parameter.EnumType.Independet:
                     {
-                        _arrSampledParameterValues[thisPar.ID] = ((IndependetParameter)thisPar).Sample(_threadSpecificRNG);
+                        _arrSampledParameterValues[thisPar.ID] = ((IndependetParameter)thisPar).Sample(_rng);
                     }
                     break;
                 
                 // correlated parameter
-                case Parameter.enumType.Correlated:
+                case Parameter.EnumType.Correlated:
                     {
                         CorrelatedParameter thisCorrelatedParameter = thisPar as CorrelatedParameter;
-                        int parameterIDCorrelatedTo = thisCorrelatedParameter.ParameterIDcorrelctedTo;
+                        int parameterIDCorrelatedTo = thisCorrelatedParameter.IDOfDepedentPar;
                         double valueOfTheParameterIDCorrelatedTo = _arrSampledParameterValues[parameterIDCorrelatedTo];
                         _arrSampledParameterValues[thisPar.ID] = thisCorrelatedParameter.Sample(valueOfTheParameterIDCorrelatedTo);
                     }
                     break;
                 
                 // multiplicative parameter
-                case Parameter.enumType.Multiplicative:
+                case Parameter.EnumType.Multiplicative:
                     {
                         MultiplicativeParameter thisMultiplicativeParameter = thisPar as MultiplicativeParameter;
                         int firstParID = thisMultiplicativeParameter.FirstParameterID;
@@ -2927,7 +2926,7 @@ namespace APACE_lib
                     break;
 
                 // linear combination parameter
-                case  Parameter.enumType.LinearCombination:
+                case  Parameter.EnumType.LinearCombination:
                     {
                         LinearCombination thisLinearCombinationPar = thisPar as LinearCombination;
                         int[] arrParIDs = thisLinearCombinationPar.arrParIDs;
@@ -2941,7 +2940,7 @@ namespace APACE_lib
                     break;   
 
                 // multiple combination parameter
-                case Parameter.enumType.MultipleCombination:
+                case Parameter.EnumType.MultipleCombination:
                     {
                         MultipleCombination thisMultipleCombinationPar = thisPar as MultipleCombination;
                         int[] arrParIDs = thisMultipleCombinationPar.arrParIDs;
@@ -2954,7 +2953,7 @@ namespace APACE_lib
                     break;
                           
                 // time dependent linear parameter
-                case Parameter.enumType.TimeDependetLinear:
+                case Parameter.EnumType.TimeDependetLinear:
                     {
                         TimeDependetLinear thisTimeDepedentLinearPar = thisPar as TimeDependetLinear;
                         double intercept = _arrSampledParameterValues[thisTimeDepedentLinearPar.InterceptParID];
@@ -2967,7 +2966,7 @@ namespace APACE_lib
                     break;   
    
                 // time dependent oscillating parameter
-                case Parameter.enumType.TimeDependetOscillating:
+                case Parameter.EnumType.TimeDependetOscillating:
                     {
                         TimeDependetOscillating thisTimeDepedentOscillatingPar = thisPar as TimeDependetOscillating;
                         double a0 = _arrSampledParameterValues[thisTimeDepedentOscillatingPar.a0ParID];
@@ -3009,7 +3008,7 @@ namespace APACE_lib
             //    if (thisIndependetParameter != null)
             //    {
             //        parameterFound = true;
-            //        _arrSampledParameterValues[thisParameter.ID] = ((IndependetParameter)thisParameter).Sample(_threadSpecificRNG);
+            //        _arrSampledParameterValues[thisParameter.ID] = ((IndependetParameter)thisParameter).Sample(_rng);
             //    }
 
             //    if (!parameterFound)
@@ -3352,7 +3351,7 @@ namespace APACE_lib
 
                     // store the rate
                     //if (rate<0)
-                    //    MessageBox.Show("Transmission rates cannot be negative (Seed: " + _threadSpecificRNG.Seed + ").", "Error in Calculating Transmission Rates");
+                    //    MessageBox.Show("Transmission rates cannot be negative (Seed: " + _rng.Seed + ").", "Error in Calculating Transmission Rates");
 
                     arrTransmissionRatesByPathogen[pathogenID] = rate;
                 }
@@ -3623,7 +3622,7 @@ namespace APACE_lib
         {
             int numOfFeatures = _features.Count;
             _POMDP_ADP.SetUpQFunctionApproximationModel(
-                qFunctionApproximationMethod, OptimizationLib.POMDP_ADP.enumResponseTransformation.None, 
+                qFunctionApproximationMethod, ComputationLib.POMDP_ADP.enumResponseTransformation.None, 
                 numOfFeatures, degreeOfPolynomialQFunction, 2);
         }
         // add L2 regularization
@@ -3744,7 +3743,7 @@ namespace APACE_lib
                 double defalutValue = Convert.ToDouble(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.enumParameterColumns.DefalutValue));
                 bool updateAtEachTimeStep = SupportFunctions.ConvertYesNoToBool(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.enumParameterColumns.UpdateAtEachTimeStep).ToString());
                 string distribution = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.enumParameterColumns.Distribution));
-                enumRandomVariates enumRVG = RandomNumberGeneratorLib.SupportProcedures.ConvertToEnumRVG(distribution);
+                enumRandomVariates enumRVG = RandomVariateLib.SupportProcedures.ConvertToEnumRVG(distribution);
                 bool includedInCalibration = SupportFunctions.ConvertYesNoToBool(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.enumParameterColumns.IncludedInCalibration).ToString());
 
                 Parameter thisParameter = null;
@@ -4103,9 +4102,9 @@ namespace APACE_lib
                         {
                             int IDOfSpecialStatistics = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_IDOfSpecialStatisticsToObserveAccumulation));
                             string strObservation = Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_Observation));
-                            APACE_lib.Intervention.enumEpidemiologicalObservation observation = Intervention.enumEpidemiologicalObservation.OverPastObservationPeriod;
+                            APACE_lib.Intervention.EnumEpidemiologicalObservation observation = Intervention.EnumEpidemiologicalObservation.OverPastObservationPeriod;
                             if (strObservation == "Accumulating")
-                                observation = Intervention.enumEpidemiologicalObservation.Accumulating;
+                                observation = Intervention.EnumEpidemiologicalObservation.Accumulating;
 
                             double threshold = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_ThresholdToTriggerThisDecision));
                             int duration = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_NumOfDecisionPeriodsToUseThisDecision));

@@ -3,16 +3,16 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using RandomNumberGeneratorLib;
+using RandomVariateLib;
 using ComputationLib;
-using OptimizationLib;
+using SimulationLib;
 
 namespace APACE_lib
 {
     // Intervention
     public class Intervention : SimulationLib.SimulationAction
     {
-        public enum enumEpidemiologicalObservation
+        public enum EnumEpidemiologicalObservation
         {
             OverPastObservationPeriod = 1,
             Accumulating = 2
@@ -20,37 +20,41 @@ namespace APACE_lib
 
         // Fields                       
         bool _affectingContactPattern = false;
+
         // availability
         private int _parIDDelayToGoIntoEffectOnceTurnedOn = 0;
-        private long _numOfTimeIndeciesDelayedBeforeGoingIntoEffectOnceTurnedOn = 0;
+
+        private long _epidemicTimeIndexToTurnOn = 0;
         private long _epidemicTimeIndexToGoIntoEffect = 0;
-        private long _epidemicTimeIndexToBeLifted = 0;
-        // employment
-        private bool _ifThisInterventionHasBeenEmployedBefore = false;
-        private long _epidemicTimeIndexWhenThisInterventionTurnedOn = 0;
-        private long _epidemicTimeIndexWhenThisInterventionTurnedOff = 0;
-        // periodic employment
-        private int _periodicEmployment_Frequency_NumOfDcisionPeriods = 0;
-        private int _periodicEmployment_Duration_NumOfDcisionPeriods = 0;
+        private long _epidemicTimeIndexToTrunOff = 0;
+
         // threshold-base employment          
         private int _thresholdBasedEmployment_IDOfTheSpecialStatisticsToObserveAccumulation = 0;
-        private enumEpidemiologicalObservation _thresholdBasedEmployment_EpidemiologicalObservation = enumEpidemiologicalObservation.OverPastObservationPeriod;
-        private double _thresholdBasedEmployment_thresholdToTriggerThisIntervention = 0;
-        private long _thresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention = 0;        
-        // interval-based employment
-        private double _intervalBaseEmployment_availableUntilThisTime;
-        private int _intervalBaseEmployment_minNumOfDecisionPeriodsToUse;        
-        // dynamic employment
-        //bool _dynamicEmployment_selectOnOffStatusAsFeature;
-        //int _dynamicEmployment_previousObservationPeriodToObserveOnOffValue;
-        //bool _dynamicEmployment_useNumOfDecisionPeriodEmployedAsFeature;
-
+        private EnumEpidemiologicalObservation _thresholdBasedEmployment_EpidemiologicalObservation = EnumEpidemiologicalObservation.OverPastObservationPeriod;
+             
+        
         // Instantiation
-        public Intervention(int index, int ID, string name, enumActionType type, bool affectingContactPattern)
-            : base (index, ID, name, type)
+        public Intervention(
+            int index, 
+            string name, 
+            EnumActionType type, 
+            bool affectingContactPattern,
+            long timeIndexBecomeAvailable,
+            long timeIndexBecomeUnavailable,
+            long nOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn,
+            ref SimulationDecisionRule decisionRule,
+            int IDOfTheResourceRequiredToBeAvailable = -1)
+                : base (
+                      index, 
+                      name, 
+                      type, 
+                      timeIndexBecomeAvailable, 
+                      timeIndexBecomeUnavailable, 
+                      nOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn,
+                      ref decisionRule, 
+                      IDOfTheResourceRequiredToBeAvailable)
         {
             _affectingContactPattern = affectingContactPattern;     
-            base.OnOffSwitchSetting = enumOnOffSwitchSetting.Predetermined;
         }
 
         // Properties    
@@ -64,103 +68,29 @@ namespace APACE_lib
         {
             get { return _parIDDelayToGoIntoEffectOnceTurnedOn; }
         }
-        public long NumOfTimeIndeciesDelayedBeforeGoingIntoEffectOnceTurnedOn
+        public long EpidemicTimeIndexToTurnOn
         {
-            get { return _numOfTimeIndeciesDelayedBeforeGoingIntoEffectOnceTurnedOn; }
+            get { return _epidemicTimeIndexToTurnOn; }
+            set { _epidemicTimeIndexToTurnOn = value; }
         }
         public long EpidemicTimeIndexToGoIntoEffect
         {
             get { return _epidemicTimeIndexToGoIntoEffect; }
             set { _epidemicTimeIndexToGoIntoEffect = value; }
         }
-        public long EpidemicTimeIndexToBeLifted
+        public long EpidemicTimeIndexToTurnOff
         {
-            get { return _epidemicTimeIndexToBeLifted; }
-            set { _epidemicTimeIndexToBeLifted = value; }
+            get { return _epidemicTimeIndexToTrunOff; }
+            set { _epidemicTimeIndexToTrunOff = value; }
         }
-        // employment
-        public bool IfThisInterventionHasBeenEmployedBefore
-        {
-            get { return _ifThisInterventionHasBeenEmployedBefore; }
-            set { _ifThisInterventionHasBeenEmployedBefore = value; }
-        }
-        public long EpidemicTimeIndexWhenThisInterventionTurnedOn
-        {
-            get { return _epidemicTimeIndexWhenThisInterventionTurnedOn; }
-            set { _epidemicTimeIndexWhenThisInterventionTurnedOn = value; }
-        }
-        public long EpidemicTimeIndexWhenThisInterventionTurnedOff
-        {
-            get { return _epidemicTimeIndexWhenThisInterventionTurnedOff; }
-            set { _epidemicTimeIndexWhenThisInterventionTurnedOff = value; }
-        }
-        // periodic employment
-        public int PeriodicEmployment_Frequency_NumOfDcisionPeriods
-        {
-            get{return _periodicEmployment_Frequency_NumOfDcisionPeriods;}
-        }
-        public int PeriodicEmployment_Duration_NumOfDcisionPeriods
-        {
-            get { return _periodicEmployment_Duration_NumOfDcisionPeriods; }
-        }
-        // threshold-based employment       
-        public int ThresholdBasedEmployment_IDOfTheSpecialStatisticsToObserveAccumulation
-        {
-            get { return _thresholdBasedEmployment_IDOfTheSpecialStatisticsToObserveAccumulation; }
-        }
-        public enumEpidemiologicalObservation ThresholdBasedEmployment_EpidemiologicalObservation
-        {
-            get { return _thresholdBasedEmployment_EpidemiologicalObservation; }
-        }
-        public double ThresholdBasedEmployment_thresholdToTriggerThisIntervention 
-        { 
-            get { return _thresholdBasedEmployment_thresholdToTriggerThisIntervention; } 
-        }
-        public long ThresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention
-        { 
-            get { return _thresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention; } 
-        }
-        // interval-based employment
-        public double IntervalBaseEmployment_availableUntilThisTime
-        {
-            get { return _intervalBaseEmployment_availableUntilThisTime; }
-        }
-        public int IntervalBaseEmployment_minNumOfDecisionPeriodsToUse
-        {
-            get { return _intervalBaseEmployment_minNumOfDecisionPeriodsToUse; }
-        }
-        
-        // feature
-        //public bool DynamicEmployment_selectOnOffStatusAsFeature
-        //{
-        //    get { return _dynamicEmployment_selectOnOffStatusAsFeature; }
-        //}
-        //public int DynamicEmployment_previousObservationPeriodToObserveOnOffValue
-        //{
-        //    get { return _dynamicEmployment_previousObservationPeriodToObserveOnOffValue; }
-        //}
-        //public bool DynamicEmployment_useNumOfDecisionPeriodEmployedAsFeature
-        //{
-        //    get { return _dynamicEmployment_useNumOfDecisionPeriodEmployedAsFeature; }
-        //}
         #endregion
-        // Procedures
-        // set up availability
-        public void SetUpAvailability(enumOnOffSwitchSetting onOffSwitchSetting, long TimeIndexBecomeAvailable, long TimeIndexBecomeUnavailable, int parIDDelayToGoIntoEffectOnceTurnedOn)
-        {
-            base.SetupAvailability(onOffSwitchSetting, TimeIndexBecomeAvailable, TimeIndexBecomeUnavailable);
-            _parIDDelayToGoIntoEffectOnceTurnedOn = parIDDelayToGoIntoEffectOnceTurnedOn;
-        }
+
         // set up costs
         public void SetUpCosts(double fixedCost, double costPerUnitOfTime, double penaltyForSwitchingFromOnToOff)
         { 
             base.SetUpCost(fixedCost, costPerUnitOfTime, penaltyForSwitchingFromOnToOff);
         }
-        // set up resource requirement
-        public void SetUpResourceRequirement(int IDOfTheResourceRequiredToBeAvailable)
-        {
-            base.SetupResourceRequirement(IDOfTheResourceRequiredToBeAvailable);
-        }
+        
         // add the settings for periodic employment
         public void AddPeriodicEmploymentSetting(int frequency_numOfDcisionPeriods, int duration_numOfDcisionPeriods)
         {   
@@ -178,7 +108,7 @@ namespace APACE_lib
         // add the settings for threshold-based employment
         public void AddThresholdBasedEmploymentSetting
                 (int IDOfTheSpecialStatisticsToObserveAccumulation,
-                enumEpidemiologicalObservation epidemiologicalObservation,
+                EnumEpidemiologicalObservation epidemiologicalObservation,
                 double thresholdToTriggerThisDecision, 
                 long numOfTimeIndicesToUseThisDecision)
         {
@@ -266,19 +196,5 @@ namespace APACE_lib
             _epidemicTimeIndexWhenThisInterventionTurnedOn = long.MaxValue;
             _epidemicTimeIndexWhenThisInterventionTurnedOff = long.MinValue;
         }
-    }
-
-
-    public abstract class DecisionRule
-    {
-        public DecisionRule()
-        {
-        }
-    }
-
-    public class Predetermined : DecisionRule
-    {
-    
-    
     }
 }

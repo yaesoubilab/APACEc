@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using RandomNumberGeneratorLib;
+using RandomVariateLib;
 using SimulationLib;
 using ComputationLib;
 using System.Windows.Forms;
@@ -30,7 +30,7 @@ namespace APACE_lib
         protected enumType _type;
 
         protected int[] _arrDestinationClasseIDs;
-        protected long[] _arrNumOfMembersSendingToEachDestinationClasses;
+        protected int[] _arrNumOfMembersSendingToEachDestinationClasses;
         protected bool _ifNeedsToBeProcessed = false;
         protected bool _ifMembersWaitingToSendOutBeforeNextDeltaT = false;
         protected int _rowIndexInContactMatrix;
@@ -40,8 +40,8 @@ namespace APACE_lib
         protected bool _showAccumulatedNewMembers;
         protected bool _showStatisticsInSimulationResults;
         // statistics 
-        protected long _numberOfNewMembersOverPastDeltaT;
-        protected long _currentNumberOfMembers;
+        protected int _numberOfNewMembersOverPastDeltaT;
+        protected int _currentNumberOfMembers;
         protected long _accumulatedNewMembers;
         protected TimePersistentStatistics _timePersistentStat_classSize;
         protected cCounterStatistics _countStatisticsNewMembers = null;
@@ -123,7 +123,7 @@ namespace APACE_lib
             get { return _ifMembersWaitingToSendOutBeforeNextDeltaT; }
             set { _ifMembersWaitingToSendOutBeforeNextDeltaT = value; }
         }
-        public long NumberOfNewMembersOverPastDeltaT
+        public int NumberOfNewMembersOverPastDeltaT
         {
             get { return _numberOfNewMembersOverPastDeltaT; }
             set { _numberOfNewMembersOverPastDeltaT = value; }
@@ -205,7 +205,7 @@ namespace APACE_lib
         }       
 
         // add new members
-        public void AddNewMembers(long numOfNewMembers)
+        public void AddNewMembers(int numOfNewMembers)
         {
             // return if number of new members is zero
             if (numOfNewMembers == 0)
@@ -296,7 +296,7 @@ namespace APACE_lib
         {
         }
         // send out members
-        public virtual void SendOutMembers(double deltaT, ThreadSpecificRNG threadSpecificRNG)
+        public virtual void SendOutMembers(double deltaT, RNG rng)
         {
         }
         // reset number of members sending to each destination class
@@ -451,7 +451,7 @@ namespace APACE_lib
             _rowIndexInContactMatrix = rowIndexInContactMatrix;
         }
         // update the initial number of members
-        public override void UpdateInitialNumberOfMembers(long sampledValue)
+        public override void UpdateInitialNumberOfMembers(int sampledValue)
         {
             _initialMembers = sampledValue;
             _currentNumberOfMembers = sampledValue;
@@ -548,7 +548,7 @@ namespace APACE_lib
                 _arrDestinationClasseIDs[i++] = thisProcess.IDOfDestinationClass;
         }
         // send members of this class out
-        public override void SendOutMembers(double deltaT, ThreadSpecificRNG threadSpecificRNG)
+        public override void SendOutMembers(double deltaT, RNG rng)
         {
             // all departing members will be processed
             //_ifMembersWaitingToSendOutBeforeNextDeltaT = false;
@@ -591,7 +591,7 @@ namespace APACE_lib
                 arrProcessProbs[probIndex] = coeff * arrProcessRates[probIndex-1];
 
             // define a multinomial distribution for the number of members out of each process (process 0 denotes not leaving the class)
-            Multinomial numOutOfProcessDistribution = new Multinomial("temp", _currentNumberOfMembers, arrProcessProbs, 5);
+            Multinomial numOutOfProcessDistribution = new Multinomial("temp", _currentNumberOfMembers, arrProcessProbs);
             // get a sample
             long[] arrSampledDepartures = SupportFunctions.ConvertArrayToLong(numOutOfProcessDistribution.arrSample(threadSpecificRNG));
 
@@ -770,7 +770,7 @@ namespace APACE_lib
         }
         
         // send members of this class out
-        public override void SendOutMembers(double deltaT, ThreadSpecificRNG threadSpecificRNG)
+        public override void SendOutMembers(double deltaT, RNG rng)
         {
             // departing members will be processed
             //_ifMembersWaitingToSendOutBeforeNextDeltaT = false;
@@ -794,7 +794,7 @@ namespace APACE_lib
                 // define a binomial distribution for the number of successes
                 Bionomial numOfSuccesses = new Bionomial("temp", _currentNumberOfMembers, _probOfSuccess);
                 // sample
-                long sampledNumOfSuccesses = (long)numOfSuccesses.sample(threadSpecificRNG);
+                int sampledNumOfSuccesses = numOfSuccesses.SampleDiscrete(rng);
 
                 _arrNumOfMembersSendingToEachDestinationClasses[0] += sampledNumOfSuccesses;
                 _arrNumOfMembersSendingToEachDestinationClasses[1] += _currentNumberOfMembers - sampledNumOfSuccesses;
@@ -886,7 +886,7 @@ namespace APACE_lib
         }
         
         // send members of this class out
-        public override void SendOutMembers(double deltaT, ThreadSpecificRNG threadSpecificRNG)
+        public override void SendOutMembers(double deltaT, RNG rng)
         {
             // departing members will be processed
             //_ifMembersWaitingToSendOutBeforeNextDeltaT = false;

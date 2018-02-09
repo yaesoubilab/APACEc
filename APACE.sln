@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APACE_lib", "APACE\APACE_lib.csproj", "{E750AF42-4959-4FAE-918B-95EF58A8DF1E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APACE", "RunAPACE\APACE.csproj", "{198BC5D9-71F2-4A6C-A3ED-EEE291B1F9DB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E750AF42-4959-4FAE-918B-95EF58A8DF1E} = {E750AF42-4959-4FAE-918B-95EF58A8DF1E}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -15,7 +15,7 @@ namespace APACE_lib
 
         // Fields
         string _name;
-        cTimeSeries _timeSeries;
+        TimeSeries _timeSeries;
         double _QALYLossPerCount;
         double _healthQualityPerUnitOfTime;
         double _costPerCount;
@@ -68,7 +68,7 @@ namespace APACE_lib
 
             // setup prediction
             if (numOfPastObsPeriodsToStore > 0)
-                _timeSeries = new cTimeSeries(name, numOfPastObsPeriodsToStore + numOfObsPeriodsDelayed, numOfDeltaTInEachObsPeriod, cTimeSeries.enumPredictionModel.Nothing);
+                _timeSeries = new TimeSeries(name, numOfPastObsPeriodsToStore + numOfObsPeriodsDelayed, numOfDeltaTInEachObsPeriod, cTimeSeries.enumPredictionModel.Nothing);
         }  
      
         // create a clone of this class
