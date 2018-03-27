@@ -42,7 +42,7 @@ namespace APACE_lib
         // statistics 
         protected int _numberOfNewMembersOverPastDeltaT;
         protected int _currentNumberOfMembers;
-        protected long _accumulatedNewMembers;
+        protected int _accumulatedNewMembers;
         protected TimePersistentStatistics _timePersistentStat_classSize;
         protected cCounterStatistics _countStatisticsNewMembers = null;
         protected cCounterStatistics _countStatisticsMembersInClass = null;
@@ -159,7 +159,7 @@ namespace APACE_lib
 
         public virtual int[] ArrDestinationClasseIDs
         { get { return new int[0]; } }
-        public virtual long[] ArrNumOfMembersSendingToEachDestinationClasses
+        public virtual int[] ArrNumOfMembersSendingToEachDestinationClasses
         { get { return new long[0]; } }
         public virtual bool EmptyToEradicate
         {
@@ -179,7 +179,7 @@ namespace APACE_lib
         {
             get { return new double[0]; }
         }
-        public virtual long[] ArrResourcesConsumed
+        public virtual int[] ArrResourcesConsumed
         {
             get { return new long[0]; }
         }
@@ -413,7 +413,7 @@ namespace APACE_lib
         }
         public override int[] ArrDestinationClasseIDs
         { get { return _arrDestinationClasseIDs; } }
-        public override long[] ArrNumOfMembersSendingToEachDestinationClasses
+        public override int[] ArrNumOfMembersSendingToEachDestinationClasses
         { get { return _arrNumOfMembersSendingToEachDestinationClasses; } }
 
         #endregion
@@ -451,22 +451,20 @@ namespace APACE_lib
             _rowIndexInContactMatrix = rowIndexInContactMatrix;
         }
         // update the initial number of members
-        public override void UpdateInitialNumberOfMembers(int sampledValue)
+        public void UpdateInitialNumberOfMembers(int sampledValue)
         {
             _initialMembers = sampledValue;
             _currentNumberOfMembers = sampledValue;
         }
         // update susceptibility and infectivity values
-        public override void UpdateSusceptibilityParameterValues(double[] arrSampledParameterValues)
+        public void UpdateSusceptibilityParameterValues(ref double[] arrSampledParameterValues)
         {
-            //TODO: revise to avoid passing the entire array of sampled parameters
             for (int i = 0; i < _susceptibilityParIDs.Length; i++)
                 _susceptibilityValues[i] = Math.Max(0, arrSampledParameterValues[_susceptibilityParIDs[i]]);
         }
         // update infectivity values
-        public override void UpdateInfectivityParameterValues(double[] arrSampledParameterValues)
+        public void UpdateInfectivityParameterValues(ref double[] arrSampledParameterValues)
         {
-            //TODO: revise to avoid passing the entire array of sampled parameters
             for (int i = 0; i < _infectivityParIDs.Length; i++)
                 _infectivityValues[i] = Math.Max(0, arrSampledParameterValues[_infectivityParIDs[i]]);
         }
@@ -593,7 +591,7 @@ namespace APACE_lib
             // define a multinomial distribution for the number of members out of each process (process 0 denotes not leaving the class)
             Multinomial numOutOfProcessDistribution = new Multinomial("temp", _currentNumberOfMembers, arrProcessProbs);
             // get a sample
-            long[] arrSampledDepartures = SupportFunctions.ConvertArrayToLong(numOutOfProcessDistribution.arrSample(threadSpecificRNG));
+            long[] arrSampledDepartures = SupportFunctions.ConvertArrayToLong(numOutOfProcessDistribution.ArrSampleDiscrete(rng));
 
             // handling error
             for (int i = 0; i< arrSampledDepartures.Length; i++)

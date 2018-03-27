@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using SimulationLib;
 using RandomVariateLib;
 using ComputationLib;
-using OptimizationLib;
 
 namespace APACE_lib
 {
@@ -33,7 +32,7 @@ namespace APACE_lib
         string[] _featureNames;
         string[] _namesOfParameters;
         // simulation setting
-        ThreadSpecificRNG _threadSpecificRNG = new ThreadSpecificRNG();  
+        RNG _rng = new RNG(0);  
         //private enumModelUse _modelUse = enumModelUse.Simulation;
         //private enumSimulationRNDSeedsSource _simulationRNDSeedsSource = enumSimulationRNDSeedsSource.StartFrom0;
         //private int _firstRNGSeed;
@@ -1453,12 +1452,12 @@ namespace APACE_lib
         private void InitializeSimulation()
         {    
             // reset the rnd object
-            _threadSpecificRNG.Reset(0);
+            
             if (_modelSettings.SimulationRNDSeedsSource == enumSimulationRNDSeedsSource.WeightedPrespecifiedSquence)
             {
                 _sampledRNDSeeds = new int[_modelSettings.NumOfSimulationIterations];
                 for (int i = 0; i< _modelSettings.NumOfSimulationIterations; i++)
-                    _sampledRNDSeeds[i] = (int)_discreteDistributionOverSeeds.sample(_threadSpecificRNG);
+                    _sampledRNDSeeds[i] = _discreteDistributionOverSeeds.SampleDiscrete(_rng);
             }
 
             // setup statistics collector

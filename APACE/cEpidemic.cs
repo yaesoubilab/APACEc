@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-
 using RandomVariateLib;
 using SimulationLib;
 using ComputationLib;
@@ -112,7 +111,7 @@ namespace APACE_lib
         private double _annualInterestRate;
         private double _wtpForHealth;
         // optimization
-        private POMDP_ADP _POMDP_ADP = new POMDP_ADP();
+        private POMDP_ADP _POMDP_ADP;
         private enumObjectiveFunction _objectiveFunction;
         private enumSimulationRNDSeedsSource _simulationRNDSeedsSource = enumSimulationRNDSeedsSource.StartFrom0;
         private int _adpSimItr; // the index of simulation runs that should be done before doing back-propagation
@@ -3574,7 +3573,7 @@ namespace APACE_lib
 
         // setup dynamic policy related settings
         public void SetupDynamicPolicySettings
-            (POMDP_ADP.enumQFunctionApproximationMethod qFunctionApproximationMethod, bool useEpidemicTimeAsFeature, int degreeOfPolynomialQFunction, double L2RegularizationPenalty)
+            (SimulationLib.enumQFunctionApproximationMethod qFunctionApproximationMethod, bool useEpidemicTimeAsFeature, int degreeOfPolynomialQFunction, double L2RegularizationPenalty)
         {
             _useEpidemicTimeAsFeature = useEpidemicTimeAsFeature;
             if (_useEpidemicTimeAsFeature)
@@ -3618,11 +3617,11 @@ namespace APACE_lib
             //        (thresholds[i], numOfDecisionPeriodsToUseInterventions[i] * _numOfDeltaTsInADecisionInterval);
         }
         // setup Q-functions with polynomial functions
-        public void SetupPolynomialQFunctions(POMDP_ADP.enumQFunctionApproximationMethod qFunctionApproximationMethod, int degreeOfPolynomialQFunction)
+        public void SetupPolynomialQFunctions(SimulationLib.enumQFunctionApproximationMethod qFunctionApproximationMethod, int degreeOfPolynomialQFunction)
         {
             int numOfFeatures = _features.Count;
             _POMDP_ADP.SetUpQFunctionApproximationModel(
-                qFunctionApproximationMethod, ComputationLib.POMDP_ADP.enumResponseTransformation.None, 
+                qFunctionApproximationMethod, SimulationLib.enumResponseTransformation.None, 
                 numOfFeatures, degreeOfPolynomialQFunction, 2);
         }
         // add L2 regularization

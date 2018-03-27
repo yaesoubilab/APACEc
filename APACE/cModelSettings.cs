@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ComputationLib;
-using OptimizationLib;
 using RandomVariateLib;
 using SimulationLib;
 
@@ -36,7 +35,7 @@ namespace APACE_lib
         private int[,] _connectionsMatrix;
 
         // policy related settings
-        private POMDP_ADP.enumQFunctionApproximationMethod _qFunApxMethod = POMDP_ADP.enumQFunctionApproximationMethod.Q_Approximation;
+        private SimulationLib.enumQFunctionApproximationMethod _qFunApxMethod = SimulationLib.enumQFunctionApproximationMethod.Q_Approximation;
         private bool _ifEpidemicTimeIsUsedAsFeature;
         private int _pastDecisionPeriodWithDecisionAsFeature;
         private int _degreeOfPolynomialQFunction;
@@ -83,7 +82,7 @@ namespace APACE_lib
         public int[] RndSeeds { get => _rndSeeds; set => _rndSeeds = value; }
         public double[] RndSeedsGoodnessOfFit { get => _rndSeedsGoodnessOfFit; set => _rndSeedsGoodnessOfFit = value; }
         public int NumOfSimulationIterations { get => _numOfSimulationIterations; set => _numOfSimulationIterations = value; }
-        public POMDP_ADP.enumQFunctionApproximationMethod QFunApxMethod { get => _qFunApxMethod; set => _qFunApxMethod = value; }
+        public SimulationLib.enumQFunctionApproximationMethod QFunApxMethod { get => _qFunApxMethod; set => _qFunApxMethod = value; }
         public bool IfEpidemicTimeIsUsedAsFeature { get => _ifEpidemicTimeIsUsedAsFeature; set => _ifEpidemicTimeIsUsedAsFeature = value; }
         public int PastDecisionPeriodWithDecisionAsFeature { get => _pastDecisionPeriodWithDecisionAsFeature; set => _pastDecisionPeriodWithDecisionAsFeature = value; }
         public int DegreeOfPolynomialQFunction { get => _degreeOfPolynomialQFunction; set => _degreeOfPolynomialQFunction = value; }

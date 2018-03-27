@@ -192,13 +192,5 @@ namespace APACE_lib
         }
 
     } // end of Process_EpidemicIndependent class        
-
-    //public class Process_NoStayTime : Process
-    //{
-    //    public Process_NoStayTime(string name, int ID)
-    //        : base(name, ID)
-    //    {
-    //    }
-    //}
    
 }

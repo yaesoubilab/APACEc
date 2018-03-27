@@ -12,127 +12,50 @@ namespace APACE_lib
     // Intervention
     public class Intervention : SimulationLib.SimulationAction
     {
-        public enum EnumEpidemiologicalObservation
-        {
-            OverPastObservationPeriod = 1,
-            Accumulating = 2
-        }
-
-        // Fields                       
-        bool _affectingContactPattern = false;
+        
+        public bool IfAffectingContactPattern { get; set; }
+        
+        
 
         // availability
-        private int _parIDDelayToGoIntoEffectOnceTurnedOn = 0;
+        public int ParIDDelayToGoIntoEffectOnceTurnedOn { get; set; }
+        private long NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn { get; set; } = 0;
 
-        private long _epidemicTimeIndexToTurnOn = 0;
-        private long _epidemicTimeIndexToGoIntoEffect = 0;
-        private long _epidemicTimeIndexToTrunOff = 0;
+        public long EpidemicTimeIndexToTurnOn { get; set; }
+        public long EpidemicTimeIndexToGoIntoEffect { get; set; }
+        public long EpidemicTimeIndexToTurnOff { get; set; }
+        public long EpidemicTimeIndexTurnedOn { get; set; }
+        public long EpidemicTimeIndexTurnedOff { get; set; }
 
-        // threshold-base employment          
-        private int _thresholdBasedEmployment_IDOfTheSpecialStatisticsToObserveAccumulation = 0;
-        private EnumEpidemiologicalObservation _thresholdBasedEmployment_EpidemiologicalObservation = EnumEpidemiologicalObservation.OverPastObservationPeriod;
-             
-        
+
         // Instantiation
         public Intervention(
             int index, 
             string name, 
-            EnumActionType type, 
+            SimulationLib.EnumActionType actionType, 
             bool affectingContactPattern,
             long timeIndexBecomeAvailable,
             long timeIndexBecomeUnavailable,
-            long nOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn,
-            ref SimulationDecisionRule decisionRule,
-            int IDOfTheResourceRequiredToBeAvailable = -1)
+            int parIDDelayToGoIntoEffectOnceTurnedOn,
+            ref SimulationDecisionRule decisionRule)
                 : base (
                       index, 
-                      name, 
-                      type, 
+                      name,
+                      actionType,
                       timeIndexBecomeAvailable, 
                       timeIndexBecomeUnavailable, 
-                      nOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn,
-                      ref decisionRule, 
-                      IDOfTheResourceRequiredToBeAvailable)
+                      ref decisionRule)
         {
-            _affectingContactPattern = affectingContactPattern;     
+            IfAffectingContactPattern = affectingContactPattern;
+            ParIDDelayToGoIntoEffectOnceTurnedOn = parIDDelayToGoIntoEffectOnceTurnedOn;
         }
-
-        // Properties    
-        #region
-        public bool AffectingContactPattern
-        {
-            get { return _affectingContactPattern; }
-        }
-        // availability
-        public int ParIDDelayToGoIntoEffectOnceTurnedOn
-        {
-            get { return _parIDDelayToGoIntoEffectOnceTurnedOn; }
-        }
-        public long EpidemicTimeIndexToTurnOn
-        {
-            get { return _epidemicTimeIndexToTurnOn; }
-            set { _epidemicTimeIndexToTurnOn = value; }
-        }
-        public long EpidemicTimeIndexToGoIntoEffect
-        {
-            get { return _epidemicTimeIndexToGoIntoEffect; }
-            set { _epidemicTimeIndexToGoIntoEffect = value; }
-        }
-        public long EpidemicTimeIndexToTurnOff
-        {
-            get { return _epidemicTimeIndexToTrunOff; }
-            set { _epidemicTimeIndexToTrunOff = value; }
-        }
-        #endregion
 
         // set up costs
         public void SetUpCosts(double fixedCost, double costPerUnitOfTime, double penaltyForSwitchingFromOnToOff)
         { 
             base.SetUpCost(fixedCost, costPerUnitOfTime, penaltyForSwitchingFromOnToOff);
         }
-        
-        // add the settings for periodic employment
-        public void AddPeriodicEmploymentSetting(int frequency_numOfDcisionPeriods, int duration_numOfDcisionPeriods)
-        {   
-            base.OnOffSwitchSetting = enumOnOffSwitchSetting.Periodic;
-            _periodicEmployment_Frequency_NumOfDcisionPeriods = frequency_numOfDcisionPeriods;
-            _periodicEmployment_Duration_NumOfDcisionPeriods = duration_numOfDcisionPeriods;            
-        }  
-        // add the settings for interval-base employment
-        public void AddIntervalBaseEmploymentSetting(double availableUntilThisTime, int minNumOfDecisionPeriodsToUse)
-        {
-            base.OnOffSwitchSetting = enumOnOffSwitchSetting.IntervalBased;
-            _intervalBaseEmployment_availableUntilThisTime = availableUntilThisTime;
-            _intervalBaseEmployment_minNumOfDecisionPeriodsToUse = minNumOfDecisionPeriodsToUse;
-        }
-        // add the settings for threshold-based employment
-        public void AddThresholdBasedEmploymentSetting
-                (int IDOfTheSpecialStatisticsToObserveAccumulation,
-                EnumEpidemiologicalObservation epidemiologicalObservation,
-                double thresholdToTriggerThisDecision, 
-                long numOfTimeIndicesToUseThisDecision)
-        {
-            base.OnOffSwitchSetting = enumOnOffSwitchSetting.ThresholdBased;
-            _thresholdBasedEmployment_IDOfTheSpecialStatisticsToObserveAccumulation = IDOfTheSpecialStatisticsToObserveAccumulation;
-            _thresholdBasedEmployment_EpidemiologicalObservation = epidemiologicalObservation;
-            _thresholdBasedEmployment_thresholdToTriggerThisIntervention = thresholdToTriggerThisDecision;
-            _thresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention = numOfTimeIndicesToUseThisDecision;
-        }              
-        // dynamic policy settings
-        public void AddDynamicPolicySettings( bool remainsOnOnceSwitchedOn) //bool selectOnOffStatusAsFeature, int previousObservationPeriodToObserveOnOffValue, bool useNumOfDecisionPeriodEmployedAsFeature,
-        {
-            //_dynamicEmployment_selectOnOffStatusAsFeature = selectOnOffStatusAsFeature;
-            //_dynamicEmployment_previousObservationPeriodToObserveOnOffValue = previousObservationPeriodToObserveOnOffValue;
-            //_dynamicEmployment_useNumOfDecisionPeriodEmployedAsFeature = useNumOfDecisionPeriodEmployedAsFeature;
 
-            base.SetupDynamicEmployment(remainsOnOnceSwitchedOn);            
-        }
-
-        // update the delay
-        public void UpdateDelay(long numOfTimeIndeciesDelayedBeforeGoingIntoEffectOnceTurnedOn)
-        {
-            _numOfTimeIndeciesDelayedBeforeGoingIntoEffectOnceTurnedOn = numOfTimeIndeciesDelayedBeforeGoingIntoEffectOnceTurnedOn;
-        }
 
         // find if this decision can be used
         //public bool IfCanBeEmployedAccordingToTheThresholdBasedPolicy(int currentEpidemicTimeIndex, double currentObservation)
@@ -176,25 +99,42 @@ namespace APACE_lib
         //    }            
         //    return ifCanBeUsed;
         //}
-        
+
         // reset for another simulation run
+
         public void ResetForAnotherSimulationRun()
         {
             // find the time to go into effect
-            if (base.Type == enumActionType.Default)
+            if (ActionType == EnumActionType.Default)
             {
-                _epidemicTimeIndexToGoIntoEffect = long.MinValue;
-                _epidemicTimeIndexToBeLifted = long.MaxValue;
+                EpidemicTimeIndexToGoIntoEffect = long.MinValue;
+                EpidemicTimeIndexToTurnOff = long.MaxValue;
             }
             else
             {
-                _epidemicTimeIndexToGoIntoEffect = long.MaxValue;
-                _epidemicTimeIndexToBeLifted = long.MaxValue;
+                EpidemicTimeIndexToGoIntoEffect = long.MaxValue;
+                EpidemicTimeIndexToTurnOff = long.MaxValue;
             }
 
-            _ifThisInterventionHasBeenEmployedBefore = false;
-            _epidemicTimeIndexWhenThisInterventionTurnedOn = long.MaxValue;
-            _epidemicTimeIndexWhenThisInterventionTurnedOff = long.MinValue;
+            IfHasBeenTrunedOnBefore = false;
+            EpidemicTimeIndexTurnedOn = long.MaxValue;
+            EpidemicTimeIndexToTurnOff = long.MinValue;
+        }
+
+        // support methods
+        public static EnumActionType ConvertToActionType(string strInterventionType)
+        {
+            EnumActionType interventionType = EnumActionType.Default;
+            switch (strInterventionType)
+            {
+                case "Default":
+                    interventionType = EnumActionType.Default;
+                    break;
+                case "Additive":
+                    interventionType = EnumActionType.Additive;
+                    break;
+            }
+            return interventionType;
         }
     }
 }
