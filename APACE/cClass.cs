@@ -16,7 +16,7 @@ namespace APACE_lib
         // Variables
         #region Variables
 
-        public enum enumType
+        public enum EnumClassType
         {
             Normal = 1,
             Death = 2,
@@ -27,7 +27,6 @@ namespace APACE_lib
         // Fields
         protected int _ID;
         protected string _name;
-        protected enumType _type;
 
         protected int[] _arrDestinationClasseIDs;
         protected int[] _arrNumOfMembersSendingToEachDestinationClasses;
@@ -67,8 +66,6 @@ namespace APACE_lib
         {
             get {return _name;}
         }
-        public enumType Type
-        { get { return _type; } }
         public bool ShowNewMembers
         {
             get{return _showNewMembers;}
@@ -109,7 +106,7 @@ namespace APACE_lib
             get { return _showStatisticsInSimulationResults; }
             set { _showStatisticsInSimulationResults = value; }
         }
-        public long CurrentNumberOfMembers
+        public int CurrentNumberOfMembers
         {
             get{ return _currentNumberOfMembers;}
         }
@@ -128,15 +125,15 @@ namespace APACE_lib
             get { return _numberOfNewMembersOverPastDeltaT; }
             set { _numberOfNewMembersOverPastDeltaT = value; }
         }
-        public long NewMembersOverPastObsPeriod
+        public int NewMembersOverPastObsPeriod
         {
             get { return _countStatisticsNewMembers.CurrentCountsInThisObsPeriod; }
         }
-        public long NewMembersOverPastSimulationOutputInterval
+        public int NewMembersOverPastSimulationOutputInterval
         {
             get { return _countStatisticsNewMembers.CurrentCountsInThisSimulationOutputInterval; }
         }
-        public long AccumulatedNewMembers
+        public int AccumulatedNewMembers
         {
             get { return _accumulatedNewMembers; }
         }
@@ -160,7 +157,7 @@ namespace APACE_lib
         public virtual int[] ArrDestinationClasseIDs
         { get { return new int[0]; } }
         public virtual int[] ArrNumOfMembersSendingToEachDestinationClasses
-        { get { return new long[0]; } }
+        { get { return new int[0]; } }
         public virtual bool EmptyToEradicate
         {
             get { return false; }
@@ -181,7 +178,7 @@ namespace APACE_lib
         }
         public virtual int[] ArrResourcesConsumed
         {
-            get { return new long[0]; }
+            get { return new int[0]; }
         }
         public virtual bool IsEpiDependentProcessActive
         {
@@ -236,7 +233,7 @@ namespace APACE_lib
                 _countStatisticsMembersInClass.AddAnObservation(_currentNumberOfMembers, deltaT);
 
             // update average size
-            if (this.Type == enumType.Normal && _timePersistentStat_classSize != null)
+            if (_timePersistentStat_classSize != null && this is Class_Normal)
                 _timePersistentStat_classSize.Record(epidemicTime, _currentNumberOfMembers); 
         }
         // read feature value  
@@ -268,7 +265,7 @@ namespace APACE_lib
         }
 
         // update the initial number of members
-        public virtual void UpdateInitialNumberOfMembers(long sampledValue)
+        public virtual void UpdateInitialNumberOfMembers(int sampledValue)
         {         
         }
         // update rates of epidemic independent processes associated to this class
@@ -303,17 +300,9 @@ namespace APACE_lib
         public virtual void ResetNumOfMembersSendingToEachDestinationClasses()
         { }
         // find the members out of active processes
-        public virtual void ReturnAndResetNumOfMembersOutOfProcessesOverPastDeltaT(ref long[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
+        public virtual void ReturnAndResetNumOfMembersOutOfProcessesOverPastDeltaT(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
         { }
 
-        //// update transmission rates
-        //public virtual void UpdateTransmissionRatesAffectingThisClass(int indexOfIntCombInTransmissionMatrix, double[][][][] arrTransmissionMatrices)
-        //{ 
-        //}
-        //// update proportion of members in this class
-        //public virtual void UpdateProportionOfMembers(double[] arrProportionOfMembersInEachClass)
-        //{         
-        //}
         // read current cost
         public virtual double CurrentCost()
         {
@@ -329,7 +318,7 @@ namespace APACE_lib
         {
         } 
         // update available resources
-        public virtual void UpdateAvailableResources(long[] arrResourceAvailability)
+        public virtual void UpdateAvailableResources(int[] arrResourceAvailability)
         { }
         // Reset statistics for another simulation run
         protected void ResetClassStatisticsForAnotherSimulationRun(double warmUpPeriodLength)
@@ -352,7 +341,7 @@ namespace APACE_lib
     {
         // transmission matrix
         private int _initialMembersParID;
-        private long _initialMembers;
+        private int _initialMembers;
         private int[] _susceptibilityParIDs;
         private double[] _susceptibilityValues;
         private int[] _infectivityParIDs;
@@ -360,14 +349,13 @@ namespace APACE_lib
         private bool _isEpiDependentProcessActive = false;
 
         private bool _emptyToEradicate;
-        private List<Process> _processes = new List<Process>();
-        private List<Process> _activeProcesses = new List<Process>();
+        private List<Event> _processes = new List<Event>();
+        private List<Event> _activeProcesses = new List<Event>();
         private int[] _currentInterventionCombination;
 
         public Class_Normal(int ID, string name)
             : base(ID, name)
         {
-            _type = enumType.Normal;
         }
 
         // Properties
@@ -376,7 +364,7 @@ namespace APACE_lib
         {
             get { return _initialMembersParID; }
         }
-        public long InitialMembers
+        public int InitialMembers
         {
             get { return _initialMembers; }
             set { _initialMembers = value; }
@@ -419,7 +407,7 @@ namespace APACE_lib
         #endregion
 
         // add a process
-        public void AddAProcess(Process process)
+        public void AddAProcess(Event process)
         {
             _processes.Add(process);
         }
@@ -471,15 +459,15 @@ namespace APACE_lib
         // update rates of epidemic independent processes associated to this class
         public override void UpdateRatesOfBirthAndEpidemicIndependentProcesses(double[] updatedParameterValues)
         {
-            foreach (Process thisProcess in _activeProcesses)
+            foreach (Event thisProcess in _activeProcesses)
             {
                 // update the epidemic independent rate
-                Process_EpidemicIndependent thisEpidemicIndependentProcess = thisProcess as Process_EpidemicIndependent;
+                Event_EpidemicIndependent thisEpidemicIndependentProcess = thisProcess as Event_EpidemicIndependent;
                 if (thisEpidemicIndependentProcess != null)
                     thisEpidemicIndependentProcess.UpdateRate(updatedParameterValues[thisEpidemicIndependentProcess.IDOfRateParameter]);
 
                 // update the birth rate
-                Process_Birth thisBirthProcess = thisProcess as Process_Birth;
+                Event_Birth thisBirthProcess = thisProcess as Event_Birth;
                 if (thisBirthProcess!= null)
                     thisBirthProcess.UpdateBirthRate(updatedParameterValues[thisBirthProcess.IDOfRateParameter]);
             }
@@ -489,7 +477,7 @@ namespace APACE_lib
         public override void UpdateTransmissionRates(double[] arrTransmissionRatesByPathogens)
         {
             // update the transmission rates
-            foreach (Process thisProcess in _activeProcesses)
+            foreach (Event thisProcess in _activeProcesses)
                 thisProcess.UpdateTransmissionRate(arrTransmissionRatesByPathogens[thisProcess.IDOfPathogenToGenerate]);
         }
 
@@ -528,21 +516,21 @@ namespace APACE_lib
             _activeProcesses.Clear();
             // update current active processes
             _isEpiDependentProcessActive = false;
-            foreach (Process thisProcess in _processes)
+            foreach (Event thisProcess in _processes)
             {
                 // always add the processes that are activated                
                 if (interventionCombination[thisProcess.IDOfActivatingIntervention] == 1)
                 {
-                    if ( thisProcess is Process_EpidemicDependent)
+                    if ( thisProcess is Event_EpidemicDependent)
                         _isEpiDependentProcessActive = true;
                     _activeProcesses.Add(thisProcess);
                 }
             }
             // store the id of the destination classes
-            _arrNumOfMembersSendingToEachDestinationClasses = new long[_activeProcesses.Count];
+            _arrNumOfMembersSendingToEachDestinationClasses = new int[_activeProcesses.Count];
             _arrDestinationClasseIDs = new int[_activeProcesses.Count];
             int i = 0;
-            foreach (Process thisProcess in _activeProcesses)
+            foreach (Event thisProcess in _activeProcesses)
                 _arrDestinationClasseIDs[i++] = thisProcess.IDOfDestinationClass;
         }
         // send members of this class out
@@ -559,15 +547,15 @@ namespace APACE_lib
             int numOfActiveProcesses = _activeProcesses.Count;
             double[] arrProcessRates = new double[numOfActiveProcesses];
             double[] arrProcessProbs = new double[numOfActiveProcesses + 1]; // note index 0 denotes not leaving the class
-            // _arrNumOfMembersSendingToEachDestinationClasses = new long[numOfActiveProcesses];
+            // _arrNumOfMembersSendingToEachDestinationClasses = new int[numOfActiveProcesses];
 
             // then calculate the rates of processes
             processIndex = 0;
             double sumOfRates = 0;
-            foreach (Process thisProcess in _activeProcesses)
+            foreach (Event thisProcess in _activeProcesses)
             {
-                // birth process does not affect the way members are leaving this class
-                if (thisProcess.Type == Process.enumType.Birth)
+                // birth event does not affect the way members are leaving this class
+                if (thisProcess is Event_Birth)
                     arrProcessRates[processIndex] = 0;
                 else
                 {
@@ -591,7 +579,7 @@ namespace APACE_lib
             // define a multinomial distribution for the number of members out of each process (process 0 denotes not leaving the class)
             Multinomial numOutOfProcessDistribution = new Multinomial("temp", _currentNumberOfMembers, arrProcessProbs);
             // get a sample
-            long[] arrSampledDepartures = SupportFunctions.ConvertArrayToLong(numOutOfProcessDistribution.ArrSampleDiscrete(rng));
+            int[] arrSampledDepartures = numOutOfProcessDistribution.ArrSampleDiscrete(rng);
 
             // handling error
             for (int i = 0; i< arrSampledDepartures.Length; i++)
@@ -603,15 +591,15 @@ namespace APACE_lib
 
             // find the number of members out of each process to other classes            
             processIndex = 0; // NOTE: process with index 0 denotes not leaving the class
-            foreach (Process thisProcess in _activeProcesses)
+            foreach (Event thisProcess in _activeProcesses)
             {
                 // if this is a birth process
-                if (thisProcess.Type == Process.enumType.Birth)
+                if (thisProcess is Event_Birth)
                 {
                     // define a Poisson distribution
                     Poisson numOfBirthsDistribution = new Poisson("Birth", _currentNumberOfMembers * thisProcess.Rate * deltaT);
                     // get a sample on the number of births
-                    long numOfBirths = (long)numOfBirthsDistribution.sample(threadSpecificRNG);
+                    int numOfBirths = numOfBirthsDistribution.SampleDiscrete(rng);
                     // record the number of members out of this process
                     thisProcess.MembersOutOverPastDeltaT = numOfBirths;
                     // find the number of members to the destination class
@@ -640,13 +628,13 @@ namespace APACE_lib
         // reset number of members sending to each destination class
         public override void ResetNumOfMembersSendingToEachDestinationClasses()
         {
-            _arrNumOfMembersSendingToEachDestinationClasses = new long[_activeProcesses.Count];
+            _arrNumOfMembersSendingToEachDestinationClasses = new int[_activeProcesses.Count];
             _ifMembersWaitingToSendOutBeforeNextDeltaT = false;
         }
         // find the members out of active processes
-        public override void ReturnAndResetNumOfMembersOutOfProcessesOverPastDeltaT(ref long[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
+        public override void ReturnAndResetNumOfMembersOutOfProcessesOverPastDeltaT(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
         {
-            foreach (Process activeProcess in _activeProcesses)
+            foreach (Event activeProcess in _activeProcesses)
             {
                 arrNumOfMembersOutOfProcessesOverPastDeltaT[activeProcess.ID] += activeProcess.MembersOutOverPastDeltaT;
                 activeProcess.MembersOutOverPastDeltaT = 0;
@@ -694,7 +682,6 @@ namespace APACE_lib
         public Class_Death(int ID, string name)
             : base(ID, name)
         {
-            _type = enumType.Death;
         }
 
         // return current Cost
@@ -735,13 +722,12 @@ namespace APACE_lib
         // Properties
         public override int[] ArrDestinationClasseIDs
         { get { return _arrDestinationClasseIDs; } }
-        public override long[] ArrNumOfMembersSendingToEachDestinationClasses
+        public override int[] ArrNumOfMembersSendingToEachDestinationClasses
         { get { return _arrNumOfMembersSendingToEachDestinationClasses; } }
 
         public Class_Splitting(int ID, string name)
             : base(ID, name)
         {
-            _type = enumType.Splitting;
         }
 
         // Properties
@@ -756,7 +742,7 @@ namespace APACE_lib
             _parIDOfProbOfSuccess = parIDOfProbOfSuccess;
             
             // store the id of the destination classes
-            _arrNumOfMembersSendingToEachDestinationClasses = new long[2];
+            _arrNumOfMembersSendingToEachDestinationClasses = new int[2];
             _arrDestinationClasseIDs = new int[2];
             _arrDestinationClasseIDs[0] = destinationClassIDGivenSuccess;
             _arrDestinationClasseIDs[1] = destinationClassIDGivenFailure;
@@ -806,7 +792,7 @@ namespace APACE_lib
         // reset number of members sending to each destination class
         public override void ResetNumOfMembersSendingToEachDestinationClasses()
         {
-            _arrNumOfMembersSendingToEachDestinationClasses = new long[2];
+            _arrNumOfMembersSendingToEachDestinationClasses = new int[2];
             _ifMembersWaitingToSendOutBeforeNextDeltaT = false;
         }
         // return current Cost
@@ -843,23 +829,22 @@ namespace APACE_lib
     {
         private int _resourceIDToCheckAvailability;
         private double _resourceUnitsConsumedPerArrival;
-        long[] _arrAvailableResources;
-        long[] _arrResourcesConsumed;
+        int[] _arrAvailableResources;
+        int[] _arrResourcesConsumed;
 
         // Properties
         public override int[] ArrDestinationClasseIDs
         { get { return _arrDestinationClasseIDs; } }
-        public override long[] ArrNumOfMembersSendingToEachDestinationClasses
+        public override int[] ArrNumOfMembersSendingToEachDestinationClasses
         { get { return _arrNumOfMembersSendingToEachDestinationClasses; } }
         
         public Class_ResourceMonitor(int ID, string name)
             : base(ID, name)
         {
-            _type = enumType.ResourceMonitor;
         }
 
         // Properties        
-        public override long[] ArrResourcesConsumed
+        public override int[] ArrResourcesConsumed
         {
             get { return _arrResourcesConsumed; }
         }
@@ -871,16 +856,16 @@ namespace APACE_lib
             _resourceUnitsConsumedPerArrival = resourceUnitsConsumedPerArrival;
 
             // store the id of the destination classes
-            _arrNumOfMembersSendingToEachDestinationClasses = new long[2];
+            _arrNumOfMembersSendingToEachDestinationClasses = new int[2];
             _arrDestinationClasseIDs = new int[2];
             _arrDestinationClasseIDs[0] = destinationClassIDGivenSuccess;
             _arrDestinationClasseIDs[1] = destinationClassIDGivenFailure;
         }
         // update available resources
-        public override void UpdateAvailableResources(long[] arrResourceAvailability)
+        public override void UpdateAvailableResources(int[] arrResourceAvailability)
         {
-            _arrAvailableResources = (long[])arrResourceAvailability.Clone();
-            _arrResourcesConsumed = new long[_arrAvailableResources.Length];
+            _arrAvailableResources = (int[])arrResourceAvailability.Clone();
+            _arrResourcesConsumed = new int[_arrAvailableResources.Length];
         }
         
         // send members of this class out
@@ -893,9 +878,9 @@ namespace APACE_lib
             if (_currentNumberOfMembers <= 0) return;
             
             // find the number of members that can be served given the current resources
-            long membersServed = (long)Math.Min(_currentNumberOfMembers, ((long)_arrAvailableResources[_resourceIDToCheckAvailability] / _resourceUnitsConsumedPerArrival));
+            int membersServed = (int)Math.Min(_currentNumberOfMembers, (_arrAvailableResources[_resourceIDToCheckAvailability] / _resourceUnitsConsumedPerArrival));
             // update the resources consumed
-            _arrResourcesConsumed[_resourceIDToCheckAvailability] = (long)(membersServed * _resourceUnitsConsumedPerArrival);
+            _arrResourcesConsumed[_resourceIDToCheckAvailability] = (int)(membersServed * _resourceUnitsConsumedPerArrival);
 
             // find the number of members sent to each class from this class
             _arrNumOfMembersSendingToEachDestinationClasses[0] = membersServed;
@@ -908,7 +893,7 @@ namespace APACE_lib
         // reset number of members sending to each destination class
         public override void ResetNumOfMembersSendingToEachDestinationClasses()
         {
-            _arrNumOfMembersSendingToEachDestinationClasses = new long[2];
+            _arrNumOfMembersSendingToEachDestinationClasses = new int[2];
             _ifMembersWaitingToSendOutBeforeNextDeltaT = false;
         }
 

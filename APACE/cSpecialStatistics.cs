@@ -46,8 +46,8 @@ namespace APACE_lib
         private double _feasibleRange_min;
         private double _feasibleRange_max;
 
-        private long _currentMembers;
-        private long _accumulatedNewMembers;
+        private int _currentMembers;
+        private int _accumulatedNewMembers;
 
         public SummationStatistics(int ID, string name, enumDefinedOn definedOn, enumType type, string sumFormula, double QALYLossPerNewMember, double costPerNewMember, 
                                    bool surveillanceDataAvailable, bool firstObservationMarksTheStartOfTheSpread,
@@ -157,27 +157,27 @@ namespace APACE_lib
                 //    return 0;
             }
         }
-        public long CurrentMembers
+        public int CurrentMembers
         {
             get { return _currentMembers; }
         }
-        public long AccumulatedNewMembers
+        public int AccumulatedNewMembers
         {            
             get { return _accumulatedNewMembers;}
         }
-        public long ObservedAccumulatedNewMembers
+        public int ObservedAccumulatedNewMembers
         {
             get { return _countStatisticsNewMembers.TotalObservedCounts; }
         }
-        public long NewMembersOverPastObsPeriod
+        public int NewMembersOverPastObsPeriod
         {
             get { return _countStatisticsNewMembers.CurrentCountsInThisObsPeriod;}
         }
-        public long NewMembersOverPastObservableObsPeriod
+        public int NewMembersOverPastObservableObsPeriod
         {
             get{ return _countStatisticsNewMembers.LastObservedCounts;}
         }
-        public long NewMemberOverPastSimulationInterval
+        public int NewMemberOverPastSimulationInterval
         {
             get { return _countStatisticsNewMembers.CurrentCountsInThisSimulationOutputInterval; }
         }
@@ -187,9 +187,9 @@ namespace APACE_lib
         }
 
         // add new members
-        public void AddNewMembers(long[] arrNumOfNewMembersOverPastDeltaT, double deltaT)
+        public void AddNewMembers(int[] arrNumOfNewMembersOverPastDeltaT, double deltaT)
         {
-            long sumNumMembers = 0;
+            int sumNumMembers = 0;
 
             for (int i = 0; i < _arrClassOrEventIDs.Length; ++i)
                 sumNumMembers += arrNumOfNewMembersOverPastDeltaT[_arrClassOrEventIDs[i]];
@@ -202,7 +202,7 @@ namespace APACE_lib
         }
         public void AddNewMembers(ref List<Class> classes, double deltaT)
         {
-            long sumNumMembers = 0;
+            int sumNumMembers = 0;
 
             for (int i = 0; i < _arrClassOrEventIDs.Length; ++i)
                 sumNumMembers += classes[_arrClassOrEventIDs[i]].NumberOfNewMembersOverPastDeltaT;
@@ -213,9 +213,9 @@ namespace APACE_lib
 
             _countStatisticsNewMembers.AddAnObservation(sumNumMembers, deltaT);
         }
-        public void AddNewMembers(ref List<Process> processes, double deltaT)
+        public void AddNewMembers(ref List<Event> processes, double deltaT)
         {
-            long sumNumMembers = 0;
+            int sumNumMembers = 0;
 
             for (int i = 0; i < _arrClassOrEventIDs.Length; ++i)
                 sumNumMembers += processes[_arrClassOrEventIDs[i]].MembersOutOverPastDeltaT;
@@ -226,7 +226,7 @@ namespace APACE_lib
         }
 
         // add new members
-        public void AddCurrentMembers(double epidemicTime, long[] arrNumOfCurrentMembers, bool collectSummaryStats)
+        public void AddCurrentMembers(double epidemicTime, int[] arrNumOfCurrentMembers, bool collectSummaryStats)
         {
             _currentMembers = 0;
             for (int i = 0; i < _arrClassOrEventIDs.Length; ++i)

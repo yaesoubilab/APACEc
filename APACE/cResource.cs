@@ -17,13 +17,13 @@ namespace APACE_lib
         private int _ID;
         private string _name;
         private double _pricePerUnit;
-        private long _currentUnitsAvailable;
+        private int _currentUnitsAvailable;
         private bool _showAvailability;
 
         private enumReplenishmentType _replenishmentType; // one-time or periodic
         private double _firstTimeAvailable;
         private double _nextReplenishmentTime;
-        private long _replenishmentQuantity;
+        private int _replenishmentQuantity;
         private double _replenishmentInterval;
         private int _parID_firstTimeAvailable;
         private int _parID_replenishmentQuantity;
@@ -55,7 +55,7 @@ namespace APACE_lib
         {
             get{return _pricePerUnit;}
         }
-        public long CurrentUnitsAvailable
+        public int CurrentUnitsAvailable
         {
             get {return _currentUnitsAvailable;}
             set { _currentUnitsAvailable = value; }
@@ -104,12 +104,12 @@ namespace APACE_lib
         }
 
         // update the availability schedule
-        public void UpdateAvailabilityScheme(double firstTimeAvailable, long replenishmentQuantity)
+        public void UpdateAvailabilityScheme(double firstTimeAvailable, int replenishmentQuantity)
         {
             _firstTimeAvailable = firstTimeAvailable;
             _replenishmentQuantity = replenishmentQuantity;            
         }
-        public void UpdateAvailabilityScheme(double firstTimeAvailable, long replenishmentQuantity, double replenishmentInterval)
+        public void UpdateAvailabilityScheme(double firstTimeAvailable, int replenishmentQuantity, double replenishmentInterval)
         {
             _firstTimeAvailable = firstTimeAvailable;
             _replenishmentQuantity = replenishmentQuantity;

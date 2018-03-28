@@ -35,7 +35,7 @@ namespace APACE_lib
         private int[,] _connectionsMatrix;
 
         // policy related settings
-        private SimulationLib.enumQFunctionApproximationMethod _qFunApxMethod = SimulationLib.enumQFunctionApproximationMethod.Q_Approximation;
+        private SimulationLib.EnumQFunctionApproximationMethod _qFunApxMethod = SimulationLib.EnumQFunctionApproximationMethod.Q_Approximation;
         private bool _ifEpidemicTimeIsUsedAsFeature;
         private int _pastDecisionPeriodWithDecisionAsFeature;
         private int _degreeOfPolynomialQFunction;
@@ -82,7 +82,7 @@ namespace APACE_lib
         public int[] RndSeeds { get => _rndSeeds; set => _rndSeeds = value; }
         public double[] RndSeedsGoodnessOfFit { get => _rndSeedsGoodnessOfFit; set => _rndSeedsGoodnessOfFit = value; }
         public int NumOfSimulationIterations { get => _numOfSimulationIterations; set => _numOfSimulationIterations = value; }
-        public SimulationLib.enumQFunctionApproximationMethod QFunApxMethod { get => _qFunApxMethod; set => _qFunApxMethod = value; }
+        public SimulationLib.EnumQFunctionApproximationMethod QFunApxMethod { get => _qFunApxMethod; set => _qFunApxMethod = value; }
         public bool IfEpidemicTimeIsUsedAsFeature { get => _ifEpidemicTimeIsUsedAsFeature; set => _ifEpidemicTimeIsUsedAsFeature = value; }
         public int PastDecisionPeriodWithDecisionAsFeature { get => _pastDecisionPeriodWithDecisionAsFeature; set => _pastDecisionPeriodWithDecisionAsFeature = value; }
         public int DegreeOfPolynomialQFunction { get => _degreeOfPolynomialQFunction; set => _degreeOfPolynomialQFunction = value; }
@@ -226,13 +226,13 @@ namespace APACE_lib
             switch (strQFunctionApproximationMethod)
             {
                 case "Q-Approximation":
-                    _qFunApxMethod = POMDP_ADP.enumQFunctionApproximationMethod.Q_Approximation;
+                    _qFunApxMethod = EnumQFunctionApproximationMethod.Q_Approximation;
                     break;
                 case "Additive-Approximation":
-                    _qFunApxMethod = POMDP_ADP.enumQFunctionApproximationMethod.A_Approximation;
+                    _qFunApxMethod = EnumQFunctionApproximationMethod.A_Approximation;
                     break;
                 case "H-Approximation":
-                    _qFunApxMethod = POMDP_ADP.enumQFunctionApproximationMethod.H_Approximation;
+                    _qFunApxMethod = EnumQFunctionApproximationMethod.H_Approximation;
                     break;
             }
 

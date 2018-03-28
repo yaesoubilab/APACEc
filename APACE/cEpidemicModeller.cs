@@ -86,7 +86,7 @@ namespace APACE_lib
         private ObservationBasedStatistics _obsTimeUsedToSimulateATrajectory = new ObservationBasedStatistics("Time used to simulate a trajectory");
         private double _actualTimeUsedByCalibration;
         private double _totalSimulationTimeUsedByCalibration;
-        private long _numOfTrajectoriesDiscardedByCalibration;
+        private int _numOfTrajectoriesDiscardedByCalibration;
 
         #endregion
         #region Properties
@@ -279,7 +279,7 @@ namespace APACE_lib
         {
             get { return _totalSimulationTimeUsedByCalibration; }
         }
-        public long NumOfTrajectoriesDiscardedByCalibration
+        public int NumOfTrajectoriesDiscardedByCalibration
         { get { return _numOfTrajectoriesDiscardedByCalibration; } }
 
         #endregion
@@ -359,7 +359,7 @@ namespace APACE_lib
                     arrProb[i] = arrProb[i] / sum;
 
                 // define the sampling object
-                _discreteDistributionOverSeeds = new Discrete("Discrete distribution over RND seeds", SupportFunctions.ConvertArrayToDouble(_modelSettings.RndSeeds), arrProb);
+                _discreteDistributionOverSeeds = new Discrete("Discrete distribution over RND seeds", arrProb); //SupportFunctions.ConvertArrayToDouble(_modelSettings.RndSeeds)
             }            
         }
 
@@ -473,7 +473,7 @@ namespace APACE_lib
         // calibrate
         public void Calibrate(int numOfInitialSimulationRuns, int numOfFittestRunsToReturn)
         {   
-            long calibrationTimeHorizonIndex = _modelSettings.TempEpidemic.SimulationHorizonTimeIndex;
+            int calibrationTimeHorizonIndex = _modelSettings.TempEpidemic.SimulationHorizonTimeIndex;
             int numOfSimulationsRunInParallelForCalibration = _modelSettings.NumOfSimulationsRunInParallelForCalibration;
 
             // reset calibration
@@ -612,7 +612,7 @@ namespace APACE_lib
             _parentEpidemic.FindOptimalDynamicPolicy();
         }
         // simulate the optimal dynamic policy
-        public void SimulateTheOptimalDynamicPolicy(int numOfSimulationIterations, long timeIndexToStop, long warmUpPeriodIndex, bool storeEpidemicTrajectories)
+        public void SimulateTheOptimalDynamicPolicy(int numOfSimulationIterations, int timeIndexToStop, int warmUpPeriodIndex, bool storeEpidemicTrajectories)
         {
             // toggle to simulation
             ToggleModellerTo(enumModelUse.Simulation, enumDecisionRule.SpecifiedByPolicy, storeEpidemicTrajectories, warmUpPeriodIndex);            
@@ -759,19 +759,19 @@ namespace APACE_lib
         //    _discreteDistributionOverSeeds = new Discrete("Discrete distribution over RND seeds", SupportFunctions.ConvertArrayToDouble(rndSeeds), arrProb);
         //}
 
-        // switch off all interventions controled by decision rule
-        public void SwitchOffAllInterventionsControlledByDecisionRule()
-        {
-            if (_modelSettings.UseParallelComputing)
-                foreach (Epidemic thisEpidemic in _epidemics)
-                {
-                    // update initial decision
-                    thisEpidemic.SwitchOffAllInterventionsControlledByDecisionRule();
-                }
-            else
-                // update initial decision
-                _parentEpidemic.SwitchOffAllInterventionsControlledByDecisionRule();
-        }
+        //// switch off all interventions controled by decision rule
+        //public void SwitchOffAllInterventionsControlledByDecisionRule()
+        //{
+        //    if (_modelSettings.UseParallelComputing)
+        //        foreach (Epidemic thisEpidemic in _epidemics)
+        //        {
+        //            // update initial decision
+        //            thisEpidemic.SwitchOffAllInterventionsControlledByDecisionRule();
+        //        }
+        //    else
+        //        // update initial decision
+        //        _parentEpidemic.SwitchOffAllInterventionsControlledByDecisionRule();
+        //}
         // get possible intervention combinations for on/off static policies
         public ArrayList GetIntervalBasedStaticPoliciesDesigns()
         {
@@ -1019,7 +1019,7 @@ namespace APACE_lib
         // get q-function polynomial terms
         public int[,] GetQFunctionPolynomialTerms()
         {
-            return _parentEpidemic.POMDP_ADP.GetQFunctionPolynomialTerms();
+            return new int[0, 0];// _parentEpidemic.SimDecisionMaker.GetQFunctionPolynomialTerms();
         }
         #endregion
 
@@ -1457,7 +1457,7 @@ namespace APACE_lib
             {
                 _sampledRNDSeeds = new int[_modelSettings.NumOfSimulationIterations];
                 for (int i = 0; i< _modelSettings.NumOfSimulationIterations; i++)
-                    _sampledRNDSeeds[i] = _discreteDistributionOverSeeds.SampleDiscrete(_rng);
+                    _sampledRNDSeeds[i] = _arrRNGSeeds[_discreteDistributionOverSeeds.SampleDiscrete(_rng)];
             }
 
             // setup statistics collector
@@ -1575,8 +1575,8 @@ namespace APACE_lib
             foreach (Intervention thisIntervention in thisEpidemic.Interventions)
             {
                 _interventionNames[thisIntervention.Index] = thisIntervention.Name;
-                if (thisIntervention.OnOffSwitchSetting == SimulationLib.SimulationAction.enumOnOffSwitchSetting.Dynamic
-                    || thisIntervention.Type == SimulationLib.SimulationAction.enumActionType.Default)
+                if (thisIntervention.DecisionRule is DecionRule_Dynamic
+                    || thisIntervention.ActionType == EnumActionType.Default)
                     SupportFunctions.AddToEndOfArray(ref _namesOfDefaultInterventionsAndThoseSpecifiedByDynamicRule, thisIntervention.Name);
             }
         }
@@ -1619,7 +1619,7 @@ namespace APACE_lib
         }
 
         // toggle modeller to different operation
-        public void ToggleModellerTo(enumModelUse modelUse, enumDecisionRule decisionRule, bool reportEpidemicTrajectories, long warmUpPeriodIndex)
+        public void ToggleModellerTo(enumModelUse modelUse, enumDecisionRule decisionRule, bool reportEpidemicTrajectories, int warmUpPeriodIndex)
         {
             _storeEpidemicTrajectories = reportEpidemicTrajectories;            
             // toggle each epidemic
@@ -1630,7 +1630,7 @@ namespace APACE_lib
                 ToggleAnEpidemicTo(_parentEpidemic, modelUse, decisionRule, reportEpidemicTrajectories, warmUpPeriodIndex);
         }
         // toggle one epidemic
-        private void ToggleAnEpidemicTo(Epidemic thisEpidemic, enumModelUse modelUse, enumDecisionRule decisionRule, bool storeEpidemicTrajectories, long warmUpPeriodIndex)
+        private void ToggleAnEpidemicTo(Epidemic thisEpidemic, enumModelUse modelUse, enumDecisionRule decisionRule, bool storeEpidemicTrajectories, int warmUpPeriodIndex)
         {   
             thisEpidemic.ModelUse = modelUse;
             thisEpidemic.DecisionRule = decisionRule;

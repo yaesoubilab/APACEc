@@ -66,7 +66,7 @@
     <Compile Include="cIntervention.cs" />
     <Compile Include="cModelSettings.cs" />
     <Compile Include="cPath.cs" />
-    <Compile Include="cProcess.cs" />
+    <Compile Include="cEvent.cs" />
     <Compile Include="cResource.cs" />
     <Compile Include="cResourceRule.cs" />
     <Compile Include="cSpecialStatistics.cs" />

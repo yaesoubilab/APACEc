@@ -1308,7 +1308,7 @@ namespace APACE_lib
                 "Observations", MessageBoxButtons.OK);
         }
         // report calibration results
-        public void ReportCalibrationResults(double calibrationTimeInMinute, long numOfTrajectoriesDiscarded, string[] namesOfCalibrationTargets, 
+        public void ReportCalibrationResults(double calibrationTimeInMinute, int numOfTrajectoriesDiscarded, string[] namesOfCalibrationTargets, 
             //string[] namesOfParameters,
             string[] namesOfSimOutsWithNonZeroWeights, 
             int[] calibrationItrs, int[] calibrationRNDSeeds, 

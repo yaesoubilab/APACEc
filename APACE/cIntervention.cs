@@ -12,30 +12,26 @@ namespace APACE_lib
     // Intervention
     public class Intervention : SimulationLib.SimulationAction
     {
-        
         public bool IfAffectingContactPattern { get; set; }
         
-        
-
         // availability
         public int ParIDDelayToGoIntoEffectOnceTurnedOn { get; set; }
-        private long NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn { get; set; } = 0;
+        public int NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn { get; set; } = 0;
 
-        public long EpidemicTimeIndexToTurnOn { get; set; }
-        public long EpidemicTimeIndexToGoIntoEffect { get; set; }
-        public long EpidemicTimeIndexToTurnOff { get; set; }
-        public long EpidemicTimeIndexTurnedOn { get; set; }
-        public long EpidemicTimeIndexTurnedOff { get; set; }
-
-
+        public int EpidemicTimeIndexToTurnOn { get; set; }
+        public int EpidemicTimeIndexToGoIntoEffect { get; set; }
+        public int EpidemicTimeIndexToTurnOff { get; set; }
+        public int EpidemicTimeIndexTurnedOn { get; set; }
+        public int EpidemicTimeIndexTurnedOff { get; set; }
+        
         // Instantiation
         public Intervention(
             int index, 
             string name, 
-            SimulationLib.EnumActionType actionType, 
+            EnumActionType actionType, 
             bool affectingContactPattern,
-            long timeIndexBecomeAvailable,
-            long timeIndexBecomeUnavailable,
+            int timeIndexBecomeAvailable,
+            int timeIndexBecomeUnavailable,
             int parIDDelayToGoIntoEffectOnceTurnedOn,
             ref SimulationDecisionRule decisionRule)
                 : base (
@@ -49,13 +45,6 @@ namespace APACE_lib
             IfAffectingContactPattern = affectingContactPattern;
             ParIDDelayToGoIntoEffectOnceTurnedOn = parIDDelayToGoIntoEffectOnceTurnedOn;
         }
-
-        // set up costs
-        public void SetUpCosts(double fixedCost, double costPerUnitOfTime, double penaltyForSwitchingFromOnToOff)
-        { 
-            base.SetUpCost(fixedCost, costPerUnitOfTime, penaltyForSwitchingFromOnToOff);
-        }
-
 
         // find if this decision can be used
         //public bool IfCanBeEmployedAccordingToTheThresholdBasedPolicy(int currentEpidemicTimeIndex, double currentObservation)
@@ -104,37 +93,23 @@ namespace APACE_lib
 
         public void ResetForAnotherSimulationRun()
         {
+            // reset the base class
+            base.ResetForAnotherSimulation();
+
             // find the time to go into effect
             if (ActionType == EnumActionType.Default)
             {
-                EpidemicTimeIndexToGoIntoEffect = long.MinValue;
-                EpidemicTimeIndexToTurnOff = long.MaxValue;
+                EpidemicTimeIndexToGoIntoEffect = 0;
+                EpidemicTimeIndexToTurnOff = int.MaxValue;
             }
             else
             {
-                EpidemicTimeIndexToGoIntoEffect = long.MaxValue;
-                EpidemicTimeIndexToTurnOff = long.MaxValue;
+                EpidemicTimeIndexToGoIntoEffect = int.MaxValue;
+                EpidemicTimeIndexToTurnOff = int.MaxValue;
             }
-
-            IfHasBeenTrunedOnBefore = false;
-            EpidemicTimeIndexTurnedOn = long.MaxValue;
-            EpidemicTimeIndexToTurnOff = long.MinValue;
+            EpidemicTimeIndexTurnedOn = int.MaxValue;
+            EpidemicTimeIndexToTurnOff = int.MinValue;
         }
-
-        // support methods
-        public static EnumActionType ConvertToActionType(string strInterventionType)
-        {
-            EnumActionType interventionType = EnumActionType.Default;
-            switch (strInterventionType)
-            {
-                case "Default":
-                    interventionType = EnumActionType.Default;
-                    break;
-                case "Additive":
-                    interventionType = EnumActionType.Additive;
-                    break;
-            }
-            return interventionType;
-        }
+        
     }
 }

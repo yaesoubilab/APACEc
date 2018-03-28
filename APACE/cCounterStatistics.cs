@@ -24,12 +24,12 @@ namespace APACE_lib
         int _numOfObsPeriodsDelayed;
         int _numOfDeltaTInEachObsPeriod;
         // statistics        
-        long _currentCount;
+        int _currentCount;
         double _currentCost;
         double _currentQALY;
         double _totalCost;
         double _totalQALY;
-        long _totalCounts;
+        int _totalCounts;
         bool _collectTotalCount = false;        
         #endregion
 
@@ -68,7 +68,7 @@ namespace APACE_lib
 
             // setup prediction
             if (numOfPastObsPeriodsToStore > 0)
-                _timeSeries = new TimeSeries(name, numOfPastObsPeriodsToStore + numOfObsPeriodsDelayed, numOfDeltaTInEachObsPeriod, cTimeSeries.enumPredictionModel.Nothing);
+                _timeSeries = new TimeSeries(name, numOfPastObsPeriodsToStore + numOfObsPeriodsDelayed, numOfDeltaTInEachObsPeriod, TimeSeries.enumPredictionModel.Nothing);
         }  
      
         // create a clone of this class
@@ -85,30 +85,30 @@ namespace APACE_lib
         }
 
         // Properties
-        public long CurrentCountsInThisObsPeriod
+        public int CurrentCountsInThisObsPeriod
         {
-            get { return (long)_timeSeries.CurrentAggregatedObsInLastObsPeriod; }
+            get { return (int)_timeSeries.CurrentAggregatedObsInLastObsPeriod; }
         }
-        public long CurrentCountsInThisSimulationOutputInterval
+        public int CurrentCountsInThisSimulationOutputInterval
         {
-            get { return (long)_timeSeries.SumOfObservations; }
+            get { return (int)_timeSeries.SumOfObservations; }
         }
-        public long TotalCounts
+        public int TotalCounts
         {
             get { return _totalCounts; }
         }
-        public long LastObservedCounts
+        public int LastObservedCounts
         {
-            get { return (long)_timeSeries.Sum(_numOfPastObsPeriodsToStore - 1, _numOfPastObsPeriodsToStore - 1); }
+            get { return (int)_timeSeries.Sum(_numOfPastObsPeriodsToStore - 1, _numOfPastObsPeriodsToStore - 1); }
         }
-        public long TotalObservedCounts
+        public int TotalObservedCounts
         {
             get
             {
                 if (_timeSeries == null)
                     return _totalCounts;
                 else
-                    return _totalCounts - (long)_timeSeries.Sum(_numOfPastObsPeriodsToStore, _numOfPastObsPeriodsToStore + _numOfObsPeriodsDelayed - 1);
+                    return _totalCounts - (int)_timeSeries.Sum(_numOfPastObsPeriodsToStore, _numOfPastObsPeriodsToStore + _numOfObsPeriodsDelayed - 1);
             }
         }
 
@@ -130,7 +130,7 @@ namespace APACE_lib
         }
         
         // add one row of data
-        public void AddAnObservation(long count, double duration)
+        public void AddAnObservation(int count, double duration)
         {
             // record the new count
             _currentCount = count;
@@ -146,7 +146,7 @@ namespace APACE_lib
             _totalQALY += _currentQALY;
             _totalCost += _currentCost;
         }        
-        public void AddAnObservation(long count)
+        public void AddAnObservation(int count)
         {
             AddAnObservation(count, 0);        
         }        
