@@ -20,7 +20,6 @@ namespace APACE_lib
 
         private ExcelInterface _excelInterface;
         private ModelSettings _modelSettings = new ModelSettings();
-        RNG _rng;
         private EpidemicModeller _epidemicModeller;
         private ArrayList _epidemicModellers = new ArrayList();
 
@@ -268,7 +267,7 @@ namespace APACE_lib
                     for (int varIndex = 0; varIndex < numOfVars; varIndex++)
                         thisSimulationIterations_objFunction[simItr][varIndex] = experimentDesigns[epidemicModelIndex, varIndex];
                     // objective function
-                    if (_modelSettings.ObjectiveFunction == enumObjectiveFunction.MaximizeNHB)
+                    if (_modelSettings.ObjectiveFunction == EnumObjectiveFunction.MaximizeNHB)
                         thisSimulationIterations_objFunction[simItr][numOfVars + 0]
                             = thisEpidemicModeller.SimulationIterations_QALY[simItr] - thisEpidemicModeller.SimulationIterations_Cost[simItr] 
                             / Math.Max(_modelSettings.TempEpidemic.WTPForHealth, SupportProcedures.minimumWTPforHealth);
@@ -348,11 +347,6 @@ namespace APACE_lib
                     // simulate the dynamic Policy
                     thisEpiModeller.SimulateTheOptimalDynamicPolicy(_modelSettings.NumOfSimulationIterations, _modelSettings.TempEpidemic.SimulationHorizonTimeIndex,
                         _modelSettings.TempEpidemic.WarmUpPeriodIndex, storeEpidemicTrajectories);
-                    // simulation time
-                    _obsTotalSimulationTimeToFindOneDynamicPolicy.Record(thisEpiModeller.GetTotalSimulationTimeToFindOneDynamicPolicy());
-                    _obsTimeUsedToFindOneDynamicPolicy.Record(thisEpiModeller.GetTimeUsedToFindOneDynamicPolicy());
-                    _obsRatioOfTimeUsedToFindOneDynamicPolicyToTotalSimulationTimeToFindOneDynamicPolicy.Record(
-                        thisEpiModeller.GetTimeUsedToFindOneDynamicPolicy() / thisEpiModeller.GetTotalSimulationTimeToFindOneDynamicPolicy());
                 }
                 #endregion
             }
@@ -390,14 +384,7 @@ namespace APACE_lib
                     ((EpidemicModeller)thisEpiModeller).SimulateTheOptimalDynamicPolicy(_modelSettings.NumOfSimulationIterations, _modelSettings.TempEpidemic.SimulationHorizonTimeIndex,
                         _modelSettings.TempEpidemic.WarmUpPeriodIndex, storeEpidemicTrajectories);
                 });     
-                // computation time
-                foreach (EpidemicModeller thisEpiModeller in _epidemicModellers)
-                {                    
-                    _obsTotalSimulationTimeToFindOneDynamicPolicy.Record(thisEpiModeller.GetTotalSimulationTimeToFindOneDynamicPolicy());
-                    _obsTimeUsedToFindOneDynamicPolicy.Record(thisEpiModeller.GetTimeUsedToFindOneDynamicPolicy());
-                    _obsRatioOfTimeUsedToFindOneDynamicPolicyToTotalSimulationTimeToFindOneDynamicPolicy.Record(
-                        thisEpiModeller.GetTimeUsedToFindOneDynamicPolicy() / thisEpiModeller.GetTotalSimulationTimeToFindOneDynamicPolicy());
-                } 
+                
                 #endregion
             }
 
@@ -494,7 +481,7 @@ namespace APACE_lib
         
         // build and simulate epidemic modelers to evaluate the threshold-based static policies
         private void BuildAndSimulateEpidemicModellersToEvaluateThresholdBasedStaticPolicies
-            (double[][] staticPolicyParameterDesigns, int numOfSimulationRunsForEachDesign, enumSimulationRNDSeedsSource simulationRNDSeedsSource)
+            (double[][] staticPolicyParameterDesigns, int numOfSimulationRunsForEachDesign, EnumSimulationRNDSeedsSource simulationRNDSeedsSource)
         {
             // build epidemic modelers
             _epidemicModellers.Clear();
@@ -514,7 +501,7 @@ namespace APACE_lib
                     EpidemicModeller thisEpidemicModeller
                         = GetAnEpidemicModellerToEvaluateThresholdBasedStaticPolicy(epiID,
                         decisionIDs, thresholds, numOfDecisionPeriodsToUse);
-                    thisEpidemicModeller.ToggleModellerTo(enumModelUse.Simulation, enumDecisionRule.SpecifiedByPolicy, false, _modelSettings.TempEpidemic.WarmUpPeriodIndex);
+                    thisEpidemicModeller.ToggleModellerTo(EnumModelUse.Simulation, EnumEpiDecisions.SpecifiedByPolicy, false, _modelSettings.TempEpidemic.WarmUpPeriodIndex);
 
                     // add this epidemic modeler
                     _epidemicModellers.Add(thisEpidemicModeller);
@@ -531,7 +518,7 @@ namespace APACE_lib
             {
                 #region Use parallel computing
                 Object thisLock = new Object();
-                Parallel.For(0, staticPolicyParameterDesigns.Length, epiID =>
+                Parallel.For(0, staticPolicyParameterDesigns.Length, (Action<int>)(epiID =>
                 {
                     int[] decisionIDs = new int[1];
                     double[] thresholds = new double[1];
@@ -544,14 +531,14 @@ namespace APACE_lib
                         = GetAnEpidemicModellerToEvaluateThresholdBasedStaticPolicy(epiID,
                         (int[])decisionIDs.Clone(), (double[])thresholds.Clone(), (int[])numOfDecisionPeriodsToUse.Clone());
 
-                    thisEpidemicModeller.ToggleModellerTo(enumModelUse.Simulation, enumDecisionRule.SpecifiedByPolicy, false, _modelSettings.TempEpidemic.WarmUpPeriodIndex);
+                    thisEpidemicModeller.ToggleModellerTo(EnumModelUse.Simulation, EnumEpiDecisions.SpecifiedByPolicy, false, _modelSettings.TempEpidemic.WarmUpPeriodIndex);
 
                     // add this epidemic modeler
                     lock (thisLock)
                     {
                         _epidemicModellers.Add(thisEpidemicModeller);
                     }
-                });
+                }));
                 // run the epidemics
                 Parallel.ForEach(_epidemicModellers.Cast<object>(), thisEpiModeller =>
                 {
@@ -641,7 +628,7 @@ namespace APACE_lib
         // initialize calibration
         private void InitializeCalibration()
         {
-            _modelSettings.SimulationRNDSeedsSource = enumSimulationRNDSeedsSource.StartFrom0;
+            _modelSettings.SimulationRNDSeedsSource = EnumSimulationRNDSeedsSource.StartFrom0;
 
             // create an epidemic modeler
             _epidemicModeller = new EpidemicModeller(0, ref _excelInterface, ref _modelSettings);
@@ -731,7 +718,7 @@ namespace APACE_lib
         }
         // get an epidemic modeler to evaluate interval-based static policy
         private EpidemicModeller GetAnEpidemicModellerToEvaluateIntervalBasedStaticPolicy
-            (int epiModellerID, int interventionsCombinationBinaryCode, double[] startTimes, int[] numOfDecisionPeriodsToUse, enumSimulationRNDSeedsSource simulationRNDSeedsSource, int firstRNDSeedIfNotPrespecified)
+            (int epiModellerID, int interventionsCombinationBinaryCode, double[] startTimes, int[] numOfDecisionPeriodsToUse, EnumSimulationRNDSeedsSource simulationRNDSeedsSource, int firstRNDSeedIfNotPrespecified)
         {
             // build an epidemic model
             EpidemicModeller thisEpidemicModeller = new EpidemicModeller(epiModellerID, ref _excelInterface, ref _modelSettings);
@@ -791,7 +778,7 @@ namespace APACE_lib
             thisSimulationOutcomes[0] = new double[6];
 
             // simulation outcomes
-            if (_modelSettings.ObjectiveFunction == enumObjectiveFunction.MaximizeNHB)
+            if (_modelSettings.ObjectiveFunction == EnumObjectiveFunction.MaximizeNHB)
             {
                 thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.E_ObjectiveFunction] = epidemicModeller.obsTotalNHB.Mean;
                 thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.stDev_ObjectiveFunction] = epidemicModeller.obsTotalNHB.StDev;
@@ -836,8 +823,8 @@ namespace APACE_lib
         // set up observation worksheet
         private void ReadObservedHistory()
         {
-            if (!(_modelSettings.ModelUse == enumModelUse.Calibration|| 
-                    _modelSettings.TempEpidemic.DecisionRule == enumDecisionRule.PredeterminedSequence))
+            if (!(_modelSettings.ModelUse == EnumModelUse.Calibration|| 
+                    _modelSettings.TempEpidemic.DecisionRule == EnumEpiDecisions.PredeterminedSequence))
                 return;
 
             // check if current epidemic history can be used if not get the history from the user
@@ -1099,7 +1086,7 @@ namespace APACE_lib
                     thisSimulationIterations[simItr][(int)ExcelInterface.enumADPSASimulationIterationsOffsets.epsilonGreedy_beta]
                         = optEpsilonGreedy_beta;
 
-                    if (_modelSettings.ObjectiveFunction == enumObjectiveFunction.MaximizeNHB)
+                    if (_modelSettings.ObjectiveFunction == EnumObjectiveFunction.MaximizeNHB)
                         thisSimulationIterations[simItr][(int)ExcelInterface.enumADPSASimulationIterationsOffsets.objectiveFunction]
                             = thisEpiModeller.SimulationIterations_NHB[simItr];
                     else
@@ -1191,7 +1178,7 @@ namespace APACE_lib
                     thisSimulationIterations[simItr] = new double[5];
                     thisSimulationIterations[simItr][(int)ExcelInterface.enumStaticPolicyOptimizationSimulationIterationsOffsets.wtpForHealth] = thisWTPForHealth;
 
-                    if (_modelSettings.ObjectiveFunction == enumObjectiveFunction.MaximizeNHB)
+                    if (_modelSettings.ObjectiveFunction == EnumObjectiveFunction.MaximizeNHB)
                         thisSimulationIterations[simItr][(int)ExcelInterface.enumStaticPolicyOptimizationSimulationIterationsOffsets.objectiveFunction]
                             = thisEpiModeller.SimulationIterations_QALY[simItr] - thisEpiModeller.SimulationIterations_Cost[simItr] / Math.Max(thisWTPForHealth, SupportProcedures.minimumWTPforHealth);
                     else

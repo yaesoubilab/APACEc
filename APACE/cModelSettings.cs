@@ -12,12 +12,12 @@ namespace APACE_lib
     public class ModelSettings
     {
         private Epidemic _tempEpidemic = new Epidemic(0);
-        enumModelUse _modelUse = enumModelUse.Simulation;
+        EnumModelUse _modelUse = EnumModelUse.Simulation;
         private bool _useParallelComputing;
         private int _maxDegreeOfParallelism;
         private int _firstRNGSeed;
         private int _distanceBtwRNGSeeds;
-        private enumSimulationRNDSeedsSource _simulationRNDSeedsSource = enumSimulationRNDSeedsSource.StartFrom0;
+        private EnumSimulationRNDSeedsSource _simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.StartFrom0;
         private int[] _rndSeeds;
         private double[] _rndSeedsGoodnessOfFit;
         private int _numOfSimulationIterations;
@@ -35,7 +35,7 @@ namespace APACE_lib
         private int[,] _connectionsMatrix;
 
         // policy related settings
-        private SimulationLib.EnumQFunctionApproximationMethod _qFunApxMethod = SimulationLib.EnumQFunctionApproximationMethod.Q_Approximation;
+        private EnumQFunctionApproximationMethod _qFunApxMethod = EnumQFunctionApproximationMethod.Q_Approximation;
         private bool _ifEpidemicTimeIsUsedAsFeature;
         private int _pastDecisionPeriodWithDecisionAsFeature;
         private int _degreeOfPolynomialQFunction;
@@ -45,7 +45,7 @@ namespace APACE_lib
         double[] _qFunctionCoefficientsInitialValues;
 
         // adaptive policy optimization
-        private enumObjectiveFunction _objectiveFunction;
+        private EnumObjectiveFunction _objectiveFunction;
         private int _numOfSimRunsToBackPropogate;
         private double _wtpForHealth_min, _wtpForHealth_max, _wtpForHealth_step;
         private double _harmonicRule_a;
@@ -58,7 +58,7 @@ namespace APACE_lib
         private double[][] _adpParameterDesigns;
 
         // static policy optimization
-        private enumStaticPolicyOptimizationMethod _staticPolicyOptimizationMethod;
+        private EnumStaticPolicyOptimizationMethod _staticPolicyOptimizationMethod;
         private int _numOfIterationsToOptimizeStaticPolicies;
         private int _numOfSimsInEachIterationForStaticPolicyOpt;
         private int _degreeOfPolyFunctionForStochasticApproximation;
@@ -73,16 +73,16 @@ namespace APACE_lib
         private int _numOfSimulationsRunInParallelForCalibration;
 
 
-        public enumModelUse ModelUse { get => _modelUse; set => _modelUse = value; }
+        public EnumModelUse ModelUse { get => _modelUse; set => _modelUse = value; }
         public bool UseParallelComputing { get => _useParallelComputing; set => _useParallelComputing = value; }
         public int MaxDegreeOfParallelism { get => _maxDegreeOfParallelism; set => _maxDegreeOfParallelism = value; }
         public int FirstRNGSeed { get => _firstRNGSeed; set => _firstRNGSeed = value; }
         public int DistanceBtwRNGSeeds { get => _distanceBtwRNGSeeds; set => _distanceBtwRNGSeeds = value; }
-        public enumSimulationRNDSeedsSource SimulationRNDSeedsSource { get => _simulationRNDSeedsSource; set => _simulationRNDSeedsSource = value; }
+        public EnumSimulationRNDSeedsSource SimulationRNDSeedsSource { get => _simulationRNDSeedsSource; set => _simulationRNDSeedsSource = value; }
         public int[] RndSeeds { get => _rndSeeds; set => _rndSeeds = value; }
         public double[] RndSeedsGoodnessOfFit { get => _rndSeedsGoodnessOfFit; set => _rndSeedsGoodnessOfFit = value; }
         public int NumOfSimulationIterations { get => _numOfSimulationIterations; set => _numOfSimulationIterations = value; }
-        public SimulationLib.EnumQFunctionApproximationMethod QFunApxMethod { get => _qFunApxMethod; set => _qFunApxMethod = value; }
+        public EnumQFunctionApproximationMethod QFunApxMethod { get => _qFunApxMethod; set => _qFunApxMethod = value; }
         public bool IfEpidemicTimeIsUsedAsFeature { get => _ifEpidemicTimeIsUsedAsFeature; set => _ifEpidemicTimeIsUsedAsFeature = value; }
         public int PastDecisionPeriodWithDecisionAsFeature { get => _pastDecisionPeriodWithDecisionAsFeature; set => _pastDecisionPeriodWithDecisionAsFeature = value; }
         public int DegreeOfPolynomialQFunction { get => _degreeOfPolynomialQFunction; set => _degreeOfPolynomialQFunction = value; }
@@ -90,7 +90,7 @@ namespace APACE_lib
         public int NumberOfHiddenNeurons { get => _numberOfHiddenNeurons; set => _numberOfHiddenNeurons = value; }
         public double[] QFunctionCoefficients { get => _qFunctionCoefficients; set => _qFunctionCoefficients = value; }
         public double[] QFunctionCoefficientsInitialValues { get => _qFunctionCoefficientsInitialValues; set => _qFunctionCoefficientsInitialValues = value; }
-        public enumObjectiveFunction ObjectiveFunction { get => _objectiveFunction; set => _objectiveFunction = value; }
+        public EnumObjectiveFunction ObjectiveFunction { get => _objectiveFunction; set => _objectiveFunction = value; }
         public int NumOfSimRunsToBackPropogate { get => _numOfSimRunsToBackPropogate; set => _numOfSimRunsToBackPropogate = value; }
         public double WtpForHealth_min { get => _wtpForHealth_min; set => _wtpForHealth_min = value; }
         public double WtpForHealth_max { get => _wtpForHealth_max; set => _wtpForHealth_max = value; }
@@ -108,7 +108,7 @@ namespace APACE_lib
         public int NumOfIntervalsToDescretizeFeatures { get => _numOfIntervalsToDescretizeFeatures; set => _numOfIntervalsToDescretizeFeatures = value; }
         public int NumOfPrespecifiedRNDSeedsToUse { get => _numOfPrespecifiedRNDSeedsToUse; set => _numOfPrespecifiedRNDSeedsToUse = value; }
         public double[][] AdpParameterDesigns { get => _adpParameterDesigns; set => _adpParameterDesigns = value; }
-        public enumStaticPolicyOptimizationMethod StaticPolicyOptimizationMethod { get => _staticPolicyOptimizationMethod; set => _staticPolicyOptimizationMethod = value; }
+        public EnumStaticPolicyOptimizationMethod StaticPolicyOptimizationMethod { get => _staticPolicyOptimizationMethod; set => _staticPolicyOptimizationMethod = value; }
         public int NumOfIterationsToOptimizeStaticPolicies { get => _numOfIterationsToOptimizeStaticPolicies; set => _numOfIterationsToOptimizeStaticPolicies = value; }
         public int NumOfSimsInEachIterationForStaticPolicyOpt { get => _numOfSimsInEachIterationForStaticPolicyOpt; set => _numOfSimsInEachIterationForStaticPolicyOpt = value; }
         public int DegreeOfPolyFunctionForStochasticApproximation { get => _degreeOfPolyFunctionForStochasticApproximation; set => _degreeOfPolyFunctionForStochasticApproximation = value; }
@@ -141,19 +141,19 @@ namespace APACE_lib
             switch (excelInterface.GetWhatToDo())
             {
                 case ExcelInterface.enumWhatToDo.Simulate:
-                    _modelUse = enumModelUse.Simulation;
+                    _modelUse = EnumModelUse.Simulation;
                     break;
                 case ExcelInterface.enumWhatToDo.Calibrate:
-                    _modelUse = enumModelUse.Calibration;
+                    _modelUse = EnumModelUse.Calibration;
                     break;
                 case ExcelInterface.enumWhatToDo.OptimizeTheDynamicPolicy:
-                    _modelUse = enumModelUse.Optimization;
+                    _modelUse = EnumModelUse.Optimization;
                     break;
                 case ExcelInterface.enumWhatToDo.OptimizeTheStaticPolicy:
-                    _modelUse = enumModelUse.Optimization;
+                    _modelUse = EnumModelUse.Optimization;
                     break;
                 case ExcelInterface.enumWhatToDo.RunExperiments:
-                    _modelUse = enumModelUse.Simulation;
+                    _modelUse = EnumModelUse.Simulation;
                     break;
             }
 
@@ -183,16 +183,16 @@ namespace APACE_lib
                 );
 
             // read RND seeds if necessary
-            if (_modelUse == enumModelUse.Simulation || _modelUse == enumModelUse.Optimization)
+            if (_modelUse == EnumModelUse.Simulation || _modelUse == EnumModelUse.Optimization)
             {
                 switch (_simulationRNDSeedsSource)
                 {
-                    case enumSimulationRNDSeedsSource.StartFrom0:
+                    case EnumSimulationRNDSeedsSource.StartFrom0:
                         break;
-                    case enumSimulationRNDSeedsSource.PrespecifiedSquence:
+                    case EnumSimulationRNDSeedsSource.PrespecifiedSquence:
                         _rndSeeds = excelInterface.GetRNDSeeds(_numOfSimulationIterations);
                         break;
-                    case enumSimulationRNDSeedsSource.WeightedPrespecifiedSquence:
+                    case EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence:
                         {
                             _rndSeeds = excelInterface.GetRNDSeeds(_numOfSimulationIterations);
                             _rndSeedsGoodnessOfFit = excelInterface.GetGoodnessOfFitForRNDSeeds(_numOfSimulationIterations);

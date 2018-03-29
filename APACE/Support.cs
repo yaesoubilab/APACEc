@@ -6,12 +6,12 @@ using System.Text;
 namespace APACE_lib
 {
     // Simulation and Optimization
-    public enum enumMarkOfEpidemicStartTime : int
+    public enum EnumMarkOfEpidemicStartTime : int
     {
         TimeZero = 1,
         TimeOfFirstObservation = 2,
     }
-    public enum enumSimulationRNDSeedsSource : int
+    public enum EnumSimulationRNDSeedsSource : int
     {
         StartFrom0 = 1,
         PrespecifiedSquence = 2,
@@ -26,34 +26,26 @@ namespace APACE_lib
         AccumulatingIncidenceANDPrediction = 4,
         IncidenceANDAccumulatingIncidence = 5,         
     }
-    public enum enumModelUse : int
+    public enum EnumModelUse : int
     {
         Simulation = 0,
         Calibration = 1,
         Optimization = 2,
     }
-    public enum enumObjectiveFunction : int
+    public enum EnumObjectiveFunction : int
     {
         MaximizeNMB = 0,
         MaximizeNHB = 1,
     }
-    public enum enumDecisionRule : int
+    public enum EnumEpiDecisions : int
     {
         SpecifiedByPolicy = 1,
-        //Greedy = 3,
-        //EpsilonGreedy = 4,
         PredeterminedSequence = 2,
     }
-    public enum enumStaticPolicyOptimizationMethod : int
+    public enum EnumStaticPolicyOptimizationMethod : int
     {
         FullFactorialEvaluation = 0,
         StochasticOptimization = 1,
-    }
-    public enum enumWhatToTransfer : int
-    {
-        Nothing = 0,
-        AllClasses = 1,
-        NonNormalClasses = 2,
     }
     public enum enumADPParameter : int
     {
@@ -87,6 +79,40 @@ namespace APACE_lib
     public static class SupportProcedures
     {
         public const double minimumWTPforHealth = 0.01; // 1 cent
+
+        public static EnumDecisionRule ConvertToDecisionRule(string strOnOffSwitchSetting)
+        {
+            EnumDecisionRule onOffSwitchSetting = EnumDecisionRule.Predetermined;
+            switch (strOnOffSwitchSetting)
+            {
+                case "Predetermined":
+                    onOffSwitchSetting = EnumDecisionRule.Predetermined;
+                    break;
+                case "Periodic":
+                    onOffSwitchSetting = EnumDecisionRule.Periodic;
+                    break;
+                case "Threshold-Based":
+                    onOffSwitchSetting = EnumDecisionRule.ThresholdBased;
+                    break;
+                case "Interval-Based":
+                    onOffSwitchSetting = EnumDecisionRule.IntervalBased;
+                    break;
+                case "Dynamic":
+                    onOffSwitchSetting = EnumDecisionRule.Dynamic;
+                    break;
+            }
+            return onOffSwitchSetting;
+        }
+
+        public static int ConvertToSwitchValue(string value)
+        {
+            int switchValue = 0;
+
+            if (value == "On")
+                switchValue = 1;
+
+            return switchValue;
+        }
 
         public static enumFeatureCombinations ConvertToFeatureCombination(string input)
         {

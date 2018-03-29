@@ -24,7 +24,6 @@ namespace APACE_lib
         // model information
         int _numOfInterventions;
         int _numOfInterventionsAffectingContactPattern;
-        int _numOfInterventionsControlledDynamically;
         int _numOfFeatures;
         bool _storeEpidemicTrajectories;
         string[] _interventionNames;
@@ -114,10 +113,7 @@ namespace APACE_lib
         {
             get { return _numOfInterventionsAffectingContactPattern; }
         }
-        public int NumOfInterventionsControlledDynamically
-        {
-            get { return _numOfInterventionsControlledDynamically; }
-        }
+       
         public string[] InterventionNames
         {
             get { return _interventionNames; }
@@ -310,10 +306,10 @@ namespace APACE_lib
                 int numOfEpis = 0;
                 switch (_modelSettings.ModelUse)
                 {
-                    case enumModelUse.Simulation:
+                    case EnumModelUse.Simulation:
                         numOfEpis = _modelSettings.NumOfSimulationIterations;
                         break;
-                    case enumModelUse.Calibration:
+                    case EnumModelUse.Calibration:
                         numOfEpis = _modelSettings.NumOfSimulationsRunInParallelForCalibration;
                         break;
                 }
@@ -337,8 +333,8 @@ namespace APACE_lib
             //AddContactMatrices(_modelSettings.GetBaseContactMatrices(), _modelSettings.GetPercentChangeInContactMatricesParIDs());
 
             // set up adaptive policy related settings if necessary
-            if (_numOfInterventionsControlledDynamically> 0)
-                AddDynamicPolicySettings(ref excelInterface);
+            //if (_numOfInterventionsControlledDynamically> 0)
+            //    AddDynamicPolicySettings(ref excelInterface);
 
             //// read prespecified interventions
             //if (_modelSettings.TempEpidemic.DecisionRule == enumDecisionRule.PredeterminedSequence ||
@@ -346,7 +342,7 @@ namespace APACE_lib
             //    _prespecifiedDecisionsOverObservationPeriods = (int[][])_modelSettings.PrespecifiedSequenceOfInterventions.Clone();
 
             // find the weighted RND seeds
-            if (_modelSettings.SimulationRNDSeedsSource == enumSimulationRNDSeedsSource.WeightedPrespecifiedSquence)
+            if (_modelSettings.SimulationRNDSeedsSource == EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence)
             {
                 int n = _modelSettings.RndSeeds.Length;
                 double[] arrProb = new double[n];
@@ -413,7 +409,7 @@ namespace APACE_lib
 
                     }
                     // store outcomes of this epidemic 
-                    if (_parentEpidemic.ModelUse == enumModelUse.Simulation)
+                    if (_parentEpidemic.ModelUse == EnumModelUse.Simulation)
                         StoreOutcomesOfThisEpidemic(_parentEpidemic, simItr);
 
                     // store sampled parameter values
@@ -457,7 +453,7 @@ namespace APACE_lib
                         _timeOfSimulationObservableOutputs = SupportFunctions.ConcatJaggedArray(_timeOfSimulationObservableOutputs, thisEpidemic.TimesOfEpidemicObservationsOverPastObservationPeriods);
                     }
                     // store outcomes of this epidemic 
-                    if (thisEpidemic.ModelUse == enumModelUse.Simulation)
+                    if (thisEpidemic.ModelUse == EnumModelUse.Simulation)
                         StoreOutcomesOfThisEpidemic(thisEpidemic, thisEpidemic.ID);
 
                     // store sampled parameter values
@@ -479,7 +475,7 @@ namespace APACE_lib
             // reset calibration
             _calibration.Reset();
             // toggle to calibration
-            ToggleModellerTo(enumModelUse.Calibration, enumDecisionRule.PredeterminedSequence, false, _modelSettings.TempEpidemic.WarmUpPeriodIndex); 
+            ToggleModellerTo(EnumModelUse.Calibration, EnumEpiDecisions.PredeterminedSequence, false, _modelSettings.TempEpidemic.WarmUpPeriodIndex); 
 
             // keep obtaining trajectories until enough
             int simItr = -1;
@@ -615,7 +611,7 @@ namespace APACE_lib
         public void SimulateTheOptimalDynamicPolicy(int numOfSimulationIterations, int timeIndexToStop, int warmUpPeriodIndex, bool storeEpidemicTrajectories)
         {
             // toggle to simulation
-            ToggleModellerTo(enumModelUse.Simulation, enumDecisionRule.SpecifiedByPolicy, storeEpidemicTrajectories, warmUpPeriodIndex);            
+            ToggleModellerTo(EnumModelUse.Simulation, EnumEpiDecisions.SpecifiedByPolicy, storeEpidemicTrajectories, warmUpPeriodIndex);            
             // simulate epidemic (sequential)
             SimulateEpidemics();
         }
@@ -976,12 +972,12 @@ namespace APACE_lib
             // specify rnd seeds for ADP algorithm
             switch (_modelSettings.SimulationRNDSeedsSource)
             {
-                case enumSimulationRNDSeedsSource.StartFrom0:
+                case EnumSimulationRNDSeedsSource.StartFrom0:
                     break;
-                case enumSimulationRNDSeedsSource.PrespecifiedSquence:
+                case EnumSimulationRNDSeedsSource.PrespecifiedSquence:
                     _parentEpidemic.SetUpADPRandomNumberSource(_modelSettings.RndSeeds);
                     break;
-                case enumSimulationRNDSeedsSource.WeightedPrespecifiedSquence:
+                case EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence:
                     _parentEpidemic.SetUpADPRandomNumberSource(_modelSettings.RndSeeds, _modelSettings.RndSeedsGoodnessOfFit);
                     break;
             }
@@ -1262,88 +1258,88 @@ namespace APACE_lib
             #endregion            
         }
         // get objective function mean
-        public double GetObjectiveFunction_Mean(enumObjectiveFunction objectiveFunction)
+        public double GetObjectiveFunction_Mean(EnumObjectiveFunction objectiveFunction)
         {
             double mean = 0;
             switch (objectiveFunction)
             {
-                case enumObjectiveFunction.MaximizeNHB:
+                case EnumObjectiveFunction.MaximizeNHB:
                     mean = _obsTotalNHB.Mean;
                     break;
-                case enumObjectiveFunction.MaximizeNMB:
+                case EnumObjectiveFunction.MaximizeNMB:
                     mean = _obsTotalNMB.Mean;
                     break;
             }
             return mean;
         }
-        public double GetObjectiveFunction_Mean(enumObjectiveFunction objectiveFunction, double wtpForHealth)
+        public double GetObjectiveFunction_Mean(EnumObjectiveFunction objectiveFunction, double wtpForHealth)
         {
             double mean = 0;
             switch (objectiveFunction)
             {
-                case enumObjectiveFunction.MaximizeNHB:
+                case EnumObjectiveFunction.MaximizeNHB:
                     mean = _obsTotalQALY.Mean - _obsTotalCost.Mean / wtpForHealth;
                     break;
-                case enumObjectiveFunction.MaximizeNMB:
+                case EnumObjectiveFunction.MaximizeNMB:
                     mean = wtpForHealth * _obsTotalQALY.Mean - _obsTotalCost.Mean;
                     break;
             }
             return mean;
         }
         // get objective function StDev
-        public double GetObjectiveFunction_StDev(enumObjectiveFunction objectiveFunction)
+        public double GetObjectiveFunction_StDev(EnumObjectiveFunction objectiveFunction)
         {
             double mean = 0;
             switch (objectiveFunction)
             {
-                case enumObjectiveFunction.MaximizeNHB:
+                case EnumObjectiveFunction.MaximizeNHB:
                     mean = _obsTotalNHB.StDev;
                     break;
-                case enumObjectiveFunction.MaximizeNMB:
+                case EnumObjectiveFunction.MaximizeNMB:
                     mean = _obsTotalNMB.StDev;
                     break;
             }
             return mean;
         }
-        public double GetObjectiveFunction_StDev(enumObjectiveFunction objectiveFunction, double wtpForHealth)
+        public double GetObjectiveFunction_StDev(EnumObjectiveFunction objectiveFunction, double wtpForHealth)
         {
             double mean = 0;
             switch (objectiveFunction)
             {
-                case enumObjectiveFunction.MaximizeNHB:
+                case EnumObjectiveFunction.MaximizeNHB:
                     mean = _obsTotalQALY.StDev + _obsTotalCost.StDev / wtpForHealth;
                     break;
-                case enumObjectiveFunction.MaximizeNMB:
+                case EnumObjectiveFunction.MaximizeNMB:
                     mean = wtpForHealth * _obsTotalQALY.StDev + _obsTotalCost.StDev;
                     break;
             }
             return mean;
         }
         // get lower bound of objective function
-        public double GetObjectiveFunction_LowerBound(enumObjectiveFunction objectiveFunction, double significanceLevel)
+        public double GetObjectiveFunction_LowerBound(EnumObjectiveFunction objectiveFunction, double significanceLevel)
         {
             double lowerBound = 0;
             switch (objectiveFunction)
             {
-                case enumObjectiveFunction.MaximizeNHB:
+                case EnumObjectiveFunction.MaximizeNHB:
                     lowerBound = _obsTotalNHB.LBoundConfidenceInterval(significanceLevel);
                     break;
-                case enumObjectiveFunction.MaximizeNMB:
+                case EnumObjectiveFunction.MaximizeNMB:
                     lowerBound = _obsTotalNMB.LBoundConfidenceInterval(significanceLevel);
                     break;
             }
             return lowerBound;
         }
-        public double GetObjectiveFunction_LowerBound(enumObjectiveFunction objectiveFunction, double wtpForHealth, double significanceLevel)
+        public double GetObjectiveFunction_LowerBound(EnumObjectiveFunction objectiveFunction, double wtpForHealth, double significanceLevel)
         {
             double lowerBound = 0;
             switch (objectiveFunction)
             {
-                case enumObjectiveFunction.MaximizeNHB:
+                case EnumObjectiveFunction.MaximizeNHB:
                     lowerBound = _obsTotalQALY.Mean - _obsTotalCost.Mean / wtpForHealth
                         - (_obsTotalQALY.HalfWidth(significanceLevel) + _obsTotalCost.HalfWidth(significanceLevel) / wtpForHealth);
                     break;
-                case enumObjectiveFunction.MaximizeNMB:
+                case EnumObjectiveFunction.MaximizeNMB:
                     lowerBound = wtpForHealth*_obsTotalQALY.Mean - _obsTotalCost.Mean
                         - (wtpForHealth * _obsTotalQALY.HalfWidth(significanceLevel) + _obsTotalCost.HalfWidth(significanceLevel));
                     break;
@@ -1351,30 +1347,30 @@ namespace APACE_lib
             return lowerBound;
         }
         // get upper bound of objective function
-        public double GetObjectiveFunction_UpperBound(enumObjectiveFunction objectiveFunction, double significanceLevel)
+        public double GetObjectiveFunction_UpperBound(EnumObjectiveFunction objectiveFunction, double significanceLevel)
         {
             double upperBound = 0;
             switch (objectiveFunction)
             {
-                case enumObjectiveFunction.MaximizeNHB:
+                case EnumObjectiveFunction.MaximizeNHB:
                     upperBound = _obsTotalNHB.UBoundConfidenceInterval(significanceLevel);
                     break;
-                case enumObjectiveFunction.MaximizeNMB:
+                case EnumObjectiveFunction.MaximizeNMB:
                     upperBound = _obsTotalNMB.UBoundConfidenceInterval(significanceLevel);
                     break;
             }
             return upperBound;
         }
-        public double GetObjectiveFunction_UpperBound(enumObjectiveFunction objectiveFunction, double wtpForHealth, double significanceLevel)
+        public double GetObjectiveFunction_UpperBound(EnumObjectiveFunction objectiveFunction, double wtpForHealth, double significanceLevel)
         {
             double upperBound = 0;
             switch (objectiveFunction)
             {
-                case enumObjectiveFunction.MaximizeNHB:
+                case EnumObjectiveFunction.MaximizeNHB:
                     upperBound = _obsTotalQALY.Mean - _obsTotalCost.Mean / wtpForHealth
                         + (_obsTotalQALY.HalfWidth(significanceLevel) + _obsTotalCost.HalfWidth(significanceLevel) / wtpForHealth);
                     break;
-                case enumObjectiveFunction.MaximizeNMB:
+                case EnumObjectiveFunction.MaximizeNMB:
                     upperBound = wtpForHealth * _obsTotalQALY.Mean - _obsTotalCost.Mean
                         + (wtpForHealth * _obsTotalQALY.HalfWidth(significanceLevel) + _obsTotalCost.HalfWidth(significanceLevel));
                     break;
@@ -1423,16 +1419,7 @@ namespace APACE_lib
         {
             _parentEpidemic.GetOptimalDynamicPolicy(ref strFeatureNames, ref headers, ref optimalDecisions, numOfIntervalsToDescretizeFeatures);
         }
-        // get total simulation time for optimization
-        public double GetTotalSimulationTimeToFindOneDynamicPolicy()
-        {
-            return _parentEpidemic.TotalSimulationTimeToFindOneDynamicPolicy;
-        }
-        // get optimization time
-        public double GetTimeUsedToFindOneDynamicPolicy()
-        {
-            return _parentEpidemic.TimeUsedToFindOneDynamicPolicy;
-        }
+        
         #endregion
 
         // ********  Private Subs ******** 
@@ -1453,7 +1440,7 @@ namespace APACE_lib
         {    
             // reset the rnd object
             
-            if (_modelSettings.SimulationRNDSeedsSource == enumSimulationRNDSeedsSource.WeightedPrespecifiedSquence)
+            if (_modelSettings.SimulationRNDSeedsSource == EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence)
             {
                 _sampledRNDSeeds = new int[_modelSettings.NumOfSimulationIterations];
                 for (int i = 0; i< _modelSettings.NumOfSimulationIterations; i++)
@@ -1560,7 +1547,7 @@ namespace APACE_lib
         {
             _numOfInterventions = thisEpidemic.NumOfInterventions;
             _numOfInterventionsAffectingContactPattern = thisEpidemic.NumOfInterventionsAffectingContactPattern;
-            _numOfInterventionsControlledDynamically = thisEpidemic.NumOfInterventionsControlledDynamically;
+            //_numOfInterventionsControlledDynamically = thisEpidemic.NumOfInterventionsControlledDynamically;
             _storeEpidemicTrajectories = thisEpidemic.StoreEpidemicTrajectories;
             _numOfTimeBasedOutputsToReport = thisEpidemic.NumOfTimeBasedOutputsToReport;
             _numOfIntervalBasedOutputsToReport = thisEpidemic.NumOfIntervalBasedOutputsToReport;
@@ -1576,7 +1563,7 @@ namespace APACE_lib
             {
                 _interventionNames[thisIntervention.Index] = thisIntervention.Name;
                 if (thisIntervention.DecisionRule is DecionRule_Dynamic
-                    || thisIntervention.ActionType == EnumActionType.Default)
+                    || thisIntervention.Type == EnumInterventionType.Default)
                     SupportFunctions.AddToEndOfArray(ref _namesOfDefaultInterventionsAndThoseSpecifiedByDynamicRule, thisIntervention.Name);
             }
         }
@@ -1619,7 +1606,7 @@ namespace APACE_lib
         }
 
         // toggle modeller to different operation
-        public void ToggleModellerTo(enumModelUse modelUse, enumDecisionRule decisionRule, bool reportEpidemicTrajectories, int warmUpPeriodIndex)
+        public void ToggleModellerTo(EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool reportEpidemicTrajectories, int warmUpPeriodIndex)
         {
             _storeEpidemicTrajectories = reportEpidemicTrajectories;            
             // toggle each epidemic
@@ -1630,7 +1617,7 @@ namespace APACE_lib
                 ToggleAnEpidemicTo(_parentEpidemic, modelUse, decisionRule, reportEpidemicTrajectories, warmUpPeriodIndex);
         }
         // toggle one epidemic
-        private void ToggleAnEpidemicTo(Epidemic thisEpidemic, enumModelUse modelUse, enumDecisionRule decisionRule, bool storeEpidemicTrajectories, int warmUpPeriodIndex)
+        private void ToggleAnEpidemicTo(Epidemic thisEpidemic, EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool storeEpidemicTrajectories, int warmUpPeriodIndex)
         {   
             thisEpidemic.ModelUse = modelUse;
             thisEpidemic.DecisionRule = decisionRule;
@@ -1638,13 +1625,13 @@ namespace APACE_lib
 
             switch (modelUse)
             {
-                case enumModelUse.Simulation:
+                case EnumModelUse.Simulation:
                     {                        
-                        if (decisionRule == enumDecisionRule.PredeterminedSequence)
+                        if (decisionRule == EnumEpiDecisions.PredeterminedSequence)
                             thisEpidemic.AddInterventionHistory(_modelSettings.PrespecifiedSequenceOfInterventions);
                     }
                     break;
-                case enumModelUse.Calibration:
+                case EnumModelUse.Calibration:
                     #region Calibration
                     {
                         thisEpidemic.AddInterventionHistory(_modelSettings.PrespecifiedSequenceOfInterventions);
@@ -1652,7 +1639,7 @@ namespace APACE_lib
                     }
                     break;
                     #endregion
-                case enumModelUse.Optimization:
+                case EnumModelUse.Optimization:
                     {
                         thisEpidemic.StoreEpidemicTrajectories = false;
                     }
@@ -1666,13 +1653,13 @@ namespace APACE_lib
             int r = 0;
             switch (_modelSettings.SimulationRNDSeedsSource)
             {
-                case enumSimulationRNDSeedsSource.StartFrom0:
+                case EnumSimulationRNDSeedsSource.StartFrom0:
                     r = _modelSettings.DistanceBtwRNGSeeds* simItr + _modelSettings.FirstRNGSeed;
                     break;
-                case enumSimulationRNDSeedsSource.PrespecifiedSquence:
+                case EnumSimulationRNDSeedsSource.PrespecifiedSquence:
                     r = _modelSettings.RndSeeds[simItr];
                     break;
-                case enumSimulationRNDSeedsSource.WeightedPrespecifiedSquence:
+                case EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence:
                     r = _sampledRNDSeeds[simItr];
                     break;
             }

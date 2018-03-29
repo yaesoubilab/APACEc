@@ -33,7 +33,7 @@ namespace APACE_lib
         RNG _rng;        
         private int _rndSeedResultedInAnAcceptibleTrajectory;
         private double[] _arrSampledParameterValues;
-        private enumModelUse _modelUse = enumModelUse.Simulation;
+        private EnumModelUse _modelUse = EnumModelUse.Simulation;
         private double _deltaT;
         private double _decisionIntervalLength;
         private int _warmUpPeriodIndex;
@@ -74,20 +74,20 @@ namespace APACE_lib
         private int[] _indecesOfInterventionsAffectingContactPattern;
         private int[] _onOffStatusOfInterventionsAffectingContactPattern;
         // simulation
-        private enumMarkOfEpidemicStartTime _markOfEpidemicStartTime;
+        private EnumMarkOfEpidemicStartTime _markOfEpidemicStartTime;
         private int _currentSimulationTimeIndex;
-        private int _currentEpidemicTimeIndex;
+        private int _epiTimeIndex;
         private bool _stoppedDueToEradication;
         //private bool _simulationResultedInAnAcceptableTrajectory;
         private int[] _populationSizeOfMixingGroups;
         private int[] _arrNumOfMembersInEachClass;
         // decision
-        private int[] _currentInterventionCombinationInEffect;
-        private enumDecisionRule _decisionRule;
+        private int[] _interventionCombinationInEffect;
+        private EnumEpiDecisions _decisionRule;
         private int _decisionPeriodIndex;
         private int _epidemicTimeIndexToStartDecisionMaking;
         private int _initialActionCombinationBinaryCode;
-        private int _nextEpidemicTimeIndexAnInterventionEffectChanges;
+        private int _nextEpiTimeIndexAnInterventionEffectChanges;
         private int[][] _prespecifiedDecisionsOverObservationPeriods;        
         private int _nextDecisionPointIndex;
         private int _nextDecisionCycleIndex;
@@ -96,9 +96,6 @@ namespace APACE_lib
         private int _numOfFeatures;
         private bool _useEpidemicTimeAsFeature;
         private double[] _arrCurrentValuesOfFeatures = null;        
-        // resources
-        private int[] _arrAvailableResources;
-        private bool _aResourceJustReplinished; 
         // outcomes                
         double[] _arrSimulationObjectiveFunction;
         private double _currentPeriodCost;
@@ -111,9 +108,9 @@ namespace APACE_lib
         private double _annualInterestRate;
         private double _wtpForHealth;
         // optimization
-        private SimulationDecisionMaker _simDecisionMaker;
-        private enumObjectiveFunction _objectiveFunction;
-        private enumSimulationRNDSeedsSource _simulationRNDSeedsSource = enumSimulationRNDSeedsSource.StartFrom0;
+        private DecisionMaker _decisionMaker;
+        private EnumObjectiveFunction _objectiveFunction;
+        private EnumSimulationRNDSeedsSource _simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.StartFrom0;
         private int _adpSimItr; // the index of simulation runs that should be done before doing back-propagation
         private int[] _rndSeeds;
         Discrete _discreteDistOverSeeds;        
@@ -126,8 +123,6 @@ namespace APACE_lib
         private double[,] _observationMatrix;
         // computation time
         private double _timeUsedToSimulateOneTrajectory;
-        private double _timeUsedToFindOneDynamicPolicy;
-        private double _totalSimulationTimeToFindOneDynamicPolicy;
         // parameters
         private bool _thereAreTimeDependentParameters = false;
         private bool _thereAreTimeDependentParameters_affectingSusceptibilities = false;
@@ -159,11 +154,11 @@ namespace APACE_lib
         }
         public int CurrentEpidemicTimeIndex
         {
-            get {return _currentEpidemicTimeIndex;}
+            get {return _epiTimeIndex;}
         }
         public double CurrentEpidemicTime
         {
-            get { return _currentEpidemicTimeIndex * _deltaT; }
+            get { return _epiTimeIndex * _deltaT; }
         }
         public int WarmUpPeriodIndex
         {
@@ -202,7 +197,7 @@ namespace APACE_lib
         {
             get { return _numOfInterventionsAffectingContactPattern; }
         }
-        public enumMarkOfEpidemicStartTime MarkOfEpidemic
+        public EnumMarkOfEpidemicStartTime MarkOfEpidemic
         {
             get { return _markOfEpidemicStartTime; }
         }
@@ -210,12 +205,12 @@ namespace APACE_lib
         {
             get { return _observationPeriodLengh; }
         }
-        public enumModelUse ModelUse
+        public EnumModelUse ModelUse
         {
             get { return _modelUse; }
             set { _modelUse = value; }
         }
-        public enumDecisionRule DecisionRule
+        public EnumEpiDecisions DecisionRule
         {
             get { return _decisionRule; }
             set { _decisionRule = value; }
@@ -277,16 +272,16 @@ namespace APACE_lib
         }
         public int NumOfInterventions
         {
-            get { return _simDecisionMaker.NumOfActions; }
+            get { return _decisionMaker.NumOfInterventions; }
         }        
         public int NumOfFeatures
         {
             get { return _features.Count; }
         }
-        public int NumOfInterventionsControlledDynamically
-        {
-            get { return _simDecisionMaker.NumOfActionsControlledDynamically; }
-        }
+        //public int NumOfInterventionsControlledDynamically
+        //{
+        //    //get { return _decisionMaker.NumOfActionsControlledDynamically; }
+        //}
         public int NumOfMonitoredSimulationOutputs
         {
             get { return _numOfMonitoredSimulationOutputs; }
@@ -313,7 +308,7 @@ namespace APACE_lib
         }
         public List<Intervention> Interventions
         {
-            get { return _simDecisionMaker.Actions; }
+            get { return _decisionMaker.Interventions; }
         }
         public List<SummationStatistics> SummationStatistics
         {
@@ -335,9 +330,9 @@ namespace APACE_lib
         {
             get { return _features; }
         }
-        public SimulationDecisionMaker SimDecisionMaker
+        public DecisionMaker DecisionMaker
         {
-            get { return _simDecisionMaker; }
+            get { return _decisionMaker; }
         }
         public int RNDSeedResultedInAnAcceptibleTrajectory
         {
@@ -378,14 +373,6 @@ namespace APACE_lib
         {
             get { return _timeUsedToSimulateOneTrajectory; }
         }
-        public double TimeUsedToFindOneDynamicPolicy
-        {
-            get { return _timeUsedToFindOneDynamicPolicy; }
-        }
-        public double TotalSimulationTimeToFindOneDynamicPolicy
-        {
-            get { return _totalSimulationTimeToFindOneDynamicPolicy; }
-        }
         #endregion
 
         // clone
@@ -403,7 +390,7 @@ namespace APACE_lib
             clone.ModelUse = _modelUse;
             clone.DecisionRule = _decisionRule;
 
-            if (_modelUse == enumModelUse.Calibration)
+            if (_modelUse == EnumModelUse.Calibration)
             {
                 clone._observationMatrix = _observationMatrix;
                 clone._prespecifiedDecisionsOverObservationPeriods = _prespecifiedDecisionsOverObservationPeriods;
@@ -433,7 +420,7 @@ namespace APACE_lib
             _summationStatistics = new List<SummationStatistics>();
             _ratioStatistics = new List<RatioStatistics>();
             _features = new ArrayList();
-            _simDecisionMaker = new SimulationDecisionMaker();
+            _decisionMaker = new DecisionMaker();
     }
         // clean except the results
         public void CleanExceptResults()
@@ -459,10 +446,9 @@ namespace APACE_lib
             _indecesOfInterventionsAffectingContactPattern = null;
             _onOffStatusOfInterventionsAffectingContactPattern = null;
 
-            _currentInterventionCombinationInEffect = null;
+            _interventionCombinationInEffect = null;
             _prespecifiedDecisionsOverObservationPeriods = null;
              _arrCurrentValuesOfFeatures = null;
-            _arrAvailableResources = null;
             _rndSeeds = null;
     }
         
@@ -490,7 +476,7 @@ namespace APACE_lib
                 {
                     ++threadSpecificSeedNumber;
                     // if the model is used for calibration, record the number of discarded trajectories due to violating the feasible ranges
-                    if (_modelUse == enumModelUse.Calibration)
+                    if (_modelUse == EnumModelUse.Calibration)
                         ++_numOfDiscardedTrajectoriesAmongCalibrationRuns;
                 }
             }
@@ -592,17 +578,17 @@ namespace APACE_lib
         }
 
         // set up POMDP-ADP
-        public void SetUpADPAlgorithm(enumObjectiveFunction objectiveFunction,
+        public void SetUpADPAlgorithm(EnumObjectiveFunction objectiveFunction,
             int numOfADPIterations, int numOfSimRunsToBackPropogate, 
             double wtpForHealth, double harmonicRule_a, double epsilonGreedy_beta, double epsilonGreedy_delta,
             bool storeADPIterationResults)
         {
-            _decisionRule = enumDecisionRule.SpecifiedByPolicy;
-            _modelUse = enumModelUse.Optimization;         
+            _decisionRule = EnumEpiDecisions.SpecifiedByPolicy;
+            _modelUse = EnumModelUse.Optimization;         
 
             // objective function
             _objectiveFunction = objectiveFunction;
-            if (_objectiveFunction == enumObjectiveFunction.MaximizeNHB)
+            if (_objectiveFunction == EnumObjectiveFunction.MaximizeNHB)
                 _wtpForHealth = Math.Max(wtpForHealth, SupportProcedures.minimumWTPforHealth);
 
             // ADP
@@ -619,12 +605,12 @@ namespace APACE_lib
         // set up the ADP random number source
         public void SetUpADPRandomNumberSource(int[] rndSeeds)
         {
-            _simulationRNDSeedsSource = enumSimulationRNDSeedsSource.PrespecifiedSquence;
+            _simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.PrespecifiedSquence;
             _rndSeeds = (int[])rndSeeds.Clone();            
         }
         public void SetUpADPRandomNumberSource(int[] rndSeeds, double[] rndSeedsGoodnessOfFit)
         {
-            _simulationRNDSeedsSource = enumSimulationRNDSeedsSource.WeightedPrespecifiedSquence;
+            _simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence;
             _rndSeeds = (int[])rndSeeds.Clone();
 
             double[] arrProb = new double[rndSeeds.Length];
@@ -913,11 +899,11 @@ namespace APACE_lib
 
         //    foreach (Intervention thisIntervention in _simDecisionMaker.Actions)
         //    {
-        //        if (thisIntervention.Type == SimulationLib.SimulationAction.enumActionType.Default)
+        //        if (thisIntervention.Type == SimulationLib.Intervention.enumActionType.Default)
         //            interventionCombination[thisIntervention.ID] = 1;
-        //        else if (thisIntervention.OnOffSwitchSetting == SimulationLib.SimulationAction.enumOnOffSwitchSetting.Dynamic)
+        //        else if (thisIntervention.OnOffSwitchSetting == SimulationLib.Intervention.enumOnOffSwitchSetting.Dynamic)
         //            interventionCombination[thisIntervention.ID] = 0;
-        //        else if (thisIntervention.OnOffSwitchSetting == SimulationLib.SimulationAction.enumOnOffSwitchSetting.Predetermined)
+        //        else if (thisIntervention.OnOffSwitchSetting == SimulationLib.Intervention.enumOnOffSwitchSetting.Predetermined)
         //            interventionCombination[thisIntervention.ID] = (int)thisIntervention.PredeterminedSwitchValue;
         //    }
 
@@ -941,7 +927,7 @@ namespace APACE_lib
             //TODO: update this procedure based on the latest changes to POMDP_ADP 
 
             ArrayList designs = new ArrayList();
-            int numOfActions = _simDecisionMaker.NumOfActions;
+            int numOfActions = _decisionMaker.NumOfInterventions;
 
             // add design for when all interventions are off (if allowed)
             //designs.Add(new IntervalBasedStaticPolicy(0,
@@ -955,18 +941,18 @@ namespace APACE_lib
                 int[] interventionCombination = new int[0];// _simDecisionMaker.DynamicallyControlledActionCombinations[decisionsCode];
                 // see if this is a feasible combination
                 bool feasible = true;
-                foreach (Intervention thisIntervention in _simDecisionMaker.Actions)
+                foreach (Intervention thisIntervention in _decisionMaker.Interventions)
                 {
                     int index = thisIntervention.Index;
                     // if this intervention is default, it can't be turned off
-                    if (thisIntervention.ActionType == EnumActionType.Default)
+                    if (thisIntervention.Type == EnumInterventionType.Default)
                     {
                         if (interventionCombination[index] == 0)
                             feasible = false;
                     }
                     else if (thisIntervention.DecisionRule is DecionRule_Predetermined)
                     {
-                        if (interventionCombination[index] != _simDecisionMaker.DefaultActionCombination[index])
+                        if (interventionCombination[index] != _decisionMaker.DefaultInterventionCombination[index])
                             feasible = false;
                     }
                     else if (thisIntervention.DecisionRule is DecionRule_IntervalBased && interventionCombination[index] == 0)
@@ -987,8 +973,8 @@ namespace APACE_lib
                     double[] interventionStartTimes = new double[numOfActions];
                     int[] numOfDecisionPeriodsToUse = new int[numOfActions];
 
-                    foreach (Intervention thisIntervention in _simDecisionMaker.Actions)
-                        if (thisIntervention.DecisionRule is SimulationLib.DecionRule_IntervalBased)
+                    foreach (Intervention thisIntervention in _decisionMaker.Interventions)
+                        if (thisIntervention.DecisionRule is DecionRule_IntervalBased)
                         {
                             interventionID = thisIntervention.Index;
                             //lastTimeToUseThisIntervention = thisIntervention.IntervalBaseEmployment_availableUntilThisTime;
@@ -1022,12 +1008,12 @@ namespace APACE_lib
         //    int[] thisCombination = (int[])_simDecisionMaker.DefaultActionCombination.Clone();
         //    foreach (Intervention thisIntervention in _simDecisionMaker.Actions)
         //    {
-        //        if (thisIntervention.Type == SimulationLib.SimulationAction.enumActionType.Default)
+        //        if (thisIntervention.Type == SimulationLib.Intervention.enumActionType.Default)
         //            thisCombination[thisIntervention.ID] = 1;
-        //        if (thisIntervention.OnOffSwitchSetting == SimulationLib.SimulationAction.enumOnOffSwitchSetting.IntervalBased ||
-        //            thisIntervention.OnOffSwitchSetting == SimulationLib.SimulationAction.enumOnOffSwitchSetting.ThresholdBased||
-        //            thisIntervention.OnOffSwitchSetting == SimulationLib.SimulationAction.enumOnOffSwitchSetting.Periodic ||
-        //            thisIntervention.OnOffSwitchSetting == SimulationLib.SimulationAction.enumOnOffSwitchSetting.Dynamic)
+        //        if (thisIntervention.OnOffSwitchSetting == SimulationLib.Intervention.enumOnOffSwitchSetting.IntervalBased ||
+        //            thisIntervention.OnOffSwitchSetting == SimulationLib.Intervention.enumOnOffSwitchSetting.ThresholdBased||
+        //            thisIntervention.OnOffSwitchSetting == SimulationLib.Intervention.enumOnOffSwitchSetting.Periodic ||
+        //            thisIntervention.OnOffSwitchSetting == SimulationLib.Intervention.enumOnOffSwitchSetting.Dynamic)
         //            thisCombination[thisIntervention.ID] = 0;
         //    }
         //    return SupportFunctions.ConvertToBase10FromBase2(thisCombination);
@@ -1055,7 +1041,7 @@ namespace APACE_lib
                 StoreSelectedOutputWhileSimulating(simReplication, false, ref ifThisIsAFeasibleCalibrationTrajectory);
 
                 // check if this is has been a feasible trajectory for calibration
-                if (_modelUse == enumModelUse.Calibration && !ifThisIsAFeasibleCalibrationTrajectory)
+                if (_modelUse == EnumModelUse.Calibration && !ifThisIsAFeasibleCalibrationTrajectory)
                 {
                     acceptableTrajectory = false;
                     return acceptableTrajectory;
@@ -1069,15 +1055,15 @@ namespace APACE_lib
                 //    CheckIfResourcesHaveBecomeAvailable();
 
                 // read feature values if optimizing or using greedy decisions:
-                if (_features.Count > 0 && _decisionRule == enumDecisionRule.SpecifiedByPolicy)
+                if (_features.Count > 0 && _decisionRule == EnumEpiDecisions.SpecifiedByPolicy)
                     // update values of features
                     ReadValuesOfFeatures();
 
                 // make decisions if decision is not predetermined and announce the new decisions (may not necessarily go into effect)
-                MakeAndAnnounceDecision();
+                UpdateDecisions();
 
                 // put decisions into effect
-                ImplementDecisionsThatCanGoIntoEffect(false);
+                ImplementInterventionsThatCanGoIntoEffect(false);
 
                 // update the effect of chance in time dependent parameter value
                 UpdateTheEffectOfChangeInTimeDependentParameterValues(_currentSimulationTimeIndex * _deltaT);
@@ -1096,30 +1082,30 @@ namespace APACE_lib
                 UpdateCurrentEpidemicTimeIndex();
 
                 // if optimizing, update the cost of current decision period
-                if (_modelUse == enumModelUse.Optimization)
+                if (_modelUse == EnumModelUse.Optimization)
                     UpdateRewardOfCurrentADPStateDecision();                
 
                 // check if stopping rules are satisfied 
-                if (_currentEpidemicTimeIndex >= timeIndexToStop || IsEradicationConditionsSatisfied() == true)
+                if (_epiTimeIndex >= timeIndexToStop || IsEradicationConditionsSatisfied() == true)
                 {
                     toStop = true;
                     // is this trajectory acceptable
                     acceptableTrajectory = false;
-                    if (_currentEpidemicTimeIndex >= _epidemicConditionTimeIndex)
+                    if (_epiTimeIndex >= _epidemicConditionTimeIndex)
                         acceptableTrajectory = true;
                     
                     // record end of simulation statistics
-                    if (_modelUse == enumModelUse.Simulation && acceptableTrajectory == true)
+                    if (_modelUse == EnumModelUse.Simulation && acceptableTrajectory == true)
                     {
                         // record simulation outcomes only if simulation time horizon has reached
-                        if (_currentEpidemicTimeIndex >= _simulationHorizonTimeIndex || _stoppedDueToEradication)
+                        if (_epiTimeIndex >= _simulationHorizonTimeIndex || _stoppedDueToEradication)
                             // update annual cost
                             GatherEndOfSimulationStatistics();
                         // report simulation trajectories if necessary
                         StoreSelectedOutputWhileSimulating(simReplication, true, ref ifThisIsAFeasibleCalibrationTrajectory);
                     }
                     // store epidemic history for calibration purpose    
-                    if (_modelUse == enumModelUse.Calibration && acceptableTrajectory == true)
+                    if (_modelUse == EnumModelUse.Calibration && acceptableTrajectory == true)
                         // report simulation trajectories if necessary // if (_stoppedDueToEradication)
                         StoreSelectedOutputWhileSimulating(simReplication, true, ref acceptableTrajectory);
 
@@ -1175,7 +1161,7 @@ namespace APACE_lib
         private void ReadValuesOfFeatures()
         {
             // check if it is time to record current state
-            if (_currentEpidemicTimeIndex == _nextDecisionPointIndex) //|| _aResourceJustReplinished == true) //(EligibleToStoreADPStateDecision())
+            if (_epiTimeIndex == _nextDecisionPointIndex) //|| _aResourceJustReplinished == true) //(EligibleToStoreADPStateDecision())
             {
                 // update the values of features
                 int i = 0;
@@ -1185,16 +1171,12 @@ namespace APACE_lib
 
                     if (thisFeature is Feature_EpidemicTime)
                     {
-                        _arrCurrentValuesOfFeatures[i] = _currentEpidemicTimeIndex * _deltaT;
+                        _arrCurrentValuesOfFeatures[i] = _epiTimeIndex * _deltaT;
                     }
                     else if (thisFeature is Feature_DefinedOnNewClassMembers)
                     {
                         _arrCurrentValuesOfFeatures[i] = Math.Max((_classes[((Feature_DefinedOnNewClassMembers)thisFeature).ClassID])
                                                                             .ReadFeatureValue((Feature_DefinedOnNewClassMembers)thisFeature), 0);
-                    }
-                    else if (thisFeature is Feature_DefinedOnResources)
-                    {
-                        _arrCurrentValuesOfFeatures[i] = (double)_arrAvailableResources[((Feature_DefinedOnResources)thisFeature).ResourceID];
                     }
                     else if (thisFeature is Feature_DefinedOnSummationStatistics)
                     {
@@ -1210,7 +1192,7 @@ namespace APACE_lib
                     else if (thisFeature is Feature_NumOfDecisoinPeriodsOverWhichThisInterventionWasUsed)
                     {
                         int interventionID = ((Feature_InterventionOnOffStatus)thisFeature).InterventionID;
-                        _arrCurrentValuesOfFeatures[i] = ((SimulationLib.SimulationAction)_simDecisionMaker.Actions[interventionID]).NumOfDecisionPeriodsOverWhichThisInterventionWasUsed;
+                        _arrCurrentValuesOfFeatures[i] = (_decisionMaker.Interventions[interventionID]).NumOfDecisionPeriodsOverWhichThisInterventionWasUsed;
                     }
 
 
@@ -1221,642 +1203,136 @@ namespace APACE_lib
         }
         
         // make and announce decision
-        private void MakeAndAnnounceDecision()
+        private void UpdateDecisions()
         {
             // is it time to make decision
-            if (_currentEpidemicTimeIndex < _nextDecisionPointIndex)
+            if (_epiTimeIndex < _nextDecisionPointIndex)
                 return;
 
             // find the next action combination 
             int[] newActionCombination=null;
             switch (_decisionRule)
             {
-                case enumDecisionRule.SpecifiedByPolicy:
-                    {
-                        newActionCombination = _simDecisionMaker.FindNewActionCombination(_currentEpidemicTimeIndex);
-                    }
+                case EnumEpiDecisions.SpecifiedByPolicy:
+                    _decisionMaker.MakeANewDecision(ref newActionCombination, _epiTimeIndex);
                     break;
-                case enumDecisionRule.PredeterminedSequence:
-                    {
-                        newActionCombination = _prespecifiedDecisionsOverObservationPeriods[_currentEpidemicTimeIndex / _numOfDeltaTIndexInAnObservationPeriod];
-                    }
+                case EnumEpiDecisions.PredeterminedSequence:
+                    newActionCombination = _prespecifiedDecisionsOverObservationPeriods[_epiTimeIndex / _numOfDeltaTIndexInAnObservationPeriod];
                     break;                
             }
 
             // announce decision in the epidemic model
-            AnnounceDecision(newActionCombination, true);
-            
+            UpdateInterventionEffectTime(newActionCombination, true);
+
+            // update the intervention combination
+            _decisionMaker.UpdateInterventionCombination(newActionCombination);
+
             // store current ADP state-decision
-            if (_modelUse == enumModelUse.Optimization)
+            if (_modelUse == EnumModelUse.Optimization)
                 StoreCurrentADPStateDecision();
 
             // if this decision is made not because it is a decision time but because a resource just became available.            
-            if (_currentEpidemicTimeIndex == _nextDecisionPointIndex)
+            if (_epiTimeIndex == _nextDecisionPointIndex)
             {
                 _decisionPeriodIndex += 1;
                 _nextDecisionPointIndex += _numOfDeltaTsInADecisionInterval;
             }
         }
-        // find available action combinations
-        //private int[] FindWhichDynamicallyControlledActionCombinationsAreAvailable()
-        //{
-        //    int[] result = new int[_simDecisionMaker.DynamicallyControlledActionCombinations.Length];
-
-        //    int i = 0;
-        //    foreach (int[] thisActionCombination in _simDecisionMaker.DynamicallyControlledActionCombinations)
-        //    {
-        //        if (IsThisActionCombinationFeasible(thisActionCombination))
-        //            result[i++] = 1;
-        //    }
-
-        //    return result;
-        //}
-        // check if this action combination is feasible
-        private bool IfThisInterventionCanTakeThisOnOffStatus(Intervention thisIntervention, int onOffStatus)// IsThisActionCombinationFeasible(int[] actionCombination)
+    
+        // find epidemic time when interventions go into effect or are lifted
+        private void UpdateInterventionEffectTime(int[] newInterventionCombination, bool checkIfItIsDifferentFromPast)
         {
-            bool result = true;
-            int index = thisIntervention.Index;
-
-            // default intervention should always be on
-            if (thisIntervention.Type == SimulationLib.SimulationAction.enumActionType.Default)
-            {
-                if (onOffStatus == 0)
-                    return false;
-            }
-            else // if this intervention is not of type default
-            {
-                // check the availability
-                if (onOffStatus == 1)
-                {
-                    // time
-                    if (_currentEpidemicTimeIndex < thisIntervention.TimeIndexBecomeAvailable || _currentEpidemicTimeIndex >= thisIntervention.TimeIndexBecomeUnavailable)
-                        return false;
-                    // resources
-                    if (thisIntervention.HasResourceCondition)
-                        if (_arrAvailableResources[thisIntervention.IDOfTheResourceRequiredToBeAvailable] <= 0)
-                            return false;
-                }
-                else // if (onOffStatus == 0)
-                {
-                    if (thisIntervention.RemainsOnOnceSwitchedOn && thisIntervention.IfThisInterventionHasBeenEmployedBefore)
-                        return false;
-                }
-
-                // find the on/off switching type
-                switch (thisIntervention.OnOffSwitchSetting)
-                {
-                    #region predetermined
-                    case SimulationLib.SimulationAction.enumOnOffSwitchSetting.Predetermined:
-                        {
-                            if (thisIntervention.PredeterminedSwitchValue == SimulationLib.SimulationAction.enumSwitchValue.On &&
-                                onOffStatus == 0)
-                                return false;
-                            if (thisIntervention.PredeterminedSwitchValue == SimulationLib.SimulationAction.enumSwitchValue.Off &&
-                                onOffStatus == 1)
-                                return false;
-                        }
-                        break;
-                    #endregion
-
-                    #region interval based
-                    case SimulationLib.SimulationAction.enumOnOffSwitchSetting.IntervalBased:
-                        {
-                            // already checked
-                        }
-                        break;
-                    #endregion
-
-                    #region threshold base
-                    case SimulationLib.SimulationAction.enumOnOffSwitchSetting.ThresholdBased:
-                        {
-                            int idOfSpecialStat = thisIntervention.ThresholdBasedEmployment_IDOfTheSpecialStatisticsToObserveAccumulation;
-                            double threshold = thisIntervention.ThresholdBasedEmployment_thresholdToTriggerThisIntervention;
-                            int numOfTimeIncidesToUse = thisIntervention.ThresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention;
-
-                            // read the value of special statistics
-                            double observedEpidemiologicalMeasure = 0;
-                            foreach (SummationStatistics thisSumStat in _summationStatistics)
-                            {
-                                if (thisSumStat.ID == idOfSpecialStat)
-                                {
-                                    switch (thisIntervention.ThresholdBasedEmployment_EpidemiologicalObservation)
-                                    {
-                                        case Intervention.EnumEpidemiologicalObservation.Accumulating:
-                                            observedEpidemiologicalMeasure = thisSumStat.ObservedAccumulatedNewMembers;
-                                            break;
-                                        case Intervention.EnumEpidemiologicalObservation.OverPastObservationPeriod:
-                                            observedEpidemiologicalMeasure = thisSumStat.NewMembersOverPastObservableObsPeriod;
-                                            break;
-                                    }
-                                    break;
-                                }
-                            }
-                            foreach (RatioStatistics thisRatioStat in _ratioStatistics)
-                            {
-                                if (thisRatioStat.ID == idOfSpecialStat)
-                                {
-                                    observedEpidemiologicalMeasure = thisRatioStat.CurrentValue;
-                                    break;
-                                }
-
-                            }
-                            // check the feasibility conditions
-                            // if this intervention is on 
-                            if (onOffStatus == 1)
-                            {
-                                // find the type of threshold
-                                switch (thisIntervention.ThresholdBasedEmployment_EpidemiologicalObservation)
-                                {
-                                    case Intervention.EnumEpidemiologicalObservation.Accumulating:
-                                        #region
-                                        {
-                                            // compare the observation with the triggering threshold
-                                            if (observedEpidemiologicalMeasure < threshold)
-                                            {
-                                                // check if the intervention should still remain in use 
-                                                if (!thisIntervention.IfThisInterventionHasBeenEmployedBefore)
-                                                    return false;
-                                                // check how much longer this intervention should remain in use
-                                                else if (thisIntervention.EpidemicTimeIndexWhenThisInterventionTurnedOn +
-                                                    thisIntervention.NumOfTimeIndeciesDelayedBeforeGoingIntoEffectOnceTurnedOn +
-                                                    thisIntervention.ThresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention <= _currentEpidemicTimeIndex)
-                                                    return false;
-                                            }
-                                            else // if (observedEpidemiologicalMeasure >= threshold)
-                                            {
-                                                // it maybe infeasible only if this intervention has been used before
-                                                if (thisIntervention.IfThisInterventionHasBeenEmployedBefore &&
-                                                    thisIntervention.EpidemicTimeIndexWhenThisInterventionTurnedOn +
-                                                    thisIntervention.NumOfTimeIndeciesDelayedBeforeGoingIntoEffectOnceTurnedOn +
-                                                    thisIntervention.ThresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention <= _currentEpidemicTimeIndex)
-                                                    return false;
-                                            }
-                                        }
-                                        #endregion
-                                        break;
-                                    case Intervention.EnumEpidemiologicalObservation.OverPastObservationPeriod:
-                                        #region
-                                        {
-                                            // compare the observation with the triggering threshold
-                                            if (observedEpidemiologicalMeasure < threshold)
-                                            {
-                                                // check if the intervention should still remain in use 
-                                                if (!thisIntervention.IfThisInterventionHasBeenEmployedBefore)
-                                                    return false;
-                                                // check how much longer this intervention should remain in use
-                                                else if (thisIntervention.EpidemicTimeIndexWhenThisInterventionTurnedOn +
-                                                    thisIntervention.NumOfTimeIndeciesDelayedBeforeGoingIntoEffectOnceTurnedOn +
-                                                    thisIntervention.ThresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention <= _currentEpidemicTimeIndex)
-                                                    return false;
-                                            }
-                                            else // if (observedEpidemiologicalMeasure >= threshold)
-                                            {
-                                                // should remain on
-                                            }
-                                        }
-                                        #endregion
-                                        break;
-                                }
-                            }
-                            else // if this intervention is off
-                            {
-                                // find the type of threshold
-                                switch (thisIntervention.ThresholdBasedEmployment_EpidemiologicalObservation)
-                                {
-                                    case Intervention.EnumEpidemiologicalObservation.Accumulating:
-                                        #region
-                                        {
-                                            // compare the observation with the triggering threshold
-                                            if (observedEpidemiologicalMeasure < threshold)
-                                            {
-                                                // check if the intervention should still remain in use 
-                                                if (thisIntervention.IfThisInterventionHasBeenEmployedBefore &&
-                                                    thisIntervention.EpidemicTimeIndexWhenThisInterventionTurnedOn +
-                                                    thisIntervention.NumOfTimeIndeciesDelayedBeforeGoingIntoEffectOnceTurnedOn +
-                                                    thisIntervention.ThresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention > _currentEpidemicTimeIndex)
-                                                    return false;
-                                            }
-                                            else // if (observedEpidemiologicalMeasure >= threshold)
-                                            {
-                                                // it is infeasible if this intervention has been used before
-                                                if (!thisIntervention.IfThisInterventionHasBeenEmployedBefore)
-                                                    return false;
-                                            }
-                                        }
-                                        #endregion
-                                        break;
-                                    case Intervention.EnumEpidemiologicalObservation.OverPastObservationPeriod:
-                                        #region
-                                        {
-                                            // compare the observation with the triggering threshold
-                                            if (observedEpidemiologicalMeasure < threshold)
-                                            {
-                                                // check if the intervention should still remain in use 
-                                                if (thisIntervention.IfThisInterventionHasBeenEmployedBefore &&
-                                                    thisIntervention.EpidemicTimeIndexWhenThisInterventionTurnedOn +
-                                                    thisIntervention.NumOfTimeIndeciesDelayedBeforeGoingIntoEffectOnceTurnedOn +
-                                                    thisIntervention.ThresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention > _currentEpidemicTimeIndex)
-                                                    return false;
-                                            }
-                                            else // if (observedEpidemiologicalMeasure >= threshold)
-                                            {
-                                                return false;
-                                            }
-                                        }
-                                        #endregion
-                                        break;
-                                }
-                            }
-                        }
-                        break;
-                    #endregion
-
-                    #region periodic
-                    case SimulationLib.SimulationAction.enumOnOffSwitchSetting.Periodic:
-                        {
-                            int frequency_numOfDecisionPeriods = thisIntervention.PeriodicEmployment_Frequency_NumOfDcisionPeriods;
-                            int duration_numOfDecisionPeriods = thisIntervention.PeriodicEmployment_Duration_NumOfDcisionPeriods;
-
-                            // check the feasibility conditions
-                            if (onOffStatus == 1)
-                            {
-                                if (_currentEpidemicTimeIndex > 0 &&
-                                    _currentEpidemicTimeIndex >= thisIntervention.EpidemicTimeIndexWhenThisInterventionTurnedOn + duration_numOfDecisionPeriods * _numOfDeltaTsInADecisionInterval)
-                                    return false;
-                            }
-                            else // if this intervention is off
-                            {
-                                if (_currentEpidemicTimeIndex >= thisIntervention.EpidemicTimeIndexWhenThisInterventionTurnedOn + frequency_numOfDecisionPeriods * _numOfDeltaTsInADecisionInterval)
-                                    return false;
-                                if (_currentEpidemicTimeIndex < thisIntervention.EpidemicTimeIndexWhenThisInterventionTurnedOn + duration_numOfDecisionPeriods * _numOfDeltaTsInADecisionInterval)
-                                    return false;
-                            }
-                        }
-                        break;
-                    #endregion
-
-                    #region dynamic
-                    case SimulationLib.SimulationAction.enumOnOffSwitchSetting.Dynamic:
-                        {
-                            // if it has to remain on once it's turned on
-                            if (thisIntervention.RemainsOnOnceSwitchedOn == true)
-                            {
-                                if (onOffStatus == 0 && _simDecisionMaker.CurrentActionCombination[index] == 1)
-                                    return false;
-                            }
-                        }
-                        break;
-                    #endregion
-                }
-            } // if (thisIntervention.Type == SimulationLib.SimulationAction.enumInterventionType.Default)
-
-            return result;
-        }
-        // check if this action combination is feasible
-        private bool IsThisActionCombinationFeasible(int[] actionCombination)
-        {
-            bool result = true;
-
-            foreach (Intervention thisIntervention in _simDecisionMaker.Actions)
-            {
-                int index = thisIntervention.Index;
-
-                // default intervention should always be on
-                if (thisIntervention.Type == SimulationLib.SimulationAction.enumActionType.Default)
-                {
-                    if (actionCombination[index] == 0)
-                        return false;
-                }
-                else // if this intervention is not of type default
-                {
-                    // check the availability
-                    if (actionCombination[index] == 1)
-                    {
-                        // time
-                        if (_currentEpidemicTimeIndex < thisIntervention.TimeIndexBecomeAvailable || _currentEpidemicTimeIndex >= thisIntervention.TimeIndexBecomeUnavailable)
-                            return false;
-                        // resources
-                        if (thisIntervention.HasResourceCondition)
-                            if (_arrAvailableResources[thisIntervention.IDOfTheResourceRequiredToBeAvailable] <= 0)
-                                return false;
-                    }
-                    else
-                    {
-                        if (thisIntervention.RemainsOnOnceSwitchedOn && thisIntervention.IfThisInterventionHasBeenEmployedBefore)
-                            return false;
-                    }
-                        
-
-                    // find the on/off switching type
-                    switch (thisIntervention.OnOffSwitchSetting)
-                    {
-                        #region predetermined
-                        case SimulationLib.SimulationAction.enumOnOffSwitchSetting.Predetermined:
-                            {
-                                if (thisIntervention.PredeterminedSwitchValue == SimulationLib.SimulationAction.enumSwitchValue.On &&
-                                    actionCombination[index] == 0)
-                                    return false;
-                                if (thisIntervention.PredeterminedSwitchValue == SimulationLib.SimulationAction.enumSwitchValue.Off &&
-                                    actionCombination[index] == 1)
-                                    return false;
-                            }
-                            break;
-                        #endregion
-
-                        #region interval based
-                        case SimulationLib.SimulationAction.enumOnOffSwitchSetting.IntervalBased:
-                            {
-                                // already checked
-                            }
-                            break;
-                        #endregion
-
-                        #region threshold base
-                        case SimulationLib.SimulationAction.enumOnOffSwitchSetting.ThresholdBased:
-                            {
-                                int idOfSpecialStat = thisIntervention.ThresholdBasedEmployment_IDOfTheSpecialStatisticsToObserveAccumulation;
-                                double threshold = thisIntervention.ThresholdBasedEmployment_thresholdToTriggerThisIntervention;
-                                int numOfTimeIncidesToUse = thisIntervention.ThresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention;
-
-                                // read the value of special statistics
-                                double observedEpidemiologicalMeasure = 0;
-                                foreach (SummationStatistics thisSumStat in _summationStatistics)
-                                {
-                                    if (thisSumStat.ID == idOfSpecialStat)
-                                    {
-                                        switch (thisIntervention.ThresholdBasedEmployment_EpidemiologicalObservation)
-                                        {
-                                            case Intervention.EnumEpidemiologicalObservation.Accumulating: 
-                                                observedEpidemiologicalMeasure = thisSumStat.ObservedAccumulatedNewMembers;
-                                                break;
-                                            case Intervention.EnumEpidemiologicalObservation.OverPastObservationPeriod:
-                                                observedEpidemiologicalMeasure = thisSumStat.NewMembersOverPastObservableObsPeriod;
-                                                break;
-                                        }
-                                        break;
-                                    }
-                                }
-                                // check the feasibility conditions
-                                // if this intervention is on 
-                                if (actionCombination[index] == 1)
-                                {
-                                    // find the type of threshold
-                                    switch (thisIntervention.ThresholdBasedEmployment_EpidemiologicalObservation)
-                                    {
-                                        case Intervention.EnumEpidemiologicalObservation.Accumulating:
-                                            #region
-                                            {
-                                                // compare the observation with the triggering threshold
-                                                if (observedEpidemiologicalMeasure < threshold)
-                                                {
-                                                    // check if the intervention should still remain in use 
-                                                    if (!thisIntervention.IfThisInterventionHasBeenEmployedBefore)
-                                                        return false;
-                                                    // check how much longer this intervention should remain in use
-                                                    else if (thisIntervention.EpidemicTimeIndexWhenThisInterventionTurnedOn +
-                                                        thisIntervention.NumOfTimeIndeciesDelayedBeforeGoingIntoEffectOnceTurnedOn +
-                                                        thisIntervention.ThresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention <= _currentEpidemicTimeIndex)
-                                                        return false;
-                                                }
-                                                else // if (observedEpidemiologicalMeasure >= threshold)
-                                                {
-                                                    // it maybe infeasible only if this intervention has been used before
-                                                    if (thisIntervention.IfThisInterventionHasBeenEmployedBefore &&
-                                                        thisIntervention.EpidemicTimeIndexWhenThisInterventionTurnedOn +
-                                                        thisIntervention.NumOfTimeIndeciesDelayedBeforeGoingIntoEffectOnceTurnedOn +
-                                                        thisIntervention.ThresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention <= _currentEpidemicTimeIndex)
-                                                        return false;
-                                                }
-                                            }
-                                            #endregion
-                                            break;
-                                        case Intervention.EnumEpidemiologicalObservation.OverPastObservationPeriod:
-                                            #region
-                                            {
-                                                // compare the observation with the triggering threshold
-                                                if (observedEpidemiologicalMeasure < threshold)
-                                                {
-                                                    // check if the intervention should still remain in use 
-                                                    if (!thisIntervention.IfThisInterventionHasBeenEmployedBefore)
-                                                        return false;
-                                                    // check how much longer this intervention should remain in use
-                                                    else if (thisIntervention.EpidemicTimeIndexWhenThisInterventionTurnedOn +
-                                                        thisIntervention.NumOfTimeIndeciesDelayedBeforeGoingIntoEffectOnceTurnedOn +
-                                                        thisIntervention.ThresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention <= _currentEpidemicTimeIndex)
-                                                        return false;
-                                                }
-                                                else // if (observedEpidemiologicalMeasure >= threshold)
-                                                {
-                                                    // should remain on
-                                                }
-                                            }
-                                            #endregion
-                                            break;
-                                    }
-                                }
-                                else // if this intervention is off
-                                {
-                                    // find the type of threshold
-                                    switch (thisIntervention.ThresholdBasedEmployment_EpidemiologicalObservation)
-                                    {
-                                        case Intervention.EnumEpidemiologicalObservation.Accumulating:
-                                            #region
-                                            {
-                                                // compare the observation with the triggering threshold
-                                                if (observedEpidemiologicalMeasure < threshold)
-                                                {
-                                                    // check if the intervention should still remain in use 
-                                                    if (thisIntervention.IfThisInterventionHasBeenEmployedBefore && 
-                                                        thisIntervention.EpidemicTimeIndexWhenThisInterventionTurnedOn +
-                                                        thisIntervention.NumOfTimeIndeciesDelayedBeforeGoingIntoEffectOnceTurnedOn +
-                                                        thisIntervention.ThresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention > _currentEpidemicTimeIndex)
-                                                        return false;
-                                                }
-                                                else // if (observedEpidemiologicalMeasure >= threshold)
-                                                {
-                                                    // it is infeasible if this intervention has been used before
-                                                    if (!thisIntervention.IfThisInterventionHasBeenEmployedBefore)
-                                                        return false;
-                                                }
-                                            }
-                                            #endregion
-                                            break;
-                                        case Intervention.EnumEpidemiologicalObservation.OverPastObservationPeriod:
-                                            #region
-                                            {
-                                                // compare the observation with the triggering threshold
-                                                if (observedEpidemiologicalMeasure < threshold)
-                                                {
-                                                    // check if the intervention should still remain in use 
-                                                    if (thisIntervention.IfThisInterventionHasBeenEmployedBefore &&
-                                                        thisIntervention.EpidemicTimeIndexWhenThisInterventionTurnedOn +
-                                                        thisIntervention.NumOfTimeIndeciesDelayedBeforeGoingIntoEffectOnceTurnedOn +
-                                                        thisIntervention.ThresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention > _currentEpidemicTimeIndex)
-                                                        return false;
-                                                }
-                                                else // if (observedEpidemiologicalMeasure >= threshold)
-                                                {
-                                                    return false;
-                                                }
-                                            }
-                                            #endregion
-                                            break;
-                                    }
-                                }
-                            }
-                            break;
-                        #endregion
-
-                        #region periodic
-                        case SimulationLib.SimulationAction.enumOnOffSwitchSetting.Periodic:
-                            {
-                                int frequency_numOfDecisionPeriods = thisIntervention.PeriodicEmployment_Frequency_NumOfDcisionPeriods;
-                                int duration_numOfDecisionPeriods = thisIntervention.PeriodicEmployment_Duration_NumOfDcisionPeriods;
-
-                                // check the feasibility conditions
-                                if (actionCombination[index] == 1)
-                                {
-                                    if (_currentEpidemicTimeIndex > 0 &&
-                                        _currentEpidemicTimeIndex >= thisIntervention.EpidemicTimeIndexWhenThisInterventionTurnedOn + duration_numOfDecisionPeriods * _numOfDeltaTsInADecisionInterval)
-                                        return false;
-                                }
-                                else // if this intervention is off
-                                {
-                                    if (_currentEpidemicTimeIndex >= thisIntervention.EpidemicTimeIndexWhenThisInterventionTurnedOn + frequency_numOfDecisionPeriods * _numOfDeltaTsInADecisionInterval)
-                                        return false;
-                                    if (_currentEpidemicTimeIndex < thisIntervention.EpidemicTimeIndexWhenThisInterventionTurnedOn + duration_numOfDecisionPeriods * _numOfDeltaTsInADecisionInterval)
-                                        return false;
-                                }
-                            }
-                            break;
-                        #endregion
-
-                        #region dynamic
-                        case SimulationLib.SimulationAction.enumOnOffSwitchSetting.Dynamic:
-                            {
-                                // if it has to remain on once it's turned on
-                                if (thisIntervention.RemainsOnOnceSwitchedOn == true)
-                                {
-                                    if (actionCombination[index] == 0 && _simDecisionMaker.CurrentActionCombination[index] == 1)
-                                        return false;
-                                }
-                            }
-                            break;
-                        #endregion
-                    }
-                } // if (thisIntervention.Type == SimulationLib.SimulationAction.enumInterventionType.Default)
-            }
-
-            return result;
-        }
-        // announce the decision (may not necessarily go into effect)
-        private void AnnounceDecision(int[] newInterventionCombination, bool checkIfItIsDifferentFromPast)
-        {
-
-            if (checkIfItIsDifferentFromPast == true && _simDecisionMaker.CurrentActionCombination.SequenceEqual(newInterventionCombination))
+            // check if this new intervention combination is the same as the current one
+            if (checkIfItIsDifferentFromPast == true && _decisionMaker.CurrentInterventionCombination.SequenceEqual(newInterventionCombination))
             {
                 // update the decisions just to collect necessary statistics
-                _simDecisionMaker.UpdateCurrentActionCombination(newInterventionCombination);
+                //_decisionMaker.UpdateInterventionCombination(newInterventionCombination);
                 return;
             }
             // record the time of switch
-            foreach (Intervention thisIntervention in _simDecisionMaker.Actions)
+            foreach (Intervention thisIntervention in _decisionMaker.Interventions)
             {
                 // if the intervention is turning on
-                if (_simDecisionMaker.CurrentActionCombination[thisIntervention.Index] == 0 && newInterventionCombination[thisIntervention.Index] == 1)
+                if (_decisionMaker.CurrentInterventionCombination[thisIntervention.Index] == 0 && newInterventionCombination[thisIntervention.Index] == 1)
                 {
-                    thisIntervention.EpidemicTimeIndexTurnedOn = _currentEpidemicTimeIndex;
-                    thisIntervention.EpidemicTimeIndexToGoIntoEffect = _currentEpidemicTimeIndex + thisIntervention.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn;
+                    thisIntervention.EpidemicTimeIndexTurnedOn = _epiTimeIndex;
+                    thisIntervention.EpidemicTimeIndexToGoIntoEffect = _epiTimeIndex + thisIntervention.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn;
                     thisIntervention.EpidemicTimeIndexToTurnOff = int.MaxValue;
                 }
                 // if the intervention is turning off
-                else if (_simDecisionMaker.CurrentActionCombination[thisIntervention.Index] == 1 && newInterventionCombination[thisIntervention.Index] == 0)
+                else if (_decisionMaker.CurrentInterventionCombination[thisIntervention.Index] == 1 && newInterventionCombination[thisIntervention.Index] == 0)
                 {
-                    thisIntervention.EpidemicTimeIndexTurnedOff = _currentEpidemicTimeIndex;
-                    thisIntervention.EpidemicTimeIndexToTurnOff = _currentEpidemicTimeIndex;
+                    thisIntervention.EpidemicTimeIndexTurnedOff = _epiTimeIndex;
+                    thisIntervention.EpidemicTimeIndexToTurnOff = _epiTimeIndex;
                     thisIntervention.EpidemicTimeIndexToGoIntoEffect = int.MaxValue;
                 }
                 // otherwise
-                else if (_simDecisionMaker.CurrentActionCombination[thisIntervention.Index] == 0)
+                else if (_decisionMaker.CurrentInterventionCombination[thisIntervention.Index] == 0)
                 { 
                     thisIntervention.EpidemicTimeIndexToGoIntoEffect = int.MaxValue;
                 }
             }
-
-            // update the action combination
-            _simDecisionMaker.UpdateCurrentActionCombination(newInterventionCombination);
-
-            // update total cost
-            _totalCost += _simDecisionMaker.AccumulatedCost;
-
             // find the next epidemic time where a decision should go into effect
-            _nextEpidemicTimeIndexAnInterventionEffectChanges = FindNextEpidemicTimeIndexWhenAnInterventionEffectChanges();
-
+            _nextEpiTimeIndexAnInterventionEffectChanges = FindNextEpiTimeIndexWhenAnInterventionEffectChanges();
         }
-        // make the decision effective 
-        private void ImplementDecisionsThatCanGoIntoEffect(bool ifToInitializeSimulatoin)
+
+        // implement the interventions that go into effect
+        private void ImplementInterventionsThatCanGoIntoEffect(bool ifToInitializeSimulatoin)
         {
-            if (_nextEpidemicTimeIndexAnInterventionEffectChanges > _currentEpidemicTimeIndex && !ifToInitializeSimulatoin)
+            // if it's time to implement the change
+            if (_nextEpiTimeIndexAnInterventionEffectChanges > _epiTimeIndex && !ifToInitializeSimulatoin)
                 return;
 
-            // find the decision that is announced
-            if (ifToInitializeSimulatoin)
-                 _currentInterventionCombinationInEffect = (int[])_simDecisionMaker.CurrentActionCombination.Clone();
+            // initialize the intervention combinations currently in effect
+            //if (ifToInitializeSimulatoin)
+            //     _interventionCombinationInEffect = (int[])_decisionMaker.CurrentInterventionCombination.Clone();
 
-            int[] nextPeriodInterventionCombinationInEffect = (int[])_simDecisionMaker.GetCurrentActionCombination().Clone();
+            //int[] newInterventionCombinationInEffect = (int[])_decisionMaker.CurrentInterventionCombination.Clone();
 
-            // find the interventions with change in status
-            foreach (Intervention thisIntervention in _simDecisionMaker.Actions)
+            int[] newInterventionCombinationInEffect = new int[_decisionMaker.NumOfInterventions];
+            foreach (Intervention intv in _decisionMaker.Interventions)
             {
-                if (thisIntervention.ActionType == EnumActionType.Default)
-                    nextPeriodInterventionCombinationInEffect[thisIntervention.Index] = 1;
+                // the default intervention is always in effect
+                if (intv.Type == EnumInterventionType.Default)
+                    newInterventionCombinationInEffect[intv.Index] = 1;
                 else
                 {
-                    if (thisIntervention.EpidemicTimeIndexToGoIntoEffect > _currentEpidemicTimeIndex && _currentInterventionCombinationInEffect[thisIntervention.Index] == 0)
-                        nextPeriodInterventionCombinationInEffect[thisIntervention.Index] = 0;
-
-                    if (thisIntervention.EpidemicTimeIndexToTurnOff <= _currentEpidemicTimeIndex)
-                        nextPeriodInterventionCombinationInEffect[thisIntervention.Index] = 0;
-
-                    if (_currentInterventionCombinationInEffect[thisIntervention.Index] == 0 && nextPeriodInterventionCombinationInEffect[thisIntervention.Index] == 1)
+                    // if this intervention is going into effect
+                    if (_interventionCombinationInEffect[intv.Index] == 0 && intv.EpidemicTimeIndexToGoIntoEffect <= _epiTimeIndex)
                     {
-                        thisIntervention.EpidemicTimeIndexToGoIntoEffect = int.MaxValue;
-                        thisIntervention.EpidemicTimeIndexToBeLifted = int.MaxValue;
-                        switch (thisIntervention.OnOffSwitchSetting)
-                        {
-                            case SimulationAction.enumOnOffSwitchSetting.Predetermined:
-                                break;
+                        newInterventionCombinationInEffect[intv.Index] = 1;
 
-                            case SimulationAction.enumOnOffSwitchSetting.ThresholdBased:
-                                 thisIntervention.EpidemicTimeIndexToBeLifted = _currentEpidemicTimeIndex + thisIntervention.ThresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention;
-                                break;
-                        }                        
+                        // find when it should be turned off
+                        intv.EpidemicTimeIndexToTurnOff = intv.FindEpiTimeIndexToTurnOff(_epiTimeIndex);
+                        intv.EpidemicTimeIndexToGoIntoEffect = int.MaxValue;
                     }
-                    if (_currentInterventionCombinationInEffect[thisIntervention.Index] == 1 && nextPeriodInterventionCombinationInEffect[thisIntervention.Index] == 0)
+                    // if this intervention is being lifted
+                    if  (_interventionCombinationInEffect[intv.Index] == 1 && intv.EpidemicTimeIndexToTurnOff >= _epiTimeIndex)
                     {
-                        thisIntervention.EpidemicTimeIndexToGoIntoEffect = int.MaxValue;
-                        thisIntervention.EpidemicTimeIndexToBeLifted = int.MaxValue;
+                        newInterventionCombinationInEffect[intv.Index] = 0;
+
+                        intv.EpidemicTimeIndexToTurnOn = int.MaxValue;
+                        intv.EpidemicTimeIndexToGoIntoEffect = int.MaxValue;
+                        intv.EpidemicTimeIndexToTurnOff = int.MaxValue;
                     }
                 }
             }
 
-            _currentInterventionCombinationInEffect = (int[])nextPeriodInterventionCombinationInEffect.Clone();
+            _interventionCombinationInEffect = (int[])newInterventionCombinationInEffect.Clone();
 
             // update decision for each class
             foreach (Class thisClass in _classes)
-                thisClass.SelectThisInterventionCombination(_currentInterventionCombinationInEffect);
-
-            // find the next epidemic time where a decision should go into effect
-            _nextEpidemicTimeIndexAnInterventionEffectChanges = FindNextEpidemicTimeIndexWhenAnInterventionEffectChanges();
+                thisClass.SelectThisInterventionCombination(_interventionCombinationInEffect);
         }
+
         // find next epidemic time index when an intervention effect changes
-        private int FindNextEpidemicTimeIndexWhenAnInterventionEffectChanges()
+        private int FindNextEpiTimeIndexWhenAnInterventionEffectChanges()
         {
             int nextEpidemicTimeIndexWhenAnInterventionEffectChanges = int.MaxValue;
             int temp;
-            foreach (Intervention thisIntervention in _simDecisionMaker.Actions)
+            foreach (Intervention thisIntervention in _decisionMaker.Interventions)
             {
-                if (thisIntervention.ActionType != EnumActionType.Default )  
+                if (thisIntervention.Type != EnumInterventionType.Default )  
                 {
                     temp = Math.Min(thisIntervention.EpidemicTimeIndexToTurnOff, thisIntervention.EpidemicTimeIndexToGoIntoEffect);
                     nextEpidemicTimeIndexWhenAnInterventionEffectChanges = Math.Min(temp, nextEpidemicTimeIndexWhenAnInterventionEffectChanges);
@@ -1891,7 +1367,7 @@ namespace APACE_lib
                 return;            
 
             // make a new state-decision
-            ADPState thisADPState = new ADPState(_arrCurrentValuesOfFeatures, _simDecisionMaker.CurrentActionCombination);
+            ADPState thisADPState = new ADPState(_arrCurrentValuesOfFeatures, _decisionMaker.CurrentInterventionCombination);
             thisADPState.ValidStateToUpdateQFunction = true;
 
             //// check if this is eligible            
@@ -1910,7 +1386,7 @@ namespace APACE_lib
             bool eligible = true;
 
             // first check the time
-            if (_currentEpidemicTimeIndex != _nextDecisionPointIndex || _modelUse != enumModelUse.Optimization)
+            if (_epiTimeIndex != _nextDecisionPointIndex || _modelUse != EnumModelUse.Optimization)
                 return false;
 
             return eligible;
@@ -2007,7 +1483,7 @@ namespace APACE_lib
                     thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = _currentSimulationTimeIndex * _deltaT;
                     thisSimulationIntervalBasedOutputs[0][colIndexSimulationIntervalBasedOutputs++] = Math.Floor(_currentSimulationTimeIndex * _deltaT / _simulationOutputIntervalLength);
                     // action combination
-                    thisActionCombination[0] = (int[])_simDecisionMaker.GetCurrentActionCombination().Clone();
+                    thisActionCombination[0] = (int[])_decisionMaker.CurrentInterventionCombination.Clone();
 
                     // check which statistics should be reported
                     foreach (Class thisClass in _classes)
@@ -2184,12 +1660,12 @@ namespace APACE_lib
                 // check if an observation is made
                 switch (_markOfEpidemicStartTime)
                 {
-                    case enumMarkOfEpidemicStartTime.TimeZero:
+                    case EnumMarkOfEpidemicStartTime.TimeZero:
                         {
                             thisTimeOfObservableOutputs[0][0] = Math.Floor(_currentSimulationTimeIndex * _deltaT / _observationPeriodLengh); 
                         }
                         break;
-                    case enumMarkOfEpidemicStartTime.TimeOfFirstObservation:
+                    case EnumMarkOfEpidemicStartTime.TimeOfFirstObservation:
                         {
                             if (_firstObservationObtained == false && Math.Abs(thisObservedOutputs[0].Sum()) > 0)
                             {
@@ -2223,7 +1699,7 @@ namespace APACE_lib
 
                 // collect calibration data
                 #region collect calibration data
-                if (_modelUse == enumModelUse.Calibration && _currentEpidemicTimeIndex > _warmUpPeriodIndex)
+                if (_modelUse == EnumModelUse.Calibration && _epiTimeIndex > _warmUpPeriodIndex)
                 {
                     thisCalibrationObservation[0] = new double[_numOfCalibratoinTargets];
                     // go over summation statistics that are included in calibration
@@ -2372,9 +1848,6 @@ namespace APACE_lib
                 {                    
                     // calculate the number of members to be sent out from each class
                     thisClass.SendOutMembers(_deltaT, _rng);
-                    // update the array of available resources
-                    if (_arrAvailableResources.Length > 0)
-                        UpdateResourceAvailabilityBasedOnConsumptionOfThisClass((thisClass).ArrResourcesConsumed);
                     // all departing members are processed
                     thisClass.IfNeedsToBeProcessed = false;
                 }
@@ -2405,9 +1878,9 @@ namespace APACE_lib
             int[] arrNumOfNewMembersOutOfEventsOverPastDeltaT = new int[_processes.Count];
             foreach (Class thisClass in _classes)
             {
-                if (_modelUse != enumModelUse.Calibration)
+                if (_modelUse != EnumModelUse.Calibration)
                 {
-                    thisClass.UpdateStatisticsAtTheEndOfDeltaT(_currentEpidemicTimeIndex * _deltaT, _deltaT);
+                    thisClass.UpdateStatisticsAtTheEndOfDeltaT(_epiTimeIndex * _deltaT, _deltaT);
                     _currentPeriodCost += thisClass.CurrentCost();
                     _currentPeriodQALY += thisClass.CurrentQALY();
                 }
@@ -2432,7 +1905,7 @@ namespace APACE_lib
                                     break;
                                 case APACE_lib.SummationStatistics.enumType.Prevalence:
                                     {
-                                        thisSumStat.AddCurrentMembers(_currentEpidemicTimeIndex * _deltaT, _arrNumOfMembersInEachClass, _modelUse != enumModelUse.Calibration);
+                                        thisSumStat.AddCurrentMembers(_epiTimeIndex * _deltaT, _arrNumOfMembersInEachClass, _modelUse != EnumModelUse.Calibration);
                                     }
                                     break;
                             }
@@ -2460,13 +1933,13 @@ namespace APACE_lib
                 }                
             }
             // gather outcome statistics
-            if (_currentEpidemicTimeIndex >= _warmUpPeriodIndex)
+            if (_epiTimeIndex >= _warmUpPeriodIndex)
             {
                 // update decision costs
-                _currentPeriodCost += _simDecisionMaker.CurrentCostPerUnitOfTime * _deltaT;
-                _currentPeriodCost += _simDecisionMaker.CurrentFixedAnPenaltyCost;
+                _currentPeriodCost += _decisionMaker.CostOverThisDecisionPeriod;
+                _decisionMaker.CostOverThisDecisionPeriod = 0;
 
-                int numOfDiscountPeriods = Math.Max(0, (int)_currentEpidemicTimeIndex / _numOfDeltaTsInADecisionInterval);
+                int numOfDiscountPeriods = Math.Max(0, (int)_epiTimeIndex / _numOfDeltaTsInADecisionInterval);
                 double coeff = Math.Pow(_discountRate, numOfDiscountPeriods);
                 _totalCost += coeff * _currentPeriodCost;
                 _totalQALY += coeff * _currentPeriodQALY;
@@ -2476,7 +1949,7 @@ namespace APACE_lib
         // reset statistics if warm-up period has ended
         private void ResetStatisticsIfWarmUpPeriodHasEnded()
         {
-            if (_currentEpidemicTimeIndex >= _warmUpPeriodIndex && _ifWarmUpPeriodHasEnded == false)
+            if (_epiTimeIndex >= _warmUpPeriodIndex && _ifWarmUpPeriodHasEnded == false)
             {
                 _ifWarmUpPeriodHasEnded = true;
                 // reset statistics
@@ -2486,10 +1959,10 @@ namespace APACE_lib
         // update the cost of current ADP state-decision
         private void UpdateRewardOfCurrentADPStateDecision()
         {
-            // add reward
-            int numOfADPStates = _simDecisionMaker.NumberOfADPStates(_adpSimItr);
-            if (numOfADPStates > 0)
-                _simDecisionMaker.AddToDecisionIntervalReward(_adpSimItr, numOfADPStates - 1, CurrentDeltaTReward());
+            //// add reward
+            //int numOfADPStates = _decisionMaker.NumberOfADPStates(_adpSimItr);
+            //if (numOfADPStates > 0)
+            //    _decisionMaker.AddToDecisionIntervalReward(_adpSimItr, numOfADPStates - 1, CurrentDeltaTReward());
             //((ADP_State)_POMDP_ADP.ADPStates[numOfADPStates - 1]).AddToDecisionIntervalReward();
         }
         // return annual cost
@@ -2523,10 +1996,10 @@ namespace APACE_lib
             double reward = 0;
             switch (_objectiveFunction)
             {
-                case enumObjectiveFunction.MaximizeNMB:
+                case EnumObjectiveFunction.MaximizeNMB:
                     reward = _wtpForHealth * _totalQALY - _totalCost;
                     break;
-                case enumObjectiveFunction.MaximizeNHB:
+                case EnumObjectiveFunction.MaximizeNHB:
                     reward = _totalQALY - _totalCost / _wtpForHealth;
                     break;
             }
@@ -2538,61 +2011,15 @@ namespace APACE_lib
             double reward = 0;
             switch (_objectiveFunction)
             {
-                case enumObjectiveFunction.MaximizeNMB:
+                case EnumObjectiveFunction.MaximizeNMB:
                     reward = _wtpForHealth * _currentPeriodQALY - _currentPeriodCost;
                     break;
-                case enumObjectiveFunction.MaximizeNHB:
+                case EnumObjectiveFunction.MaximizeNHB:
                     reward = _currentPeriodQALY - _currentPeriodCost / _wtpForHealth;
                     break;
             }
             return reward;
         }
-        // update transmission rates
-        private void UpdateTransmissionRates_v1()
-        {
-            double rate = 0;
-
-            // find the population size   
-            _populationSizeOfMixingGroups = new int[_baseContactMatrices[0].GetLength(0)];
-            foreach (Class thisClass in _classes)
-            {
-                _arrNumOfMembersInEachClass[thisClass.ID] = thisClass.CurrentNumberOfMembers;
-                _populationSizeOfMixingGroups[thisClass.RowIndexInContactMatrix] += _arrNumOfMembersInEachClass[thisClass.ID];
-            }
-
-            int[] populationSizeOfTheMixingGroupThisClassBeintTo = new int[_numOfClasses];
-            foreach (Class thisClass in _classes)
-                populationSizeOfTheMixingGroupThisClassBelongTo[thisClass.ID] = _populationSizeOfMixingGroups[thisClass.RowIndexInContactMatrix];
-
-            // find the index of current action in the transmission matrix
-            int indexOfIntCombInTransmissionMatrix = FindIndexOfInterventionCombimbinationInTransmissionMatrix(_currentInterventionCombinationInEffect);
-
-            // find the transmission rates of each pathogen for each class 
-            double[][] arrTranmissionRatesByClassAndPathogen = new double[_numOfClasses][];
-            foreach (Class thisClass in _classes)
-            {
-                if (thisClass.Type == Class.EnumClassType.Normal && thisClass.CurrentNumberOfMembers > 0)
-                {
-                    int receivingClassID = thisClass.ID;
-                    // build the array of transmission rates for this class 
-                    arrTranmissionRatesByClassAndPathogen[receivingClassID] = new double[_numOfPathogens];
-                    for (int pathogenID = 0; pathogenID < _numOfPathogens; pathogenID++)
-                    {
-                        // calculate the transmission rate for this class and pathogen
-                        rate = 0;
-                        for (int i = 0; i < _arrNumOfMembersInEachClass.Length; ++i)
-                            rate += _tranmissionMatrices[indexOfIntCombInTransmissionMatrix][pathogenID][receivingClassID][i]
-                                * _arrNumOfMembersInEachClass[i] / populationSizeOfTheMixingGroupThisClassBelongTo[i];
-                        //rate = (double)rate / _populationSize;
-                        arrTranmissionRatesByClassAndPathogen[receivingClassID][pathogenID] = rate;
-                    }
-                }
-            }
-            // update the proportion of members in each class
-            foreach (Class thisClass in _classes.Where(c => c.CurrentNumberOfMembers > 0))
-                thisClass.UpdateTransmissionRates(arrTranmissionRatesByClassAndPathogen[thisClass.ID]);
-        }
-
 
         // check if stopping condition is satisfied
         private bool IsEradicationConditionsSatisfied()
@@ -2647,56 +2074,26 @@ namespace APACE_lib
             _annualCost = 0;
             _numOfSwitchesBtwDecisions = 0; 
 
-            // update resource availability
-            foreach (Resource thisResource in _resources)
-            {
-                switch (thisResource.ReplenishmentType)
-                {
-                    case Resource.enumReplenishmentType.OneTime:
-                        thisResource.UpdateAvailabilityScheme(
-                            _arrSampledParameterValues[thisResource.ParID_firstTimeAvailable],
-                            (int)_arrSampledParameterValues[thisResource.ParID_replenishmentQuantity]);
-                        break;
-                    case Resource.enumReplenishmentType.Periodic:
-                        thisResource.UpdateAvailabilityScheme(
-                            _arrSampledParameterValues[thisResource.ParID_firstTimeAvailable],
-                            (int)_arrSampledParameterValues[thisResource.ParID_replenishmentQuantity],
-                            _arrSampledParameterValues[thisResource.ParID_replenishmentInterval]);
-                        break;
-                }
-            }
-            // reset resources
-            _arrAvailableResources = new int[_resources.Count];
-            if (_resources.Count > 0)
-            {                
-                foreach (Resource thisResource in _resources)
-                    // get a new sample
-                    thisResource.ResetForANewSimulationIteration();
-
-                // update the available resources to other classes
-                UpdateResourceAvailabilityInformationForEachClass(_arrAvailableResources);
-            }
-
             // update intervention information
             _onOffStatusOfInterventionsAffectingContactPattern = new int[_numOfInterventionsAffectingContactPattern];
-            _nextEpidemicTimeIndexAnInterventionEffectChanges = int.MaxValue;
-            foreach (Intervention thisIntervention in _simDecisionMaker.Actions)
-                thisIntervention.UpdateDelay((int)(_arrSampledParameterValues[thisIntervention.ParIDDelayToGoIntoEffectOnceTurnedOn] / _deltaT));
+            _nextEpiTimeIndexAnInterventionEffectChanges = int.MaxValue;
+            foreach (Intervention thisIntervention in _decisionMaker.Interventions)
+                thisIntervention.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn = (int)(_arrSampledParameterValues[thisIntervention.ParIDDelayToGoIntoEffectOnceTurnedOn] / _deltaT);
 
             // reset the number of people in each compartment
             _arrNumOfMembersInEachClass = new int[_numOfClasses];
 
             // reset decisions
-            _simDecisionMaker.ResetForAnotherSimulationRun();//(ref _totalCost);
-            foreach (Intervention thisIntervention in _simDecisionMaker.Actions)
+            _decisionMaker.ResetForAnotherSimulationRun();//(ref _totalCost);
+            foreach (Intervention thisIntervention in _decisionMaker.Interventions)
                 thisIntervention.ResetForAnotherSimulationRun();
 
             // calculate contact matrices
             CalculateContactMatrices();
             // announce the initial decision 
-            AnnounceDecision(_simDecisionMaker.DefaultActionCombination, false);
+            UpdateInterventionEffectTime(_decisionMaker.DefaultInterventionCombination, false);
             // make these decisions effective
-            ImplementDecisionsThatCanGoIntoEffect(true);
+            ImplementInterventionsThatCanGoIntoEffect(true);
             // update susceptibility and infectivity of classes
             UpdateSusceptilityAndInfectivityOfClasses(true, true);
 
@@ -2755,7 +2152,7 @@ namespace APACE_lib
                         break;
                     case APACE_lib.SummationStatistics.enumType.Prevalence:
                         {
-                            thisSumStat.AddCurrentMembers(_currentEpidemicTimeIndex * _deltaT, _arrNumOfMembersInEachClass, _modelUse != enumModelUse.Calibration);
+                            thisSumStat.AddCurrentMembers(_epiTimeIndex * _deltaT, _arrNumOfMembersInEachClass, _modelUse != EnumModelUse.Calibration);
                         }
                         break;
                 }
@@ -3189,7 +2586,7 @@ namespace APACE_lib
             }
 
             // find the index of current action in the contact matrices
-            int indexOfIntCombInContactMatrices = FindIndexOfInterventionCombimbinationInTransmissionMatrix(_currentInterventionCombinationInEffect);
+            int indexOfIntCombInContactMatrices = FindIndexOfInterventionCombimbinationInTransmissionMatrix(_interventionCombinationInEffect);
 
             // calculate the transmission rates for each class
             double susContactInf = 0, rate = 0, infectivity = 0;
@@ -3203,7 +2600,7 @@ namespace APACE_lib
                     for (int j = 0; j < _numOfClasses; j++)
                     {
                         // find the infectivity of infection-causing class
-                        if (_classes[j].Type == Class.EnumClassType.Normal) 
+                        if (_classes[j] is Class_Normal) 
                         {
                             infectivity = _classes[j].InfectivityValues[pathogenID];
                             if (infectivity > 0)
@@ -3313,7 +2710,7 @@ namespace APACE_lib
         private void GetReadyForAnotherADPIteration(int itr)
         {
             // update the epsilon greedy
-            _simDecisionMaker.UpdateEpsilonGreedy(itr);
+            //_decisionMaker.UpdateEpsilonGreedy(itr);
             // clear ADP state-decision collection      
             //_POMDP_ADP.ResetForAnotherSimulationRun(_totalCost);
         }
@@ -3322,18 +2719,18 @@ namespace APACE_lib
         {
             switch (_markOfEpidemicStartTime)
             {
-                case enumMarkOfEpidemicStartTime.TimeZero:
+                case EnumMarkOfEpidemicStartTime.TimeZero:
                     {
-                        _currentEpidemicTimeIndex = _currentSimulationTimeIndex;
+                        _epiTimeIndex = _currentSimulationTimeIndex;
                     }
                     break;
 
-                case enumMarkOfEpidemicStartTime.TimeOfFirstObservation:
+                case EnumMarkOfEpidemicStartTime.TimeOfFirstObservation:
                     {
                         if (_firstObservationObtained)
-                            _currentEpidemicTimeIndex = _currentSimulationTimeIndex - _timeIndexOfTheFirstObservation + _numOfDeltaTIndexInAnObservationPeriod;
+                            _epiTimeIndex = _currentSimulationTimeIndex - _timeIndexOfTheFirstObservation + _numOfDeltaTIndexInAnObservationPeriod;
                         else
-                            _currentEpidemicTimeIndex = int.MinValue;
+                            _epiTimeIndex = int.MinValue;
                     }
                     break;
             }            
@@ -3404,14 +2801,14 @@ namespace APACE_lib
         }
         // setup simulation settings
         public void SetupSimulationSettings(
-            enumMarkOfEpidemicStartTime markOfEpidemicStartTime, double deltaT, double decisionIntervalLength,  double warmUpPeriod,          
+            EnumMarkOfEpidemicStartTime markOfEpidemicStartTime, double deltaT, double decisionIntervalLength,  double warmUpPeriod,          
             double simulationHorizonTime, double epidemicConditionTimeIndex,
-            double epidemicTimeToStartDecisionMaking, int initialActionCombinationBinaryCode, enumDecisionRule decisionRule,
+            double epidemicTimeToStartDecisionMaking, int initialActionCombinationBinaryCode, EnumEpiDecisions decisionRule,
             bool storeEpidemicTrajectories, double simulationOutputIntervalLength, double observationPeriodLength,
             double annualInterestRate, double wtpForHealth)
         {
             _markOfEpidemicStartTime = markOfEpidemicStartTime;
-            if (_markOfEpidemicStartTime == enumMarkOfEpidemicStartTime.TimeZero) _firstObservationObtained = true;
+            if (_markOfEpidemicStartTime == EnumMarkOfEpidemicStartTime.TimeZero) _firstObservationObtained = true;
 
             _deltaT = deltaT;
             _decisionIntervalLength = decisionIntervalLength;
@@ -3442,7 +2839,7 @@ namespace APACE_lib
 
         // setup dynamic policy related settings
         public void SetupDynamicPolicySettings
-            (SimulationLib.EnumQFunctionApproximationMethod qFunctionApproximationMethod, bool useEpidemicTimeAsFeature, int degreeOfPolynomialQFunction, double L2RegularizationPenalty)
+            (ComputationLib.EnumQFunctionApproximationMethod qFunctionApproximationMethod, bool useEpidemicTimeAsFeature, int degreeOfPolynomialQFunction, double L2RegularizationPenalty)
         {
             _useEpidemicTimeAsFeature = useEpidemicTimeAsFeature;
             if (_useEpidemicTimeAsFeature)
@@ -3486,17 +2883,17 @@ namespace APACE_lib
             //        (thresholds[i], numOfDecisionPeriodsToUseInterventions[i] * _numOfDeltaTsInADecisionInterval);
         }
         // setup Q-functions with polynomial functions
-        public void SetupPolynomialQFunctions(SimulationLib.EnumQFunctionApproximationMethod qFunctionApproximationMethod, int degreeOfPolynomialQFunction)
+        public void SetupPolynomialQFunctions(EnumQFunctionApproximationMethod qFunctionApproximationMethod, int degreeOfPolynomialQFunction)
         {
             int numOfFeatures = _features.Count;
-            _simDecisionMaker.SetUpQFunctionApproximationModel(
-                qFunctionApproximationMethod, SimulationLib.enumResponseTransformation.None, 
-                numOfFeatures, degreeOfPolynomialQFunction, 2);
+            //_decisionMaker.SetUpQFunctionApproximationModel(
+            //    qFunctionApproximationMethod, SimulationLib.enumResponseTransformation.None, 
+            //    numOfFeatures, degreeOfPolynomialQFunction, 2);
         }
         // add L2 regularization
         public void AddL2Regularization(double penaltyParameter)
         {
-            _simDecisionMaker.AddL2Regularization(penaltyParameter);
+            //_decisionMaker.AddL2Regularization(penaltyParameter);
         }
         /// <summary>
         /// update Q-function coefficients 
@@ -3512,11 +2909,11 @@ namespace APACE_lib
                 for (int j = 0; j < qFunctionCoefficients[i].Length; j++)
                     arrCoefficients[k++] = qFunctionCoefficients[i][j];
 
-            _simDecisionMaker.UpdateQFunctionCoefficients(arrCoefficients);                  
+            //_decisionMaker.UpdateQFunctionCoefficients(arrCoefficients);                  
         }
         public void UpdateQFunctionCoefficients(double[] qFunctionCoefficients)
         {
-            _simDecisionMaker.UpdateQFunctionCoefficients(qFunctionCoefficients);
+            //_decisionMaker.UpdateQFunctionCoefficients(qFunctionCoefficients);
         }     
         // setup storing the simulation trajectory
         public void SetupStoringSimulationTrajectory()
@@ -3585,9 +2982,9 @@ namespace APACE_lib
         // get which interventions are affecting contact pattern
         public bool[] IfInterventionsAreAffectingContactPattern()
         {
-            bool[] result = new bool[_simDecisionMaker.NumOfActions];
+            bool[] result = new bool[_decisionMaker.NumOfInterventions];
 
-            foreach (Intervention thisIntervention in _simDecisionMaker.Actions)
+            foreach (Intervention thisIntervention in _decisionMaker.Interventions)
                 if (thisIntervention.IfAffectingContactPattern)
                     result[thisIntervention.Index] = true;
             return result;
@@ -3891,7 +3288,7 @@ namespace APACE_lib
                 bool affectingContactPattern;
                 string strDecisionRule;
                 EnumDecisionRule enumDecisionRule;
-                EnumSwitchStatus switchStatus;
+                int switchStatus = 0;
 
                 // read intervention information
                 int ID = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ID));
@@ -3899,7 +3296,7 @@ namespace APACE_lib
                 string name = Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.Name));
                 // action type
                 string strType = Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.Type));
-                EnumActionType type = SimulationDecisionRule.ConvertToActionType(strType);
+                EnumInterventionType type = Intervention.ConvertToActionType(strType);
                 // mutually exclusive group
                 int mutuallyExclusiveGroup = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.MutuallyExclusiveGroup));
                 // costs
@@ -3908,11 +3305,11 @@ namespace APACE_lib
                 double penaltyForSwitchingFromOnToOff = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.PenaltyOfSwitchingFromOnToOff));
 
                 // if type is default
-                if (type == EnumActionType.Default)
+                if (type == EnumInterventionType.Default)
                 {
                     affectingContactPattern = true;
                     enumDecisionRule = EnumDecisionRule.Predetermined;
-                    switchStatus = EnumSwitchStatus.On;
+                    switchStatus = 1;
                     timeBecomeAvailable = 0;
                     timeBecomeUnavailable = double.MaxValue;
                 }
@@ -3921,8 +3318,7 @@ namespace APACE_lib
                     affectingContactPattern = SupportFunctions.ConvertYesNoToBool(
                         Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.AffectingContactPattern)));
                     strDecisionRule = Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.OnOffSwitchSetting));
-                    enumDecisionRule = SimulationDecisionRule.ConvertToDecisionRule(strDecisionRule);
-                    
+                    enumDecisionRule = SupportProcedures.ConvertToDecisionRule(strDecisionRule);
                     // availability
                     timeBecomeAvailable = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.TimeBecomesAvailable));
                     timeBecomeUnavailable = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.TimeBecomesUnavailableTo));
@@ -3936,7 +3332,7 @@ namespace APACE_lib
                     }
 
                     // switch value for the pre-determined employment
-                    switchStatus = SimulationDecisionRule.ConvertToSwitchValue(
+                    switchStatus = SupportProcedures.ConvertToSwitchValue(
                         Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.PreDeterminedEmployment_SwitchValue)));
                 }
 
@@ -3945,7 +3341,7 @@ namespace APACE_lib
                 //  thisIntervention.SetupResourceRequirement(Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ResourceID)));
 
                 // define decision rule
-                SimulationDecisionRule simDecisionRule = null;
+                DecisionRule simDecisionRule = null;
                 switch (enumDecisionRule)
                 {
                     case EnumDecisionRule.Predetermined:
@@ -3994,7 +3390,7 @@ namespace APACE_lib
 
                             //// add features related to this intervention
                             //// on/off status features (note that default interventions can not have on/off status feature)
-                            //if (selectOnOffStatusAsFeature && thisIntervention.Type != SimulationAction.enumActionType.Default)
+                            //if (selectOnOffStatusAsFeature && thisIntervention.Type != Intervention.enumActionType.Default)
                             //    _features.Add(new Feature_InterventionOnOffStatus("On/Off status of " + thisIntervention.Name, _numOfFeatures++, thisIntervention.ID, previousObservationPeriodToObserveOnOffValue));
                             //// feature on the number of decision periods over which this intervention is used
                             //if (useNumOfDecisionPeriodEmployedAsFeature)
@@ -4011,11 +3407,11 @@ namespace APACE_lib
                 thisIntervention.SetUpCost(fixedCost, costPerUnitOfTime, penaltyForSwitchingFromOnToOff);
 
                 // add the intervention
-                _simDecisionMaker.AddAnAction(thisIntervention);
+                _decisionMaker.AddAnIntervention(thisIntervention);
             }
 
             // gather info
-            //_simDecisionMaker.GatherInformationAfterAllActionsAreEntered();            
+            _decisionMaker.UpdateAfterAllInterventionsAdded();
 
         }
         

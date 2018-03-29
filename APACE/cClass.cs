@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using RandomVariateLib;
-using SimulationLib;
 using ComputationLib;
 using System.Windows.Forms;
 
@@ -439,7 +438,7 @@ namespace APACE_lib
             _rowIndexInContactMatrix = rowIndexInContactMatrix;
         }
         // update the initial number of members
-        public void UpdateInitialNumberOfMembers(int sampledValue)
+        public override void UpdateInitialNumberOfMembers(int sampledValue)
         {
             _initialMembers = sampledValue;
             _currentNumberOfMembers = sampledValue;

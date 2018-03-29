@@ -56,21 +56,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Calibration.cs" />
     <Compile Include="cAPACE.cs" />
     <Compile Include="cClass.cs" />
     <Compile Include="cCounterStatistics.cs" />
+    <Compile Include="DecisionMaker.cs" />
     <Compile Include="cEpidemic.cs" />
     <Compile Include="cEpidemicModeller.cs" />
     <Compile Include="cExcelInterface.cs" />
     <Compile Include="cFeature.cs" />
     <Compile Include="cIntervention.cs" />
     <Compile Include="cModelSettings.cs" />
-    <Compile Include="cPath.cs" />
     <Compile Include="cEvent.cs" />
-    <Compile Include="cResource.cs" />
-    <Compile Include="cResourceRule.cs" />
+    <Compile Include="ResourceClasses.cs" />
     <Compile Include="cSpecialStatistics.cs" />
     <Compile Include="cStaticPolicyClasses.cs" />
+    <Compile Include="DecisionRuleClasses.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Support.cs" />
   </ItemGroup>

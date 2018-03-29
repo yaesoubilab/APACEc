@@ -9,9 +9,51 @@ using SimulationLib;
 
 namespace APACE_lib
 {
-    // Intervention
-    public class Intervention : SimulationLib.SimulationAction
+    public enum EnumInterventionType : int
     {
+        Default = 1,    // represents the "no action" alternative that is always on
+        Additive = 2,   // represents actions that could be added to the "default" interventions
+    }
+
+    // Intervention
+    public class Intervention
+    {
+        public static EnumInterventionType ConvertToActionType(string value)
+        {
+            EnumInterventionType actionType = EnumInterventionType.Default;
+
+            switch (value)
+            {
+                case "Default":
+                    actionType = EnumInterventionType.Default;
+                    break;
+                case "Aditive":
+                    actionType = EnumInterventionType.Additive;
+                    break;
+            }
+            return actionType;
+        }
+
+        public int Index { get; set; }   // 0, 1, 2, ...
+        public string Name { get; set; }
+        public EnumInterventionType Type { get; set; }  // default or additive
+        public DecisionRule DecisionRule { get; set; }   // pointer to the decision rule that guides the employment of this action
+
+        // costs
+        public double FixedCost { get; set; }          // fixed cost to switch on
+        public double CostPerDecisionPeriod { get; set; }  // cost of using during a decision period
+        public double PenaltyForSwitchingFromOnToOff { get; set; }
+
+        // availability
+        public long TIndexBecomesAvailable { get; set; }
+        public long TIndexBecomesUnavailable { get; set; }
+        public bool RemainOnOnceTurnedOn { get; set; }
+
+        // usage statistics
+        public bool IfHasBeenTrunedOnBefore { get; set; } = false;
+        public int NumOfSwitchesOccured { get; set; }
+        public int NumOfDecisionPeriodsOverWhichThisInterventionWasUsed { get; set; }
+
         public bool IfAffectingContactPattern { get; set; }
         
         // availability
@@ -28,76 +70,63 @@ namespace APACE_lib
         public Intervention(
             int index, 
             string name, 
-            EnumActionType actionType, 
+            EnumInterventionType actionType, 
             bool affectingContactPattern,
-            int timeIndexBecomeAvailable,
-            int timeIndexBecomeUnavailable,
+            int timeIndexBecomesAvailable,
+            int timeIndexBecomesUnavailable,
             int parIDDelayToGoIntoEffectOnceTurnedOn,
-            ref SimulationDecisionRule decisionRule)
-                : base (
-                      index, 
-                      name,
-                      actionType,
-                      timeIndexBecomeAvailable, 
-                      timeIndexBecomeUnavailable, 
-                      ref decisionRule)
+            ref DecisionRule decisionRule)
+               
         {
+            Index = index;
+            Name = name;
+            Type = actionType;
+            TIndexBecomesAvailable = timeIndexBecomesAvailable;
+            TIndexBecomesUnavailable = timeIndexBecomesUnavailable;
+            DecisionRule = decisionRule;
             IfAffectingContactPattern = affectingContactPattern;
             ParIDDelayToGoIntoEffectOnceTurnedOn = parIDDelayToGoIntoEffectOnceTurnedOn;
         }
 
-        // find if this decision can be used
-        //public bool IfCanBeEmployedAccordingToTheThresholdBasedPolicy(int currentEpidemicTimeIndex, double currentObservation)
-        //{
-        //    bool ifCanBeUsed = false;
+        // set up cost
+        public void SetUpCost(double fixedCost, double costPerDecisionPeriod, double penaltyForSwitchingFromOnToOff)
+        {
+            FixedCost = fixedCost;
+            CostPerDecisionPeriod = costPerDecisionPeriod;
+            PenaltyForSwitchingFromOnToOff = penaltyForSwitchingFromOnToOff;
+        }
 
-        //    // check if this intervention is trigged based on observation
-        //    if (base.OnOffSwitchSetting != enumOnOffSwitchSetting.ThresholdBased)
-        //        return false;
+        // find when should be turned off
+        public int FindEpiTimeIndexToTurnOff(int epiTimeIndex)
+        {
+            return 0;
+        }
 
-        //    // check if this decision is available at current time index
-        //    if (currentEpidemicTimeIndex < base.TimeIndexBecomeAvailable || currentEpidemicTimeIndex > base.TimeIndexBecomeUnavailable)
-        //        return false;
+        // find the switch status
+        public int FindSwitchStatus(int epiTimeIndex)
+        {
+            // defualt intervention is always on
+            if (Type == EnumInterventionType.Default)
+                return 1;
 
-        //    // if duration is zero
-        //    if (_thresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention <= 0)
-        //        return false;
-
-        //    // if this decision has been employed before
-        //    if (_ifThisInterventionHasBeenEmployedBefore)
-        //    {
-        //        // check if this decision can still be used
-        //        if (currentEpidemicTimeIndex >= _epidemicTimeIndexToStopThisIntervention)
-        //            return false;
-        //        else
-        //            ifCanBeUsed = true;
-        //    }
-        //    else
-        //    {
-        //        // check if threshold is passed
-        //        if (currentObservation >= _thresholdBasedEmployment_thresholdToTriggerThisIntervention)
-        //        {
-        //            ifCanBeUsed = true;
-        //            // record the first time this decision is employed
-        //            _ifThisInterventionHasBeenEmployedBefore = true;
-        //            _epidemicTimeIndexWhenThisInterventionIsTriggered = currentEpidemicTimeIndex;
-        //            // find the time when this decision can no longer be used
-        //            _epidemicTimeIndexToStopThisIntervention = _epidemicTimeIndexWhenThisInterventionIsTriggered
-        //                + _thresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention;
-        //        }
-        //    }            
-        //    return ifCanBeUsed;
-        //}
+            // check if the intervention is available at this time index
+            if (epiTimeIndex < TIndexBecomesAvailable || epiTimeIndex >= TIndexBecomesUnavailable)
+                return 0;
+            else if (RemainOnOnceTurnedOn && IfHasBeenTrunedOnBefore)
+                return 1;
+            else
+                return DecisionRule.GetSwitchStatus(epiTimeIndex);
+        }
 
         // reset for another simulation run
-
         public void ResetForAnotherSimulationRun()
         {
-            // reset the base class
-            base.ResetForAnotherSimulation();
+            IfHasBeenTrunedOnBefore = false;
+            NumOfSwitchesOccured = 0;
+            NumOfDecisionPeriodsOverWhichThisInterventionWasUsed = 0;
 
             // find the time to go into effect
-            if (ActionType == EnumActionType.Default)
+            if (Type == EnumInterventionType.Default)
             {
                 EpidemicTimeIndexToGoIntoEffect = 0;
                 EpidemicTimeIndexToTurnOff = int.MaxValue;

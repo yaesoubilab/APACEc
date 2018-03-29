@@ -325,16 +325,16 @@ namespace APACE_lib
         #endregion
 
         #region general and simulation settings
-        public enumMarkOfEpidemicStartTime GetMarkOfEpidemicStartTime()
+        public EnumMarkOfEpidemicStartTime GetMarkOfEpidemicStartTime()
         {
-            enumMarkOfEpidemicStartTime markOfEpidemicStartTime = enumMarkOfEpidemicStartTime.TimeZero;
+            EnumMarkOfEpidemicStartTime markOfEpidemicStartTime = EnumMarkOfEpidemicStartTime.TimeZero;
             switch (GetCellValue("General Settings", "markOfEpidemicStartTime").ToString())
             {
                 case "Time 0":
-                    markOfEpidemicStartTime = enumMarkOfEpidemicStartTime.TimeZero;
+                    markOfEpidemicStartTime = EnumMarkOfEpidemicStartTime.TimeZero;
                     break;
                 case "Time of First Observation":
-                    markOfEpidemicStartTime = enumMarkOfEpidemicStartTime.TimeOfFirstObservation;
+                    markOfEpidemicStartTime = EnumMarkOfEpidemicStartTime.TimeOfFirstObservation;
                     break;
             }
             return markOfEpidemicStartTime;
@@ -440,16 +440,16 @@ namespace APACE_lib
 
         #region static policy optimization settings
         
-        public enumStaticPolicyOptimizationMethod GetStaticPolicyOptimizationMethod()
+        public EnumStaticPolicyOptimizationMethod GetStaticPolicyOptimizationMethod()
         {
-            enumStaticPolicyOptimizationMethod value = enumStaticPolicyOptimizationMethod.FullFactorialEvaluation;
+            EnumStaticPolicyOptimizationMethod value = EnumStaticPolicyOptimizationMethod.FullFactorialEvaluation;
             switch (GetCellValue("General Settings", "staticPolicyOptimizationMethod").ToString())
             {
                 case "Full Factorial Evaluation":
-                    value = enumStaticPolicyOptimizationMethod.FullFactorialEvaluation;
+                    value = EnumStaticPolicyOptimizationMethod.FullFactorialEvaluation;
                     break;
                 case "Stochastic Optimization":
-                    value = enumStaticPolicyOptimizationMethod.StochasticOptimization;
+                    value = EnumStaticPolicyOptimizationMethod.StochasticOptimization;
                     break;                
             }
             return value;
@@ -704,16 +704,16 @@ namespace APACE_lib
             return whenToCalibrate;               
         }
         // get random seeds
-        public enumSimulationRNDSeedsSource GetSourceOfRNGSeedsForRealTimeDecisionMaking()
+        public EnumSimulationRNDSeedsSource GetSourceOfRNGSeedsForRealTimeDecisionMaking()
         {
-            enumSimulationRNDSeedsSource simulationRNDSeedsSource = enumSimulationRNDSeedsSource.StartFrom0;
+            EnumSimulationRNDSeedsSource simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.StartFrom0;
             switch (GetCellValue("General Settings", "sourceOfRNGSeedsForRealTimeDecisionMaking").ToString())
             {
                 case "Start from 0":
-                    simulationRNDSeedsSource = enumSimulationRNDSeedsSource.StartFrom0;
+                    simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.StartFrom0;
                     break;
                 case "Prespecified Sequence":
-                    simulationRNDSeedsSource = enumSimulationRNDSeedsSource.PrespecifiedSquence;
+                    simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.PrespecifiedSquence;
                     break;
             }
             return simulationRNDSeedsSource;
@@ -776,51 +776,51 @@ namespace APACE_lib
         #endregion
 
         // get decision rule
-        public enumDecisionRule GetDecisionRule()
+        public EnumEpiDecisions GetDecisionRule()
         {
-            enumDecisionRule thisDecisionRule = enumDecisionRule.SpecifiedByPolicy;
+            EnumEpiDecisions thisDecisionRule = EnumEpiDecisions.SpecifiedByPolicy;
             switch (GetCellValue("General Settings", "decisionRule").ToString())
             {
                 case "Specified by Policy":
-                    thisDecisionRule = enumDecisionRule.SpecifiedByPolicy;
+                    thisDecisionRule = EnumEpiDecisions.SpecifiedByPolicy;
                     break;
                 case "Predetermined Sequence":
-                    thisDecisionRule = enumDecisionRule.PredeterminedSequence;
+                    thisDecisionRule = EnumEpiDecisions.PredeterminedSequence;
                     break;               
             }
             return thisDecisionRule;
         }
         // get random seeds
-        public enumSimulationRNDSeedsSource GetSimulationRNDSeedsSource()
+        public EnumSimulationRNDSeedsSource GetSimulationRNDSeedsSource()
         {
-            enumSimulationRNDSeedsSource simulationRNDSeedsSource = enumSimulationRNDSeedsSource.StartFrom0;
+            EnumSimulationRNDSeedsSource simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.StartFrom0;
             switch (GetCellValue("General Settings", "sourceOfRNGSeeds").ToString())
             {
                 case "Start from 0":
-                    simulationRNDSeedsSource = enumSimulationRNDSeedsSource.StartFrom0;
+                    simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.StartFrom0;
                     break;
                 case "Prespecified Sequence":
-                    simulationRNDSeedsSource = enumSimulationRNDSeedsSource.PrespecifiedSquence;
+                    simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.PrespecifiedSquence;
                     break;
                 case "Weighted Prespecified Sequence":
-                    simulationRNDSeedsSource = enumSimulationRNDSeedsSource.WeightedPrespecifiedSquence;
+                    simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence;
                     break;
             }
             return simulationRNDSeedsSource;
         }
         // get objective function
-        public enumObjectiveFunction GetObjectiveFunction()
+        public EnumObjectiveFunction GetObjectiveFunction()
         {
-            enumObjectiveFunction thisObjectiveFunction = enumObjectiveFunction.MaximizeNHB;
+            EnumObjectiveFunction thisObjectiveFunction = EnumObjectiveFunction.MaximizeNHB;
             string strObjectiveFunction = GetCellValue("General Settings", "objectiveFunction").ToString();
 
             switch (strObjectiveFunction)
             {
                 case "Net Monetary Benefit":
-                    thisObjectiveFunction = enumObjectiveFunction.MaximizeNMB;
+                    thisObjectiveFunction = EnumObjectiveFunction.MaximizeNMB;
                     break;
                 case "Net Health Benefit":
-                    thisObjectiveFunction = enumObjectiveFunction.MaximizeNHB;
+                    thisObjectiveFunction = EnumObjectiveFunction.MaximizeNHB;
                     break;
             }
             return thisObjectiveFunction;
@@ -1587,7 +1587,7 @@ namespace APACE_lib
             }
         }
         // report the results of dynamic policy optimization
-        public void ReportADPResultsForAllEpidemic(double[,] adpParameterDesigns, double[,] simulationOutcomes, double[,] simulationIterations, enumObjectiveFunction objectiveFunction)
+        public void ReportADPResultsForAllEpidemic(double[,] adpParameterDesigns, double[,] simulationOutcomes, double[,] simulationIterations, EnumObjectiveFunction objectiveFunction)
         {
             // clear sheet        
             int lastCol;            
@@ -1633,7 +1633,7 @@ namespace APACE_lib
             // format simulation iterations            
             base.FormatNumber("baseADPParameterDesigns", 1, (int)enumADPParameterDesignOffsets.wtpForHealth, enumRangeDirection.DownEnd, "$#,000");
             base.FormatNumber("baseADPSASimulationIterations", 1, (int)enumADPSASimulationIterationsOffsets.wtpForHealth, enumRangeDirection.DownEnd, "$#,000");
-            if (objectiveFunction == enumObjectiveFunction.MaximizeNMB)
+            if (objectiveFunction == EnumObjectiveFunction.MaximizeNMB)
                 base.FormatNumber("baseADPSASimulationIterations", 1, (int)enumADPSASimulationIterationsOffsets.objectiveFunction, enumRangeDirection.DownEnd, "$#,000");
             else
                 base.FormatNumber("baseADPSASimulationIterations", 1, (int)enumADPSASimulationIterationsOffsets.objectiveFunction, enumRangeDirection.DownEnd, "#,000");
@@ -1682,7 +1682,7 @@ namespace APACE_lib
         }
         // report the results of static policy optimization
         public void ReportStaticPolicyOptimization(double[] WTPs, string[,] staticPolicies, 
-            double[,] simulationOutcomes, double[,] simulationIterations, enumObjectiveFunction objectiveFunction)
+            double[,] simulationOutcomes, double[,] simulationIterations, EnumObjectiveFunction objectiveFunction)
         {   
             int lastCol;
             // clear sheet        
@@ -1730,7 +1730,7 @@ namespace APACE_lib
             // format simulation iterations
             base.FormatNumber("baseStaticPolicyParameterDesigns", 1, (int)enumStaticPolicyOptimizationSimulationIterationsOffsets.wtpForHealth, enumRangeDirection.DownEnd, "$#,000");
             base.FormatNumber("baseStaticPolicySimulationIterations", 1, (int)enumStaticPolicyOptimizationSimulationIterationsOffsets.wtpForHealth, enumRangeDirection.DownEnd, "$#,000");
-            if (objectiveFunction == enumObjectiveFunction.MaximizeNMB)
+            if (objectiveFunction == EnumObjectiveFunction.MaximizeNMB)
                 base.FormatNumber("baseStaticPolicySimulationIterations", 1, (int)enumStaticPolicyOptimizationSimulationIterationsOffsets.objectiveFunction, enumRangeDirection.DownEnd, "$#,000");
             else
                 base.FormatNumber("baseStaticPolicySimulationIterations", 1, (int)enumStaticPolicyOptimizationSimulationIterationsOffsets.objectiveFunction, enumRangeDirection.DownEnd, "#,000");
@@ -1743,7 +1743,7 @@ namespace APACE_lib
             ReportSimulationOutcomes("Static Policy Optimization", "baseStaticPolicySimulationOutcomes", simulationOutcomes, objectiveFunction);
         }
         // report simulation outcomes for adp or static optimization
-        public void ReportSimulationOutcomes(string sheetName, string baseCellname, double[,] simulationOutcomes, enumObjectiveFunction objectiveFunction)
+        public void ReportSimulationOutcomes(string sheetName, string baseCellname, double[,] simulationOutcomes, EnumObjectiveFunction objectiveFunction)
         {
             int firstCol, lastCol;
             // clear sheet 
@@ -1770,7 +1770,7 @@ namespace APACE_lib
 
             // formattings
             base.AlignAMatrix(base.RowIndex(baseCellname) + 1, base.ColIndex(baseCellname), enumAlignment.Center);
-            if (objectiveFunction == enumObjectiveFunction.MaximizeNMB)
+            if (objectiveFunction == EnumObjectiveFunction.MaximizeNMB)
             {
                 base.FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.E_ObjectiveFunction, enumRangeDirection.DownEnd, "$#,000");
                 base.FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.stDev_ObjectiveFunction, enumRangeDirection.DownEnd, "$#,000");
@@ -1787,7 +1787,7 @@ namespace APACE_lib
         }
         // report experimental design simulation outcomes
         public void ReportExperimentalDesignSimulationOutcomes
-            (int numOfVariables, double[,] simulationIterationSummaryOutcomes, enumObjectiveFunction objectiveFunction, 
+            (int numOfVariables, double[,] simulationIterationSummaryOutcomes, EnumObjectiveFunction objectiveFunction, 
             string[] simItrerationOutcomes_detailedLables, double[,] simulationIteration_detailedOutcomes)
         {
             // clear all
@@ -1825,7 +1825,7 @@ namespace APACE_lib
             base.AlignAMatrix(base.RowIndex("baseExperimetalDesignSimOutcomes") + 1, base.ColIndex("baseExperimetalDesignSimOutcomes"), enumAlignment.Center);            
 
             // format simulation iterations
-            if (objectiveFunction == enumObjectiveFunction.MaximizeNMB)
+            if (objectiveFunction == EnumObjectiveFunction.MaximizeNMB)
                 base.FormatNumber("baseExperimetalDesignSimOutcomes", 1, numOfVariables + 0, enumRangeDirection.DownEnd, "$#,000");
             else
                 base.FormatNumber("baseExperimetalDesignSimOutcomes", 1, numOfVariables + 0, enumRangeDirection.DownEnd, "#,000");
@@ -1837,7 +1837,7 @@ namespace APACE_lib
         // report real-time decision making results
         public void ReportEvaluatingRealTimeDecisionMaking(int[] hypotheticalEpidemicsIterations, int[] hypotheticalEpidemicsRNDSeeds, double[] wtpForHealthValuesHypotheticalEpidemics,
             double[] objFunctionHypotheticalEpidemics_staticPolicies, double[] objFunctionHypotheticalEpidemics_dynamicPolicies, string[] strComputationMeasures, double[,] computationStatistics,
-            enumPoliciesToSimulateInRealTime policiesToSimulateInRealTime, enumObjectiveFunction objectiveFunction)
+            enumPoliciesToSimulateInRealTime policiesToSimulateInRealTime, EnumObjectiveFunction objectiveFunction)
         {
             #region headers
             // set up the sheet
@@ -1883,13 +1883,13 @@ namespace APACE_lib
             base.AlignAMatrix(firstRow, firstCol, enumAlignment.Center);
             switch (objectiveFunction)
             {
-                case enumObjectiveFunction.MaximizeNHB:
+                case EnumObjectiveFunction.MaximizeNHB:
                     {
                         base.FormatNumber(firstRow, firstCol + (int)enumSimulatingRealTimeDecisionMakingOffsets.ObjFunctionStaticPolicy, enumRangeDirection.DownEnd, "#,000");
                         base.FormatNumber(firstRow, firstCol + (int)enumSimulatingRealTimeDecisionMakingOffsets.ObjFunctionDynamicPolicy, enumRangeDirection.DownEnd, "#,000");
                     }
                     break;
-                case enumObjectiveFunction.MaximizeNMB:
+                case EnumObjectiveFunction.MaximizeNMB:
                     {
                         base.FormatNumber(firstRow, firstCol + (int)enumSimulatingRealTimeDecisionMakingOffsets.ObjFunctionStaticPolicy, enumRangeDirection.DownEnd, "$#,000");
                         base.FormatNumber(firstRow, firstCol + (int)enumSimulatingRealTimeDecisionMakingOffsets.ObjFunctionDynamicPolicy, enumRangeDirection.DownEnd, "$#,000");
