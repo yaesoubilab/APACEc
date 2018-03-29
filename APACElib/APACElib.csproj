@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{E750AF42-4959-4FAE-918B-95EF58A8DF1E}</ProjectGuid>
+    <ProjectGuid>{E1B4288C-652A-433F-913E-CC721ECE4D8B}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>APACE</RootNamespace>
-    <AssemblyName>APACE</AssemblyName>
+    <RootNamespace>APACElib</RootNamespace>
+    <AssemblyName>APACElib</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -30,23 +30,22 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="CSComputationLib">
-      <HintPath>..\..\CSComputationLib\CSComputationalLib\bin\Release\netcoreapp2.0\CSComputationLib.dll</HintPath>
+    <Reference Include="CSComputationalLib">
+      <HintPath>..\..\CSComputationLib\CSComputationalLib\bin\Release\CSComputationalLib.dll</HintPath>
     </Reference>
     <Reference Include="CSExcelInteractorLib">
       <HintPath>..\..\CSExcelInteractorLib\CSExcelInteractorLib\bin\Release\CSExcelInteractorLib.dll</HintPath>
     </Reference>
     <Reference Include="CSRandomVariateLib">
-      <HintPath>..\..\CSRandomVariateLib\CSRandomVariateLib\bin\Release\netcoreapp2.0\CSRandomVariateLib.dll</HintPath>
+      <HintPath>..\..\CSRandomVariateLib\CSRandomVariateLib\bin\Release\CSRandomVariateLib.dll</HintPath>
     </Reference>
-    <Reference Include="CSSimulationLib">
-      <HintPath>..\..\CSSimulationLib\CSSimulationLib\bin\Release\netcoreapp2.0\CSSimulationLib.dll</HintPath>
-    </Reference>
-    <Reference Include="MathNet.Numerics, Version=3.20.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\MathNet.Numerics.3.20.2\lib\net40\MathNet.Numerics.dll</HintPath>
+    <Reference Include="MathNet.Numerics, Version=4.4.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MathNet.Numerics.4.4.0\lib\net461\MathNet.Numerics.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -60,19 +59,19 @@
     <Compile Include="cAPACE.cs" />
     <Compile Include="cClass.cs" />
     <Compile Include="cCounterStatistics.cs" />
-    <Compile Include="DecisionMaker.cs" />
     <Compile Include="cEpidemic.cs" />
     <Compile Include="cEpidemicModeller.cs" />
+    <Compile Include="cEvent.cs" />
     <Compile Include="cExcelInterface.cs" />
     <Compile Include="cFeature.cs" />
     <Compile Include="cIntervention.cs" />
     <Compile Include="cModelSettings.cs" />
-    <Compile Include="cEvent.cs" />
-    <Compile Include="ResourceClasses.cs" />
     <Compile Include="cSpecialStatistics.cs" />
     <Compile Include="cStaticPolicyClasses.cs" />
+    <Compile Include="DecisionMaker.cs" />
     <Compile Include="DecisionRuleClasses.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ResourceClasses.cs" />
     <Compile Include="Support.cs" />
   </ItemGroup>
   <ItemGroup>

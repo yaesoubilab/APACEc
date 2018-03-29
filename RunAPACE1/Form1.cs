@@ -12,14 +12,14 @@ namespace APACE
 {
     public partial class Form1 : Form
     {
-        APACElib.APACE myAPACE;
+        APACE_lib.APACE myAPACE;
 
         public Form1()
         {
             InitializeComponent();
 
             // define the epidemic model
-            myAPACE = new APACElib.APACE();
+            myAPACE = new APACE_lib.APACE();
         }
 
         // connect button
