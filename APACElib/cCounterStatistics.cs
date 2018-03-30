@@ -91,7 +91,7 @@ namespace APACElib
         }
         public int CurrentCountsInThisSimulationOutputInterval
         {
-            get { return (int)_timeSeries.SumOfObservations; }
+            get { return (int)_timeSeries.CurrentAggregatedObsInLastObsPeriod; }
         }
         public int TotalCounts
         {
