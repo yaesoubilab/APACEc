@@ -169,8 +169,8 @@ namespace APACElib
         private enumUnavailabilityRule _unavailabilityRule;
         private int _ifSatifiedClassID;
         private int _ifNotSatifiedClassID;
-        private int _ifSatifiedProcessID;
-        private int _ifNotSatifiedProcessID;
+        private int _ifSatifiedEventID;
+        private int _ifNotSatifiedEventID;
 
         // Instantiation
         public ResourceRule(int ID, string resourceRuleName, int associatedResourceID, int consumptionPerArrival, int consumptionPerUnitOfTime)
@@ -195,7 +195,7 @@ namespace APACElib
                     break;
                 case enumUnavailabilityRule.SendToAnotherProcess:
                     {
-                        clone.SetupUnavailabilityRuleSendToAnotherProcess(_ifSatifiedProcessID, _ifNotSatifiedProcessID);
+                        clone.SetupUnavailabilityRuleSendToAnotherProcess(_ifSatifiedEventID, _ifNotSatifiedEventID);
                     }
                     break;
             }
@@ -234,11 +234,11 @@ namespace APACElib
             _ifSatifiedClassID = ifSatifiedClassID;
             _ifNotSatifiedClassID = ifNotSatifiedClassID;
         }
-        public void SetupUnavailabilityRuleSendToAnotherProcess(int ifSatifiedProcessID, int ifNotSatifiedProcessID)
+        public void SetupUnavailabilityRuleSendToAnotherProcess(int ifSatifiedEventID, int ifNotSatifiedEventID)
         {
             _unavailabilityRule = enumUnavailabilityRule.SendToAnotherProcess;
-            _ifSatifiedProcessID = ifSatifiedProcessID;
-            _ifNotSatifiedProcessID = ifNotSatifiedProcessID;
+            _ifSatifiedEventID = ifSatifiedEventID;
+            _ifNotSatifiedEventID = ifNotSatifiedEventID;
         }
 
 

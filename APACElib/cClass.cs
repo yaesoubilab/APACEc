@@ -179,7 +179,7 @@ namespace APACElib
         {
             get { return new int[0]; }
         }
-        public virtual bool IsEpiDependentProcessActive
+        public virtual bool IsEpiDependentEventActive
         {
             get { return false; }
         }
@@ -268,7 +268,7 @@ namespace APACElib
         {         
         }
         // update rates of epidemic independent processes associated to this class
-        public virtual void UpdateRatesOfBirthAndEpidemicIndependentProcesses(double[] updatedParameterValues)
+        public virtual void UpdateRatesOfBirthAndEpiIndpEvents(double[] updatedParameterValues)
         {
         }
         // update susceptibility values
@@ -299,7 +299,7 @@ namespace APACElib
         public virtual void ResetNumOfMembersSendingToEachDestinationClasses()
         { }
         // find the members out of active processes
-        public virtual void ReturnAndResetNumOfMembersOutOfProcessesOverPastDeltaT(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
+        public virtual void ReturnAndResetNumOfMembersOutOfEventsOverPastDeltaT(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
         { }
 
         // read current cost
@@ -349,7 +349,7 @@ namespace APACElib
 
         private bool _emptyToEradicate;
         private List<Event> _processes = new List<Event>();
-        private List<Event> _activeProcesses = new List<Event>();
+        private List<Event> _activeEvents = new List<Event>();
         private int[] _currentInterventionCombination;
 
         public Class_Normal(int ID, string name)
@@ -394,7 +394,7 @@ namespace APACElib
         {
             get { return _rowIndexInContactMatrix; }
         }
-        public override bool IsEpiDependentProcessActive
+        public override bool IsEpiDependentEventActive
         {
             get{return _isEpiDependentProcessActive;}
         }
@@ -406,7 +406,7 @@ namespace APACElib
         #endregion
 
         // add a process
-        public void AddAProcess(Event process)
+        public void AddAnEvent(Event process)
         {
             _processes.Add(process);
         }
@@ -444,31 +444,31 @@ namespace APACElib
             _currentNumberOfMembers = sampledValue;
         }
         // update susceptibility and infectivity values
-        public void UpdateSusceptibilityParameterValues(ref double[] arrSampledParameterValues)
+        public override void UpdateSusceptibilityParameterValues(double[] arrSampledParameterValues)
         {
             for (int i = 0; i < _susceptibilityParIDs.Length; i++)
                 _susceptibilityValues[i] = Math.Max(0, arrSampledParameterValues[_susceptibilityParIDs[i]]);
         }
         // update infectivity values
-        public void UpdateInfectivityParameterValues(ref double[] arrSampledParameterValues)
+        public override void UpdateInfectivityParameterValues(double[] arrSampledParameterValues)
         {
             for (int i = 0; i < _infectivityParIDs.Length; i++)
                 _infectivityValues[i] = Math.Max(0, arrSampledParameterValues[_infectivityParIDs[i]]);
         }
         // update rates of epidemic independent processes associated to this class
-        public override void UpdateRatesOfBirthAndEpidemicIndependentProcesses(double[] updatedParameterValues)
+        public override void UpdateRatesOfBirthAndEpiIndpEvents(double[] updatedParameterValues)
         {
-            foreach (Event thisProcess in _activeProcesses)
+            foreach (Event thisProcess in _activeEvents)
             {
                 // update the epidemic independent rate
-                Event_EpidemicIndependent thisEpidemicIndependentProcess = thisProcess as Event_EpidemicIndependent;
-                if (thisEpidemicIndependentProcess != null)
-                    thisEpidemicIndependentProcess.UpdateRate(updatedParameterValues[thisEpidemicIndependentProcess.IDOfRateParameter]);
+                Event_EpidemicIndependent thisEpiIndpEvent = thisProcess as Event_EpidemicIndependent;
+                if (thisEpiIndpEvent != null)
+                    thisEpiIndpEvent.UpdateRate(updatedParameterValues[thisEpiIndpEvent.IDOfRateParameter]);
 
                 // update the birth rate
-                Event_Birth thisBirthProcess = thisProcess as Event_Birth;
-                if (thisBirthProcess!= null)
-                    thisBirthProcess.UpdateBirthRate(updatedParameterValues[thisBirthProcess.IDOfRateParameter]);
+                Event_Birth thisBirthEvent = thisProcess as Event_Birth;
+                if (thisBirthEvent!= null)
+                    thisBirthEvent.UpdateBirthRate(updatedParameterValues[thisBirthEvent.IDOfRateParameter]);
             }
         }        
 
@@ -476,26 +476,9 @@ namespace APACElib
         public override void UpdateTransmissionRates(double[] arrTransmissionRatesByPathogens)
         {
             // update the transmission rates
-            foreach (Event thisProcess in _activeProcesses)
-                thisProcess.UpdateTransmissionRate(arrTransmissionRatesByPathogens[thisProcess.IDOfPathogenToGenerate]);
+            foreach (Event thisEvent in _activeEvents)
+                thisEvent.UpdateTransmissionRate(arrTransmissionRatesByPathogens[thisEvent.IDOfPathogenToGenerate]);
         }
-
-        //// update transmission rates affecting this class for epidemic dependent processes
-        //public override void UpdateTransmissionRatesAffectingThisClass(int indexOfIntCombInTransmissionMatrix, double[][][][] arrTransmissionMatrices)
-        //{
-        //    // update the transmission rates
-        //    foreach (Process thisProcess in _processes)
-        //    {
-        //        if (thisProcess is Process_EpidemicDependent)
-        //            thisProcess.UpdateTransmissionRatesToGenerateInfections(arrTransmissionMatrices[indexOfIntCombInTransmissionMatrix][((Process_EpidemicDependent)thisProcess).IDOfPathogenToGenerate][this.ID]);
-        //    }
-        //}
-        //// update proportion of members in this class
-        //public override void UpdateProportionOfMembers(double[] arrProportionOfMembersInEachClass)
-        //{
-        //    foreach (Process process in _processes)
-        //        process.UpdateProportionOfMembersInEachClass(arrProportionOfMembersInEachClass);  
-        //}
 
         // select an intervention combination
         public override void SelectThisInterventionCombination(int[] interventionCombination)
@@ -512,7 +495,7 @@ namespace APACElib
             //_interventionCombinationCode = SupportFunctions.ConvertToBase10FromBase2(_currentInterventionCombination);
 
             // clear current active processes
-            _activeProcesses.Clear();
+            _activeEvents.Clear();
             // update current active processes
             _isEpiDependentProcessActive = false;
             foreach (Event thisProcess in _processes)
@@ -522,14 +505,14 @@ namespace APACElib
                 {
                     if ( thisProcess is Event_EpidemicDependent)
                         _isEpiDependentProcessActive = true;
-                    _activeProcesses.Add(thisProcess);
+                    _activeEvents.Add(thisProcess);
                 }
             }
             // store the id of the destination classes
-            _arrNumOfMembersSendingToEachDestinationClasses = new int[_activeProcesses.Count];
-            _arrDestinationClasseIDs = new int[_activeProcesses.Count];
+            _arrNumOfMembersSendingToEachDestinationClasses = new int[_activeEvents.Count];
+            _arrDestinationClasseIDs = new int[_activeEvents.Count];
             int i = 0;
-            foreach (Event thisProcess in _activeProcesses)
+            foreach (Event thisProcess in _activeEvents)
                 _arrDestinationClasseIDs[i++] = thisProcess.IDOfDestinationClass;
         }
         // send members of this class out
@@ -543,7 +526,7 @@ namespace APACElib
                 return;
 
             int processIndex = 0;
-            int numOfActiveProcesses = _activeProcesses.Count;
+            int numOfActiveProcesses = _activeEvents.Count;
             double[] arrProcessRates = new double[numOfActiveProcesses];
             double[] arrProcessProbs = new double[numOfActiveProcesses + 1]; // note index 0 denotes not leaving the class
             // _arrNumOfMembersSendingToEachDestinationClasses = new int[numOfActiveProcesses];
@@ -551,7 +534,7 @@ namespace APACElib
             // then calculate the rates of processes
             processIndex = 0;
             double sumOfRates = 0;
-            foreach (Event thisProcess in _activeProcesses)
+            foreach (Event thisProcess in _activeEvents)
             {
                 // birth event does not affect the way members are leaving this class
                 if (thisProcess is Event_Birth)
@@ -590,7 +573,7 @@ namespace APACElib
 
             // find the number of members out of each process to other classes            
             processIndex = 0; // NOTE: process with index 0 denotes not leaving the class
-            foreach (Event thisProcess in _activeProcesses)
+            foreach (Event thisProcess in _activeEvents)
             {
                 // if this is a birth process
                 if (thisProcess is Event_Birth)
@@ -627,13 +610,13 @@ namespace APACElib
         // reset number of members sending to each destination class
         public override void ResetNumOfMembersSendingToEachDestinationClasses()
         {
-            _arrNumOfMembersSendingToEachDestinationClasses = new int[_activeProcesses.Count];
+            _arrNumOfMembersSendingToEachDestinationClasses = new int[_activeEvents.Count];
             _ifMembersWaitingToSendOutBeforeNextDeltaT = false;
         }
         // find the members out of active processes
-        public override void ReturnAndResetNumOfMembersOutOfProcessesOverPastDeltaT(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
+        public override void ReturnAndResetNumOfMembersOutOfEventsOverPastDeltaT(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
         {
-            foreach (Event activeProcess in _activeProcesses)
+            foreach (Event activeProcess in _activeEvents)
             {
                 arrNumOfMembersOutOfProcessesOverPastDeltaT[activeProcess.ID] += activeProcess.MembersOutOverPastDeltaT;
                 activeProcess.MembersOutOverPastDeltaT = 0;

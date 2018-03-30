@@ -29,7 +29,7 @@ namespace APACElib
         private Array _classesSheet;
         private Array _interventionSheet;
         private Array _resourcesSheet;
-        private Array _processesSheet;
+        private Array _eventSheet;
         private Array _summationStatisticsSheet;
         private Array _ratioStatisticsSheet;
         private int[,] _connectionsMatrix;
@@ -124,7 +124,7 @@ namespace APACElib
         public Array ClassesSheet { get => _classesSheet; set => _classesSheet = value; }
         public Array InterventionSheet { get => _interventionSheet; set => _interventionSheet = value; }
         public Array ResourcesSheet { get => _resourcesSheet; set => _resourcesSheet = value; }
-        public Array ProcessesSheet { get => _processesSheet; set => _processesSheet = value; }
+        public Array EventSheet { get => _eventSheet; set => _eventSheet = value; }
         public Array SummationStatisticsSheet { get => _summationStatisticsSheet; set => _summationStatisticsSheet = value; }
         public Array RatioStatisticsSheet { get => _ratioStatisticsSheet; set => _ratioStatisticsSheet = value; }
         public int[,] ConnectionsMatrix { get => _connectionsMatrix; set => _connectionsMatrix = value; }
@@ -207,7 +207,7 @@ namespace APACElib
             ClassesSheet = excelInterface.GetTableOfClasses();
             InterventionSheet = excelInterface.GetTableOfInterventions();
             ResourcesSheet = excelInterface.GetTableOfResources();
-            ProcessesSheet = excelInterface.GetTableOfProcesses();
+            EventSheet = excelInterface.GetTableOfEvents();
             SummationStatisticsSheet = excelInterface.GetTableOfSummationStatistics();
             RatioStatisticsSheet = excelInterface.GetTableOfRatioStatistics();
             ConnectionsMatrix = excelInterface.GetConnectionsMatrix();

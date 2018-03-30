@@ -27,14 +27,13 @@ namespace APACElib
         {
             ID = 1,
             Name = 2,
-            DefalutValue = 3,
-            UpdateAtEachTimeStep = 5,
-            Distribution = 6,
-            Par1 = 7,
-            Par2 = 8,
-            Par3 = 9,
-            Par4 = 10,
-            IncludedInCalibration = 11,
+            UpdateAtEachTimeStep = 3,
+            Distribution = 4,
+            Par1 = 5,
+            Par2 = 6,
+            Par3 = 7,
+            Par4 = 8,
+            IncludedInCalibration = 9,
         }
         public enum enumClassColumns : int
         {
@@ -68,11 +67,11 @@ namespace APACElib
             ShowMembersInClass = 28,
             ShowAccumulatedNewMembers = 29,
         }
-        public enum enumProcessColumns : int
+        public enum enumEventColumns : int
         {
             ID = 1,
             Name = 2,
-            ProcessType = 3,
+            EventType = 3,
 
             IDOfActiviatingIntervention = 5,
             IDOfGeneratingPathogen = 6,
@@ -142,8 +141,8 @@ namespace APACElib
             ClassIDIfSatisfied = 8,
             ClassIDIfNotSatisfied = 9,
 
-            ProcessIDIfSatisfied = 11,
-            ProcessIDIfNotSatisfied = 12,
+            EventIDIfSatisfied = 11,
+            EventIDIfNotSatisfied = 12,
         }
         public enum enumSpecialStatisticsColumns : int
         {
@@ -300,9 +299,9 @@ namespace APACElib
         {
             return GetTableOfCells("Resources", "resourceBase", (int)enumResourceColumns.SelectAsFeature);
         }
-        public Array GetTableOfProcesses()
+        public Array GetTableOfEvents()
         {
-            return GetTableOfCells("Events", "eventsBase", (int)enumProcessColumns.IDOfDestinationClass);
+            return GetTableOfCells("Events", "eventsBase", (int)enumEventColumns.IDOfDestinationClass);
         }
         //public Array GetTableOfResourceRules()
         //{

@@ -20,7 +20,7 @@ namespace APACElib
         // collections
         private List<Parameter> _parameters = new List<Parameter>();
         private List<Class> _classes = new List<Class>();
-        private List<Event> _processes = new List<Event>();
+        private List<Event> _events = new List<Event>();
         private ArrayList _resources = new ArrayList();
         private ArrayList _resourceRules = new ArrayList();
         private List<SummationStatistics> _summationStatistics = new List<SummationStatistics>();
@@ -402,19 +402,9 @@ namespace APACElib
         // reset 
         private void Reset()
         {
-            //_parameters.Clear();
-            //_classes.Clear();
-            //_features = new ArrayList();
-            //_resources.Clear();
-            //_processes.Clear();
-            //_resourceRules.Clear();
-            //_summationStatistics.Clear();
-            //_ratioStatistics.Clear();
-            //_POMDP_ADP.Clear();
-
             _parameters = new List<Parameter>();
             _classes = new List<Class>();
-            _processes = new List<Event>();
+            _events = new List<Event>();
             _resources = new ArrayList();
             _resourceRules = new ArrayList();
             _summationStatistics = new List<SummationStatistics>();
@@ -428,15 +418,6 @@ namespace APACElib
             _modelSettings = null;
 
             Reset();
-
-            //_parameters = null;
-            //_classes = null;
-            //_processes = null;
-            //_resources = null;
-            //_resourceRules = null;
-            //_summationStatistics = null;
-            //_ratioStatistics = null;
-            //_features = null;
 
             _arrSampledParameterValues = null;
             _baseContactMatrices = null; 
@@ -1284,8 +1265,8 @@ namespace APACElib
                 return;
 
             // initialize the intervention combinations currently in effect
-            //if (ifToInitializeSimulatoin)
-            //     _interventionCombinationInEffect = (int[])_decisionMaker.CurrentInterventionCombination.Clone();
+            if (ifToInitializeSimulatoin)
+                _interventionCombinationInEffect = (int[])_decisionMaker.CurrentInterventionCombination.Clone();
 
             //int[] newInterventionCombinationInEffect = (int[])_decisionMaker.CurrentInterventionCombination.Clone();
 
@@ -1874,8 +1855,8 @@ namespace APACElib
             foreach (Class thisClass in _classes)
                 _arrNumOfMembersInEachClass[thisClass.ID] = thisClass.CurrentNumberOfMembers;
 
-            // update and gather statistics defined for processes                         
-            int[] arrNumOfNewMembersOutOfEventsOverPastDeltaT = new int[_processes.Count];
+            // update and gather statistics defined for events                         
+            int[] arrNumOfNewMembersOutOfEventsOverPastDeltaT = new int[_events.Count];
             foreach (Class thisClass in _classes)
             {
                 if (_modelUse != EnumModelUse.Calibration)
@@ -1884,8 +1865,8 @@ namespace APACElib
                     _currentPeriodCost += thisClass.CurrentCost();
                     _currentPeriodQALY += thisClass.CurrentQALY();
                 }
-                // find number of members out of active processes for this class
-                thisClass.ReturnAndResetNumOfMembersOutOfProcessesOverPastDeltaT(ref arrNumOfNewMembersOutOfEventsOverPastDeltaT);
+                // find number of members out of active events for this class
+                thisClass.ReturnAndResetNumOfMembersOutOfEventsOverPastDeltaT(ref arrNumOfNewMembersOutOfEventsOverPastDeltaT);
             }
 
             foreach (SummationStatistics thisSumStat in _summationStatistics)
@@ -2038,9 +2019,9 @@ namespace APACElib
             return eradicated;
         }
         // reset for another simulation
-        private void ResetForAnotherSimulation(int threadSpecificSeedNumber)
+        private void ResetForAnotherSimulation(int seed)
         {
-            ResetForAnotherSimulation(threadSpecificSeedNumber, true, new double[0]);
+            ResetForAnotherSimulation(seed, true, new double[0]);
         }        
         private void ResetForAnotherSimulation(int seed, bool sampleParameters, double[] parameterValues)
         {
@@ -2082,6 +2063,11 @@ namespace APACElib
 
             // reset the number of people in each compartment
             _arrNumOfMembersInEachClass = new int[_numOfClasses];
+            foreach (Class thisClass in _classes)
+            {
+                thisClass.UpdateInitialNumberOfMembers((int)Math.Round(_arrSampledParameterValues[thisClass.InitialMemebersParID]));
+                _arrNumOfMembersInEachClass[thisClass.ID] = thisClass.CurrentNumberOfMembers;
+            }
 
             // reset decisions
             _decisionMaker.ResetForAnotherSimulationRun();//(ref _totalCost);
@@ -2100,8 +2086,7 @@ namespace APACElib
             // update rates associated with each class and their initial size
             foreach (Class thisClass in _classes)
             {
-                thisClass.UpdateInitialNumberOfMembers((int)Math.Round(_arrSampledParameterValues[thisClass.InitialMemebersParID]));
-                thisClass.UpdateRatesOfBirthAndEpidemicIndependentProcesses(_arrSampledParameterValues);
+                thisClass.UpdateRatesOfBirthAndEpiIndpEvents(_arrSampledParameterValues);
                 thisClass.UpdateProbOfSuccess(_arrSampledParameterValues);          
             }
 
@@ -2493,12 +2478,12 @@ namespace APACElib
                 //UpdateTransmissionRates();
             }
 
-            // update process rates if necessary
+            // update event rates if necessary
             if (_thereAreTimeDependentParameters_affectingNaturalHistoryRates)
             {
                 // update rates associated with each class and their initial size
                 foreach (Class thisClass in _classes)
-                    thisClass.UpdateRatesOfBirthAndEpidemicIndependentProcesses(_arrSampledParameterValues);
+                    thisClass.UpdateRatesOfBirthAndEpiIndpEvents(_arrSampledParameterValues);
             }
 
             // update value of splitting class parameters
@@ -2552,7 +2537,7 @@ namespace APACElib
                 foreach (Class thisClass in _classes)
                 {
                     // susceptibility
-                    if (thisClass.IsEpiDependentProcessActive)
+                    if (thisClass.IsEpiDependentEventActive)
                         thisClass.UpdateSusceptibilityParameterValues(_arrSampledParameterValues);
                     // infectivity
                     thisClass.UpdateInfectivityParameterValues(_arrSampledParameterValues);
@@ -2561,7 +2546,7 @@ namespace APACElib
             else if (updateSusceptibility)
             {
                 // only susceptibility
-                foreach (Class thisClass in _classes.Where(c => c.IsEpiDependentProcessActive))
+                foreach (Class thisClass in _classes.Where(c => c.IsEpiDependentEventActive))
                     thisClass.UpdateSusceptibilityParameterValues(_arrSampledParameterValues);
             }
             else if (updateInfectivity)
@@ -2591,7 +2576,7 @@ namespace APACElib
             // calculate the transmission rates for each class
             double susContactInf = 0, rate = 0, infectivity = 0;
             double[] arrTransmissionRatesByPathogen = new double[_numOfPathogens];
-            foreach (Class thisRecievingClass in _classes.Where(c => c.IsEpiDependentProcessActive && c.CurrentNumberOfMembers > 0))
+            foreach (Class thisRecievingClass in _classes.Where(c => c.IsEpiDependentEventActive && c.CurrentNumberOfMembers > 0))
             {
                 // calculate the transmission rate for each pathogen
                 for (int pathogenID = 0; pathogenID < _numOfPathogens; pathogenID++)
@@ -2741,20 +2726,6 @@ namespace APACElib
         // ********* public subs to set up the model *************
         #region public subs to set up the model
         // create the model
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="parametersSheet"></param>
-        /// <param name="classesSheet"></param>
-        /// <param name="interventionsSheet"></param>
-        /// <param name="resourcesSheet"></param>
-        /// <param name="processesSheet"></param>
-        /// <param name="resourceRulesSheet"></param>
-        /// <param name="summationStatisticsSheet"></param>
-        /// <param name="ratioStatisticsSheet"></param>
-        /// <param name="modelStructureSheet"></param>
-        /// <param name="baseContactMatrices">[pathogenID][class ID, class ID] </param>
-        /// <param name="percentChangeInContactMatricesParIDs">[intervention ID][pathogenID][class ID, class ID]</param>
         public void BuildModel(ref ModelSettings modelSettings)
         {
             _modelSettings = modelSettings;
@@ -2771,8 +2742,8 @@ namespace APACElib
             AddInterventions(modelSettings.InterventionSheet);
             // add resources
             AddResources(modelSettings.ResourcesSheet);
-            // add processes
-            AddProcesses(modelSettings.ProcessesSheet);            
+            // add events
+            AddEvents(modelSettings.EventSheet);            
             // add summation statistics
             AddSummationStatistics(modelSettings.SummationStatisticsSheet);
             // add ratio statistics
@@ -3005,7 +2976,6 @@ namespace APACElib
                 // ID and Name
                 int parameterID = Convert.ToInt32(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.enumParameterColumns.ID));
                 string name = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.enumParameterColumns.Name));
-                double defalutValue = Convert.ToDouble(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.enumParameterColumns.DefalutValue));
                 bool updateAtEachTimeStep = SupportFunctions.ConvertYesNoToBool(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.enumParameterColumns.UpdateAtEachTimeStep).ToString());
                 string distribution = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.enumParameterColumns.Distribution));
                 EnumRandomVariates enumRVG = RandomVariateLib.SupportProcedures.ConvertToEnumRVG(distribution);
@@ -3033,7 +3003,7 @@ namespace APACElib
                     int[] arrParIDs = Array.ConvertAll<string, int>(strParIDs, Convert.ToInt32);
                     double[] arrCoefficients = Array.ConvertAll<string, double>(strCoefficients, Convert.ToDouble);
 
-                    thisParameter = new LinearCombination(parameterID, name, defalutValue, arrParIDs, arrCoefficients);
+                    thisParameter = new LinearCombination(parameterID, name, arrParIDs, arrCoefficients);
                 }
                 else if (enumRVG == EnumRandomVariates.MultipleCombination)
                 {
@@ -3048,7 +3018,7 @@ namespace APACElib
                     // convert to numbers
                     int[] arrParIDs = Array.ConvertAll<string, int>(strParIDs, Convert.ToInt32);
 
-                    thisParameter = new MultipleCombination(parameterID, name, defalutValue, arrParIDs);
+                    thisParameter = new MultipleCombination(parameterID, name, arrParIDs);
                 }
                 else
                 {
@@ -3065,25 +3035,25 @@ namespace APACElib
                         // created above
                         break;
                     case (EnumRandomVariates.Correlated):
-                        thisParameter = new CorrelatedParameter(parameterID, name, defalutValue, (int)par1, par2, par3);
+                        thisParameter = new CorrelatedParameter(parameterID, name, (int)par1, par2, par3);
                         break;
                     case (EnumRandomVariates.Multiplicative):
-                        thisParameter = new MultiplicativeParameter(parameterID, name, defalutValue, (int)par1, (int)par2, (bool)(par3==1));
+                        thisParameter = new MultiplicativeParameter(parameterID, name, (int)par1, (int)par2, (bool)(par3==1));
                         break;
                     case (EnumRandomVariates.TimeDependetLinear):
                         {
-                            thisParameter = new TimeDependetLinear(parameterID, name, defalutValue, (int)par1, (int)par2, par3, par4);
+                            thisParameter = new TimeDependetLinear(parameterID, name, (int)par1, (int)par2, par3, par4);
                             _thereAreTimeDependentParameters = true;
                         }
                         break;
                     case (EnumRandomVariates.TimeDependetOscillating):
                         {
-                            thisParameter = new TimeDependetOscillating(parameterID, name, defalutValue, (int)par1, (int)par2, (int)par3, (int)par4);
+                            thisParameter = new TimeDependetOscillating(parameterID, name, (int)par1, (int)par2, (int)par3, (int)par4);
                             _thereAreTimeDependentParameters = true;
                         }
                         break;
                     default:
-                        thisParameter = new IndependetParameter(parameterID, name, defalutValue, enumRVG, par1, par2, par3, par4);
+                        thisParameter = new IndependetParameter(parameterID, name, enumRVG, par1, par2, par3, par4);
                         break;
                 }
 
@@ -3299,6 +3269,11 @@ namespace APACElib
                 EnumInterventionType type = Intervention.ConvertToActionType(strType);
                 // mutually exclusive group
                 int mutuallyExclusiveGroup = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.MutuallyExclusiveGroup));
+
+                // availability
+                timeBecomeAvailable = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.TimeBecomesAvailable));
+                timeBecomeUnavailable = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.TimeBecomesUnavailableTo));
+
                 // costs
                 double fixedCost = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.FixedCost));
                 double costPerUnitOfTime = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.CostPerUnitOfTime));
@@ -3310,8 +3285,6 @@ namespace APACElib
                     affectingContactPattern = true;
                     enumDecisionRule = EnumDecisionRule.Predetermined;
                     switchStatus = 1;
-                    timeBecomeAvailable = 0;
-                    timeBecomeUnavailable = double.MaxValue;
                 }
                 else // if type is not default
                 {
@@ -3319,9 +3292,7 @@ namespace APACElib
                         Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.AffectingContactPattern)));
                     strDecisionRule = Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.OnOffSwitchSetting));
                     enumDecisionRule = SupportProcedures.ConvertToDecisionRule(strDecisionRule);
-                    // availability
-                    timeBecomeAvailable = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.TimeBecomesAvailable));
-                    timeBecomeUnavailable = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.TimeBecomesUnavailableTo));
+                    
                     delayParID = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.DelayParID));
                     resourceID = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ResourceID));
 
@@ -3457,48 +3428,48 @@ namespace APACElib
                     _features.Add(new Feature_DefinedOnResources(name, _numOfFeatures++, ID));
             } 
         }
-        // add processes
-        private void AddProcesses(Array processesSheet)
+        // add events
+        private void AddEvents(Array eventSheet)
         {
-            for (int rowIndex = 1; rowIndex <= processesSheet.GetLength(0); ++rowIndex)
+            for (int rowIndex = 1; rowIndex <= eventSheet.GetLength(0); ++rowIndex)
             {
                 // general settings
-                int ID = Convert.ToInt32(processesSheet.GetValue(rowIndex, (int)ExcelInterface.enumProcessColumns.ID));
-                string name = Convert.ToString(processesSheet.GetValue(rowIndex, (int)ExcelInterface.enumProcessColumns.Name));
-                string strProcessType = Convert.ToString(processesSheet.GetValue(rowIndex, (int)ExcelInterface.enumProcessColumns.ProcessType));
-                int IDOfActivatingIntervention = Convert.ToInt32(processesSheet.GetValue(rowIndex, (int)ExcelInterface.enumProcessColumns.IDOfActiviatingIntervention));
-                int IDOfDestinationClass = Convert.ToInt32(processesSheet.GetValue(rowIndex, (int)ExcelInterface.enumProcessColumns.IDOfDestinationClass));
+                int ID = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.ID));
+                string name = Convert.ToString(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.Name));
+                string strEventType = Convert.ToString(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.EventType));
+                int IDOfActivatingIntervention = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfActiviatingIntervention));
+                int IDOfDestinationClass = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfDestinationClass));
 
-                // build the process
-                #region Build process
-                switch (strProcessType)
+                // build the event
+                #region Build event
+                switch (strEventType)
                 {
-                    case "Process: Birth":
+                    case "Event: Birth":
                         {
-                            int IDOfRateParameter = Convert.ToInt32(processesSheet.GetValue(rowIndex, (int)ExcelInterface.enumProcessColumns.IDOfRateParameter));
-                            // create the process
-                            Event_Birth thisProcess_Birth = new Event_Birth(name, ID, IDOfActivatingIntervention, IDOfRateParameter, IDOfDestinationClass);
-                            _processes.Add(thisProcess_Birth);
+                            int IDOfRateParameter = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfRateParameter));
+                            // create the event
+                            Event_Birth thisEvent_Birth = new Event_Birth(name, ID, IDOfActivatingIntervention, IDOfRateParameter, IDOfDestinationClass);
+                            _events.Add(thisEvent_Birth);
                         }
                         break;
-                    case "Process: Epidemic-Independent":
+                    case "Event: Epidemic-Independent":
                         {
-                            int IDOfRateParameter = Convert.ToInt32(processesSheet.GetValue(rowIndex, (int)ExcelInterface.enumProcessColumns.IDOfRateParameter));
+                            int IDOfRateParameter = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfRateParameter));
                             // create the process
-                            Event_EpidemicIndependent thisProcess_EpidemicIndependent = new Event_EpidemicIndependent(name, ID, IDOfActivatingIntervention, IDOfRateParameter, IDOfDestinationClass);
-                            _processes.Add(thisProcess_EpidemicIndependent);
+                            Event_EpidemicIndependent thisEvent_EpidemicIndependent = new Event_EpidemicIndependent(name, ID, IDOfActivatingIntervention, IDOfRateParameter, IDOfDestinationClass);
+                            _events.Add(thisEvent_EpidemicIndependent);
 
                             // check if the rate parameter is time dependent
                             if (_thereAreTimeDependentParameters && _parameters[IDOfRateParameter].ShouldBeUpdatedByTime)
                                     _thereAreTimeDependentParameters_affectingNaturalHistoryRates = true;
                         }
                         break;
-                    case "Process: Epidemic-Dependent":
+                    case "Event: Epidemic-Dependent":
                         {
-                            int IDOfPathogenToGenerate = Convert.ToInt32(processesSheet.GetValue(rowIndex, (int)ExcelInterface.enumProcessColumns.IDOfGeneratingPathogen));
+                            int IDOfPathogenToGenerate = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfGeneratingPathogen));
                             // create the process
-                            Event_EpidemicDependent thisProcess_EpidemicDependent = new Event_EpidemicDependent(name, ID, IDOfActivatingIntervention, IDOfPathogenToGenerate, IDOfDestinationClass);
-                            _processes.Add(thisProcess_EpidemicDependent);
+                            Event_EpidemicDependent thisEvent_EpidemicDependent = new Event_EpidemicDependent(name, ID, IDOfActivatingIntervention, IDOfPathogenToGenerate, IDOfDestinationClass);
+                            _events.Add(thisEvent_EpidemicDependent);
                         }
                         break;
                 }
@@ -3537,10 +3508,10 @@ namespace APACElib
                             thisResourceRule.SetupUnavailabilityRuleSendToAnotherClass(classIDIfSatisfied, classIDIfNotSatisfied);
                         }
                         break;
-                    case "Rule: Send to Another Process":
+                    case "Rule: Send to Another Event":
                         {
-                            int processIDIfSatisfied = Convert.ToInt32(resourceRulesSheet.GetValue(rowIndex, (int)ExcelInterface.enumResourceRuleColumns.ProcessIDIfSatisfied));
-                            int processIDIfNotSatisfied = Convert.ToInt32(resourceRulesSheet.GetValue(rowIndex, (int)ExcelInterface.enumResourceRuleColumns.ProcessIDIfNotSatisfied));
+                            int processIDIfSatisfied = Convert.ToInt32(resourceRulesSheet.GetValue(rowIndex, (int)ExcelInterface.enumResourceRuleColumns.EventIDIfSatisfied));
+                            int processIDIfNotSatisfied = Convert.ToInt32(resourceRulesSheet.GetValue(rowIndex, (int)ExcelInterface.enumResourceRuleColumns.EventIDIfNotSatisfied));
                             thisResourceRule.SetupUnavailabilityRuleSendToAnotherClass(processIDIfSatisfied, processIDIfNotSatisfied);
                         }
                         break;
@@ -3835,7 +3806,7 @@ namespace APACElib
             {
                 classID = connectionsMatrix[i, 0];
                 processID = connectionsMatrix[i, 1];
-                ((Class_Normal)_classes[classID]).AddAProcess((Event)_processes[processID]);
+                ((Class_Normal)_classes[classID]).AddAnEvent((Event)_events[processID]);
                 
                 ++i;
 

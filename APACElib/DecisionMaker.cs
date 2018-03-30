@@ -47,6 +47,7 @@ namespace APACElib
         // find a new action combination 
         public void MakeANewDecision(ref int[] newActionCombination, int timeIndex)
         {
+            newActionCombination = new int[NumOfInterventions];
             // find the switch status of each action
             foreach (Intervention inter in Interventions)
             {
@@ -100,6 +101,7 @@ namespace APACElib
             CurrentInterventionCombination = (int[])DefaultInterventionCombination.Clone();
         }
     }
+
 }
 
 

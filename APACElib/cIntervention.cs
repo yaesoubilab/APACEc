@@ -27,7 +27,7 @@ namespace APACElib
                 case "Default":
                     actionType = EnumInterventionType.Default;
                     break;
-                case "Aditive":
+                case "Additive":
                     actionType = EnumInterventionType.Additive;
                     break;
             }
@@ -128,16 +128,18 @@ namespace APACElib
             // find the time to go into effect
             if (Type == EnumInterventionType.Default)
             {
-                EpidemicTimeIndexToGoIntoEffect = 0;
+                EpidemicTimeIndexToTurnOn = int.MinValue;
+                EpidemicTimeIndexTurnedOn = int.MinValue;
+                EpidemicTimeIndexToGoIntoEffect = int.MinValue;
                 EpidemicTimeIndexToTurnOff = int.MaxValue;
             }
             else
             {
+                EpidemicTimeIndexToTurnOn = int.MaxValue;
+                EpidemicTimeIndexTurnedOn = int.MaxValue;
                 EpidemicTimeIndexToGoIntoEffect = int.MaxValue;
                 EpidemicTimeIndexToTurnOff = int.MaxValue;
             }
-            EpidemicTimeIndexTurnedOn = int.MaxValue;
-            EpidemicTimeIndexToTurnOff = int.MinValue;
         }
         
     }
