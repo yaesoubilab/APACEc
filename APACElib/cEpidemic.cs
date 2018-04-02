@@ -2005,16 +2005,23 @@ namespace APACElib
         // check if stopping condition is satisfied
         private bool IsEradicationConditionsSatisfied()
         {
-            bool eradicated = true;            
-            foreach (Class thisClass in _classes)
+            bool eradicated = true;
+
+            // check if any class has eradication condition
+            if (_classes.Where(s => s.EmptyToEradicate).Count() == 0)
+                eradicated = false;
+            else
             {
-                // if a class should be empty while it is not then return false
-                if (thisClass.EmptyToEradicate == true && thisClass.CurrentNumberOfMembers > 0)
+                foreach (Class thisClass in _classes)
                 {
-                    eradicated = false;
-                    break;
+                    // if a class should be empty while it is not then return false
+                    if (thisClass.EmptyToEradicate == true && thisClass.CurrentNumberOfMembers > 0)
+                    {
+                        eradicated = false;
+                        break;
+                    }
                 }
-            }                
+            }
             _stoppedDueToEradication = eradicated;
             return eradicated;
         }

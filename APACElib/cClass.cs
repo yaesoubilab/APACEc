@@ -578,10 +578,16 @@ namespace APACElib
                 // if this is a birth process
                 if (thisProcess is Event_Birth)
                 {
-                    // define a Poisson distribution
-                    Poisson numOfBirthsDistribution = new Poisson("Birth", _currentNumberOfMembers * thisProcess.Rate * deltaT);
-                    // get a sample on the number of births
-                    int numOfBirths = numOfBirthsDistribution.SampleDiscrete(rng);
+                    int numOfBirths = 0;
+                    if (thisProcess.Rate == 0)
+                        numOfBirths = 0;
+                    else
+                    {
+                        // define a Poisson distribution
+                        Poisson numOfBirthsDistribution = new Poisson("Birth", _currentNumberOfMembers * thisProcess.Rate * deltaT);
+                        // get a sample on the number of births
+                        numOfBirths = numOfBirthsDistribution.SampleDiscrete(rng);
+                    }
                     // record the number of members out of this process
                     thisProcess.MembersOutOverPastDeltaT = numOfBirths;
                     // find the number of members to the destination class
