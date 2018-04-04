@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using RandomVariateLib;
-using ComputationLib;
 
 namespace APACElib
 {
@@ -26,7 +23,7 @@ namespace APACElib
         {
             // add the actions
             Interventions.Add(action);
-            ++NumOfInterventions;            
+            ++NumOfInterventions;
         }
 
         // update after all interventions are added
@@ -39,8 +36,8 @@ namespace APACElib
             foreach (Intervention intervention in Interventions
                 .Where(s => s.Type == EnumInterventionType.Default))
             {
-                    DefaultInterventionCombination[intervention.Index] = 1;
-                    CurrentInterventionCombination[intervention.Index] = 1;
+                DefaultInterventionCombination[intervention.Index] = 1;
+                CurrentInterventionCombination[intervention.Index] = 1;
             }
         }
 
@@ -54,7 +51,7 @@ namespace APACElib
                 newActionCombination[inter.Index] = inter.FindSwitchStatus(timeIndex);
             }
         }
-        
+
         // update the currect intervention combination       
         public void UpdateInterventionCombination(int[] newActionCombination)
         {
@@ -100,6 +97,14 @@ namespace APACElib
             CostOverThisDecisionPeriod = 0;
             CurrentInterventionCombination = (int[])DefaultInterventionCombination.Clone();
         }
+    }
+
+
+
+
+    class IntrvnEffectMonitor
+    {
+
     }
 
 }
