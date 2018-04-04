@@ -1044,7 +1044,7 @@ namespace APACElib
                 UpdateDecisions();
 
                 // put decisions into effect
-                ImplementInterventionsThatCanGoIntoEffect(false);
+                ImplementInterventionsThatCanGoIntoEffect(_currentSimulationTimeIndex);
 
                 // update the effect of chance in time dependent parameter value
                 UpdateTheEffectOfChangeInTimeDependentParameterValues(_currentSimulationTimeIndex * _deltaT);
@@ -1258,19 +1258,19 @@ namespace APACElib
         }
 
         // implement the interventions that go into effect
-        private void ImplementInterventionsThatCanGoIntoEffect(bool ifToInitializeSimulatoin)
+        private void ImplementInterventionsThatCanGoIntoEffect(int simTimeIndex)
         {
             // if it's time to implement the change
-            if (_nextEpiTimeIndexAnInterventionEffectChanges > _epiTimeIndex && !ifToInitializeSimulatoin)
+            if (_nextEpiTimeIndexAnInterventionEffectChanges > _epiTimeIndex && simTimeIndex != 0)
                 return;
 
             // initialize the intervention combinations currently in effect
-            if (ifToInitializeSimulatoin)
+            if (simTimeIndex == 0)
                 _interventionCombinationInEffect = (int[])_decisionMaker.CurrentInterventionCombination.Clone();
 
-            //int[] newInterventionCombinationInEffect = (int[])_decisionMaker.CurrentInterventionCombination.Clone();
+            int[] newInterventionCombinationInEffect = (int[])_decisionMaker.CurrentInterventionCombination.Clone();
 
-            int[] newInterventionCombinationInEffect = new int[_decisionMaker.NumOfInterventions];
+            //int[] newInterventionCombinationInEffect = new int[_decisionMaker.NumOfInterventions];
             foreach (Intervention intv in _decisionMaker.Interventions)
             {
                 // the default intervention is always in effect
@@ -2081,12 +2081,15 @@ namespace APACElib
             foreach (Intervention thisIntervention in _decisionMaker.Interventions)
                 thisIntervention.ResetForAnotherSimulationRun();
 
+            // update decisions
+            UpdateDecisions();
+
             // calculate contact matrices
             CalculateContactMatrices();
             // announce the initial decision 
             UpdateInterventionEffectTime(_decisionMaker.DefaultInterventionCombination, false);
             // make these decisions effective
-            ImplementInterventionsThatCanGoIntoEffect(true);
+            ImplementInterventionsThatCanGoIntoEffect(0);
             // update susceptibility and infectivity of classes
             UpdateSusceptilityAndInfectivityOfClasses(true, true);
 
