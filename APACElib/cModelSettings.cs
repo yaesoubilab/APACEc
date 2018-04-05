@@ -11,7 +11,7 @@ namespace APACElib
 {
     public class ModelSettings
     {
-        private Epidemic _tempEpidemic = new Epidemic(0);
+        //private Epidemic _tempEpidemic = new Epidemic(0);
         EnumModelUse _modelUse = EnumModelUse.Simulation;
         private bool _useParallelComputing;
         private int _maxDegreeOfParallelism;
@@ -72,6 +72,25 @@ namespace APACElib
         private double[,] _matrixOfObservationsAndWeights;
         private int _numOfSimulationsRunInParallelForCalibration;
 
+        // delta t
+        public double DeltaT { get; set; }
+        // simulation, observation and decision periods
+        public double DecisionIntervalLength { get; set; }
+        public double ObservationPeriodLength { get; set; }
+        public double SimulationOutputIntervalLength { get; set; }
+        public int NumOfDeltaT_inSimulationOutputInterval { get; set; }
+        public int NumOfDeltaT_inObservationPeriod { get; set; }
+
+        public int EpidemicTimeIndexToStartDecisionMaking { get; set; }
+        public EnumMarkOfEpidemicStartTime MarkOfEpidemicStartTime { get; set; }
+        public int WarmUpPeriodTimeIndex { get; set; }
+        public int TimeIndexToStop { get; set; }
+        public int EpidemicConditionTimeIndex { get; set; }
+        public EnumEpiDecisions DecisionRule { get; set; }
+        public bool IfToShowSimulationTrajectories { get; set; }        
+        public double AnnualInterestRate { get; set; }
+        public double DecisionPeriodDiscountRate { get; set; }
+        public double WTPForHealth { get; set; }
 
         public EnumModelUse ModelUse { get => _modelUse; set => _modelUse = value; }
         public bool UseParallelComputing { get => _useParallelComputing; set => _useParallelComputing = value; }
@@ -128,7 +147,6 @@ namespace APACElib
         public Array SummationStatisticsSheet { get => _summationStatisticsSheet; set => _summationStatisticsSheet = value; }
         public Array RatioStatisticsSheet { get => _ratioStatisticsSheet; set => _ratioStatisticsSheet = value; }
         public int[,] ConnectionsMatrix { get => _connectionsMatrix; set => _connectionsMatrix = value; }
-        public Epidemic TempEpidemic { get => _tempEpidemic; set => _tempEpidemic = value; }
 
         public double[][,] GetBaseContactMatrices() { return _baseContactMatrices; }
         public int[][][,] GetPercentChangeInContactMatricesParIDs() { return _percentChangeInContactMatricesParIDs; }
@@ -164,23 +182,26 @@ namespace APACElib
             _numOfSimulationIterations = excelInterface.GetNumberOfSimulationIterations();
             _simulationRNDSeedsSource = excelInterface.GetSimulationRNDSeedsSource();
 
-            //setup simulation settings
-            TempEpidemic.SetupSimulationSettings(
-                excelInterface.GetMarkOfEpidemicStartTime(),
-                excelInterface.GetTimeStep(),
-                excelInterface.GetDecisionIntervalLength(),
-                excelInterface.GetWarmUpPeriod(),
-                excelInterface.GetTimeToStop(),
-                excelInterface.GetEpidemicConditionTime(),
-                excelInterface.GetTimeToStartDecisionMaking(),
-                0,
-                excelInterface.GetDecisionRule(),
-                excelInterface.GetIfToShowSimulationTrajectories(),
-                excelInterface.GetSimulationOutputIntervalLength(),
-                excelInterface.GetObservationPeriodLength(),
-                (double)excelInterface.GetAnnualInterestRate(),
-                (double)excelInterface.GetWTPForHealth()
-                );
+            DeltaT = excelInterface.GetTimeStep();
+            SimulationOutputIntervalLength = excelInterface.GetSimulationOutputIntervalLength();
+            ObservationPeriodLength = excelInterface.GetObservationPeriodLength();
+            DecisionIntervalLength = excelInterface.GetDecisionIntervalLength();
+
+            NumOfDeltaT_inSimulationOutputInterval = (int)(SimulationOutputIntervalLength / DeltaT);
+            NumOfDeltaT_inObservationPeriod = (int)(ObservationPeriodLength / DeltaT);
+            
+
+            EpidemicTimeIndexToStartDecisionMaking = (int)(excelInterface.GetTimeToStartDecisionMaking()/DeltaT);
+            MarkOfEpidemicStartTime = excelInterface.GetMarkOfEpidemicStartTime();
+            WarmUpPeriodTimeIndex = (int)(excelInterface.GetWarmUpPeriod() / DeltaT);
+            TimeIndexToStop = (int)(excelInterface.GetTimeToStop() / DeltaT);
+            EpidemicConditionTimeIndex = (int)(excelInterface.GetEpidemicConditionTime() / DeltaT);
+            DecisionRule = excelInterface.GetDecisionRule();
+            IfToShowSimulationTrajectories = excelInterface.GetIfToShowSimulationTrajectories();
+            
+            AnnualInterestRate = excelInterface.GetAnnualInterestRate();
+            //DecisionPeriodDiscountRate = 1 / (1 + AnnualInterestRate * DecisionIntervalLength / 364);
+            WTPForHealth = excelInterface.GetWTPForHealth();
 
             // read RND seeds if necessary
             if (_modelUse == EnumModelUse.Simulation || _modelUse == EnumModelUse.Optimization)
@@ -299,7 +320,7 @@ namespace APACElib
         public void ReadPastObservations(ref ExcelInterface excelInterface, int numOfCalibrationTargets)
         {
             // find the number of observations that should be eliminated during the warm-up period
-            int numOfInitialObsToRemove = (int)(_tempEpidemic.WarmUpPeriodIndex* _tempEpidemic.DeltaT/ _tempEpidemic.ObservationPeriodLengh);
+            int numOfInitialObsToRemove = (int)(WarmUpPeriodTimeIndex / ObservationPeriodLength);
             // read observations
             _matrixOfObservationsAndWeights = excelInterface.GetMatrixOfObservationsAndWeights(numOfInitialObsToRemove, numOfCalibrationTargets);
         }

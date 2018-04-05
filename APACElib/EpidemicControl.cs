@@ -10,12 +10,23 @@ namespace APACElib
     {
         public List<Intervention> Interventions { get; set; } = new List<Intervention>();
         public int NumOfInterventions { get; set; } = 0;
-        public int[] CurrentInterventionCombination { get; set; } = new int[0];   // array of 0 and 1 to represent which action is on or off
-        public int[] DefaultInterventionCombination { get; set; } = new int[0];   // if all other actions become unavailable, we will use this action combination 
+
+        private int _nOfDeltaTsInADecisionInterval; // number of time steps in a decision interval
+        private int _nextEpiTimeIndexToMakeDecision; // next epidemic time index to make a decision       
+        public int DecisionIntervalIndex { get; set; } // index of the current decision interval
+        public int EpiTimeIndexToChangeIntervetionsInEffect { get; set; } = 0; // epidemic time index to change the interventions that are in effect
+        private int[][] _prespecifiedDecisionsOverDecisionsPeriods; // prespecified decisions
+
+        public int[] CurrentDecision { get; set; } = new int[0];   // array of 0 and 1 to represent which action is on or off
+        public int[] DefaultDecision { get; set; } = new int[0];   // if all other actions become unavailable, we will use this action combination 
         public double CostOverThisDecisionPeriod { get; set; } = 0; // cost actions and decision making
+        
         // Instantiation
-        public DecisionMaker()
+        public DecisionMaker(int epiTimeIndexToStartDecisionMaking, int nOfDeltaTsInADecisionInterval)
         {
+            _nextEpiTimeIndexToMakeDecision = epiTimeIndexToStartDecisionMaking;
+            _nOfDeltaTsInADecisionInterval = nOfDeltaTsInADecisionInterval;
+            DecisionIntervalIndex = 0;
         }
 
         // add a decision
@@ -29,65 +40,134 @@ namespace APACElib
         // update after all interventions are added
         public void UpdateAfterAllInterventionsAdded()
         {
-            DefaultInterventionCombination = new int[Interventions.Count];
-            CurrentInterventionCombination = new int[Interventions.Count];
+            DefaultDecision = new int[Interventions.Count];
+            CurrentDecision = new int[Interventions.Count];
 
             // make sure the default intervention is on
             foreach (Intervention intervention in Interventions
                 .Where(s => s.Type == EnumInterventionType.Default))
             {
-                DefaultInterventionCombination[intervention.Index] = 1;
-                CurrentInterventionCombination[intervention.Index] = 1;
+                DefaultDecision[intervention.Index] = 1;
+                CurrentDecision[intervention.Index] = 1;
             }
         }
 
-        // find a new action combination 
-        public void MakeANewDecision(ref int[] newActionCombination, int timeIndex)
+        // add prespecified decisions
+        public void AddPrespecifiedDecisionsOverDecisionsPeriods(int[][] prespecifiedDecisionsOverDecisionsPeriods)
         {
-            newActionCombination = new int[NumOfInterventions];
-            // find the switch status of each action
-            foreach (Intervention inter in Interventions)
-            {
-                newActionCombination[inter.Index] = inter.FindSwitchStatus(timeIndex);
-            }
+            _prespecifiedDecisionsOverDecisionsPeriods = prespecifiedDecisionsOverDecisionsPeriods;
         }
 
-        // update the currect intervention combination       
-        public void UpdateInterventionCombination(int[] newActionCombination)
+        // find a new intervention combination (return true if there is a chance in decision)
+        public void MakeANewDecision(int epiTimeIndex)
+        {
+            int[] newDecision = new int[NumOfInterventions];
+            bool ifThereIsAChange = false; 
+
+            // make a decision only at epidemic time 0 or the next decision point
+            if (!(epiTimeIndex == 0 || epiTimeIndex == _nextEpiTimeIndexToMakeDecision))
+                return; // no change in decision 
+
+            // check if decisions are not prespecified
+            if (_prespecifiedDecisionsOverDecisionsPeriods == null)
+            {
+                // find the switch status of each action
+                foreach (Intervention inter in Interventions)
+                {
+                    newDecision[inter.Index] = inter.FindSwitchStatus(epiTimeIndex);
+                }
+            }
+            else // if decisions are prespecified
+                newDecision = _prespecifiedDecisionsOverDecisionsPeriods[DecisionIntervalIndex];
+
+
+            // check if this new intervention combination is the same as the current one
+            if (CurrentDecision.SequenceEqual(newDecision))
+                ifThereIsAChange = false;
+            else
+                ifThereIsAChange = true;              
+
+            // update the current intervention combination to the new one
+            UpdateCurrentDecision(newDecision, epiTimeIndex, ifThereIsAChange);
+
+            // update the index of the decision period
+            DecisionIntervalIndex += 1;
+            // update the next time decisions should be made
+            _nextEpiTimeIndexToMakeDecision += _nOfDeltaTsInADecisionInterval;
+        }
+
+        // update the currect decision    
+        private void UpdateCurrentDecision(int[] newDecision, int epiTimeIndex, bool ifThereIsAChange)
         {
             CostOverThisDecisionPeriod = 0; // reset cost over the next decision period
 
-            int thisActionIndex = 0;
-            foreach (Intervention thisIntervention in Interventions)
+            // if there is a change in decisoin
+            if (ifThereIsAChange)
             {
-                thisActionIndex = thisIntervention.Index;
-                // calculate the number of switches        
-                if (CurrentInterventionCombination[thisActionIndex] != newActionCombination[thisActionIndex])
-                    thisIntervention.NumOfSwitchesOccured += 1;
-
-                // if turning on
-                if (CurrentInterventionCombination[thisActionIndex] == 0 && newActionCombination[thisActionIndex] == 1)
+                int i = 0;
+                foreach (Intervention a in Interventions)
                 {
-                    CostOverThisDecisionPeriod += thisIntervention.FixedCost;
-                    thisIntervention.NumOfSwitchesOccured += 1;
-                    thisIntervention.IfHasBeenTrunedOnBefore = true;
+                    i = a.Index;
+                    // calculate the number of switches        
+                    if (CurrentDecision[i] != newDecision[i])
+                        a.NumOfSwitchesOccured += 1;
+
+                    // if turning on
+                    if (CurrentDecision[i] == 0 && newDecision[i] == 1)
+                    {
+                        a.IfHasBeenTrunedOnBefore = true;
+                        a.EpiTimeIndexTurnedOn = epiTimeIndex;
+                        a.EpiTimeIndexToGoIntoEffect = epiTimeIndex + a.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn;
+                        a.EpiTimeIndexToTurnOff = int.MaxValue;
+                    }
+                    // if the intervention is turning off
+                    else if (CurrentDecision[i] == 1 && newDecision[i] == 0)
+                    {
+                        a.EpiTimeIndexTurnedOff = epiTimeIndex;
+                        a.EpiTimeIndexToTurnOff = epiTimeIndex;
+                        a.EpiTimeIndexToGoIntoEffect = int.MaxValue;
+                    }
+                    // if the intervention remains off
+                    else if (CurrentDecision[i] == 0)
+                    {
+                        a.EpiTimeIndexToGoIntoEffect = int.MaxValue;
+                    }
+
+                    // calculate fixed cost
+                    if (CurrentDecision[i] == 0 && newDecision[i] == 1)
+                    {
+                        CostOverThisDecisionPeriod += a.FixedCost;
+                    }
+
+                    // calculate the penalty cost for switching from on to off
+                    if (a.PenaltyForSwitchingFromOnToOff > 0)
+                    {
+                        if (CurrentDecision[i] == 1 && newDecision[i] == 0)
+                            CostOverThisDecisionPeriod += a.PenaltyForSwitchingFromOnToOff;
+                    }
+
+                    // update the cost per unit of time for this action combination
+                    if (newDecision[i] == 1)
+                    {
+                        CostOverThisDecisionPeriod += a.CostPerDecisionPeriod;
+                        ++a.NumOfDecisionPeriodsOverWhichThisInterventionWasUsed;
+                    }
+
+                    // update the new action
+                    CurrentDecision[i] = newDecision[i];
                 }
 
-                // calculate the penalty cost for switching from on to off
-                if (thisIntervention.PenaltyForSwitchingFromOnToOff > 0)
-                {
-                    if (CurrentInterventionCombination[thisActionIndex] == 1 && newActionCombination[thisActionIndex] == 0)
-                        CostOverThisDecisionPeriod += thisIntervention.PenaltyForSwitchingFromOnToOff;
-                }
+                // find the epidemic time index to change the interventions that are in effect
+                EpiTimeIndexToChangeIntervetionsInEffect = FindNextEpiTimeIndexToChangeInterventionsInEffect();
+            }
 
-                // update the new action
-                CurrentInterventionCombination[thisActionIndex] = newActionCombination[thisActionIndex];
-
-                // update the cost per unit of time for this action combination
-                if (CurrentInterventionCombination[thisActionIndex] == 1)
+            // update cost of this period
+            foreach (Intervention a in Interventions)
+            {
+                if (newDecision[a.Index] == 1)
                 {
-                    CostOverThisDecisionPeriod += thisIntervention.CostPerDecisionPeriod;
-                    ++thisIntervention.NumOfDecisionPeriodsOverWhichThisInterventionWasUsed;
+                    CostOverThisDecisionPeriod += a.CostPerDecisionPeriod;
+                    ++a.NumOfDecisionPeriodsOverWhichThisInterventionWasUsed;
                 }
             }
         }
@@ -95,18 +175,156 @@ namespace APACElib
         public void ResetForAnotherSimulationRun()
         {
             CostOverThisDecisionPeriod = 0;
-            CurrentInterventionCombination = (int[])DefaultInterventionCombination.Clone();
+            CurrentDecision = (int[])DefaultDecision.Clone();
+        }
+
+        private void ReadValuesOfFeatures(int epiTimeIndex)
+        {
+            // check if it is time to record current state
+            if (epiTimeIndex == _nextEpiTimeIndexToMakeDecision) //|| _aResourceJustReplinished == true) //(EligibleToStoreADPStateDecision())
+            {
+                // update the values of features
+                //int i = 0;
+                //foreach (Feature thisFeature in _features)
+                //{
+                //    i = thisFeature.Index;
+
+                //    if (thisFeature is Feature_EpidemicTime)
+                //    {
+                //        _arrCurrentValuesOfFeatures[i] = epiTimeIndex * _deltaT;
+                //    }
+                //    else if (thisFeature is Feature_DefinedOnNewClassMembers)
+                //    {
+                //        _arrCurrentValuesOfFeatures[i] = Math.Max((_classes[((Feature_DefinedOnNewClassMembers)thisFeature).ClassID])
+                //                                                            .ReadFeatureValue((Feature_DefinedOnNewClassMembers)thisFeature), 0);
+                //    }
+                //    else if (thisFeature is Feature_DefinedOnSummationStatistics)
+                //    {
+                //        int sumStatID = ((Feature_DefinedOnSummationStatistics)thisFeature).SumStatisticsID;
+                //        _arrCurrentValuesOfFeatures[i] = (_summationStatistics[sumStatID]).ReadFeatureValue((Feature_DefinedOnSummationStatistics)thisFeature);
+                //    }
+                //    else if (thisFeature is Feature_InterventionOnOffStatus)
+                //    {
+                //        int interventionID = ((Feature_InterventionOnOffStatus)thisFeature).InterventionID;
+                //        int numOfPastObservationPeriodToObserveOnOffValue = ((Feature_InterventionOnOffStatus)thisFeature).PreviousObservationPeriodToObserveOnOffValue;
+                //        _arrCurrentValuesOfFeatures[i] = _pastActionCombinations[numOfPastObservationPeriodToObserveOnOffValue][interventionID];
+                //    }
+                //    else if (thisFeature is Feature_NumOfDecisoinPeriodsOverWhichThisInterventionWasUsed)
+                //    {
+                //        int interventionID = ((Feature_InterventionOnOffStatus)thisFeature).InterventionID;
+                //        _arrCurrentValuesOfFeatures[i] = (_decisionMaker.Interventions[interventionID]).NumOfDecisionPeriodsOverWhichThisInterventionWasUsed;
+                //    }
+
+
+                //    // update the min max on this feature
+                //    thisFeature.UpdateMinMax(_arrCurrentValuesOfFeatures[i]);
+                //}
+            }
+        }
+
+        // find next epidemic time index when an intervention effect changes
+        private int FindNextEpiTimeIndexToChangeInterventionsInEffect()
+        {
+            int tIndex = int.MaxValue;
+            int temp;
+            foreach (Intervention a in Interventions)
+            {
+                if (a.Type != EnumInterventionType.Default)
+                {
+                    temp = Math.Min(a.EpiTimeIndexToTurnOff, a.EpiTimeIndexToGoIntoEffect);
+                    tIndex = Math.Min(temp, tIndex);
+                }
+            }
+            return tIndex;
         }
     }
+    
 
-
-
-
-    class IntrvnEffectMonitor
+    public class MonitorOfInterventionsInEffect
     {
+        private DecisionMaker _decisionMaker;   // the decision maker
+        public int[] InterventionsInEffect { get; set; } // array of 0 and 1 to represent which interventions are in effect 
 
+        public MonitorOfInterventionsInEffect(ref DecisionMaker decisionMaker)
+        {
+            _decisionMaker = decisionMaker;
+        }
+
+        public void Update(int epiTimeIndex, ref List<Class> classes)
+        {
+            // request for a decision
+            _decisionMaker.MakeANewDecision(epiTimeIndex);
+
+            if (epiTimeIndex == 0)
+                InterventionsInEffect = new int[_decisionMaker.NumOfInterventions];
+
+
+            // update interventions that are in effect
+            if (epiTimeIndex == _decisionMaker.EpiTimeIndexToChangeIntervetionsInEffect)
+            {
+                foreach (Intervention a in _decisionMaker.Interventions)
+                {
+                    // the default intervention is always in effect
+                    if (a.Type == EnumInterventionType.Default)
+                        InterventionsInEffect[a.Index] = 1;
+                    else
+                    {
+                        // if this intervention is going into effect
+                        if (InterventionsInEffect[a.Index] == 0 && a.EpiTimeIndexToGoIntoEffect <= epiTimeIndex)
+                        {
+                            InterventionsInEffect[a.Index] = 1;
+
+                            // find when it should be turned off
+                            a.EpiTimeIndexToTurnOff = a.FindEpiTimeIndexToTurnOff(epiTimeIndex);
+                            a.EpiTimeIndexToGoIntoEffect = int.MaxValue;
+                        }
+                        // if this intervention is being lifted
+                        if (InterventionsInEffect[a.Index] == 1 && a.EpiTimeIndexToTurnOff >= epiTimeIndex)
+                        {
+                            InterventionsInEffect[a.Index] = 0;
+
+                            a.EpiTimeIndexToTurnOn = int.MaxValue;
+                            a.EpiTimeIndexToGoIntoEffect = int.MaxValue;
+                            a.EpiTimeIndexToTurnOff = int.MaxValue;
+                        }
+                    }
+                }
+
+                // update interventions that are in effect for each class
+                foreach (Class thisClass in classes)
+                    thisClass.SelectThisInterventionCombination(InterventionsInEffect);
+            }
+
+        }        
+        
     }
 
+
+    public class ADP
+    {
+
+        // add current ADP state-decision
+        private void StoreCurrentADPStateDecision()
+        {
+            // check if it is time to record current state
+            //if (_epiTimeIndex == _nextDecisionPointIndex || _modelUse = EnumModelUse.Optimization)
+            //    return;
+
+            // make a new state-decision
+            //ADPState thisADPState = new ADPState(_arrCurrentValuesOfFeatures, _decisionMaker.CurrentInterventionCombination);
+            //thisADPState.ValidStateToUpdateQFunction = true;
+
+            //// check if this is eligible            
+            ////thisADPState.ValidStateToUpdateQFunction = true;
+            //if (_POMDP_ADP.EpsilonGreedyDecisionSelectedAmongThisManyAlternatives > 1)
+            //    thisADPState.ValidStateToUpdateQFunction = true;
+            //else
+            //    thisADPState.ValidStateToUpdateQFunction = false;
+
+            // store the adp state-decision
+            //_simDecisionMaker.AddAnADPState(_adpSimItr, thisADPState);            
+        }
+    }
 }
 
 

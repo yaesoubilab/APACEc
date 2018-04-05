@@ -16,7 +16,7 @@ namespace APACElib
         // Variable Definition 
         #region Variable Definition
         private int _ID;
-        private ModelSettings _modelSettings;
+        private ModelSettings _set;
         // parent epidemic and collection of epidemics
         private Epidemic _parentEpidemic;
         //private ArrayList _epidemics = new ArrayList();
@@ -284,33 +284,33 @@ namespace APACElib
         public EpidemicModeller(int ID, ref ExcelInterface excelInterface, ref ModelSettings modelSettings)
         {
             _ID = ID;
-            _modelSettings = modelSettings;
+            _set = modelSettings;
 
-            _parentEpidemic = _modelSettings.TempEpidemic.Clone(0);
-            _parentEpidemic.BuildModel(ref _modelSettings);
+            _parentEpidemic = new Epidemic(0);
+            _parentEpidemic.BuildModel(ref _set);
 
             // gather model information
             CollectInformationAvailableAfterModelIsBuilt(_parentEpidemic);
 
             // read contact matrices
-            _modelSettings.ReadContactMatrices(ref excelInterface, _numOfInterventionsAffectingContactPattern);
+            _set.ReadContactMatrices(ref excelInterface, _numOfInterventionsAffectingContactPattern);
             _parentEpidemic.UpdateContactMatrices();
 
             // find the names of parameters
             FindNamesOfParameters();
 
             // if use parallel computing, create a collection of epidemics
-            if (_modelSettings.UseParallelComputing)
+            if (_set.UseParallelComputing)
             {
                 // find how many epi model to create
                 int numOfEpis = 0;
-                switch (_modelSettings.ModelUse)
+                switch (_set.ModelUse)
                 {
                     case EnumModelUse.Simulation:
-                        numOfEpis = _modelSettings.NumOfSimulationIterations;
+                        numOfEpis = _set.NumOfSimulationIterations;
                         break;
                     case EnumModelUse.Calibration:
-                        numOfEpis = _modelSettings.NumOfSimulationsRunInParallelForCalibration;
+                        numOfEpis = _set.NumOfSimulationsRunInParallelForCalibration;
                         break;
                 }
 
@@ -320,7 +320,7 @@ namespace APACElib
                 Parallel.For(0, numOfEpis, simItr =>
                 {
                     // create an epidemic
-                    Epidemic thisEpidemic = _parentEpidemic.Clone(simItr);
+                    Epidemic thisEpidemic = new Epidemic(simItr);
                     // add this epidemic
                     lock (thisLock)
                         {
@@ -342,12 +342,12 @@ namespace APACElib
             //    _prespecifiedDecisionsOverObservationPeriods = (int[][])_modelSettings.PrespecifiedSequenceOfInterventions.Clone();
 
             // find the weighted RND seeds
-            if (_modelSettings.SimulationRNDSeedsSource == EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence)
+            if (_set.SimulationRNDSeedsSource == EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence)
             {
-                int n = _modelSettings.RndSeeds.Length;
+                int n = _set.RndSeeds.Length;
                 double[] arrProb = new double[n];
                 for (int i = 0; i < n; i++)
-                    arrProb[i] = _modelSettings.RndSeedsGoodnessOfFit[i];
+                    arrProb[i] = _set.RndSeedsGoodnessOfFit[i];
 
                 // form a probability function over rnd seeds
                 double sum = arrProb.Sum();
@@ -378,14 +378,14 @@ namespace APACElib
             startTime = Environment.TickCount;
 
             // use parallel computing? 
-            if (_modelSettings.UseParallelComputing == false)
+            if (_set.UseParallelComputing == false)
             {
                 #region Use sequential computing
                 // build the parent epidemic model
                 //_parentEpidemic.BuildModel(ref _modelSettings);
 
                 int rndSeedToGetAnAcceptibleEpidemic = 0;
-                for (int simItr = 0; simItr < _modelSettings.NumOfSimulationIterations; ++simItr)
+                for (int simItr = 0; simItr < _set.NumOfSimulationIterations; ++simItr)
                 {
                     // find the RND seed for this iteration
                     rndSeedToGetAnAcceptibleEpidemic = FindRNDSeed(simItr);
@@ -393,9 +393,9 @@ namespace APACElib
                     // simulate one epidemic trajectory
                     _parentEpidemic.SimulateTrajectoriesUntilOneAcceptibleFound(
                         rndSeedToGetAnAcceptibleEpidemic, 
-                        rndSeedToGetAnAcceptibleEpidemic + Math.Max(_modelSettings.DistanceBtwRNGSeeds, 1), 
+                        rndSeedToGetAnAcceptibleEpidemic + Math.Max(_set.DistanceBtwRNGSeeds, 1), 
                         simItr,
-                        _modelSettings.TempEpidemic.SimulationHorizonTimeIndex);
+                        _set.TimeIndexToStop);
 
                     // report this epidemic trajectory
                     if (_storeEpidemicTrajectories)
@@ -427,7 +427,7 @@ namespace APACElib
                 Parallel.ForEach(_epidemics, thisEpidemic =>
                 {
                     // build the parent epidemic model
-                    thisEpidemic.BuildModel(ref _modelSettings);
+                    thisEpidemic.BuildModel(ref _set);
 
                     // find the RND seed for this iteration
                     rndSeedToGetAnAcceptibleEpidemic = FindRNDSeed(thisEpidemic.ID);
@@ -435,9 +435,9 @@ namespace APACElib
                     // simulate
                     thisEpidemic.SimulateTrajectoriesUntilOneAcceptibleFound(
                         rndSeedToGetAnAcceptibleEpidemic, 
-                        rndSeedToGetAnAcceptibleEpidemic + Math.Max(_modelSettings.DistanceBtwRNGSeeds, 1), 
+                        rndSeedToGetAnAcceptibleEpidemic + Math.Max(_set.DistanceBtwRNGSeeds, 1), 
                         ((Epidemic)thisEpidemic).ID, 
-                        _modelSettings.TempEpidemic.SimulationHorizonTimeIndex);
+                        _set.TimeIndexToStop);
                 });
 
                 // store epidemic trajectories and outcomes
@@ -469,13 +469,13 @@ namespace APACElib
         // calibrate
         public void Calibrate(int numOfInitialSimulationRuns, int numOfFittestRunsToReturn)
         {   
-            int calibrationTimeHorizonIndex = _modelSettings.TempEpidemic.SimulationHorizonTimeIndex;
-            int numOfSimulationsRunInParallelForCalibration = _modelSettings.NumOfSimulationsRunInParallelForCalibration;
+            int calibrationTimeHorizonIndex = _set.TimeIndexToStop;
+            int numOfSimulationsRunInParallelForCalibration = _set.NumOfSimulationsRunInParallelForCalibration;
 
             // reset calibration
             _calibration.Reset();
             // toggle to calibration
-            ToggleModellerTo(EnumModelUse.Calibration, EnumEpiDecisions.PredeterminedSequence, false, _modelSettings.TempEpidemic.WarmUpPeriodIndex); 
+            ToggleModellerTo(EnumModelUse.Calibration, EnumEpiDecisions.PredeterminedSequence, false); 
 
             // keep obtaining trajectories until enough
             int simItr = -1;
@@ -489,12 +489,12 @@ namespace APACElib
             _numOfTrajectoriesDiscardedByCalibration = 0;
 
             // build the epidemic models if using parallel computing
-            if (_modelSettings.UseParallelComputing)
+            if (_set.UseParallelComputing)
             {
                 Parallel.ForEach(_epidemics, thisEpidemic =>
                 {
                     // build the parent epidemic model
-                    thisEpidemic.BuildModel(ref _modelSettings);
+                    thisEpidemic.BuildModel(ref _set);
                 });
             }
 
@@ -502,7 +502,7 @@ namespace APACElib
                 //|| !_calibration.IfAcceptedSimulationRunsAreSymmetricAroundObservations)
             {
                 // use parallel computing? 
-                if (_modelSettings.UseParallelComputing == false)
+                if (_set.UseParallelComputing == false)
                 {
                     #region Use sequential computing
                     // increment the simulation iteration
@@ -530,7 +530,7 @@ namespace APACElib
                         _calibration.AddResultOfASimulationRun(simItr, _parentEpidemic.RNDSeedResultedInAnAcceptibleTrajectory, ref par, ref mOfObs);
 
                         // find the fit of the stored simulation results
-                        _calibration.FindTheFitOfRecordedSimulationResults(_modelSettings.UseParallelComputing);
+                        _calibration.FindTheFitOfRecordedSimulationResults(_set.UseParallelComputing);
                     }
                     #endregion
                 }
@@ -584,7 +584,7 @@ namespace APACElib
                     }
                     
                     // find the fit of the stored simulation results
-                    _calibration.FindTheFitOfRecordedSimulationResults(_modelSettings.UseParallelComputing);
+                    _calibration.FindTheFitOfRecordedSimulationResults(_set.UseParallelComputing);
 
                     // increment the loop id
                     ++parallelLoopIndex;
@@ -611,7 +611,7 @@ namespace APACElib
         public void SimulateTheOptimalDynamicPolicy(int numOfSimulationIterations, int timeIndexToStop, int warmUpPeriodIndex, bool storeEpidemicTrajectories)
         {
             // toggle to simulation
-            ToggleModellerTo(EnumModelUse.Simulation, EnumEpiDecisions.SpecifiedByPolicy, storeEpidemicTrajectories, warmUpPeriodIndex);            
+            ToggleModellerTo(EnumModelUse.Simulation, EnumEpiDecisions.SpecifiedByPolicy, storeEpidemicTrajectories);            
             // simulate epidemic (sequential)
             SimulateEpidemics();
         }
@@ -630,7 +630,7 @@ namespace APACElib
         {
             bool value = false;
             if (_parentEpidemic.IfStoppedDueToEradication ||
-                (_parentEpidemic.CurrentEpidemicTimeIndex >= _parentEpidemic.SimulationHorizonTimeIndex))
+                (_parentEpidemic.CurrentEpidemicTimeIndex >= _set.TimeIndexToStop))
                 value = true;
             return value;
         }
@@ -638,7 +638,7 @@ namespace APACElib
         public void ShouldStoreEpidemicTrajectories(bool yesOrNo)
         {
             _storeEpidemicTrajectories = yesOrNo;
-            if (_modelSettings.UseParallelComputing)
+            if (_set.UseParallelComputing)
             {
                 foreach (Epidemic thisEpidemic in _epidemics)
                     thisEpidemic.StoreEpidemicTrajectories = yesOrNo;
@@ -649,7 +649,7 @@ namespace APACElib
         // update the time to start decision making and collecting epidemic outcomes
         public void UpdateTheTimeToStartDecisionMakingAndWarmUpPeriod(double timeToStartDecisionMaking, double warmUpPeriod)
         {
-            if (_modelSettings.UseParallelComputing)
+            if (_set.UseParallelComputing)
             {
                 foreach (Epidemic thisEpidemic in _epidemics)
                     thisEpidemic.UpdateTheTimeToStartDecisionMakingAndWarmUpPeriod(timeToStartDecisionMaking, warmUpPeriod);
@@ -771,7 +771,7 @@ namespace APACElib
         // get possible intervention combinations for on/off static policies
         public ArrayList GetIntervalBasedStaticPoliciesDesigns()
         {
-            if (_modelSettings.UseParallelComputing)
+            if (_set.UseParallelComputing)
                 return ((Epidemic)_epidemics[0]).GetIntervalBasedStaticPoliciesDesigns();
             else
                 return _parentEpidemic.GetIntervalBasedStaticPoliciesDesigns();
@@ -780,14 +780,14 @@ namespace APACElib
         // add policy related settings
         public void AddDynamicPolicySettings(ref ExcelInterface excelInterface)
         {
-            if (_modelSettings.UseParallelComputing)
+            if (_set.UseParallelComputing)
             {                
                 Parallel.ForEach(_epidemics.Cast<object>(), thisEpidemic =>
                 {
                     // setup policy-related settings
                     ((Epidemic)thisEpidemic).SetupDynamicPolicySettings(
-                        _modelSettings.QFunApxMethod, _modelSettings.IfEpidemicTimeIsUsedAsFeature,
-                        _modelSettings.DegreeOfPolynomialQFunction, _modelSettings.L2RegularizationPenalty);                    
+                        _set.QFunApxMethod, _set.IfEpidemicTimeIsUsedAsFeature,
+                        _set.DegreeOfPolynomialQFunction, _set.L2RegularizationPenalty);                    
                 });
                 // find the number of features
                 _numOfFeatures = ((Epidemic)_epidemics[0]).NumOfFeatures;
@@ -800,8 +800,8 @@ namespace APACElib
             {
                 // setup policy-related settings
                 _parentEpidemic.SetupDynamicPolicySettings(
-                    _modelSettings.QFunApxMethod, _modelSettings.IfEpidemicTimeIsUsedAsFeature,
-                    _modelSettings.DegreeOfPolynomialQFunction, _modelSettings.L2RegularizationPenalty);
+                    _set.QFunApxMethod, _set.IfEpidemicTimeIsUsedAsFeature,
+                    _set.DegreeOfPolynomialQFunction, _set.L2RegularizationPenalty);
                 // find the number of features
                 _numOfFeatures = _parentEpidemic.NumOfFeatures;
                 // read feature names                
@@ -812,7 +812,7 @@ namespace APACElib
 
             // update the q-function coefficients
             double[] qFunCoefficients = excelInterface.GetQFunctionCoefficients(_numOfFeatures);
-            if (_modelSettings.UseParallelComputing)
+            if (_set.UseParallelComputing)
             {
                 Parallel.ForEach(_epidemics.Cast<object>(), thisEpidemic =>
                 {
@@ -829,7 +829,7 @@ namespace APACElib
         // add always on/off and interval-based static policy settings
         public void AddAlwaysOnOffAndIntervalBasedStaticPolicySettings(int[] interventionsOnOffSwitchStatus, double[] startTime, int[] numOfDecisionPeriodsToUse)
         {
-            if (_modelSettings.UseParallelComputing)
+            if (_set.UseParallelComputing)
             {
                 foreach (Epidemic thisEpidemic in _epidemics)
                     // setup policy-related settings
@@ -843,7 +843,7 @@ namespace APACElib
         public void AddThresholdBasedStaticPolicySettings
             (int[] decisionIDs, int[] specialStatisticsIDs, double[] thresholds, int[] numOfDecisionPeriodsToUseInterventions)
         {
-            if (_modelSettings.UseParallelComputing)
+            if (_set.UseParallelComputing)
             {
                 foreach (Epidemic thisEpidemic in _epidemics)
                     // setup policy-related settings
@@ -856,7 +856,7 @@ namespace APACElib
         public void AddThresholdBasedStaticPolicySettings
            (int[] decisionIDs, double[] thresholds, int[] numOfDecisionPeriodsToUseInterventions)
         {
-            if (_modelSettings.UseParallelComputing)
+            if (_set.UseParallelComputing)
             {
                 foreach (Epidemic thisEpidemic in _epidemics)
                     // setup policy-related settings
@@ -870,7 +870,7 @@ namespace APACElib
         
         public void UpdateQFunctionCoefficients(double[] qFunctionCoefficients)
         {
-            if (_modelSettings.UseParallelComputing)
+            if (_set.UseParallelComputing)
             {
                 Parallel.ForEach(_epidemics.Cast<object>(), thisEpidemic =>
                 {
@@ -894,7 +894,7 @@ namespace APACElib
             FindNamesOfParametersToCalibrate();
 
             // add observations
-            AddObservationsToSetUpCalibration(ref _parentEpidemic, _modelSettings.MatrixOfObservationsAndWeights);
+            AddObservationsToSetUpCalibration(ref _parentEpidemic, _set.MatrixOfObservationsAndWeights);
         }
    
         // add observations to set up calibration
@@ -962,23 +962,23 @@ namespace APACElib
             double wtpForHealth, double harmonicRule_a, double epsilonGreedy_beta, double epsilonGreedy_delta)
         {
             // setup ADP algorithm
-            _parentEpidemic.SetUpADPAlgorithm(_modelSettings.ObjectiveFunction, _modelSettings.NumOfADPIterations, _modelSettings.NumOfSimRunsToBackPropogate,
+            _parentEpidemic.SetUpADPAlgorithm(_set.ObjectiveFunction, _set.NumOfADPIterations, _set.NumOfSimRunsToBackPropogate,
                 wtpForHealth, harmonicRule_a, epsilonGreedy_beta, epsilonGreedy_delta, true);
             // update initial coefficients of the Q-function
-            _parentEpidemic.UpdateQFunctionCoefficients(_modelSettings.QFunctionCoefficientsInitialValues);
+            _parentEpidemic.UpdateQFunctionCoefficients(_set.QFunctionCoefficientsInitialValues);
             // don't store trajectories while simulating
             _parentEpidemic.StoreEpidemicTrajectories = false;
 
             // specify rnd seeds for ADP algorithm
-            switch (_modelSettings.SimulationRNDSeedsSource)
+            switch (_set.SimulationRNDSeedsSource)
             {
                 case EnumSimulationRNDSeedsSource.StartFrom0:
                     break;
                 case EnumSimulationRNDSeedsSource.PrespecifiedSquence:
-                    _parentEpidemic.SetUpADPRandomNumberSource(_modelSettings.RndSeeds);
+                    _parentEpidemic.SetUpADPRandomNumberSource(_set.RndSeeds);
                     break;
                 case EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence:
-                    _parentEpidemic.SetUpADPRandomNumberSource(_modelSettings.RndSeeds, _modelSettings.RndSeedsGoodnessOfFit);
+                    _parentEpidemic.SetUpADPRandomNumberSource(_set.RndSeeds, _set.RndSeedsGoodnessOfFit);
                     break;
             }
         }
@@ -1440,10 +1440,10 @@ namespace APACElib
         {    
             // reset the rnd object
             
-            if (_modelSettings.SimulationRNDSeedsSource == EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence)
+            if (_set.SimulationRNDSeedsSource == EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence)
             {
-                _sampledRNDSeeds = new int[_modelSettings.NumOfSimulationIterations];
-                for (int i = 0; i< _modelSettings.NumOfSimulationIterations; i++)
+                _sampledRNDSeeds = new int[_set.NumOfSimulationIterations];
+                for (int i = 0; i< _set.NumOfSimulationIterations; i++)
                     _sampledRNDSeeds[i] = _arrRNGSeeds[_discreteDistributionOverSeeds.SampleDiscrete(_rng)];
             }
 
@@ -1455,7 +1455,7 @@ namespace APACElib
         // set up statistics collectors
         private void SetupStatisticsCollectors()
         {
-            int numOfSimulationIterations = _modelSettings.NumOfSimulationIterations;
+            int numOfSimulationIterations = _set.NumOfSimulationIterations;
             _incidenceStats.Clear();
             _prevalenceStats.Clear();
             _ratioStatistics.Clear();
@@ -1511,7 +1511,7 @@ namespace APACElib
         // reset simulation 
         private void ResetSimulationStatistics()
         {
-            int numOfSimulationIterations = _modelSettings.NumOfSimulationIterations;
+            int numOfSimulationIterations = _set.NumOfSimulationIterations;
 
             // reset statistics
             _obsTotalCost.Reset();
@@ -1606,21 +1606,21 @@ namespace APACElib
         }
 
         // toggle modeller to different operation
-        public void ToggleModellerTo(EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool reportEpidemicTrajectories, int warmUpPeriodIndex)
+        public void ToggleModellerTo(EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool reportEpidemicTrajectories)
         {
             _storeEpidemicTrajectories = reportEpidemicTrajectories;            
             // toggle each epidemic
-            if (_modelSettings.UseParallelComputing)
+            if (_set.UseParallelComputing)
                 foreach (Epidemic thisEpidemic in _epidemics)
-                    ToggleAnEpidemicTo(thisEpidemic, modelUse, decisionRule, reportEpidemicTrajectories, warmUpPeriodIndex);
+                    ToggleAnEpidemicTo(thisEpidemic, modelUse, decisionRule, reportEpidemicTrajectories);
             else
-                ToggleAnEpidemicTo(_parentEpidemic, modelUse, decisionRule, reportEpidemicTrajectories, warmUpPeriodIndex);
+                ToggleAnEpidemicTo(_parentEpidemic, modelUse, decisionRule, reportEpidemicTrajectories);
         }
         // toggle one epidemic
-        private void ToggleAnEpidemicTo(Epidemic thisEpidemic, EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool storeEpidemicTrajectories, int warmUpPeriodIndex)
+        private void ToggleAnEpidemicTo(Epidemic thisEpidemic, EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool storeEpidemicTrajectories)
         {   
             thisEpidemic.ModelUse = modelUse;
-            thisEpidemic.DecisionRule = decisionRule;
+            //thisEpidemic.DecisionRule = decisionRule;
             thisEpidemic.StoreEpidemicTrajectories = storeEpidemicTrajectories;
 
             switch (modelUse)
@@ -1628,14 +1628,13 @@ namespace APACElib
                 case EnumModelUse.Simulation:
                     {                        
                         if (decisionRule == EnumEpiDecisions.PredeterminedSequence)
-                            thisEpidemic.AddInterventionHistory(_modelSettings.PrespecifiedSequenceOfInterventions);
+                            thisEpidemic.DecisionMaker.AddPrespecifiedDecisionsOverDecisionsPeriods(_set.PrespecifiedSequenceOfInterventions);
                     }
                     break;
                 case EnumModelUse.Calibration:
                     #region Calibration
                     {
-                        thisEpidemic.AddInterventionHistory(_modelSettings.PrespecifiedSequenceOfInterventions);
-                        thisEpidemic.WarmUpPeriodIndex = warmUpPeriodIndex;
+                        thisEpidemic.DecisionMaker.AddPrespecifiedDecisionsOverDecisionsPeriods(_set.PrespecifiedSequenceOfInterventions);
                     }
                     break;
                     #endregion
@@ -1651,13 +1650,13 @@ namespace APACElib
         private int FindRNDSeed(int simItr)
         {
             int r = 0;
-            switch (_modelSettings.SimulationRNDSeedsSource)
+            switch (_set.SimulationRNDSeedsSource)
             {
                 case EnumSimulationRNDSeedsSource.StartFrom0:
-                    r = _modelSettings.DistanceBtwRNGSeeds* simItr + _modelSettings.FirstRNGSeed;
+                    r = _set.DistanceBtwRNGSeeds* simItr + _set.FirstRNGSeed;
                     break;
                 case EnumSimulationRNDSeedsSource.PrespecifiedSquence:
-                    r = _modelSettings.RndSeeds[simItr];
+                    r = _set.RndSeeds[simItr];
                     break;
                 case EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence:
                     r = _sampledRNDSeeds[simItr];

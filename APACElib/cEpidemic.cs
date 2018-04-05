@@ -15,9 +15,9 @@ namespace APACElib
     {
         // Variable Definition 
         #region Variable Definition
-        int _ID;
-        ModelSettings _modelSettings;
-        // collections
+
+        ModelSettings _set;
+        public int ID { get; set; }        
         private List<Parameter> _parameters = new List<Parameter>();
         private List<Class> _classes = new List<Class>();
         private List<Event> _events = new List<Event>();
@@ -26,31 +26,25 @@ namespace APACElib
         private List<SummationStatistics> _summationStatistics = new List<SummationStatistics>();
         private List<RatioStatistics> _ratioStatistics = new List<RatioStatistics>();
         private ArrayList _features = new ArrayList();
-        private int _numOfClasses;
+        private DecisionMaker _decisionMaker;
+        private MonitorOfInterventionsInEffect _monitorofInterventionsInEffect;
         private int[] _pathogenIDs;
+
+        private int _numOfClasses;
         private int _numOfPathogens;
+
         // simulation setting
         RNG _rng;        
         private int _rndSeedResultedInAnAcceptibleTrajectory;
         private double[] _arrSampledParameterValues;
         private EnumModelUse _modelUse = EnumModelUse.Simulation;
-        private double _deltaT;
-        private double _decisionIntervalLength;
-        private int _warmUpPeriodIndex;
         private bool _ifWarmUpPeriodHasEnded;
-        private double _simulationHorizonTime;
-        private int _simulationHorizonTimeIndex;
-        private int _epidemicConditionTimeIndex;
 
-        // simulation output settings        
-        private bool _storeEpidemicTrajectories;
-        private double _simulationOutputIntervalLength;
-        private double _observationPeriodLengh;
+        // simulation output settings      
+        public bool StoreEpidemicTrajectories { get; set; } = true;
+        
         private int _nextTimeIndexToCollectSimulationOutputData;
         private int _nextTimeIndexToCollectObservationPeriodData;
-        private int _numOfDeltaTIndexInASimulationOutputInterval;
-        private int _numOfDeltaTIndexInAnObservationPeriod;
-
         private int _numOfTimeBasedOutputsToReport;
         private int _numOfIntervalBasedOutputsToReport;
         private int _numOfMonitoredSimulationOutputs;
@@ -74,24 +68,12 @@ namespace APACElib
         private int[] _indecesOfInterventionsAffectingContactPattern;
         private int[] _onOffStatusOfInterventionsAffectingContactPattern;
         // simulation
-        private EnumMarkOfEpidemicStartTime _markOfEpidemicStartTime;
-        private int _currentSimulationTimeIndex;
+        private int _simTimeIndex;
         private int _epiTimeIndex;
         private bool _stoppedDueToEradication;
-        //private bool _simulationResultedInAnAcceptableTrajectory;
-        private int[] _populationSizeOfMixingGroups;
         private int[] _arrNumOfMembersInEachClass;
         // decision
-        private int[] _interventionCombinationInEffect;
-        private EnumEpiDecisions _decisionRule;
-        private int _decisionPeriodIndex;
-        private int _epidemicTimeIndexToStartDecisionMaking;
-        private int _initialActionCombinationBinaryCode;
-        private int _nextEpiTimeIndexAnInterventionEffectChanges;
-        private int[][] _prespecifiedDecisionsOverObservationPeriods;        
-        private int _nextDecisionPointIndex;
-        private int _nextDecisionCycleIndex;
-        private int _numOfDeltaTsInADecisionInterval;
+        
         // dynamic policy
         private int _numOfFeatures;
         private bool _useEpidemicTimeAsFeature;
@@ -104,13 +86,9 @@ namespace APACElib
         private double _annualCost;
         private double _totalQALY;
         private int _numOfSwitchesBtwDecisions;
-        private double _discountRate;
-        private double _annualInterestRate;
-        private double _wtpForHealth;
         // optimization
-        private DecisionMaker _decisionMaker;
+        
         private EnumObjectiveFunction _objectiveFunction;
-        private EnumSimulationRNDSeedsSource _simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.StartFrom0;
         private int _adpSimItr; // the index of simulation runs that should be done before doing back-propagation
         private int[] _rndSeeds;
         Discrete _discreteDistOverSeeds;        
@@ -120,7 +98,6 @@ namespace APACElib
         private int _numOfCalibratoinTargets;
         private int _numOfDiscardedTrajectoriesAmongCalibrationRuns;
         private int _numOfParametersToCalibrate;        
-        private double[,] _observationMatrix;
         // computation time
         private double _timeUsedToSimulateOneTrajectory;
         // parameters
@@ -134,97 +111,42 @@ namespace APACElib
         #endregion
 
         // Instantiation
-        public Epidemic(int ID)
+        public Epidemic(int id)
         {
-            _ID = ID;
+            ID = id;
         }
 
         #region Properties
-        public int ID
-        {
-            get { return _ID; }
-        }
-        public double DeltaT
-        {
-            get { return _deltaT; }
-        }
-        public double DecisionIntervalLength
-        {
-            get { return _decisionIntervalLength; }
-        }
+
         public int CurrentEpidemicTimeIndex
         {
             get {return _epiTimeIndex;}
         }
         public double CurrentEpidemicTime
         {
-            get { return _epiTimeIndex * _deltaT; }
+            get { return _epiTimeIndex * _set.DeltaT; }
         }
-        public int WarmUpPeriodIndex
-        {
-            get { return _warmUpPeriodIndex; }
-            set { _warmUpPeriodIndex = value; }
-        }
-        public double SimulationHorizonTime
-        {
-            get { return _simulationHorizonTime; }
-        }
-        public int SimulationHorizonTimeIndex
-        {
-            get { return _simulationHorizonTimeIndex; }
-        }
-        public double EpidemicConditionTime
-        {
-            get { return _epidemicConditionTimeIndex * _deltaT; }
-        }       
+       
         public int TimeIndexOfTheFirstObservation
         {
             get { return _timeIndexOfTheFirstObservation; }
         }       
-        public double EpidemicTimeToStartDecisionMaking
-        {
-            get { return _epidemicTimeIndexToStartDecisionMaking * _deltaT; }
-        }        
+   
         public bool IfStoppedDueToEradication
         {
             get { return _stoppedDueToEradication; }
-        }
-        public int NumOfDeltaTsInADecisionInterval
-        {
-            get { return _numOfDeltaTsInADecisionInterval; }
         }
         public int NumOfInterventionsAffectingContactPattern
         {
             get { return _numOfInterventionsAffectingContactPattern; }
         }
-        public EnumMarkOfEpidemicStartTime MarkOfEpidemic
-        {
-            get { return _markOfEpidemicStartTime; }
-        }
-        public double ObservationPeriodLengh
-        {
-            get { return _observationPeriodLengh; }
-        }
+
         public EnumModelUse ModelUse
         {
             get { return _modelUse; }
             set { _modelUse = value; }
         }
-        public EnumEpiDecisions DecisionRule
-        {
-            get { return _decisionRule; }
-            set { _decisionRule = value; }
-        }
-        public int InitialActionCombinationBinaryCode
-        {
-            get { return _initialActionCombinationBinaryCode; }
-            set { _initialActionCombinationBinaryCode = value; }
-        }
-        public bool StoreEpidemicTrajectories
-        {
-            get { return _storeEpidemicTrajectories; }
-            set { _storeEpidemicTrajectories = value; }
-        }
+
         public int NumOfTimeBasedOutputsToReport
         {
             get { return _numOfTimeBasedOutputsToReport; }
@@ -340,10 +262,7 @@ namespace APACElib
         }
         public double[] arrSampledParameterValues
         { get { return _arrSampledParameterValues; } }
-        public double WTPForHealth
-        {
-            get {return _wtpForHealth; }
-        }
+
         public double TotalCost
         {
             get { return _totalCost; }
@@ -358,11 +277,11 @@ namespace APACElib
         }
         public double TotalNMB
         {
-            get { return _wtpForHealth * _totalQALY - _totalCost; }
+            get { return _set.WTPForHealth * _totalQALY - _totalCost; }
         }
         public double TotalNHB
         {
-            get { return  _totalQALY - _totalCost / _wtpForHealth; }
+            get { return  _totalQALY - _totalCost / _set.WTPForHealth; }
         }
         public int NumOfSwitchesBtwDecisions
         {
@@ -376,28 +295,20 @@ namespace APACElib
         #endregion
 
         // clone
-        public Epidemic Clone(int ID)
-        {
-            Epidemic clone = new Epidemic(ID);
+        //public Epidemic Clone(int ID)
+        //{
+        //    Epidemic clone = new Epidemic(ID);
 
-            //setup simulation settings
-            clone.SetupSimulationSettings(_markOfEpidemicStartTime,
-                _deltaT, _decisionIntervalLength, _warmUpPeriodIndex*_deltaT, _simulationHorizonTimeIndex * _deltaT,
-                _epidemicConditionTimeIndex * _deltaT, _epidemicTimeIndexToStartDecisionMaking * _deltaT,
-                _initialActionCombinationBinaryCode, _decisionRule, _storeEpidemicTrajectories, _simulationOutputIntervalLength, _observationPeriodLengh, 
-                _annualInterestRate, _wtpForHealth);
+        //    clone.ModelUse = _modelUse;
+        //    clone.DecisionRule = _decisionRule;
 
-            clone.ModelUse = _modelUse;
-            clone.DecisionRule = _decisionRule;
+        //    if (_modelUse == EnumModelUse.Calibration)
+        //    {
+        //        clone._observationMatrix = _observationMatrix;
+        //    }
 
-            if (_modelUse == EnumModelUse.Calibration)
-            {
-                clone._observationMatrix = _observationMatrix;
-                clone._prespecifiedDecisionsOverObservationPeriods = _prespecifiedDecisionsOverObservationPeriods;
-            }
-
-            return clone;
-        }
+        //    return clone;
+        //}
 
         // reset 
         private void Reset()
@@ -410,12 +321,12 @@ namespace APACElib
             _summationStatistics = new List<SummationStatistics>();
             _ratioStatistics = new List<RatioStatistics>();
             _features = new ArrayList();
-            _decisionMaker = new DecisionMaker();
+            _decisionMaker.ResetForAnotherSimulationRun();
     }
         // clean except the results
         public void CleanExceptResults()
         {
-            _modelSettings = null;
+            _set = null;
 
             Reset();
 
@@ -426,9 +337,6 @@ namespace APACElib
             _tranmissionMatrices = null; 
             _indecesOfInterventionsAffectingContactPattern = null;
             _onOffStatusOfInterventionsAffectingContactPattern = null;
-
-            _interventionCombinationInEffect = null;
-            _prespecifiedDecisionsOverObservationPeriods = null;
              _arrCurrentValuesOfFeatures = null;
             _rndSeeds = null;
     }
@@ -457,7 +365,7 @@ namespace APACElib
                 {
                     ++threadSpecificSeedNumber;
                     // if the model is used for calibration, record the number of discarded trajectories due to violating the feasible ranges
-                    if (_modelUse == EnumModelUse.Calibration)
+                    if (_set.ModelUse == EnumModelUse.Calibration)
                         ++_numOfDiscardedTrajectoriesAmongCalibrationRuns;
                 }
             }
@@ -515,7 +423,7 @@ namespace APACElib
                 // reset for another simulation
                 ResetForAnotherSimulation(threadSpecificSeedNumber);
                 // simulate until the first decision point
-                if (Simulate(0, _epidemicTimeIndexToStartDecisionMaking) == true)
+                if (Simulate(0, _set.EpidemicTimeIndexToStartDecisionMaking) == true)
                 {
                     acceptableTrajectoryFound = true;
                     _rndSeedResultedInAnAcceptibleTrajectory = threadSpecificSeedNumber;
@@ -528,7 +436,7 @@ namespace APACElib
         public void ContinueSimulatingThisTrajectory(int additionalDeltaTs)
         {
             // find the stop time
-            int timeIndexToStopSimulation = _currentSimulationTimeIndex + additionalDeltaTs;
+            int timeIndexToStopSimulation = _simTimeIndex + additionalDeltaTs;
             // continue the simulation
             Simulate(0, timeIndexToStopSimulation);
         }
@@ -539,7 +447,7 @@ namespace APACElib
             for (_adpSimItr = 0; _adpSimItr < numOfSimulationIterations; ++_adpSimItr)
             {
                 // simulate one epidemic trajectory
-                SimulateTrajectoriesUntilOneAcceptibleFound(rndSeeds[_adpSimItr], rndSeeds[_adpSimItr] + 1, _adpSimItr, _simulationHorizonTimeIndex);
+                SimulateTrajectoriesUntilOneAcceptibleFound(rndSeeds[_adpSimItr], rndSeeds[_adpSimItr] + 1, _adpSimItr, _set.TimeIndexToStop);
                 
                 // store outcomes of this epidemic 
                 _arrSimulationObjectiveFunction[_adpSimItr] = AccumulatedReward();
@@ -551,7 +459,7 @@ namespace APACElib
             for (_adpSimItr = 0; _adpSimItr < numOfSimulationIterations; ++_adpSimItr)
             {
                 // simulate one epidemic trajectory
-                SimulateTrajectoriesUntilOneAcceptibleFound(seedNumber, seedNumber + 1, _adpSimItr, _simulationHorizonTimeIndex);
+                SimulateTrajectoriesUntilOneAcceptibleFound(seedNumber, seedNumber + 1, _adpSimItr, _set.TimeIndexToStop);
                 seedNumber = _rndSeedResultedInAnAcceptibleTrajectory + 1;
                 // store outcomes of this epidemic 
                 _arrSimulationObjectiveFunction[_adpSimItr] = AccumulatedReward();
@@ -564,13 +472,10 @@ namespace APACElib
             double wtpForHealth, double harmonicRule_a, double epsilonGreedy_beta, double epsilonGreedy_delta,
             bool storeADPIterationResults)
         {
-            _decisionRule = EnumEpiDecisions.SpecifiedByPolicy;
             _modelUse = EnumModelUse.Optimization;         
 
             // objective function
             _objectiveFunction = objectiveFunction;
-            if (_objectiveFunction == EnumObjectiveFunction.MaximizeNHB)
-                _wtpForHealth = Math.Max(wtpForHealth, SupportProcedures.minimumWTPforHealth);
 
             // ADP
             //_adpSimItr = 0;
@@ -586,12 +491,12 @@ namespace APACElib
         // set up the ADP random number source
         public void SetUpADPRandomNumberSource(int[] rndSeeds)
         {
-            _simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.PrespecifiedSquence;
+            //_simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.PrespecifiedSquence;
             _rndSeeds = (int[])rndSeeds.Clone();            
         }
         public void SetUpADPRandomNumberSource(int[] rndSeeds, double[] rndSeedsGoodnessOfFit)
         {
-            _simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence;
+            //_simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence;
             _rndSeeds = (int[])rndSeeds.Clone();
 
             double[] arrProb = new double[rndSeeds.Length];
@@ -933,7 +838,7 @@ namespace APACElib
                     }
                     else if (thisIntervention.DecisionRule is DecionRule_Predetermined)
                     {
-                        if (interventionCombination[index] != _decisionMaker.DefaultInterventionCombination[index])
+                        if (interventionCombination[index] != _decisionMaker.DefaultDecision[index])
                             feasible = false;
                     }
                     else if (thisIntervention.DecisionRule is DecionRule_IntervalBased && interventionCombination[index] == 0)
@@ -947,7 +852,7 @@ namespace APACElib
                 {
                     // find the design for the interval-based policy (ASSUMING that only one intervention can be used by the interval-based policy)
                     int interventionID = 0;
-                    double startTime = _epidemicTimeIndexToStartDecisionMaking * _deltaT;
+                    double startTime = _set.EpidemicTimeIndexToStartDecisionMaking * _set.DeltaT;
                     int numOfDecisionIntervals = 0;
                     double lastTimeToUseThisIntervention = 0;
                     int minNumOfDecisionPeriodsToUse = 0;
@@ -966,7 +871,7 @@ namespace APACElib
                     while (startTime < lastTimeToUseThisIntervention)
                     {
                         numOfDecisionIntervals = minNumOfDecisionPeriodsToUse;
-                        while (numOfDecisionIntervals * _decisionIntervalLength <= lastTimeToUseThisIntervention - startTime)
+                        while (numOfDecisionIntervals * _set.DecisionIntervalLength<= lastTimeToUseThisIntervention - startTime)
                         {
                             // design
                             interventionStartTimes[interventionID] = startTime;
@@ -976,7 +881,7 @@ namespace APACElib
 
                             numOfDecisionIntervals += minNumOfDecisionPeriodsToUse;
                         }
-                        startTime += minNumOfDecisionPeriodsToUse * _decisionIntervalLength;
+                        startTime += minNumOfDecisionPeriodsToUse * _set.DecisionIntervalLength;
                     }
                 }
             }            
@@ -1036,18 +941,15 @@ namespace APACElib
                 //    CheckIfResourcesHaveBecomeAvailable();
 
                 // read feature values if optimizing or using greedy decisions:
-                if (_features.Count > 0 && _decisionRule == EnumEpiDecisions.SpecifiedByPolicy)
-                    // update values of features
-                    ReadValuesOfFeatures();
+                //if (_features.Count > 0 && _decisionRule == EnumEpiDecisions.SpecifiedByPolicy)
+                //    // update values of features
+                //    ReadValuesOfFeatures();
 
                 // make decisions if decision is not predetermined and announce the new decisions (may not necessarily go into effect)
-                UpdateDecisions();
-
-                // put decisions into effect
-                ImplementInterventionsThatCanGoIntoEffect(_currentSimulationTimeIndex);
+                _monitorofInterventionsInEffect.Update(_epiTimeIndex, ref _classes);
 
                 // update the effect of chance in time dependent parameter value
-                UpdateTheEffectOfChangeInTimeDependentParameterValues(_currentSimulationTimeIndex * _deltaT);
+                UpdateTheEffectOfChangeInTimeDependentParameterValues(_simTimeIndex * _set.DeltaT);
 
                 // update transmission rates
                 UpdateTransmissionRates();
@@ -1059,7 +961,7 @@ namespace APACElib
                 TransferClassMembers();
 
                 // advance time  
-                _currentSimulationTimeIndex += 1;
+                _simTimeIndex += 1;
                 UpdateCurrentEpidemicTimeIndex();
 
                 // if optimizing, update the cost of current decision period
@@ -1072,14 +974,14 @@ namespace APACElib
                     toStop = true;
                     // is this trajectory acceptable
                     acceptableTrajectory = false;
-                    if (_epiTimeIndex >= _epidemicConditionTimeIndex)
+                    if (_epiTimeIndex >= _set.EpidemicConditionTimeIndex)
                         acceptableTrajectory = true;
                     
                     // record end of simulation statistics
                     if (_modelUse == EnumModelUse.Simulation && acceptableTrajectory == true)
                     {
                         // record simulation outcomes only if simulation time horizon has reached
-                        if (_epiTimeIndex >= _simulationHorizonTimeIndex || _stoppedDueToEradication)
+                        if (_epiTimeIndex >= _set.TimeIndexToStop || _stoppedDueToEradication)
                             // update annual cost
                             GatherEndOfSimulationStatistics();
                         // report simulation trajectories if necessary
@@ -1104,7 +1006,7 @@ namespace APACElib
 
         //    foreach (Resource thisResource in _resources)
         //    {
-        //        thisResource.ReplenishIfAvailable(_currentEpidemicTimeIndex * _deltaT);
+        //        thisResource.ReplenishIfAvailable(_currentEpidemicTimeIndex * _set.DeltaT);
         //        if (_arrAvailableResources[thisResource.ID] != thisResource.CurrentUnitsAvailable)
         //        {
         //            _arrAvailableResources[thisResource.ID] = thisResource.CurrentUnitsAvailable;
@@ -1139,188 +1041,8 @@ namespace APACElib
 
         // read the feature values
 
-        private void ReadValuesOfFeatures()
-        {
-            // check if it is time to record current state
-            if (_epiTimeIndex == _nextDecisionPointIndex) //|| _aResourceJustReplinished == true) //(EligibleToStoreADPStateDecision())
-            {
-                // update the values of features
-                int i = 0;
-                foreach (Feature thisFeature in _features)
-                {
-                    i = thisFeature.Index;
-
-                    if (thisFeature is Feature_EpidemicTime)
-                    {
-                        _arrCurrentValuesOfFeatures[i] = _epiTimeIndex * _deltaT;
-                    }
-                    else if (thisFeature is Feature_DefinedOnNewClassMembers)
-                    {
-                        _arrCurrentValuesOfFeatures[i] = Math.Max((_classes[((Feature_DefinedOnNewClassMembers)thisFeature).ClassID])
-                                                                            .ReadFeatureValue((Feature_DefinedOnNewClassMembers)thisFeature), 0);
-                    }
-                    else if (thisFeature is Feature_DefinedOnSummationStatistics)
-                    {
-                        int sumStatID = ((Feature_DefinedOnSummationStatistics)thisFeature).SumStatisticsID;
-                        _arrCurrentValuesOfFeatures[i] = (_summationStatistics[sumStatID]).ReadFeatureValue((Feature_DefinedOnSummationStatistics)thisFeature);
-                    }
-                    else if (thisFeature is Feature_InterventionOnOffStatus)
-                    {
-                        int interventionID = ((Feature_InterventionOnOffStatus)thisFeature).InterventionID;
-                        int numOfPastObservationPeriodToObserveOnOffValue = ((Feature_InterventionOnOffStatus)thisFeature).PreviousObservationPeriodToObserveOnOffValue;
-                        _arrCurrentValuesOfFeatures[i] = _pastActionCombinations[numOfPastObservationPeriodToObserveOnOffValue][interventionID]; 
-                    }
-                    else if (thisFeature is Feature_NumOfDecisoinPeriodsOverWhichThisInterventionWasUsed)
-                    {
-                        int interventionID = ((Feature_InterventionOnOffStatus)thisFeature).InterventionID;
-                        _arrCurrentValuesOfFeatures[i] = (_decisionMaker.Interventions[interventionID]).NumOfDecisionPeriodsOverWhichThisInterventionWasUsed;
-                    }
-
-
-                    // update the min max on this feature
-                    thisFeature.UpdateMinMax(_arrCurrentValuesOfFeatures[i]);
-                }
-            }
-        }
-        
-        // make and announce decision
-        private void UpdateDecisions()
-        {
-            // is it time to make decision
-            if (_epiTimeIndex < _nextDecisionPointIndex)
-                return;
-
-            // find the next action combination 
-            int[] newActionCombination=null;
-            switch (_decisionRule)
-            {
-                case EnumEpiDecisions.SpecifiedByPolicy:
-                    _decisionMaker.MakeANewDecision(ref newActionCombination, _epiTimeIndex);
-                    break;
-                case EnumEpiDecisions.PredeterminedSequence:
-                    newActionCombination = _prespecifiedDecisionsOverObservationPeriods[_epiTimeIndex / _numOfDeltaTIndexInAnObservationPeriod];
-                    break;                
-            }
-
-            // announce decision in the epidemic model
-            UpdateInterventionEffectTime(newActionCombination, true);
-
-            // update the intervention combination
-            _decisionMaker.UpdateInterventionCombination(newActionCombination);
-
-            // store current ADP state-decision
-            if (_modelUse == EnumModelUse.Optimization)
-                StoreCurrentADPStateDecision();
-
-            // if this decision is made not because it is a decision time but because a resource just became available.            
-            if (_epiTimeIndex == _nextDecisionPointIndex)
-            {
-                _decisionPeriodIndex += 1;
-                _nextDecisionPointIndex += _numOfDeltaTsInADecisionInterval;
-            }
-        }
-    
-        // find epidemic time when interventions go into effect or are lifted
-        private void UpdateInterventionEffectTime(int[] newInterventionCombination, bool checkIfItIsDifferentFromPast)
-        {
-            // check if this new intervention combination is the same as the current one
-            if (checkIfItIsDifferentFromPast == true && _decisionMaker.CurrentInterventionCombination.SequenceEqual(newInterventionCombination))
-            {
-                // update the decisions just to collect necessary statistics
-                //_decisionMaker.UpdateInterventionCombination(newInterventionCombination);
-                return;
-            }
-            // record the time of switch
-            foreach (Intervention thisIntervention in _decisionMaker.Interventions)
-            {
-                // if the intervention is turning on
-                if (_decisionMaker.CurrentInterventionCombination[thisIntervention.Index] == 0 && newInterventionCombination[thisIntervention.Index] == 1)
-                {
-                    thisIntervention.EpidemicTimeIndexTurnedOn = _epiTimeIndex;
-                    thisIntervention.EpidemicTimeIndexToGoIntoEffect = _epiTimeIndex + thisIntervention.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn;
-                    thisIntervention.EpidemicTimeIndexToTurnOff = int.MaxValue;
-                }
-                // if the intervention is turning off
-                else if (_decisionMaker.CurrentInterventionCombination[thisIntervention.Index] == 1 && newInterventionCombination[thisIntervention.Index] == 0)
-                {
-                    thisIntervention.EpidemicTimeIndexTurnedOff = _epiTimeIndex;
-                    thisIntervention.EpidemicTimeIndexToTurnOff = _epiTimeIndex;
-                    thisIntervention.EpidemicTimeIndexToGoIntoEffect = int.MaxValue;
-                }
-                // otherwise
-                else if (_decisionMaker.CurrentInterventionCombination[thisIntervention.Index] == 0)
-                { 
-                    thisIntervention.EpidemicTimeIndexToGoIntoEffect = int.MaxValue;
-                }
-            }
-            // find the next epidemic time where a decision should go into effect
-            _nextEpiTimeIndexAnInterventionEffectChanges = FindNextEpiTimeIndexWhenAnInterventionEffectChanges();
-        }
-
-        // implement the interventions that go into effect
-        private void ImplementInterventionsThatCanGoIntoEffect(int simTimeIndex)
-        {
-            // if it's time to implement the change
-            if (_nextEpiTimeIndexAnInterventionEffectChanges > _epiTimeIndex && simTimeIndex != 0)
-                return;
-
-            // initialize the intervention combinations currently in effect
-            if (simTimeIndex == 0)
-                _interventionCombinationInEffect = (int[])_decisionMaker.CurrentInterventionCombination.Clone();
-
-            int[] newInterventionCombinationInEffect = (int[])_decisionMaker.CurrentInterventionCombination.Clone();
-
-            //int[] newInterventionCombinationInEffect = new int[_decisionMaker.NumOfInterventions];
-            foreach (Intervention intv in _decisionMaker.Interventions)
-            {
-                // the default intervention is always in effect
-                if (intv.Type == EnumInterventionType.Default)
-                    newInterventionCombinationInEffect[intv.Index] = 1;
-                else
-                {
-                    // if this intervention is going into effect
-                    if (_interventionCombinationInEffect[intv.Index] == 0 && intv.EpidemicTimeIndexToGoIntoEffect <= _epiTimeIndex)
-                    {
-                        newInterventionCombinationInEffect[intv.Index] = 1;
-
-                        // find when it should be turned off
-                        intv.EpidemicTimeIndexToTurnOff = intv.FindEpiTimeIndexToTurnOff(_epiTimeIndex);
-                        intv.EpidemicTimeIndexToGoIntoEffect = int.MaxValue;
-                    }
-                    // if this intervention is being lifted
-                    if  (_interventionCombinationInEffect[intv.Index] == 1 && intv.EpidemicTimeIndexToTurnOff >= _epiTimeIndex)
-                    {
-                        newInterventionCombinationInEffect[intv.Index] = 0;
-
-                        intv.EpidemicTimeIndexToTurnOn = int.MaxValue;
-                        intv.EpidemicTimeIndexToGoIntoEffect = int.MaxValue;
-                        intv.EpidemicTimeIndexToTurnOff = int.MaxValue;
-                    }
-                }
-            }
-
-            _interventionCombinationInEffect = (int[])newInterventionCombinationInEffect.Clone();
-
-            // update decision for each class
-            foreach (Class thisClass in _classes)
-                thisClass.SelectThisInterventionCombination(_interventionCombinationInEffect);
-        }
-
-        // find next epidemic time index when an intervention effect changes
-        private int FindNextEpiTimeIndexWhenAnInterventionEffectChanges()
-        {
-            int nextEpidemicTimeIndexWhenAnInterventionEffectChanges = int.MaxValue;
-            int temp;
-            foreach (Intervention thisIntervention in _decisionMaker.Interventions)
-            {
-                if (thisIntervention.Type != EnumInterventionType.Default )  
-                {
-                    temp = Math.Min(thisIntervention.EpidemicTimeIndexToTurnOff, thisIntervention.EpidemicTimeIndexToGoIntoEffect);
-                    nextEpidemicTimeIndexWhenAnInterventionEffectChanges = Math.Min(temp, nextEpidemicTimeIndexWhenAnInterventionEffectChanges);
-                }
-            }
-            return nextEpidemicTimeIndexWhenAnInterventionEffectChanges;
-        }
+       
+      
         
         // find the index of this intervention combination in transmission matrix
         private int FindIndexOfInterventionCombimbinationInTransmissionMatrix(int[] interventionCombination)
@@ -1340,44 +1062,13 @@ namespace APACElib
             }
             return SupportFunctions.ConvertToBase10FromBase2(_onOffStatusOfInterventionsAffectingContactPattern);
         }
-        // add current ADP state-decision
-        private void StoreCurrentADPStateDecision()
-        {
-            // check if it is time to record current state
-            if (!EligibleToStoreADPStateDecision())
-                return;            
-
-            // make a new state-decision
-            ADPState thisADPState = new ADPState(_arrCurrentValuesOfFeatures, _decisionMaker.CurrentInterventionCombination);
-            thisADPState.ValidStateToUpdateQFunction = true;
-
-            //// check if this is eligible            
-            ////thisADPState.ValidStateToUpdateQFunction = true;
-            //if (_POMDP_ADP.EpsilonGreedyDecisionSelectedAmongThisManyAlternatives > 1)
-            //    thisADPState.ValidStateToUpdateQFunction = true;
-            //else
-            //    thisADPState.ValidStateToUpdateQFunction = false;
-
-            // store the adp state-decision
-            //_simDecisionMaker.AddAnADPState(_adpSimItr, thisADPState);            
-        }
-        // check if conditions for recording a ADP state-decision is satisfied
-        private bool EligibleToStoreADPStateDecision()
-        {
-            bool eligible = true;
-
-            // first check the time
-            if (_epiTimeIndex != _nextDecisionPointIndex || _modelUse != EnumModelUse.Optimization)
-                return false;
-
-            return eligible;
-        }
+        
         // store selected outputs while simulating
         private void StoreSelectedOutputWhileSimulating(int simReplication, bool endOfSimulation, ref bool ifThisIsAFeasibleTrajectory)
         {
             // check if it is time to report output
-            if (_currentSimulationTimeIndex < _nextTimeIndexToCollectSimulationOutputData &&
-                _currentSimulationTimeIndex < _nextTimeIndexToCollectObservationPeriodData && endOfSimulation == false)
+            if (_simTimeIndex < _nextTimeIndexToCollectSimulationOutputData &&
+                _simTimeIndex < _nextTimeIndexToCollectObservationPeriodData && endOfSimulation == false)
                 return;
 
             // define the jagged array to store current observation
@@ -1450,21 +1141,21 @@ namespace APACElib
 
             // store simulation output data - time based and interval based
             #region store simulation output data
-            if (_currentSimulationTimeIndex >= _nextTimeIndexToCollectSimulationOutputData)
+            if (_simTimeIndex >= _nextTimeIndexToCollectSimulationOutputData)
             {
                 // next time index outputs should be recorded
-                _nextTimeIndexToCollectSimulationOutputData += _numOfDeltaTIndexInASimulationOutputInterval;                
+                _nextTimeIndexToCollectSimulationOutputData += _set.NumOfDeltaT_inSimulationOutputInterval;                
 
-                if (_storeEpidemicTrajectories == true)
+                if (StoreEpidemicTrajectories == true)
                 {
                     thisSimulationTimeBasedOutputs[0] = new double[_numOfTimeBasedOutputsToReport];
                     thisSimulationIntervalBasedOutputs[0] = new double[_numOfIntervalBasedOutputsToReport];
                     // the current time and interval
                     thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = simReplication;
-                    thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = _currentSimulationTimeIndex * _deltaT;
-                    thisSimulationIntervalBasedOutputs[0][colIndexSimulationIntervalBasedOutputs++] = Math.Floor(_currentSimulationTimeIndex * _deltaT / _simulationOutputIntervalLength);
+                    thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = _simTimeIndex * _set.DeltaT;
+                    thisSimulationIntervalBasedOutputs[0][colIndexSimulationIntervalBasedOutputs++] = Math.Floor(_simTimeIndex * _set.DeltaT / _set.SimulationOutputIntervalLength);
                     // action combination
-                    thisActionCombination[0] = (int[])_decisionMaker.CurrentInterventionCombination.Clone();
+                    thisActionCombination[0] = (int[])_decisionMaker.CurrentDecision.Clone();
 
                     // check which statistics should be reported
                     foreach (Class thisClass in _classes)
@@ -1559,9 +1250,9 @@ namespace APACElib
 
             // collect observation period and calibration data
             #region collect observation period and calibration data
-            if (_currentSimulationTimeIndex >= _nextTimeIndexToCollectObservationPeriodData)
+            if (_simTimeIndex >= _nextTimeIndexToCollectObservationPeriodData)
             {
-                _nextTimeIndexToCollectObservationPeriodData += _numOfDeltaTIndexInAnObservationPeriod;
+                _nextTimeIndexToCollectObservationPeriodData += _set.NumOfDeltaT_inObservationPeriod;
 
                 // collect observation period data
                 #region collect observation period data
@@ -1639,11 +1330,11 @@ namespace APACElib
                 #region collect observation times
                 thisTimeOfObservableOutputs[0] = new double[1];
                 // check if an observation is made
-                switch (_markOfEpidemicStartTime)
+                switch (_set.MarkOfEpidemicStartTime)
                 {
                     case EnumMarkOfEpidemicStartTime.TimeZero:
                         {
-                            thisTimeOfObservableOutputs[0][0] = Math.Floor(_currentSimulationTimeIndex * _deltaT / _observationPeriodLengh); 
+                            thisTimeOfObservableOutputs[0][0] = Math.Floor(_simTimeIndex * _set.DeltaT / _set.ObservationPeriodLength); 
                         }
                         break;
                     case EnumMarkOfEpidemicStartTime.TimeOfFirstObservation:
@@ -1651,12 +1342,12 @@ namespace APACElib
                             if (_firstObservationObtained == false && Math.Abs(thisObservedOutputs[0].Sum()) > 0)
                             {
                                 _firstObservationObtained = true;
-                                _timeIndexOfTheFirstObservation = _currentSimulationTimeIndex;
+                                _timeIndexOfTheFirstObservation = _simTimeIndex;
                                 UpdateCurrentEpidemicTimeIndex();
                             }
                             // time of epidemic observation
                             if (_firstObservationObtained)
-                                thisTimeOfObservableOutputs[0][0] = Math.Floor(_currentSimulationTimeIndex * _deltaT / _observationPeriodLengh); //this.CurrentEpidemicTime;
+                                thisTimeOfObservableOutputs[0][0] = Math.Floor(_simTimeIndex * _set.DeltaT / _set.ObservationPeriodLength); //this.CurrentEpidemicTime;
                             else
                                 thisTimeOfObservableOutputs[0][0] = -1;
                         }
@@ -1680,7 +1371,7 @@ namespace APACElib
 
                 // collect calibration data
                 #region collect calibration data
-                if (_modelUse == EnumModelUse.Calibration && _epiTimeIndex > _warmUpPeriodIndex)
+                if (_modelUse == EnumModelUse.Calibration && _epiTimeIndex > _set.WarmUpPeriodTimeIndex)
                 {
                     thisCalibrationObservation[0] = new double[_numOfCalibratoinTargets];
                     // go over summation statistics that are included in calibration
@@ -1828,7 +1519,7 @@ namespace APACElib
                 foreach (Class thisClass in _classes.Where(c => c.IfNeedsToBeProcessed))
                 {                    
                     // calculate the number of members to be sent out from each class
-                    thisClass.SendOutMembers(_deltaT, _rng);
+                    thisClass.SendOutMembers(_set.DeltaT, _rng);
                     // all departing members are processed
                     thisClass.IfNeedsToBeProcessed = false;
                 }
@@ -1861,7 +1552,7 @@ namespace APACElib
             {
                 if (_modelUse != EnumModelUse.Calibration)
                 {
-                    thisClass.UpdateStatisticsAtTheEndOfDeltaT(_epiTimeIndex * _deltaT, _deltaT);
+                    thisClass.UpdateStatisticsAtTheEndOfDeltaT(_epiTimeIndex * _set.DeltaT, _set.DeltaT);
                     _currentPeriodCost += thisClass.CurrentCost();
                     _currentPeriodQALY += thisClass.CurrentQALY();
                 }
@@ -1879,14 +1570,14 @@ namespace APACElib
                             {
                                 case APACElib.SummationStatistics.enumType.Incidence:
                                     {
-                                        thisSumStat.AddNewMembers(ref _classes, _deltaT);
+                                        thisSumStat.AddNewMembers(ref _classes, _set.DeltaT);
                                         _currentPeriodCost += thisSumStat.CurrentCost;
                                         _currentPeriodQALY += thisSumStat.CurrentQALY;
                                     }
                                     break;
                                 case APACElib.SummationStatistics.enumType.Prevalence:
                                     {
-                                        thisSumStat.AddCurrentMembers(_epiTimeIndex * _deltaT, _arrNumOfMembersInEachClass, _modelUse != EnumModelUse.Calibration);
+                                        thisSumStat.AddCurrentMembers(_epiTimeIndex * _set.DeltaT, _arrNumOfMembersInEachClass, _modelUse != EnumModelUse.Calibration);
                                     }
                                     break;
                             }
@@ -1898,7 +1589,7 @@ namespace APACElib
                             {
                                 case APACElib.SummationStatistics.enumType.Incidence:
                                     {
-                                        thisSumStat.AddNewMembers(arrNumOfNewMembersOutOfEventsOverPastDeltaT, _deltaT);
+                                        thisSumStat.AddNewMembers(arrNumOfNewMembersOutOfEventsOverPastDeltaT, _set.DeltaT);
                                         _currentPeriodCost += thisSumStat.CurrentCost;
                                         _currentPeriodQALY += thisSumStat.CurrentQALY;
                                     }
@@ -1914,14 +1605,13 @@ namespace APACElib
                 }                
             }
             // gather outcome statistics
-            if (_epiTimeIndex >= _warmUpPeriodIndex)
+            if (_epiTimeIndex >= _set.WarmUpPeriodTimeIndex)
             {
                 // update decision costs
                 _currentPeriodCost += _decisionMaker.CostOverThisDecisionPeriod;
                 _decisionMaker.CostOverThisDecisionPeriod = 0;
 
-                int numOfDiscountPeriods = Math.Max(0, (int)_epiTimeIndex / _numOfDeltaTsInADecisionInterval);
-                double coeff = Math.Pow(_discountRate, numOfDiscountPeriods);
+                double coeff = Math.Pow(1+_set.AnnualInterestRate*_set.DeltaT, _epiTimeIndex);
                 _totalCost += coeff * _currentPeriodCost;
                 _totalQALY += coeff * _currentPeriodQALY;
             }
@@ -1930,7 +1620,7 @@ namespace APACElib
         // reset statistics if warm-up period has ended
         private void ResetStatisticsIfWarmUpPeriodHasEnded()
         {
-            if (_epiTimeIndex >= _warmUpPeriodIndex && _ifWarmUpPeriodHasEnded == false)
+            if (_epiTimeIndex >= _set.WarmUpPeriodTimeIndex && _ifWarmUpPeriodHasEnded == false)
             {
                 _ifWarmUpPeriodHasEnded = true;
                 // reset statistics
@@ -1949,12 +1639,12 @@ namespace APACElib
         // return annual cost
         private void GatherEndOfSimulationStatistics()
         {
-            if (_decisionPeriodIndex == 0)
+            if (_decisionMaker.DecisionIntervalIndex== 0)
                 _annualCost = _totalCost;
-            else if (_annualInterestRate == 0)
-                _annualCost = (364 / _decisionIntervalLength) * _totalCost / _decisionPeriodIndex;
+            else if (_set.AnnualInterestRate == 0)
+                _annualCost = (364 / _set.DecisionIntervalLength) * _totalCost / _decisionMaker.DecisionIntervalIndex;
             else
-                _annualCost = _totalCost * _annualInterestRate / (1 - Math.Pow(1 + _annualInterestRate, -_decisionPeriodIndex));
+                _annualCost = _totalCost * _set.AnnualInterestRate / (1 - Math.Pow(1 + _set.AnnualInterestRate, -_decisionMaker.DecisionIntervalIndex));
 
             // gather end of simulation statistics in each ratio statistics
             foreach (RatioStatistics thisRatioStat in _ratioStatistics)
@@ -1978,10 +1668,10 @@ namespace APACElib
             switch (_objectiveFunction)
             {
                 case EnumObjectiveFunction.MaximizeNMB:
-                    reward = _wtpForHealth * _totalQALY - _totalCost;
+                    reward = _set.WTPForHealth * _totalQALY - _totalCost;
                     break;
                 case EnumObjectiveFunction.MaximizeNHB:
-                    reward = _totalQALY - _totalCost / _wtpForHealth;
+                    reward = _totalQALY - _totalCost / _set.WTPForHealth;
                     break;
             }
             return reward;
@@ -1993,10 +1683,10 @@ namespace APACElib
             switch (_objectiveFunction)
             {
                 case EnumObjectiveFunction.MaximizeNMB:
-                    reward = _wtpForHealth * _currentPeriodQALY - _currentPeriodCost;
+                    reward = _set.WTPForHealth * _currentPeriodQALY - _currentPeriodCost;
                     break;
                 case EnumObjectiveFunction.MaximizeNHB:
-                    reward = _currentPeriodQALY - _currentPeriodCost / _wtpForHealth;
+                    reward = _currentPeriodQALY - _currentPeriodCost / _set.WTPForHealth;
                     break;
             }
             return reward;
@@ -2046,14 +1736,11 @@ namespace APACElib
             _ifWarmUpPeriodHasEnded = false;
             _timeIndexOfTheFirstObservation = 0;
             _firstObservationObtained = false;
-            _currentSimulationTimeIndex = 0;
+            _simTimeIndex = 0;
             // epidemic start time
             UpdateCurrentEpidemicTimeIndex();   
 
-            _decisionPeriodIndex = 0;
-            _nextDecisionPointIndex = _epidemicTimeIndexToStartDecisionMaking;
-            _nextDecisionCycleIndex = _epidemicTimeIndexToStartDecisionMaking;
-            _nextTimeIndexToCollectSimulationOutputData = _currentSimulationTimeIndex; 
+            _nextTimeIndexToCollectSimulationOutputData = _simTimeIndex; 
             _nextTimeIndexToCollectObservationPeriodData = _nextTimeIndexToCollectSimulationOutputData;
 
             // reset outcome
@@ -2064,9 +1751,8 @@ namespace APACElib
 
             // update intervention information
             _onOffStatusOfInterventionsAffectingContactPattern = new int[_numOfInterventionsAffectingContactPattern];
-            _nextEpiTimeIndexAnInterventionEffectChanges = int.MaxValue;
             foreach (Intervention thisIntervention in _decisionMaker.Interventions)
-                thisIntervention.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn = (int)(_arrSampledParameterValues[thisIntervention.ParIDDelayToGoIntoEffectOnceTurnedOn] / _deltaT);
+                thisIntervention.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn = (int)(_arrSampledParameterValues[thisIntervention.ParIDDelayToGoIntoEffectOnceTurnedOn] / _set.DeltaT);
 
             // reset the number of people in each compartment
             _arrNumOfMembersInEachClass = new int[_numOfClasses];
@@ -2082,14 +1768,11 @@ namespace APACElib
                 thisIntervention.ResetForAnotherSimulationRun();
 
             // update decisions
-            UpdateDecisions();
+            _monitorofInterventionsInEffect.Update(0, ref _classes);
 
             // calculate contact matrices
             CalculateContactMatrices();
-            // announce the initial decision 
-            UpdateInterventionEffectTime(_decisionMaker.DefaultInterventionCombination, false);
-            // make these decisions effective
-            ImplementInterventionsThatCanGoIntoEffect(0);
+
             // update susceptibility and infectivity of classes
             UpdateSusceptilityAndInfectivityOfClasses(true, true);
 
@@ -2127,10 +1810,10 @@ namespace APACElib
 
             // reset class statistics
             foreach (Class thisClass in _classes)
-                thisClass.ResetStatistics(_warmUpPeriodIndex * _deltaT, ifToResetForAnotherSimulationRun);
+                thisClass.ResetStatistics(_set.WarmUpPeriodTimeIndex * _set.DeltaT, ifToResetForAnotherSimulationRun);
             // reset summation statistics
             foreach (SummationStatistics thisSumStat in _summationStatistics)
-                thisSumStat.ResetStatistics(WarmUpPeriodIndex * _deltaT, ifToResetForAnotherSimulationRun);
+                thisSumStat.ResetStatistics(_set.WarmUpPeriodTimeIndex * _set.DeltaT, ifToResetForAnotherSimulationRun);
             // reset ratio statistics
             foreach (RatioStatistics thisRatioStat in _ratioStatistics)
                 thisRatioStat.ResetForAnotherSimulationRun();
@@ -2147,7 +1830,7 @@ namespace APACElib
                         break;
                     case APACElib.SummationStatistics.enumType.Prevalence:
                         {
-                            thisSumStat.AddCurrentMembers(_epiTimeIndex * _deltaT, _arrNumOfMembersInEachClass, _modelUse != EnumModelUse.Calibration);
+                            thisSumStat.AddCurrentMembers(_epiTimeIndex * _set.DeltaT, _arrNumOfMembersInEachClass, _modelUse != EnumModelUse.Calibration);
                         }
                         break;
                 }
@@ -2573,15 +2256,15 @@ namespace APACElib
             UpdateSusceptilityAndInfectivityOfClasses(_thereAreTimeDependentParameters_affectingSusceptibilities, _thereAreTimeDependentParameters_affectingInfectivities);
 
             // find the population size of each mixing group
-            _populationSizeOfMixingGroups = new int[_baseContactMatrices[0].GetLength(0)];
+            int[] populationSizeOfMixingGroups = new int[_baseContactMatrices[0].GetLength(0)];
             foreach (Class thisClass in _classes)
             {
                 //_arrNumOfMembersInEachClass[thisClass.ID] = thisClass.CurrentNumberOfMembers;
-                _populationSizeOfMixingGroups[thisClass.RowIndexInContactMatrix] += thisClass.CurrentNumberOfMembers;
+                populationSizeOfMixingGroups[thisClass.RowIndexInContactMatrix] += thisClass.CurrentNumberOfMembers;
             }
 
             // find the index of current action in the contact matrices
-            int indexOfIntCombInContactMatrices = FindIndexOfInterventionCombimbinationInTransmissionMatrix(_interventionCombinationInEffect);
+            int indexOfIntCombInContactMatrices = FindIndexOfInterventionCombimbinationInTransmissionMatrix(_monitorofInterventionsInEffect.InterventionsInEffect);
 
             // calculate the transmission rates for each class
             double susContactInf = 0, rate = 0, infectivity = 0;
@@ -2604,7 +2287,7 @@ namespace APACElib
                                                 * _contactMatrices[indexOfIntCombInContactMatrices][pathogenID][thisRecievingClass.RowIndexInContactMatrix, _classes[j].RowIndexInContactMatrix]
                                                 * infectivity;
 
-                                rate += susContactInf * _arrNumOfMembersInEachClass[j] / _populationSizeOfMixingGroups[_classes[j].RowIndexInContactMatrix];
+                                rate += susContactInf * _arrNumOfMembersInEachClass[j] / populationSizeOfMixingGroups[_classes[j].RowIndexInContactMatrix];
                             }
                         }
                     }
@@ -2712,18 +2395,18 @@ namespace APACElib
         // update current epidemic time
         private void UpdateCurrentEpidemicTimeIndex()
         {
-            switch (_markOfEpidemicStartTime)
+            switch (_set.MarkOfEpidemicStartTime)
             {
                 case EnumMarkOfEpidemicStartTime.TimeZero:
                     {
-                        _epiTimeIndex = _currentSimulationTimeIndex;
+                        _epiTimeIndex = _simTimeIndex;
                     }
                     break;
 
                 case EnumMarkOfEpidemicStartTime.TimeOfFirstObservation:
                     {
                         if (_firstObservationObtained)
-                            _epiTimeIndex = _currentSimulationTimeIndex - _timeIndexOfTheFirstObservation + _numOfDeltaTIndexInAnObservationPeriod;
+                            _epiTimeIndex = _simTimeIndex - _timeIndexOfTheFirstObservation + _set.NumOfDeltaT_inObservationPeriod;
                         else
                             _epiTimeIndex = int.MinValue;
                     }
@@ -2738,7 +2421,12 @@ namespace APACElib
         // create the model
         public void BuildModel(ref ModelSettings modelSettings)
         {
-            _modelSettings = modelSettings;
+            _set = modelSettings;
+
+            _decisionMaker = new DecisionMaker(
+                _set.EpidemicTimeIndexToStartDecisionMaking, 
+                (int)(_set.DecisionIntervalLength/_set.DeltaT));
+            _monitorofInterventionsInEffect = new MonitorOfInterventionsInEffect(ref _decisionMaker);
 
             // reset the epidemic
             Reset();
@@ -2777,46 +2465,10 @@ namespace APACElib
         //}
         public void UpdateContactMatrices()
         {
-            _baseContactMatrices = _modelSettings.GetBaseContactMatrices();
-            _percentChangeInContactMatricesParIDs = _modelSettings.GetPercentChangeInContactMatricesParIDs();
+            _baseContactMatrices = _set.GetBaseContactMatrices();
+            _percentChangeInContactMatricesParIDs = _set.GetPercentChangeInContactMatricesParIDs();
         }
-        // setup simulation settings
-        public void SetupSimulationSettings(
-            EnumMarkOfEpidemicStartTime markOfEpidemicStartTime, double deltaT, double decisionIntervalLength,  double warmUpPeriod,          
-            double simulationHorizonTime, double epidemicConditionTimeIndex,
-            double epidemicTimeToStartDecisionMaking, int initialActionCombinationBinaryCode, EnumEpiDecisions decisionRule,
-            bool storeEpidemicTrajectories, double simulationOutputIntervalLength, double observationPeriodLength,
-            double annualInterestRate, double wtpForHealth)
-        {
-            _markOfEpidemicStartTime = markOfEpidemicStartTime;
-            if (_markOfEpidemicStartTime == EnumMarkOfEpidemicStartTime.TimeZero) _firstObservationObtained = true;
-
-            _deltaT = deltaT;
-            _decisionIntervalLength = decisionIntervalLength;
-            _warmUpPeriodIndex = (int)(warmUpPeriod/_deltaT);
-
-            _numOfDeltaTsInADecisionInterval = (int)(_decisionIntervalLength / _deltaT);
-            _simulationHorizonTime = simulationHorizonTime;
-            _simulationHorizonTimeIndex = (int)(simulationHorizonTime/_deltaT);
-            _epidemicConditionTimeIndex = (int)(epidemicConditionTimeIndex/_deltaT);
-            _epidemicTimeIndexToStartDecisionMaking = (int)(epidemicTimeToStartDecisionMaking / _deltaT);
-
-            _initialActionCombinationBinaryCode = initialActionCombinationBinaryCode;
-
-            _decisionRule = decisionRule;
-
-            _storeEpidemicTrajectories = storeEpidemicTrajectories;
-            _simulationOutputIntervalLength = simulationOutputIntervalLength;
-            _numOfDeltaTIndexInASimulationOutputInterval = (int)(_simulationOutputIntervalLength / _deltaT);
-            _observationPeriodLengh = observationPeriodLength;
-            _numOfDeltaTIndexInAnObservationPeriod = (int)(_observationPeriodLengh / _deltaT);
-
-            _annualInterestRate = annualInterestRate;
-            double decisionPeriodInterestRate = annualInterestRate * _decisionIntervalLength / 364;
-            _discountRate = 1 / (1 + decisionPeriodInterestRate);
-
-            _wtpForHealth = wtpForHealth;
-        }
+        
 
         // setup dynamic policy related settings
         public void SetupDynamicPolicySettings
@@ -2847,7 +2499,7 @@ namespace APACElib
             //    int i = thisIntervention.ID;
             //    if (thisIntervention.StaticPolicyType ==  enumStaticPolicyType.IntervalBased)
             //        thisIntervention.AddIntervalBaseEmploymentSetting(
-            //            (int)(startTimes[i] / _deltaT), (int)((startTimes[i] + numOfDecisionPeriodsToUse[i] * _decisionIntervalLength) / _deltaT));
+            //            (int)(startTimes[i] / _set.DeltaT), (int)((startTimes[i] + numOfDecisionPeriodsToUse[i] * _decisionIntervalLength) / _set.DeltaT));
             //}
         }
         // setup threshold-based static policy settings
@@ -2900,7 +2552,7 @@ namespace APACElib
         public void SetupStoringSimulationTrajectory()
         {
             // return if trajectories should not be reported
-            if (_storeEpidemicTrajectories == false)
+            if (StoreEpidemicTrajectories == false)
                 return;
 
             _numOfTimeBasedOutputsToReport = 2; // 1 for simulation replication and 1 for simulation time
@@ -2949,16 +2601,11 @@ namespace APACElib
             // report ratio statistics for which surveillance is available
             _numOfMonitoredSimulationOutputs += _ratioStatistics.Where(r => r.SurveillanceDataAvailable).Count();
         }
-        // add intervention history
-        public void AddInterventionHistory(int[][] prespecifiedDecisionsOverObservationPeriods)
-        {
-            _prespecifiedDecisionsOverObservationPeriods = prespecifiedDecisionsOverObservationPeriods;
-        }                
+               
         // update the time to start decision making
         public void UpdateTheTimeToStartDecisionMakingAndWarmUpPeriod(double epidemicTimeToStartDecisionMaking, double warmUpPeriod)
         {
-            _epidemicTimeIndexToStartDecisionMaking = (int)(epidemicTimeToStartDecisionMaking / _deltaT);
-            _warmUpPeriodIndex = (int)(warmUpPeriod / _deltaT);
+            //_epidemicTimeIndexToStartDecisionMaking = (int)(epidemicTimeToStartDecisionMaking / _set.DeltaT);            
         }
         // get which interventions are affecting contact pattern
         public bool[] IfInterventionsAreAffectingContactPattern()
@@ -3145,7 +2792,7 @@ namespace APACElib
                             // set up new members statistics
                             if (collectNewMembers == true || showNewMembers) 
                                 thisNormalClass.SetupNewMembersStatistics
-                                    (QALYLoss, costPerNewMember, (int)(_simulationOutputIntervalLength/_deltaT) , (int)(_observationPeriodLengh / _deltaT));                                
+                                    (QALYLoss, costPerNewMember, (int)(_set.SimulationOutputIntervalLength / _set.DeltaT) , (int)(_set.ObservationPeriodLength / _set.DeltaT));                                
                             // set up members in class statistics
                             if (collectMembersInClass == true)
                                 thisNormalClass.SetupMembersInClassStatistics(healthQualityPerUnitOfTime, costPerUnitOfTime);
@@ -3183,7 +2830,7 @@ namespace APACElib
 
                             // set up new members statistics                            
                             if (collectNewMembers == true)
-                                thisDealthClass.SetupNewMembersStatistics(QALYLoss, costPerNewMember, 1, (int)(_observationPeriodLengh / _deltaT)); 
+                                thisDealthClass.SetupNewMembersStatistics(QALYLoss, costPerNewMember, 1, (int)(_set.ObservationPeriodLength / _set.DeltaT)); 
                             // set up which statistics to show
                             thisDealthClass.ShowStatisticsInSimulationResults = showStatisticsInSimulationResults;
                             thisDealthClass.ShowNewMembers = showNewMembers;
@@ -3207,7 +2854,7 @@ namespace APACElib
 
                             // set up new members statistics
                             if (collectNewMembers == true)
-                                thisSplittingClass.SetupNewMembersStatistics(QALYLoss, costPerNewMember, 1, (int)(_observationPeriodLengh / _deltaT)); ;
+                                thisSplittingClass.SetupNewMembersStatistics(QALYLoss, costPerNewMember, 1, (int)(_set.ObservationPeriodLength / _set.DeltaT)); ;
                             // set up which statistics to show
                             thisSplittingClass.ShowStatisticsInSimulationResults = showStatisticsInSimulationResults;
                             thisSplittingClass.ShowNewMembers = showNewMembers;
@@ -3236,7 +2883,7 @@ namespace APACElib
 
                             // set up new members statistics
                             if (collectNewMembers == true)
-                                thisResourceMonitorClass.SetupNewMembersStatistics(QALYLoss, costPerNewMember, 1, (int)(_observationPeriodLengh / _deltaT)); ;
+                                thisResourceMonitorClass.SetupNewMembersStatistics(QALYLoss, costPerNewMember, 1, (int)(_set.ObservationPeriodLength / _set.DeltaT)); ;
                             // set up which statistics to show
                             thisResourceMonitorClass.ShowStatisticsInSimulationResults = showStatisticsInSimulationResults;
                             thisResourceMonitorClass.ShowNewMembers = showNewMembers;
@@ -3382,7 +3029,7 @@ namespace APACElib
 
                 // create the intervention
                 thisIntervention = new Intervention(ID, name, type, affectingContactPattern,
-                    (int)(timeBecomeAvailable / _deltaT), (int)(timeBecomeUnavailable / _deltaT), delayParID, ref simDecisionRule);
+                    (int)(timeBecomeAvailable / _set.DeltaT), (int)(timeBecomeUnavailable / _set.DeltaT), delayParID, ref simDecisionRule);
 
                 // set up cost
                 thisIntervention.SetUpCost(fixedCost, costPerUnitOfTime, penaltyForSwitchingFromOnToOff);
@@ -3619,7 +3266,7 @@ namespace APACElib
                 // build and add the summation statistics
                 SummationStatistics thisSummationStatistics = new
                     SummationStatistics(statID, name, definedOn, type, sumFormula, QALYLossPerNewMember, costPerNewMember, surveillanceDataAvailable, firstObservationMarksTheStartOfTheSpread,
-                                       (int)(_simulationOutputIntervalLength / _observationPeriodLengh), (int)(_observationPeriodLengh / _deltaT), numOfObservationPeriodsDelayBeforeObservating);
+                                       (int)(_set.SimulationOutputIntervalLength / _set.ObservationPeriodLength), (int)(_set.ObservationPeriodLength / _set.DeltaT), numOfObservationPeriodsDelayBeforeObservating);
                 // if display
                 thisSummationStatistics.IfDisplay = ifDispay;
 

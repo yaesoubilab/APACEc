@@ -60,11 +60,11 @@ namespace APACElib
         public int ParIDDelayToGoIntoEffectOnceTurnedOn { get; set; }
         public int NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn { get; set; } = 0;
 
-        public int EpidemicTimeIndexToTurnOn { get; set; }
-        public int EpidemicTimeIndexToGoIntoEffect { get; set; }
-        public int EpidemicTimeIndexToTurnOff { get; set; }
-        public int EpidemicTimeIndexTurnedOn { get; set; }
-        public int EpidemicTimeIndexTurnedOff { get; set; }
+        public int EpiTimeIndexToTurnOn { get; set; }
+        public int EpiTimeIndexToGoIntoEffect { get; set; }
+        public int EpiTimeIndexToTurnOff { get; set; }
+        public int EpiTimeIndexTurnedOn { get; set; }
+        public int EpiTimeIndexTurnedOff { get; set; }
         
         // Instantiation
         public Intervention(
@@ -128,17 +128,17 @@ namespace APACElib
             // find the time to go into effect
             if (Type == EnumInterventionType.Default)
             {
-                EpidemicTimeIndexToTurnOn = int.MinValue;
-                EpidemicTimeIndexTurnedOn = int.MinValue;
-                EpidemicTimeIndexToGoIntoEffect = int.MinValue;
-                EpidemicTimeIndexToTurnOff = int.MaxValue;
+                EpiTimeIndexToTurnOn = int.MinValue;
+                EpiTimeIndexTurnedOn = int.MinValue;
+                EpiTimeIndexToGoIntoEffect = int.MinValue;
+                EpiTimeIndexToTurnOff = int.MaxValue;
             }
             else
             {
-                EpidemicTimeIndexToTurnOn = int.MaxValue;
-                EpidemicTimeIndexTurnedOn = int.MaxValue;
-                EpidemicTimeIndexToGoIntoEffect = int.MaxValue;
-                EpidemicTimeIndexToTurnOff = int.MaxValue;
+                EpiTimeIndexToTurnOn = int.MaxValue;
+                EpiTimeIndexTurnedOn = int.MaxValue;
+                EpiTimeIndexToGoIntoEffect = int.MaxValue;
+                EpiTimeIndexToTurnOff = int.MaxValue;
             }
         }
         

@@ -67,7 +67,7 @@
     <Compile Include="cFeature.cs" />
     <Compile Include="cIntervention.cs" />
     <Compile Include="cModelSettings.cs" />
-    <Compile Include="ControlClasses.cs" />
+    <Compile Include="EpidemicControl.cs" />
     <Compile Include="cSpecialStatistics.cs" />
     <Compile Include="cStaticPolicyClasses.cs" />
     <Compile Include="DecisionRuleClasses.cs" />
