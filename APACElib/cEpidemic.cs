@@ -60,7 +60,7 @@ namespace APACElib
         private double[][] _calibrationObservation;
 
         // contact and transmission matrices
-        private double[][,] _baseContactMatrices = null; //[pathogen ID][group i, group j]
+        private double[][,] _baseContactMatrices = null; //[pathogen ID][group i, group j] 
         private int[][][,] _percentChangeInContactMatricesParIDs = null; //[intervention ID][pathogen ID][group i, group j]
         private double[][][,] _contactMatrices = null; //[intervention ID][pathogen ID][group i, group j]
         private double[][][][] _tranmissionMatrices = null; // [intervention ID][pathogen ID][group i][group j]
