@@ -14,6 +14,7 @@ namespace APACElib
         private int _nOfDeltaTsInADecisionInterval; // number of time steps in a decision interval
         private int _nextEpiTimeIndexToMakeDecision; // next epidemic time index to make a decision       
         public int DecisionIntervalIndex { get; set; } // index of the current decision interval
+        public int EpiTimeIndexToStartDecisionMaking { get; set; }
         public int EpiTimeIndexToChangeIntervetionsInEffect { get; set; } = 0; // epidemic time index to change the interventions that are in effect
         private int[][] _prespecifiedDecisionsOverDecisionsPeriods; // prespecified decisions
 
@@ -24,7 +25,8 @@ namespace APACElib
         // Instantiation
         public DecisionMaker(int epiTimeIndexToStartDecisionMaking, int nOfDeltaTsInADecisionInterval)
         {
-            _nextEpiTimeIndexToMakeDecision = epiTimeIndexToStartDecisionMaking;
+            EpiTimeIndexToStartDecisionMaking = epiTimeIndexToStartDecisionMaking;
+            _nextEpiTimeIndexToMakeDecision = 0;
             _nOfDeltaTsInADecisionInterval = nOfDeltaTsInADecisionInterval;
             DecisionIntervalIndex = 0;
         }
@@ -59,14 +61,14 @@ namespace APACElib
         }
 
         // find a new intervention combination (return true if there is a chance in decision)
-        public void MakeANewDecision(int epiTimeIndex)
+        public void MakeANewDecision(int epiTimeIndex, bool toInitialize)
         {
-            int[] newDecision = new int[NumOfInterventions];
-            bool ifThereIsAChange = false; 
-
             // make a decision only at epidemic time 0 or the next decision point
-            if (!(epiTimeIndex == 0 || epiTimeIndex == _nextEpiTimeIndexToMakeDecision))
+            if (!(toInitialize || epiTimeIndex == _nextEpiTimeIndexToMakeDecision))
                 return; // no change in decision 
+
+            int[] newDecision = new int[NumOfInterventions];
+            bool ifThereIsAChange = false;
 
             // check if decisions are not prespecified
             if (_prespecifiedDecisionsOverDecisionsPeriods == null)
@@ -93,7 +95,7 @@ namespace APACElib
             // update the index of the decision period
             DecisionIntervalIndex += 1;
             // update the next time decisions should be made
-            _nextEpiTimeIndexToMakeDecision += _nOfDeltaTsInADecisionInterval;
+            _nextEpiTimeIndexToMakeDecision = Math.Max(epiTimeIndex + _nOfDeltaTsInADecisionInterval, EpiTimeIndexToStartDecisionMaking);
         }
 
         // update the currect decision    
@@ -248,16 +250,13 @@ namespace APACElib
         public MonitorOfInterventionsInEffect(ref DecisionMaker decisionMaker)
         {
             _decisionMaker = decisionMaker;
+            InterventionsInEffect = new int[_decisionMaker.NumOfInterventions];
         }
 
-        public void Update(int epiTimeIndex, ref List<Class> classes)
+        public void Update(int epiTimeIndex, bool toInitialize, ref List<Class> classes)
         {
             // request for a decision
-            _decisionMaker.MakeANewDecision(epiTimeIndex);
-
-            if (epiTimeIndex == 0)
-                InterventionsInEffect = new int[_decisionMaker.NumOfInterventions];
-
+            _decisionMaker.MakeANewDecision(epiTimeIndex, toInitialize);
 
             // update interventions that are in effect
             if (epiTimeIndex == _decisionMaker.EpiTimeIndexToChangeIntervetionsInEffect)
@@ -279,7 +278,7 @@ namespace APACElib
                             a.EpiTimeIndexToGoIntoEffect = int.MaxValue;
                         }
                         // if this intervention is being lifted
-                        if (InterventionsInEffect[a.Index] == 1 && a.EpiTimeIndexToTurnOff >= epiTimeIndex)
+                        else if (InterventionsInEffect[a.Index] == 1 && a.EpiTimeIndexToTurnOff <= epiTimeIndex)
                         {
                             InterventionsInEffect[a.Index] = 0;
 

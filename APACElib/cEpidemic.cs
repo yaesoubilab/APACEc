@@ -946,7 +946,7 @@ namespace APACElib
                 //    ReadValuesOfFeatures();
 
                 // make decisions if decision is not predetermined and announce the new decisions (may not necessarily go into effect)
-                _monitorofInterventionsInEffect.Update(_epiTimeIndex, ref _classes);
+                _monitorofInterventionsInEffect.Update(_epiTimeIndex, false, ref _classes);
 
                 // update the effect of chance in time dependent parameter value
                 UpdateTheEffectOfChangeInTimeDependentParameterValues(_simTimeIndex * _set.DeltaT);
@@ -1768,7 +1768,7 @@ namespace APACElib
                 thisIntervention.ResetForAnotherSimulationRun();
 
             // update decisions
-            _monitorofInterventionsInEffect.Update(0, ref _classes);
+            _monitorofInterventionsInEffect.Update(0, true, ref _classes);
 
             // calculate contact matrices
             CalculateContactMatrices();
@@ -2425,8 +2425,7 @@ namespace APACElib
 
             _decisionMaker = new DecisionMaker(
                 _set.EpidemicTimeIndexToStartDecisionMaking, 
-                (int)(_set.DecisionIntervalLength/_set.DeltaT));
-            _monitorofInterventionsInEffect = new MonitorOfInterventionsInEffect(ref _decisionMaker);
+                (int)(_set.DecisionIntervalLength/_set.DeltaT));            
 
             // reset the epidemic
             Reset();
@@ -2452,6 +2451,8 @@ namespace APACElib
             SetupStoringSimulationTrajectory();
             // update contact matrices
             UpdateContactMatrices();
+            // monitor of interventions in effect
+            _monitorofInterventionsInEffect = new MonitorOfInterventionsInEffect(ref _decisionMaker);
         }
         ///// <summary>
         ///// ad contact matrices

@@ -534,14 +534,14 @@ namespace APACElib
             // then calculate the rates of processes
             processIndex = 0;
             double sumOfRates = 0;
-            foreach (Event thisProcess in _activeEvents)
+            foreach (Event thisEvent in _activeEvents)
             {
                 // birth event does not affect the way members are leaving this class
-                if (thisProcess is Event_Birth)
+                if (thisEvent is Event_Birth)
                     arrProcessRates[processIndex] = 0;
                 else
                 {
-                    arrProcessRates[processIndex] = thisProcess.Rate * deltaT;
+                    arrProcessRates[processIndex] = thisEvent.Rate * deltaT;
                     sumOfRates += arrProcessRates[processIndex];
                 }
                 ++ processIndex;
@@ -563,15 +563,7 @@ namespace APACElib
             // get a sample
             int[] arrSampledDepartures = numOutOfProcessDistribution.ArrSampleDiscrete(rng);
 
-            // handling error
-            for (int i = 0; i< arrSampledDepartures.Length; i++)
-                if (arrSampledDepartures[i]<0|| arrSampledDepartures[i]>_currentNumberOfMembers)
-                {
-                    //MessageBox.Show("Number of events cannot be negative (Seed: " + threadSpecificRNG.Seed + ").", "Error in Calculating Number of Events Out of Classes.");
-                    arrSampledDepartures[i] = 0;
-                }
-
-            // find the number of members out of each process to other classes            
+           // find the number of members out of each process to other classes            
             processIndex = 0; // NOTE: process with index 0 denotes not leaving the class
             foreach (Event thisProcess in _activeEvents)
             {

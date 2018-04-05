@@ -99,7 +99,7 @@ namespace APACElib
         // find when should be turned off
         public int FindEpiTimeIndexToTurnOff(int epiTimeIndex)
         {
-            return 0;
+            return int.MaxValue;
         }
 
         // find the switch status
