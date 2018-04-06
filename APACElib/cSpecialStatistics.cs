@@ -30,7 +30,7 @@ namespace APACElib
         bool _ifDisplay = false;
 
         // statistics collectors
-        private cCounterStatistics _countStatisticsNewMembers = null;
+        private CounterStatistics _countStatisticsNewMembers = null;
         private TimePersistentStatistics _averagePrevalence;
 
         private bool _surveillanceDataAvailable;
@@ -60,7 +60,7 @@ namespace APACElib
             _arrClassOrEventIDs = ConvertSumFormulaToArrayOfClassIDs(sumFormula);
             _firstObservationMarksTheStartOfTheSpread = firstObservationMarksTheStartOfTheSpread;
             _surveillanceDataAvailable = surveillanceDataAvailable;
-            _countStatisticsNewMembers = new cCounterStatistics(name, QALYLossPerNewMember, 0, costPerNewMember, 0,
+            _countStatisticsNewMembers = new CounterStatistics(name, QALYLossPerNewMember, 0, costPerNewMember, 0,
                 numOfPastObsPeriodsToStore, numOfDeltaTInEachObsPeriod, numOfObsPeriodsDelayed, true);
 
             if (type == enumType.Prevalence)
@@ -89,7 +89,7 @@ namespace APACElib
             get { return _ifDisplay; }
             set { _ifDisplay = value; }
         }
-        public cCounterStatistics CountStatisticsNewMembers
+        public CounterStatistics CountStatisticsNewMembers
         {
             get { return _countStatisticsNewMembers; }
         }
@@ -205,7 +205,7 @@ namespace APACElib
             int sumNumMembers = 0;
 
             for (int i = 0; i < _arrClassOrEventIDs.Length; ++i)
-                sumNumMembers += classes[_arrClassOrEventIDs[i]].NumberOfNewMembersOverPastDeltaT;
+                sumNumMembers += classes[_arrClassOrEventIDs[i]].ClassStat.NumOfNewMembersOverPastDeltaT;
 
             // record the sum of new members
             if (_type == enumType.Incidence)

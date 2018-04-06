@@ -12,51 +12,32 @@ namespace APACElib
     // Class
     public abstract class Class
     {
-        // Variables
-        #region Variables
-
-        public enum EnumClassType
-        {
-            Normal = 1,
-            Death = 2,
-            Splitting = 3,
-            ResourceMonitor = 4,
-        }
-
-        // Fields
         protected int _ID;
         protected string _name;
-
-        protected int[] _arrDestinationClasseIDs;
-        protected int[] _arrNumOfMembersSendingToEachDestinationClasses;
-        protected bool _ifNeedsToBeProcessed = false;
-        protected bool _ifMembersWaitingToSendOutBeforeNextDeltaT = false;
         protected int _rowIndexInContactMatrix;
-        // show results
-        protected bool _showNewMembers;
-        protected bool _showMembersInClass;
-        protected bool _showAccumulatedNewMembers;
-        protected bool _showStatisticsInSimulationResults;
-        // statistics 
-        protected int _numberOfNewMembersOverPastDeltaT;
-        protected int _currentNumberOfMembers;
-        protected int _accumulatedNewMembers;
-        protected TimePersistentStatistics _timePersistentStat_classSize;
-        protected cCounterStatistics _countStatisticsNewMembers = null;
-        protected cCounterStatistics _countStatisticsMembersInClass = null;
-        #endregion
+        protected int[] _arrDestinationClasseIDs;
+        protected int[] _arrNumOfMembersSendingToEachDestinationClasses;        
+        public bool IfNeedsToBeProcessed { get; set; }
+        public bool IfMembersWaitingToSendOutBeforeNextDeltaT { get; set; }
+        // statistics
+        public ClassStatistics ClassStat { get; set; }
+
+        // show in simulation output 
+        public bool ShowIncidence { get; set; }
+        public bool ShowPrevalence { get; set; }
+        public bool ShowAccumIncidence { get; set; }
+        public bool ShowStatisticsInSimulationResults { get; set; }
 
         // Instantiation
         public Class(int ID, string name)
         {
             _ID = ID;
             _name = name;
-            _ifNeedsToBeProcessed = true;
-            _ifMembersWaitingToSendOutBeforeNextDeltaT = false;
+            IfNeedsToBeProcessed = true;
+            IfMembersWaitingToSendOutBeforeNextDeltaT = false;
         }
 
         // Properties
-        #region Properties
         public int ID
         {
             get{return _ID;}
@@ -64,93 +45,6 @@ namespace APACElib
         public string Name
         {
             get {return _name;}
-        }
-        public bool ShowNewMembers
-        {
-            get{return _showNewMembers;}
-            set{_showNewMembers = value;}
-        }
-        public bool ShowMembersInClass
-        {
-            get{return _showMembersInClass;}
-            set{_showMembersInClass = value;}
-        }
-        public bool ShowAccumulatedNewMembers
-        {
-            get{return _showAccumulatedNewMembers;}
-            set{_showAccumulatedNewMembers = value;}
-        }
-        public bool CollectNewMembersStatistics
-        {
-            get
-            {
-                if (_countStatisticsNewMembers != null)
-                    return true;
-                else
-                    return false;
-            }
-        }
-        public bool CollectMembersInClassStatistics
-        {
-            get 
-            {
-                if (_countStatisticsMembersInClass != null)
-                    return true;
-                else
-                    return false;
-            }
-        }
-        public bool ShowStatisticsInSimulationResults
-        {
-            get { return _showStatisticsInSimulationResults; }
-            set { _showStatisticsInSimulationResults = value; }
-        }
-        public int CurrentNumberOfMembers
-        {
-            get{ return _currentNumberOfMembers;}
-        }
-        public bool IfNeedsToBeProcessed
-        {
-            get { return _ifNeedsToBeProcessed; }
-            set { _ifNeedsToBeProcessed = value; }
-        }
-        public bool IfMembersWaitingToSendOutBeforeNextDeltaT
-        {
-            get { return _ifMembersWaitingToSendOutBeforeNextDeltaT; }
-            set { _ifMembersWaitingToSendOutBeforeNextDeltaT = value; }
-        }
-        public int NumberOfNewMembersOverPastDeltaT
-        {
-            get { return _numberOfNewMembersOverPastDeltaT; }
-            set { _numberOfNewMembersOverPastDeltaT = value; }
-        }
-        public int NewMembersOverPastObsPeriod
-        {
-            get { return _countStatisticsNewMembers.CurrentCountsInThisObsPeriod; }
-        }
-        public int NewMembersOverPastSimulationOutputInterval
-        {
-            get { return _countStatisticsNewMembers.CurrentCountsInThisSimulationOutputInterval; }
-        }
-        public int AccumulatedNewMembers
-        {
-            get { return _accumulatedNewMembers; }
-        }
-        public double AverageNewMembersOverPastObsPeriod
-        {
-            get{ return _countStatisticsNewMembers.Mean();}
-        }
-        public double AverageClassSize
-        {
-            get { return _timePersistentStat_classSize.Mean; }
-        }
-        public cCounterStatistics CountStatisticsNewMembers
-        {
-            get{ return _countStatisticsNewMembers;}
-        }
-        public cCounterStatistics CountStatisticsMembersInClass
-        {
-            get{ return _countStatisticsMembersInClass; }
         }
 
         public virtual int[] ArrDestinationClasseIDs
@@ -183,57 +77,11 @@ namespace APACElib
         {
             get { return false; }
         }
-        #endregion
-
-        // set up statistics
-        public void SetupNewMembersStatistics(double QALYLossPerNewMember, double costPerNewMember)
-        {
-            _countStatisticsNewMembers = new cCounterStatistics("Number of new members",QALYLossPerNewMember, 0, costPerNewMember, 0, true);              
-        }
-        public void SetupNewMembersStatistics(double QALYLossPerNewMember, double costPerNewMember, int numOfPastObsPeriodsToStore, int numOfObsInEachObsPeriod)
-        {
-            _countStatisticsNewMembers = new cCounterStatistics("Number of new members", QALYLossPerNewMember, 0, costPerNewMember, 0, numOfPastObsPeriodsToStore, numOfObsInEachObsPeriod,0, false);
-        }  
-        public void SetupMembersInClassStatistics(double healthQualityPerUnitOfTime, double costPerUnitOfTime)
-        {
-            _countStatisticsMembersInClass = new cCounterStatistics("Number in class",0 , healthQualityPerUnitOfTime, 0, costPerUnitOfTime, false);
-            _timePersistentStat_classSize = new TimePersistentStatistics();
-        }       
-
-        // add new members
-        public void AddNewMembers(int numOfNewMembers)
-        {
-            // return if number of new members is zero
-            if (numOfNewMembers == 0)
-                return;
-
-            // increment the current number of members
-            _numberOfNewMembersOverPastDeltaT += numOfNewMembers;
-            _currentNumberOfMembers += numOfNewMembers;
-            _accumulatedNewMembers += numOfNewMembers;            
-
-            // if this is a death class the current number of members should be set to zero
-            if (this is Class_Death)
-                _currentNumberOfMembers = 0;
-            
-            if (this is Class_Splitting || this is Class_ResourceMonitor)
-                _ifNeedsToBeProcessed = true;
-        }     
       
         // update statistics
-        public void UpdateStatisticsAtTheEndOfDeltaT(double epidemicTime, double deltaT)
+        public void UpdateStatisticsAtTheEndOfDeltaT(int simTimeIndex, double deltaT)
         {
-            // gather statistics on the new number of members   
-            if (_countStatisticsNewMembers != null)
-                _countStatisticsNewMembers.AddAnObservation(_numberOfNewMembersOverPastDeltaT);
-
-            // gather statistics on the number of members in class
-            if (_countStatisticsMembersInClass != null)
-                _countStatisticsMembersInClass.AddAnObservation(_currentNumberOfMembers, deltaT);
-
-            // update average size
-            if (_timePersistentStat_classSize != null && this is Class_Normal)
-                _timePersistentStat_classSize.Record(epidemicTime, _currentNumberOfMembers); 
+            ClassStat.CollectEndOfDeltaTStats(simTimeIndex);
         }
         // read feature value  
         public double ReadFeatureValue(Feature_DefinedOnNewClassMembers feature)
@@ -242,13 +90,13 @@ namespace APACElib
             switch (feature.FeatureType)
             {
                 case Feature.enumFeatureType.Incidence:
-                    value = _countStatisticsNewMembers.LastObservedCounts;
+                    value = ClassStat.IncidenceTimeSeries.GetLastObs();
                     break;
                 case Feature.enumFeatureType.Prediction:
-                    value = Math.Max(0, _countStatisticsNewMembers.Prediction(feature.NumOfTimePeriodsForFuturePrediction));
+                    value = 0; // Math.Max(0, _countStatisticsNewMembers.Prediction(feature.NumOfTimePeriodsForFuturePrediction));
                     break;
                 case Feature.enumFeatureType.AccumulatingIncidence:
-                    value = _countStatisticsNewMembers.TotalObservedCounts; // _accumulatedNewMembers;
+                    value = ClassStat.AccumulatedIncidence;
                     break;
                 default:
                     value = -1;
@@ -256,13 +104,9 @@ namespace APACElib
             }  
             return value;
         }
-        // reset new members over past observation period
-        public void ResetNewMembersOverPastObsPeriod()
-        {
-            if (_countStatisticsNewMembers != null)
-                _countStatisticsNewMembers.ResetCurrentAggregatedObsInThisObsPeriodervation();
-        }
 
+        //  add new member
+        public virtual void AddNewMembers(int numOfNewMembers) { }
         // update the initial number of members
         public virtual void UpdateInitialNumberOfMembers(int sampledValue)
         {         
@@ -302,37 +146,13 @@ namespace APACElib
         public virtual void ReturnAndResetNumOfMembersOutOfEventsOverPastDeltaT(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
         { }
 
-        // read current cost
-        public virtual double CurrentCost()
-        {
-            return 0;
-        }
-        // read current QALY
-        public virtual double CurrentQALY()
-        {
-            return 0;
-        }
         // reset for another simulation run
-        public virtual void ResetStatistics(double warmUpPeriodLength, bool ifToResetForAnotherSimulationRun)
-        {
-        } 
+        public virtual void Reset()
+        {} 
         // update available resources
         public virtual void UpdateAvailableResources(int[] arrResourceAvailability)
         { }
-        // Reset statistics for another simulation run
-        protected void ResetClassStatisticsForAnotherSimulationRun(double warmUpPeriodLength)
-        {
-            _ifNeedsToBeProcessed = true;
-            _accumulatedNewMembers = 0;
-            _numberOfNewMembersOverPastDeltaT = 0;
 
-            if (_countStatisticsNewMembers!=null)
-                _countStatisticsNewMembers.ResetForAnotherSimulationRun();
-            if (_countStatisticsMembersInClass != null)
-                _countStatisticsMembersInClass.ResetForAnotherSimulationRun();
-            if (_timePersistentStat_classSize != null)
-                _timePersistentStat_classSize.Reset(warmUpPeriodLength);
-        }                                 
     }
 
     // Class_Normal
@@ -340,15 +160,17 @@ namespace APACElib
     {
         // transmission matrix
         private int _initialMembersParID;
-        private int _initialMembers;
-        private int[] _susceptibilityParIDs;
-        private double[] _susceptibilityValues;
-        private int[] _infectivityParIDs;
-        private double[] _infectivityValues;
-        private bool _isEpiDependentProcessActive = false;
+        private int InitialMembers { get; set; }
 
+        private int[] _susceptibilityParIDs;
+        private int[] _infectivityParIDs;
+        private double[] _susceptibilityValues;
+        private double[] _infectivityValues;
+
+        private bool _isEpiDependentEventActive = false;
         private bool _emptyToEradicate;
-        private List<Event> _processes = new List<Event>();
+
+        private List<Event> _events = new List<Event>();
         private List<Event> _activeEvents = new List<Event>();
         private int[] _currentInterventionCombination;
 
@@ -357,22 +179,14 @@ namespace APACElib
         {
         }
 
-        // Properties
-        #region Properties
         public override int InitialMemebersParID
         {
             get { return _initialMembersParID; }
-        }
-        public int InitialMembers
-        {
-            get { return _initialMembers; }
-            set { _initialMembers = value; }
         }
         public override bool EmptyToEradicate
         {
             get { return _emptyToEradicate; }
         }
-
         // transmission 
         public int[] SusceptibilityParIDs
         {
@@ -396,19 +210,17 @@ namespace APACElib
         }
         public override bool IsEpiDependentEventActive
         {
-            get{return _isEpiDependentProcessActive;}
+            get{return _isEpiDependentEventActive;}
         }
         public override int[] ArrDestinationClasseIDs
         { get { return _arrDestinationClasseIDs; } }
         public override int[] ArrNumOfMembersSendingToEachDestinationClasses
         { get { return _arrNumOfMembersSendingToEachDestinationClasses; } }
 
-        #endregion
-
-        // add a process
-        public void AddAnEvent(Event process)
+        // add an event
+        public void AddAnEvent(Event e)
         {
-            _processes.Add(process);
+            _events.Add(e);
         }
         // setup the initial number parID
         public void SetupInitialAndStoppingConditions(int initialMembersParID, bool ifShouldBeEmptyForEradication)
@@ -440,8 +252,8 @@ namespace APACElib
         // update the initial number of members
         public override void UpdateInitialNumberOfMembers(int sampledValue)
         {
-            _initialMembers = sampledValue;
-            _currentNumberOfMembers = sampledValue;
+            InitialMembers = sampledValue;
+            ClassStat.Prevalence= sampledValue;
         }
         // update susceptibility and infectivity values
         public override void UpdateSusceptibilityParameterValues(double[] arrSampledParameterValues)
@@ -487,25 +299,24 @@ namespace APACElib
             if (_currentInterventionCombination != null && _currentInterventionCombination.SequenceEqual(interventionCombination))
                 return;
             // if no process is attached, return
-            if (_processes.Count == 0)
+            if (_events.Count == 0)
                 return;
 
             // update the intervention combination 
             _currentInterventionCombination = (int[])interventionCombination.Clone();
-            //_interventionCombinationCode = SupportFunctions.ConvertToBase10FromBase2(_currentInterventionCombination);
 
             // clear current active processes
             _activeEvents.Clear();
             // update current active processes
-            _isEpiDependentProcessActive = false;
-            foreach (Event thisProcess in _processes)
+            _isEpiDependentEventActive = false;
+            foreach (Event e in _events)
             {
                 // always add the processes that are activated                
-                if (interventionCombination[thisProcess.IDOfActivatingIntervention] == 1)
+                if (interventionCombination[e.IDOfActivatingIntervention] == 1)
                 {
-                    if ( thisProcess is Event_EpidemicDependent)
-                        _isEpiDependentProcessActive = true;
-                    _activeEvents.Add(thisProcess);
+                    if ( e is Event_EpidemicDependent)
+                        _isEpiDependentEventActive = true;
+                    _activeEvents.Add(e);
                 }
             }
             // store the id of the destination classes
@@ -518,33 +329,29 @@ namespace APACElib
         // send members of this class out
         public override void SendOutMembers(double deltaT, RNG rng)
         {
-            // all departing members will be processed
-            //_ifMembersWaitingToSendOutBeforeNextDeltaT = false;
-
             // if number of members is zero, no member is departing
-            if (_currentNumberOfMembers <= 0)
+            if (ClassStat.Prevalence<= 0)
                 return;
 
-            int processIndex = 0;
-            int numOfActiveProcesses = _activeEvents.Count;
-            double[] arrProcessRates = new double[numOfActiveProcesses];
-            double[] arrProcessProbs = new double[numOfActiveProcesses + 1]; // note index 0 denotes not leaving the class
-            // _arrNumOfMembersSendingToEachDestinationClasses = new int[numOfActiveProcesses];
+            int eIndex = 0;
+            int numOfActiveEvents = _activeEvents.Count;
+            double[] arrEventRates = new double[numOfActiveEvents];
+            double[] arrEventProbs = new double[numOfActiveEvents + 1]; // note index 0 denotes not leaving the class
 
-            // then calculate the rates of processes
-            processIndex = 0;
+            // then calculate the rates of events
+            eIndex = 0;
             double sumOfRates = 0;
             foreach (Event thisEvent in _activeEvents)
             {
                 // birth event does not affect the way members are leaving this class
                 if (thisEvent is Event_Birth)
-                    arrProcessRates[processIndex] = 0;
+                    arrEventRates[eIndex] = 0;
                 else
                 {
-                    arrProcessRates[processIndex] = thisEvent.Rate * deltaT;
-                    sumOfRates += arrProcessRates[processIndex];
+                    arrEventRates[eIndex] = thisEvent.Rate * deltaT;
+                    sumOfRates += arrEventRates[eIndex];
                 }
-                ++ processIndex;
+                ++ eIndex;
             }
 
             // if the sum of rates is equal to zero, nothing is happening to this class!
@@ -552,19 +359,19 @@ namespace APACElib
 
             // find the probabilities of each process   
             // calculate the probability of not leaving the class
-            arrProcessProbs[0] = Math.Exp(-sumOfRates);
+            arrEventProbs[0] = Math.Exp(-sumOfRates);
             // calculate the probability of other processes 
-            double coeff = (1 - arrProcessProbs[0]) / sumOfRates;
-            for (int probIndex = 1; probIndex <= numOfActiveProcesses; ++probIndex)
-                arrProcessProbs[probIndex] = coeff * arrProcessRates[probIndex-1];
+            double coeff = (1 - arrEventProbs[0]) / sumOfRates;
+            for (int probIndex = 1; probIndex <= numOfActiveEvents; ++probIndex)
+                arrEventProbs[probIndex] = coeff * arrEventRates[probIndex-1];
 
             // define a multinomial distribution for the number of members out of each process (process 0 denotes not leaving the class)
-            Multinomial numOutOfProcessDistribution = new Multinomial("temp", _currentNumberOfMembers, arrProcessProbs);
+            Multinomial numOutOfProcessDistribution = new Multinomial("temp", ClassStat.Prevalence, arrEventProbs);
             // get a sample
             int[] arrSampledDepartures = numOutOfProcessDistribution.ArrSampleDiscrete(rng);
 
            // find the number of members out of each process to other classes            
-            processIndex = 0; // NOTE: process with index 0 denotes not leaving the class
+            eIndex = 0; // NOTE: process with index 0 denotes not leaving the class
             foreach (Event thisProcess in _activeEvents)
             {
                 // if this is a birth process
@@ -576,40 +383,35 @@ namespace APACElib
                     else
                     {
                         // define a Poisson distribution
-                        Poisson numOfBirthsDistribution = new Poisson("Birth", _currentNumberOfMembers * thisProcess.Rate * deltaT);
+                        Poisson numOfBirthsDistribution = new Poisson("Birth", ClassStat.Prevalence * thisProcess.Rate * deltaT);
                         // get a sample on the number of births
                         numOfBirths = numOfBirthsDistribution.SampleDiscrete(rng);
                     }
                     // record the number of members out of this process
                     thisProcess.MembersOutOverPastDeltaT = numOfBirths;
                     // find the number of members to the destination class
-                    _arrNumOfMembersSendingToEachDestinationClasses[processIndex] += numOfBirths;
+                    _arrNumOfMembersSendingToEachDestinationClasses[eIndex] += numOfBirths;
                 }
                 // if this is not a birth process
                 else
                 {
                     // update the current number of members
-                    _currentNumberOfMembers -= arrSampledDepartures[processIndex + 1];
-                    //if (_currentNumberOfMembers < 0)
-                    //{
-                    //    MessageBox.Show("Size of a class cannot be negative (Seed: " + threadSpecificRNG.Seed + ").", "Error in Calculating Size of a Class");
-                    //    _currentNumberOfMembers = 0;
-                    //}
+                    ClassStat.Prevalence -= arrSampledDepartures[eIndex + 1];
                     // record the number of members out of this process
-                    thisProcess.MembersOutOverPastDeltaT = arrSampledDepartures[processIndex + 1];
+                    thisProcess.MembersOutOverPastDeltaT = arrSampledDepartures[eIndex + 1];
                     // find the number of members to the destination class
-                    _arrNumOfMembersSendingToEachDestinationClasses[processIndex] += arrSampledDepartures[processIndex + 1];
+                    _arrNumOfMembersSendingToEachDestinationClasses[eIndex] += arrSampledDepartures[eIndex + 1];
                 }
-                ++processIndex;
+                ++eIndex;
             }
 
-            _ifMembersWaitingToSendOutBeforeNextDeltaT = true;
+            IfMembersWaitingToSendOutBeforeNextDeltaT = true;
         }
         // reset number of members sending to each destination class
         public override void ResetNumOfMembersSendingToEachDestinationClasses()
         {
             _arrNumOfMembersSendingToEachDestinationClasses = new int[_activeEvents.Count];
-            _ifMembersWaitingToSendOutBeforeNextDeltaT = false;
+            IfMembersWaitingToSendOutBeforeNextDeltaT = false;
         }
         // find the members out of active processes
         public override void ReturnAndResetNumOfMembersOutOfEventsOverPastDeltaT(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
@@ -621,38 +423,17 @@ namespace APACElib
             }
         }
 
-        // return current Cost
-        public override double CurrentCost()
+        // add new members
+        public override void AddNewMembers(int numOfNewMembers)
         {
-            double currentClassCost = 0;
-            // read this class statistics
-            if (_countStatisticsNewMembers != null)
-                currentClassCost += _countStatisticsNewMembers.CurrentCost;
-            if (_countStatisticsMembersInClass != null)
-                currentClassCost += _countStatisticsMembersInClass.CurrentCost;
-            return currentClassCost;    
-        }
-        // return current QALY
-        public override double CurrentQALY()
-        {
-            double currentClassQALY = 0;
-            // read this class statistics
-            if (_countStatisticsNewMembers != null)
-                currentClassQALY += _countStatisticsNewMembers.CurrentQALY;
-            if (_countStatisticsMembersInClass != null)
-                currentClassQALY += _countStatisticsMembersInClass.CurrentQALY;
-            return currentClassQALY;
+            ClassStat.Add(numOfNewMembers);         
         }
         // Reset statistics for another simulation run
-        public override void ResetStatistics(double warmUpPeriodLength, bool ifToResetForAnotherSimulationRun)
+        public override void Reset()
         {
-            // reset class state    
-            if (ifToResetForAnotherSimulationRun)
-            {
-                _currentNumberOfMembers = _initialMembers;
-                // reset class statistics
-                ResetClassStatisticsForAnotherSimulationRun(warmUpPeriodLength);
-            }
+            IfNeedsToBeProcessed = true;
+            ClassStat.Reset();
+            ClassStat.Prevalence = InitialMembers;  
         }
     }
 
@@ -663,33 +444,17 @@ namespace APACElib
             : base(ID, name)
         {
         }
-
-        // return current Cost
-        public override double CurrentCost()
-        {
-            double currentClassCost = 0;
-            // read this class statistics
-            if (_countStatisticsNewMembers != null)
-                currentClassCost += _countStatisticsNewMembers.CurrentCost;            
-            return currentClassCost;  
-        }
-        // return current QALY
-        public override double CurrentQALY()
-        {
-            double currentClassQALY = 0;
-            // read this class statistics
-            if (_countStatisticsNewMembers != null)
-                currentClassQALY += _countStatisticsNewMembers.CurrentQALY;            
-            return currentClassQALY;
-        }
         // Reset statistics for another simulation run
-        public override void ResetStatistics(double warmUpPeriodLength, bool ifToResetForAnotherSimulationRun)
+        public override void Reset()
         {
-            // reset class state
-            if (ifToResetForAnotherSimulationRun)
-                _currentNumberOfMembers = 0;
-            // reset class statistics
-            ResetClassStatisticsForAnotherSimulationRun(warmUpPeriodLength);
+            IfNeedsToBeProcessed = true;
+            ClassStat.Reset();
+        }
+        // add new members
+        public override void AddNewMembers(int numOfNewMembers)
+        {
+            ClassStat.Add(numOfNewMembers);
+            ClassStat.Prevalence = 0;       
         }
     }    
 
@@ -740,67 +505,53 @@ namespace APACElib
             //_ifMembersWaitingToSendOutBeforeNextDeltaT = false;
 
             // if number of members is zero, no member is departing
-            if (_currentNumberOfMembers <= 0) return;
+            if (ClassStat.Prevalence <= 0) return;
 
             // find the number of members sending to each class
             if (_probOfSuccess == 0)
             {
                 _arrNumOfMembersSendingToEachDestinationClasses[0] += 0;
-                _arrNumOfMembersSendingToEachDestinationClasses[1] += _currentNumberOfMembers;
+                _arrNumOfMembersSendingToEachDestinationClasses[1] += ClassStat.Prevalence;
             }
             else if (_probOfSuccess == 1)
             {
-                _arrNumOfMembersSendingToEachDestinationClasses[0] += _currentNumberOfMembers;
+                _arrNumOfMembersSendingToEachDestinationClasses[0] += ClassStat.Prevalence;
                 _arrNumOfMembersSendingToEachDestinationClasses[1] += 0;
             }
             else
             {
                 // define a binomial distribution for the number of successes
-                Bionomial numOfSuccesses = new Bionomial("temp", _currentNumberOfMembers, _probOfSuccess);
+                Bionomial numOfSuccesses = new Bionomial("temp", ClassStat.Prevalence, _probOfSuccess);
                 // sample
                 int sampledNumOfSuccesses = numOfSuccesses.SampleDiscrete(rng);
 
                 _arrNumOfMembersSendingToEachDestinationClasses[0] += sampledNumOfSuccesses;
-                _arrNumOfMembersSendingToEachDestinationClasses[1] += _currentNumberOfMembers - sampledNumOfSuccesses;
+                _arrNumOfMembersSendingToEachDestinationClasses[1] += ClassStat.Prevalence - sampledNumOfSuccesses;
 
             }
             // current number of members should be zero now            
-            _currentNumberOfMembers = 0;
+            ClassStat.Prevalence = 0;
 
-            _ifMembersWaitingToSendOutBeforeNextDeltaT = true;
+            IfMembersWaitingToSendOutBeforeNextDeltaT = true;
         }
         // reset number of members sending to each destination class
         public override void ResetNumOfMembersSendingToEachDestinationClasses()
         {
             _arrNumOfMembersSendingToEachDestinationClasses = new int[2];
-            _ifMembersWaitingToSendOutBeforeNextDeltaT = false;
-        }
-        // return current Cost
-        public override double CurrentCost()
-        {
-            double currentClassCost = 0;
-            // read this class statistics
-            if (_countStatisticsNewMembers != null)
-                currentClassCost += _countStatisticsNewMembers.CurrentCost;
-            return currentClassCost;
-        }
-        // return current QALY
-        public override double CurrentQALY()
-        {
-            double currentClassQALY = 0;
-            // read this class statistics
-            if (_countStatisticsNewMembers != null)
-                currentClassQALY += _countStatisticsNewMembers.CurrentQALY;
-            return currentClassQALY;
+            IfMembersWaitingToSendOutBeforeNextDeltaT = false;
         }
         // Reset statistics for another simulation run
-        public override void ResetStatistics(double warmUpPeriodLength, bool ifToResetForAnotherSimulationRun)
+        public override void Reset()
         {
-            // reset class state
-            if (ifToResetForAnotherSimulationRun)
-                _currentNumberOfMembers = 0;
-            // reset class statistics
-            ResetClassStatisticsForAnotherSimulationRun(warmUpPeriodLength);            
+            IfNeedsToBeProcessed = true;
+            ClassStat.Reset();
+        }
+
+        // add new members
+        public override void AddNewMembers(int numOfNewMembers)
+        {
+            ClassStat.Add(numOfNewMembers);
+            IfNeedsToBeProcessed = true;
         }
     }   
 
@@ -855,54 +606,40 @@ namespace APACElib
             //_ifMembersWaitingToSendOutBeforeNextDeltaT = false;
 
             // if number of members is zero, no member is departing
-            if (_currentNumberOfMembers <= 0) return;
+            if (ClassStat.Prevalence <= 0) return;
             
             // find the number of members that can be served given the current resources
-            int membersServed = (int)Math.Min(_currentNumberOfMembers, (_arrAvailableResources[_resourceIDToCheckAvailability] / _resourceUnitsConsumedPerArrival));
+            int membersServed = (int)Math.Min(ClassStat.Prevalence, (_arrAvailableResources[_resourceIDToCheckAvailability] / _resourceUnitsConsumedPerArrival));
             // update the resources consumed
             _arrResourcesConsumed[_resourceIDToCheckAvailability] = (int)(membersServed * _resourceUnitsConsumedPerArrival);
 
             // find the number of members sent to each class from this class
             _arrNumOfMembersSendingToEachDestinationClasses[0] = membersServed;
-            _arrNumOfMembersSendingToEachDestinationClasses[0] = _currentNumberOfMembers - membersServed;            
+            _arrNumOfMembersSendingToEachDestinationClasses[0] = ClassStat.Prevalence - membersServed;            
             // update the current number of members
-            _currentNumberOfMembers =0;
+            ClassStat.Prevalence =0;
 
-            _ifMembersWaitingToSendOutBeforeNextDeltaT = true;
+            IfMembersWaitingToSendOutBeforeNextDeltaT = true;
         }
         // reset number of members sending to each destination class
         public override void ResetNumOfMembersSendingToEachDestinationClasses()
         {
             _arrNumOfMembersSendingToEachDestinationClasses = new int[2];
-            _ifMembersWaitingToSendOutBeforeNextDeltaT = false;
+            IfMembersWaitingToSendOutBeforeNextDeltaT = false;
         }
 
-        // return current Cost
-        public override double CurrentCost()
+        // Reset for another simulation run
+        public override void Reset()
         {
-            double currentClassCost = 0;
-            // read this class statistics
-            if (_countStatisticsNewMembers != null)
-                currentClassCost += _countStatisticsNewMembers.CurrentCost;
-            return currentClassCost;
+            IfNeedsToBeProcessed = true;
+            ClassStat.Reset();
         }
-        // return current QALY
-        public override double CurrentQALY()
+
+        // add new members
+        public override void AddNewMembers(int numOfNewMembers)
         {
-            double currentClassQALY = 0;
-            // read this class statistics
-            if (_countStatisticsNewMembers != null)
-                currentClassQALY += _countStatisticsNewMembers.CurrentQALY;
-            return currentClassQALY;
-        }
-        // Reset statistics for another simulation run
-        public override void ResetStatistics(double warmUpPeriodLength, bool ifToResetForAnotherSimulationRun)
-        {
-            // reset class state
-            if(ifToResetForAnotherSimulationRun)
-                _currentNumberOfMembers = 0;
-            // reset class statistics
-            ResetClassStatisticsForAnotherSimulationRun(warmUpPeriodLength);
+            ClassStat.Add(numOfNewMembers);
+            IfNeedsToBeProcessed = true;
         }
     }
 }

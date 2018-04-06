@@ -53,19 +53,20 @@ namespace APACElib
             DestinationClassIDIfSuccess = 14,
             DestinationClassIDIfFailure = 15,
 
-            QALYLoss = 17,
+            DALYPerNewMember = 17,
             CostPerNewMember = 18,
-            HealthQualityPerUnitOfTime = 19,
+            DisabilityWeightPerUnitOfTime = 19,
             CostPerUnitOfTime = 20,
             ResourceUnitsConsumedPerArrival = 21,
 
-            CollectNewMembers = 23,
-            CollectMembers = 24,
-            ShowInSimulationStaitistcsReport = 25,            
+            CollectIncidenceTimeSeries = 23,
+            CollectPrevalenceTimeSeries = 24,
+            CollectAccumIncidenceTimeSeries = 25,
 
-            ShowNewMembers = 27,
-            ShowMembersInClass = 28,
-            ShowAccumulatedNewMembers = 29,
+            ShowInSimulationSummaryReport = 27,  
+            ShowIncidence = 28,
+            ShowPrevalence = 29,
+            ShowAccumIncidence = 30,
         }
         public enum enumEventColumns : int
         {
@@ -289,7 +290,7 @@ namespace APACElib
         }
         public Array GetTableOfClasses()
         {
-            return GetTableOfCells("Classes", "classesBase", (int)enumClassColumns.ShowAccumulatedNewMembers);
+            return GetTableOfCells("Classes", "classesBase", (int)enumClassColumns.ShowAccumIncidence);
         }
         public Array GetTableOfInterventions()
         {

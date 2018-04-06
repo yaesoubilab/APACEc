@@ -59,7 +59,7 @@
     <Compile Include="Calibration.cs" />
     <Compile Include="cAPACE.cs" />
     <Compile Include="cClass.cs" />
-    <Compile Include="cCounterStatistics.cs" />
+    <Compile Include="Statistics.cs" />
     <Compile Include="cEpidemic.cs" />
     <Compile Include="cEpidemicModeller.cs" />
     <Compile Include="cEvent.cs" />

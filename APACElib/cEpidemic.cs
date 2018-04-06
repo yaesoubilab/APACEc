@@ -81,7 +81,7 @@ namespace APACElib
         // outcomes                
         double[] _arrSimulationObjectiveFunction;
         private double _currentPeriodCost;
-        private double _currentPeriodQALY;
+        private double _currentPeriodDALY;
         private double _totalCost;
         private double _annualCost;
         private double _totalQALY;
@@ -921,7 +921,7 @@ namespace APACElib
             {
                 // reset current period statistics
                 _currentPeriodCost = 0;
-                _currentPeriodQALY = 0;
+                _currentPeriodDALY = 0;
 
                 // store outputs if necessary               
                 StoreSelectedOutputWhileSimulating(simReplication, false, ref ifThisIsAFeasibleCalibrationTrajectory);
@@ -1160,12 +1160,12 @@ namespace APACElib
                     // check which statistics should be reported
                     foreach (Class thisClass in _classes)
                     {
-                        if (thisClass.ShowNewMembers)
-                            thisSimulationIntervalBasedOutputs[0][colIndexSimulationIntervalBasedOutputs++] = thisClass.NewMembersOverPastSimulationOutputInterval;
-                        if (thisClass.ShowMembersInClass)
-                            thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = thisClass.CurrentNumberOfMembers;
-                        if (thisClass.ShowAccumulatedNewMembers)
-                            thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = thisClass.AccumulatedNewMembers;
+                        if (thisClass.ShowIncidence)
+                            thisSimulationIntervalBasedOutputs[0][colIndexSimulationIntervalBasedOutputs++] = thisClass.ClassStat.IncidenceTimeSeries.GetLastObs();
+                        if (thisClass.ShowPrevalence)
+                            thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = thisClass.ClassStat.Prevalence;
+                        if (thisClass.ShowAccumIncidence)
+                            thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = thisClass.ClassStat.AccumulatedIncidence;
                     }
                     // summation statistics
                     foreach (SummationStatistics thisSumStat in _summationStatistics.Where(s => s.IfDisplay))
@@ -1488,8 +1488,6 @@ namespace APACElib
                 #endregion
 
                 // reset new member observations gather during past observation period
-                foreach (Class thisClass in _classes)
-                    thisClass.ResetNewMembersOverPastObsPeriod();
                 foreach (SummationStatistics thisSumStat in _summationStatistics)
                     thisSumStat.ResetNewMembersOverPastObsPeriod();                
             }
@@ -1499,7 +1497,7 @@ namespace APACElib
         private void ResetClassNumberOfNewMembers()
         {           
             foreach (Class thisClass in _classes)
-                thisClass.NumberOfNewMembersOverPastDeltaT = 0;
+                thisClass.ClassStat.NumOfNewMembersOverPastDeltaT= 0;
         }
         // transfer class members        
         private void TransferClassMembers()
@@ -1509,7 +1507,7 @@ namespace APACElib
             //    UpdateTransmissionRates();
 
             // do the transfer on all members
-            foreach (Class thisClass in _classes.Where(c => c.CurrentNumberOfMembers>0))
+            foreach (Class thisClass in _classes.Where(c => c.ClassStat.Prevalence>0))
                 thisClass.IfNeedsToBeProcessed = true;
 
             bool thereAreClassesToBeProcessed= true;
@@ -1544,7 +1542,7 @@ namespace APACElib
             } // end of while (membersWaitingToBeTransferred)
 
             foreach (Class thisClass in _classes)
-                _arrNumOfMembersInEachClass[thisClass.ID] = thisClass.CurrentNumberOfMembers;
+                _arrNumOfMembersInEachClass[thisClass.ID] = thisClass.ClassStat.Prevalence;
 
             // update and gather statistics defined for events                         
             int[] arrNumOfNewMembersOutOfEventsOverPastDeltaT = new int[_events.Count];
@@ -1552,9 +1550,9 @@ namespace APACElib
             {
                 if (_modelUse != EnumModelUse.Calibration)
                 {
-                    thisClass.UpdateStatisticsAtTheEndOfDeltaT(_epiTimeIndex * _set.DeltaT, _set.DeltaT);
-                    _currentPeriodCost += thisClass.CurrentCost();
-                    _currentPeriodQALY += thisClass.CurrentQALY();
+                    thisClass.UpdateStatisticsAtTheEndOfDeltaT(_simTimeIndex, _set.DeltaT);
+                    _currentPeriodCost += thisClass.ClassStat.DeltaCostHealthCollector.DeltaTCost;
+                    _currentPeriodDALY += thisClass.ClassStat.DeltaCostHealthCollector.DeltaTDALY;
                 }
                 // find number of members out of active events for this class
                 thisClass.ReturnAndResetNumOfMembersOutOfEventsOverPastDeltaT(ref arrNumOfNewMembersOutOfEventsOverPastDeltaT);
@@ -1572,7 +1570,7 @@ namespace APACElib
                                     {
                                         thisSumStat.AddNewMembers(ref _classes, _set.DeltaT);
                                         _currentPeriodCost += thisSumStat.CurrentCost;
-                                        _currentPeriodQALY += thisSumStat.CurrentQALY;
+                                        _currentPeriodDALY += thisSumStat.CurrentQALY;
                                     }
                                     break;
                                 case APACElib.SummationStatistics.enumType.Prevalence:
@@ -1591,7 +1589,7 @@ namespace APACElib
                                     {
                                         thisSumStat.AddNewMembers(arrNumOfNewMembersOutOfEventsOverPastDeltaT, _set.DeltaT);
                                         _currentPeriodCost += thisSumStat.CurrentCost;
-                                        _currentPeriodQALY += thisSumStat.CurrentQALY;
+                                        _currentPeriodDALY += thisSumStat.CurrentQALY;
                                     }
                                     break;
                                 case APACElib.SummationStatistics.enumType.Prevalence:
@@ -1613,7 +1611,7 @@ namespace APACElib
 
                 double coeff = Math.Pow(1+_set.AnnualInterestRate*_set.DeltaT, _epiTimeIndex);
                 _totalCost += coeff * _currentPeriodCost;
-                _totalQALY += coeff * _currentPeriodQALY;
+                _totalQALY += coeff * _currentPeriodDALY;
             }
 
         }
@@ -1683,10 +1681,10 @@ namespace APACElib
             switch (_objectiveFunction)
             {
                 case EnumObjectiveFunction.MaximizeNMB:
-                    reward = _set.WTPForHealth * _currentPeriodQALY - _currentPeriodCost;
+                    reward = _set.WTPForHealth * _currentPeriodDALY - _currentPeriodCost;
                     break;
                 case EnumObjectiveFunction.MaximizeNHB:
-                    reward = _currentPeriodQALY - _currentPeriodCost / _set.WTPForHealth;
+                    reward = _currentPeriodDALY - _currentPeriodCost / _set.WTPForHealth;
                     break;
             }
             return reward;
@@ -1705,7 +1703,7 @@ namespace APACElib
                 foreach (Class thisClass in _classes)
                 {
                     // if a class should be empty while it is not then return false
-                    if (thisClass.EmptyToEradicate == true && thisClass.CurrentNumberOfMembers > 0)
+                    if (thisClass.EmptyToEradicate == true && thisClass.ClassStat.Prevalence > 0)
                     {
                         eradicated = false;
                         break;
@@ -1759,7 +1757,7 @@ namespace APACElib
             foreach (Class thisClass in _classes)
             {
                 thisClass.UpdateInitialNumberOfMembers((int)Math.Round(_arrSampledParameterValues[thisClass.InitialMemebersParID]));
-                _arrNumOfMembersInEachClass[thisClass.ID] = thisClass.CurrentNumberOfMembers;
+                _arrNumOfMembersInEachClass[thisClass.ID] = thisClass.ClassStat.Prevalence;
             }
 
             // reset decisions
@@ -1809,8 +1807,8 @@ namespace APACElib
             _numOfSwitchesBtwDecisions = 0;
 
             // reset class statistics
-            foreach (Class thisClass in _classes)
-                thisClass.ResetStatistics(_set.WarmUpPeriodTimeIndex * _set.DeltaT, ifToResetForAnotherSimulationRun);
+            //foreach (Class thisClass in _classes)
+            //    thisClass.Reset();
             // reset summation statistics
             foreach (SummationStatistics thisSumStat in _summationStatistics)
                 thisSumStat.ResetStatistics(_set.WarmUpPeriodTimeIndex * _set.DeltaT, ifToResetForAnotherSimulationRun);
@@ -2259,8 +2257,8 @@ namespace APACElib
             int[] populationSizeOfMixingGroups = new int[_baseContactMatrices[0].GetLength(0)];
             foreach (Class thisClass in _classes)
             {
-                //_arrNumOfMembersInEachClass[thisClass.ID] = thisClass.CurrentNumberOfMembers;
-                populationSizeOfMixingGroups[thisClass.RowIndexInContactMatrix] += thisClass.CurrentNumberOfMembers;
+                //_arrNumOfMembersInEachClass[thisClass.ID] = thisClass.ClassStat.Prevalence;
+                populationSizeOfMixingGroups[thisClass.RowIndexInContactMatrix] += thisClass.ClassStat.Prevalence;
             }
 
             // find the index of current action in the contact matrices
@@ -2269,7 +2267,7 @@ namespace APACElib
             // calculate the transmission rates for each class
             double susContactInf = 0, rate = 0, infectivity = 0;
             double[] arrTransmissionRatesByPathogen = new double[_numOfPathogens];
-            foreach (Class thisRecievingClass in _classes.Where(c => c.IsEpiDependentEventActive && c.CurrentNumberOfMembers > 0))
+            foreach (Class thisRecievingClass in _classes.Where(c => c.IsEpiDependentEventActive && c.ClassStat.Prevalence > 0))
             {
                 // calculate the transmission rate for each pathogen
                 for (int pathogenID = 0; pathogenID < _numOfPathogens; pathogenID++)
@@ -2562,11 +2560,11 @@ namespace APACElib
 
             foreach (Class thisClass in _classes)
             {
-                if (thisClass.ShowNewMembers == true)
+                if (thisClass.ShowIncidence)
                     ++_numOfIntervalBasedOutputsToReport;
-                if (thisClass.ShowMembersInClass == true)
+                if (thisClass.ShowPrevalence)
                     ++_numOfTimeBasedOutputsToReport;
-                if (thisClass.ShowAccumulatedNewMembers == true)
+                if (thisClass.ShowAccumIncidence)
                     ++_numOfTimeBasedOutputsToReport;
             }
             foreach (SummationStatistics thisSumStat in _summationStatistics.Where(s => s.IfDisplay))
@@ -2746,23 +2744,22 @@ namespace APACElib
                 // class type
                 string strClassType = Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ClassType));
 
-                // QALY loss and cost outcomes
-                double QALYLoss = (double)Convert.ToDouble(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.QALYLoss));
-                double costPerNewMember = (double)Convert.ToDouble(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CostPerNewMember));
-                double healthQualityPerUnitOfTime = (double)Convert.ToDouble(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.HealthQualityPerUnitOfTime));
-                double costPerUnitOfTime = (double)Convert.ToDouble(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CostPerUnitOfTime));
+                // DALY loss and cost outcomes
+                double DALYPerNewMember = Convert.ToDouble(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.DALYPerNewMember));
+                double costPerNewMember = Convert.ToDouble(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CostPerNewMember));
+                double healthQualityPerUnitOfTime = Convert.ToDouble(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.DisabilityWeightPerUnitOfTime));
+                double costPerUnitOfTime = Convert.ToDouble(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CostPerUnitOfTime));
+                
                 // statistics                
-                bool collectNewMembers = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CollectNewMembers)));
-                bool collectMembersInClass = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CollectMembers)));
-                bool showStatisticsInSimulationResults = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ShowInSimulationStaitistcsReport)));
+                bool collectIncidenceTimeSeries = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CollectIncidenceTimeSeries)));
+                bool collectPrevalenceTimeSeries = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CollectPrevalenceTimeSeries)));
+                bool collectAccumIncidenceTimeSeries = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CollectAccumIncidenceTimeSeries)));
 
                 // simulation output
-                string strShowNewMembers = Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ShowNewMembers));
-                string strShowMembersInClass = Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ShowMembersInClass));
-                string strShowAccumulatedNewMembers = Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ShowAccumulatedNewMembers));
-                bool showNewMembers = SupportFunctions.ConvertYesNoToBool(strShowNewMembers);
-                bool showMembersInClass = SupportFunctions.ConvertYesNoToBool(strShowMembersInClass);
-                bool showAccumulatedNewMembers = SupportFunctions.ConvertYesNoToBool(strShowAccumulatedNewMembers);
+                bool showStatisticsInSimulationResults = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ShowInSimulationSummaryReport)));
+                bool showIncidence = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ShowIncidence)));
+                bool showPrevalence = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ShowPrevalence)));
+                bool showAccumIncidence = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ShowAccumIncidence)));
 
                 // build and add the class
                 #region Build class
@@ -2790,19 +2787,6 @@ namespace APACElib
                             // set up transmission dynamics properties                            
                             thisNormalClass.SetupTransmissionDynamicsProperties(strSusceptibilityIDs, strInfectivityIDs, rowInContactMatrix);
 
-                            // set up new members statistics
-                            if (collectNewMembers == true || showNewMembers) 
-                                thisNormalClass.SetupNewMembersStatistics
-                                    (QALYLoss, costPerNewMember, (int)(_set.SimulationOutputIntervalLength / _set.DeltaT) , (int)(_set.ObservationPeriodLength / _set.DeltaT));                                
-                            // set up members in class statistics
-                            if (collectMembersInClass == true)
-                                thisNormalClass.SetupMembersInClassStatistics(healthQualityPerUnitOfTime, costPerUnitOfTime);
-                            // set up which statistics to show
-                            thisNormalClass.ShowStatisticsInSimulationResults = showStatisticsInSimulationResults;
-                            thisNormalClass.ShowNewMembers = showNewMembers;
-                            thisNormalClass.ShowMembersInClass = showMembersInClass;
-                            thisNormalClass.ShowAccumulatedNewMembers = showAccumulatedNewMembers;
-
                             // add class
                             _classes.Add(thisNormalClass);
 
@@ -2829,15 +2813,6 @@ namespace APACElib
                             // build the class
                             Class_Death thisDealthClass = new Class_Death(classID, name);
 
-                            // set up new members statistics                            
-                            if (collectNewMembers == true)
-                                thisDealthClass.SetupNewMembersStatistics(QALYLoss, costPerNewMember, 1, (int)(_set.ObservationPeriodLength / _set.DeltaT)); 
-                            // set up which statistics to show
-                            thisDealthClass.ShowStatisticsInSimulationResults = showStatisticsInSimulationResults;
-                            thisDealthClass.ShowNewMembers = showNewMembers;
-                            thisDealthClass.ShowMembersInClass = showMembersInClass;
-                            thisDealthClass.ShowAccumulatedNewMembers = showAccumulatedNewMembers;
-
                             // add class
                             _classes.Add(thisDealthClass);
                         }
@@ -2852,15 +2827,6 @@ namespace APACElib
                             // build the class
                             Class_Splitting thisSplittingClass = new Class_Splitting(classID, name);
                             thisSplittingClass.SetUp(parIDForProbOfSuccess, destinationClassIDGivenSuccess, destinationClassIDGivenFailure);
-
-                            // set up new members statistics
-                            if (collectNewMembers == true)
-                                thisSplittingClass.SetupNewMembersStatistics(QALYLoss, costPerNewMember, 1, (int)(_set.ObservationPeriodLength / _set.DeltaT)); ;
-                            // set up which statistics to show
-                            thisSplittingClass.ShowStatisticsInSimulationResults = showStatisticsInSimulationResults;
-                            thisSplittingClass.ShowNewMembers = showNewMembers;
-                            thisSplittingClass.ShowMembersInClass = showMembersInClass;
-                            thisSplittingClass.ShowAccumulatedNewMembers = showAccumulatedNewMembers;
 
                             // add class
                             _classes.Add(thisSplittingClass);
@@ -2882,21 +2848,27 @@ namespace APACElib
                             Class_ResourceMonitor thisResourceMonitorClass = new Class_ResourceMonitor(classID, name);                            
                             thisResourceMonitorClass.SetUp(resourceIDToCheckAvailability, resourceUnitsConsumedPerArrival, destinationClassIDGivenSuccess, destinationClassIDGivenFailure);
 
-                            // set up new members statistics
-                            if (collectNewMembers == true)
-                                thisResourceMonitorClass.SetupNewMembersStatistics(QALYLoss, costPerNewMember, 1, (int)(_set.ObservationPeriodLength / _set.DeltaT)); ;
-                            // set up which statistics to show
-                            thisResourceMonitorClass.ShowStatisticsInSimulationResults = showStatisticsInSimulationResults;
-                            thisResourceMonitorClass.ShowNewMembers = showNewMembers;
-                            thisResourceMonitorClass.ShowMembersInClass = showMembersInClass;
-                            thisResourceMonitorClass.ShowAccumulatedNewMembers = showAccumulatedNewMembers;
-
                             // add class
                             _classes.Add(thisResourceMonitorClass);
                         }
                         break;
                 }
-                #endregion               
+                #endregion
+
+                // class statistics 
+                _classes.Last().ClassStat = new ClassStatistics(showStatisticsInSimulationResults, _set.WarmUpPeriodTimeIndex, showAccumIncidence);
+                // adding time series
+                _classes.Last().ClassStat.AddTimeSeries(
+                    collectIncidenceTimeSeries, collectPrevalenceTimeSeries, collectAccumIncidenceTimeSeries, _set.NumOfDeltaT_inSimulationOutputInterval);
+                // adding cost and health outcomes
+                _classes.Last().ClassStat.AddCostHealthOutcomes(
+                    _set.WarmUpPeriodTimeIndex, DALYPerNewMember, costPerNewMember, healthQualityPerUnitOfTime * _set.DeltaT, costPerUnitOfTime * _set.DeltaT);
+
+                // set up which statistics to show
+                _classes.Last().ShowStatisticsInSimulationResults = showStatisticsInSimulationResults;
+                _classes.Last().ShowIncidence = showIncidence;
+                _classes.Last().ShowPrevalence = showPrevalence;
+                _classes.Last().ShowAccumIncidence = showAccumIncidence;
 
             }// end of for
             _numOfClasses = _classes.Count;

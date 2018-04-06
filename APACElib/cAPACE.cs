@@ -884,12 +884,12 @@ namespace APACElib
             // class headers
             foreach (Class thisClass in _epidemicModeller.Classes)            
             {
-                if (thisClass.ShowNewMembers == true)
-                    ComputationLib.SupportFunctions.AddToEndOfArray(ref arrIntervalBasedOutputs, "New Members to " + thisClass.Name);
-                if (thisClass.ShowMembersInClass == true)
-                    ComputationLib.SupportFunctions.AddToEndOfArray(ref arrTimeBasedOutputsHeading, "Members in " + thisClass.Name);
-                if (thisClass.ShowAccumulatedNewMembers == true)
-                    ComputationLib.SupportFunctions.AddToEndOfArray(ref arrTimeBasedOutputsHeading, "Accumulated new members to " + thisClass.Name);
+                if (thisClass.ShowIncidence)
+                    ComputationLib.SupportFunctions.AddToEndOfArray(ref arrIntervalBasedOutputs, "To: " + thisClass.Name);
+                if (thisClass.ShowPrevalence)
+                    ComputationLib.SupportFunctions.AddToEndOfArray(ref arrTimeBasedOutputsHeading, "In: " + thisClass.Name);
+                if (thisClass.ShowAccumIncidence)
+                    ComputationLib.SupportFunctions.AddToEndOfArray(ref arrTimeBasedOutputsHeading, "Sum To: " + thisClass.Name);
             }
             // summation statistics header
             foreach (SummationStatistics thisSumStat in _epidemicModeller.SummationStatistics.Where(s => s.IfDisplay))

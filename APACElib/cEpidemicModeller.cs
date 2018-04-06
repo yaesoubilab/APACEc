@@ -1036,10 +1036,9 @@ namespace APACElib
             int incidentStatIndex = 0, prevalenceStatIndex = 0, ratioStatIndex = 0;
             foreach (Class thisClass in thisEpidemic.Classes.Where(c => c.ShowStatisticsInSimulationResults))
             {
-                if (thisClass.CollectNewMembersStatistics)
-                    ((ObservationBasedStatistics)_incidenceStats[incidentStatIndex++]).Record(thisClass.AccumulatedNewMembers, epidemicIndex);
-                if (thisClass.CollectMembersInClassStatistics)
-                    ((ObservationBasedStatistics)_prevalenceStats[prevalenceStatIndex++]).Record(thisClass.AverageClassSize, epidemicIndex);
+                ((ObservationBasedStatistics)_incidenceStats[incidentStatIndex++]).Record(thisClass.ClassStat.AccumulatedIncidenceAfterWarmUp, epidemicIndex);
+                if (thisClass is Class_Normal)
+                    ((ObservationBasedStatistics)_prevalenceStats[prevalenceStatIndex++]).Record(thisClass.ClassStat.AveragePrevalenceStat.Mean, epidemicIndex);
             }
             foreach (SummationStatistics thisSummationStatistics in thisEpidemic.SummationStatistics)
             {
@@ -1464,21 +1463,11 @@ namespace APACElib
             string name;
             foreach (Class thisClass in GetClasses())
             {
-                if (thisClass.CollectNewMembersStatistics)
+                if (thisClass.ShowStatisticsInSimulationResults)
                 {
-                    if (thisClass.ShowStatisticsInSimulationResults)
-                    {
-                        name = "Total: " + thisClass.Name;
-                        _incidenceStats.Add(new ObservationBasedStatistics(name, numOfSimulationIterations));
-                    }
-                }
-                if (thisClass.CollectMembersInClassStatistics)
-                {
-                    if (thisClass.ShowStatisticsInSimulationResults)
-                    {
-                         name = "Average size: " + thisClass.Name;
-                        _prevalenceStats.Add(new ObservationBasedStatistics(name, numOfSimulationIterations));
-                    }
+                    _incidenceStats.Add(new ObservationBasedStatistics("Total New: " + thisClass.Name, numOfSimulationIterations));
+                    if (thisClass is Class_Normal)
+                        _prevalenceStats.Add(new ObservationBasedStatistics("Average Size: " + thisClass.Name, numOfSimulationIterations));                    
                 }
             }
             foreach (SummationStatistics thisSummationStatistics in GetSummationStatistics())
