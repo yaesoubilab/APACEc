@@ -54,7 +54,7 @@ namespace APACElib
             }
         }
     }
-
+     
     public class PrevalenceTimeSeries : TimeSeries
     {
         public PrevalenceTimeSeries(int nOfRecodingsInEachObsPeriod) : base(nOfRecodingsInEachObsPeriod)
