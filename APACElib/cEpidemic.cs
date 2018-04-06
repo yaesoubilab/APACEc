@@ -1778,7 +1778,8 @@ namespace APACElib
             foreach (Class thisClass in _classes)
             {
                 thisClass.UpdateRatesOfBirthAndEpiIndpEvents(_arrSampledParameterValues);
-                thisClass.UpdateProbOfSuccess(_arrSampledParameterValues);          
+                thisClass.UpdateProbOfSuccess(_arrSampledParameterValues);
+                thisClass.Reset();
             }
 
             // if at the beginning of simulation 
