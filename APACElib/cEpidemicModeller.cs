@@ -1030,7 +1030,7 @@ namespace APACElib
             _obsAnnualCost.Record(thisEpidemic.AnnualCost);
             _obsTotalNHB.Record(thisEpidemic.TotalNHB);
             _obsTotalNMB.Record(thisEpidemic.TotalNMB);
-            _obsNumOfSwitchesBtwDecisions.Record(thisEpidemic.NumOfSwitchesBtwDecisions);
+            _obsNumOfSwitchesBtwDecisions.Record(0);
             _obsTimeUsedToSimulateATrajectory.Record(thisEpidemic.TimeUsedToSimulateOneTrajectory);
 
             int incidentStatIndex = 0, prevalenceStatIndex = 0, ratioStatIndex = 0;

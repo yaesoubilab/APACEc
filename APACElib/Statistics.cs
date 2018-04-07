@@ -118,6 +118,64 @@ namespace APACElib
         }
     }
 
+    public class EpidemicCostHealth
+    {
+        public double TotalDisountedCost { get; set; }
+        public double TotalDiscountedDALY { get; set; }
+        private double _deltaTCost;
+        private double _deltaTDALY;
+        private int _currentSimIndex;
+
+        double _deltaTDiscountRate;
+        double _warmUpSimIndex;
+
+        public EpidemicCostHealth( double deltaTDiscountRate, int warmUpSimIndex)
+        {
+            _deltaTDiscountRate = deltaTDiscountRate;
+            _warmUpSimIndex = warmUpSimIndex;
+            _currentSimIndex = 0;
+        }
+
+        public void Add(int simIndex, double deltaTCost, double deltaTDALY)
+        {
+            if (simIndex >= _warmUpSimIndex)
+            {
+                if (simIndex>_currentSimIndex)
+                {
+                    TotalDisountedCost = deltaTCost * Math.Pow(_deltaTDiscountRate, simIndex);
+                    TotalDiscountedDALY = deltaTDALY * Math.Pow(_deltaTDiscountRate, simIndex);
+
+                    _currentSimIndex = simIndex;
+                    _deltaTCost = deltaTCost;
+                    _deltaTDALY = deltaTDALY;
+                }
+                else
+                {
+                    _deltaTCost += deltaTCost;
+                    _deltaTDALY += deltaTDALY;
+                }                 
+            }
+        }
+
+        public double GetEquivalentAnnualCost(double annualDiscountRate, int currentYear)
+        {
+            return annualDiscountRate * TotalDisountedCost / (1 - Math.Pow(1 + annualDiscountRate, -currentYear));
+        }
+        public double GetEquivalentAnnualDALY(double annualDiscountRate, int currentYear)
+        {
+            return annualDiscountRate * TotalDiscountedDALY / (1 - Math.Pow(1 + annualDiscountRate, -currentYear));
+        }
+
+        public void Reset()
+        {
+            _currentSimIndex = 0;
+            _deltaTDALY = 0;
+            _deltaTCost = 0;
+            TotalDisountedCost = 0;
+            TotalDiscountedDALY = 0;
+        }
+    }
+
     public class ClassStatistics
     {
         private int _warmUpSimIndex;

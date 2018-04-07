@@ -80,12 +80,12 @@ namespace APACElib
         private double[] _arrCurrentValuesOfFeatures = null;        
         // outcomes                
         double[] _arrSimulationObjectiveFunction;
+        public EpidemicCostHealth EpidemicCostHealth { get; set; }
         private double _currentPeriodCost;
         private double _currentPeriodDALY;
         private double _totalCost;
         private double _annualCost;
         private double _totalQALY;
-        private int _numOfSwitchesBtwDecisions;
         // optimization
         
         private EnumObjectiveFunction _objectiveFunction;
@@ -283,10 +283,7 @@ namespace APACElib
         {
             get { return  _totalQALY - _totalCost / _set.WTPForHealth; }
         }
-        public int NumOfSwitchesBtwDecisions
-        {
-            get { return _numOfSwitchesBtwDecisions; }
-        }
+
         // simulation run time
         public double TimeUsedToSimulateOneTrajectory
         {
@@ -1745,7 +1742,6 @@ namespace APACElib
             _totalCost = 0;
             _totalQALY = 0;
             _annualCost = 0;
-            _numOfSwitchesBtwDecisions = 0; 
 
             // update intervention information
             _onOffStatusOfInterventionsAffectingContactPattern = new int[_numOfInterventionsAffectingContactPattern];
@@ -1805,8 +1801,6 @@ namespace APACElib
         // reset statistics
         private void ResetStatistics(bool ifToResetForAnotherSimulationRun)
         {
-            _numOfSwitchesBtwDecisions = 0;
-
             // reset class statistics
             //foreach (Class thisClass in _classes)
             //    thisClass.Reset();
