@@ -142,8 +142,8 @@ namespace APACElib
             {
                 if (simIndex>_currentSimIndex)
                 {
-                    TotalDisountedCost = deltaTCost * Math.Pow(_deltaTDiscountRate, simIndex);
-                    TotalDiscountedDALY = deltaTDALY * Math.Pow(_deltaTDiscountRate, simIndex);
+                    TotalDisountedCost = deltaTCost * Math.Pow(_deltaTDiscountRate, simIndex-_warmUpSimIndex );
+                    TotalDiscountedDALY = deltaTDALY * Math.Pow(_deltaTDiscountRate, simIndex-_warmUpSimIndex );
 
                     _currentSimIndex = simIndex;
                     _deltaTCost = deltaTCost;
@@ -157,13 +157,13 @@ namespace APACElib
             }
         }
 
-        public double GetEquivalentAnnualCost(double annualDiscountRate, int currentYear)
+        public double GetEquivalentAnnualCost(double annualDiscountRate, int currentYear, int warmUpYear)
         {
-            return annualDiscountRate * TotalDisountedCost / (1 - Math.Pow(1 + annualDiscountRate, -currentYear));
+            return annualDiscountRate * TotalDisountedCost / (1 - Math.Pow(1 + annualDiscountRate, -(currentYear-warmUpYear)));
         }
         public double GetEquivalentAnnualDALY(double annualDiscountRate, int currentYear)
         {
-            return annualDiscountRate * TotalDiscountedDALY / (1 - Math.Pow(1 + annualDiscountRate, -currentYear));
+            return annualDiscountRate * TotalDiscountedDALY / (1 - Math.Pow(1 + annualDiscountRate, -(currentYear-warmUpYear)));
         }
 
         public void Reset()
