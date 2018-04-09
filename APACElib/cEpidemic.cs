@@ -81,14 +81,8 @@ namespace APACElib
         // outcomes                
         double[] _arrSimulationObjectiveFunction;
         public EpidemicCostHealth EpidemicCostHealth { get; set; }
-        private double _currentPeriodCost;
-        private double _currentPeriodDALY;
-        private double _totalCost;
-        private double _annualCost;
-        private double _totalQALY;
-        // optimization
-        
-        private EnumObjectiveFunction _objectiveFunction;
+
+        // optimization        
         private int _adpSimItr; // the index of simulation runs that should be done before doing back-propagation
         private int[] _rndSeeds;
         Discrete _discreteDistOverSeeds;        
@@ -263,26 +257,6 @@ namespace APACElib
         public double[] arrSampledParameterValues
         { get { return _arrSampledParameterValues; } }
 
-        public double TotalCost
-        {
-            get { return _totalCost; }
-        }
-        public double TotalQALY
-        {
-            get { return _totalQALY; }
-        }
-        public double AnnualCost
-        {
-            get { return _annualCost; }
-        }
-        public double TotalNMB
-        {
-            get { return _set.WTPForHealth * _totalQALY - _totalCost; }
-        }
-        public double TotalNHB
-        {
-            get { return  _totalQALY - _totalCost / _set.WTPForHealth; }
-        }
 
         // simulation run time
         public double TimeUsedToSimulateOneTrajectory
@@ -470,9 +444,6 @@ namespace APACElib
             bool storeADPIterationResults)
         {
             _modelUse = EnumModelUse.Optimization;         
-
-            // objective function
-            _objectiveFunction = objectiveFunction;
 
             // ADP
             //_adpSimItr = 0;
@@ -916,10 +887,6 @@ namespace APACElib
             toStop = false;
             while (!toStop)
             {
-                // reset current period statistics
-                _currentPeriodCost = 0;
-                _currentPeriodDALY = 0;
-
                 // store outputs if necessary               
                 StoreSelectedOutputWhileSimulating(simReplication, false, ref ifThisIsAFeasibleCalibrationTrajectory);
 
@@ -1545,11 +1512,13 @@ namespace APACElib
             int[] arrNumOfNewMembersOutOfEventsOverPastDeltaT = new int[_events.Count];
             foreach (Class thisClass in _classes)
             {
+                thisClass.ClassStat.CollectEndOfDeltaTStats(_simTimeIndex);
                 if (_modelUse != EnumModelUse.Calibration)
                 {
-                    thisClass.UpdateStatisticsAtTheEndOfDeltaT(_simTimeIndex, _set.DeltaT);
-                    _currentPeriodCost += thisClass.ClassStat.DeltaCostHealthCollector.DeltaTCost;
-                    _currentPeriodDALY += thisClass.ClassStat.DeltaCostHealthCollector.DeltaTDALY;
+                    EpidemicCostHealth.Add(
+                        _simTimeIndex,
+                        thisClass.ClassStat.DeltaCostHealthCollector.DeltaTCost,
+                        thisClass.ClassStat.DeltaCostHealthCollector.DeltaTDALY);
                 }
                 // find number of members out of active events for this class
                 thisClass.ReturnAndResetNumOfMembersOutOfEventsOverPastDeltaT(ref arrNumOfNewMembersOutOfEventsOverPastDeltaT);
@@ -1566,8 +1535,10 @@ namespace APACElib
                                 case APACElib.SummationStatistics.enumType.Incidence:
                                     {
                                         thisSumStat.AddNewMembers(ref _classes, _set.DeltaT);
-                                        _currentPeriodCost += thisSumStat.CurrentCost;
-                                        _currentPeriodDALY += thisSumStat.CurrentQALY;
+                                        EpidemicCostHealth.Add(
+                                            _simTimeIndex,
+                                            thisSumStat.CurrentCost,
+                                            thisSumStat.CurrentQALY);
                                     }
                                     break;
                                 case APACElib.SummationStatistics.enumType.Prevalence:
@@ -1585,8 +1556,10 @@ namespace APACElib
                                 case APACElib.SummationStatistics.enumType.Incidence:
                                     {
                                         thisSumStat.AddNewMembers(arrNumOfNewMembersOutOfEventsOverPastDeltaT, _set.DeltaT);
-                                        _currentPeriodCost += thisSumStat.CurrentCost;
-                                        _currentPeriodDALY += thisSumStat.CurrentQALY;
+                                        EpidemicCostHealth.Add(
+                                            _simTimeIndex,
+                                            thisSumStat.CurrentCost,
+                                            thisSumStat.CurrentQALY);
                                     }
                                     break;
                                 case APACElib.SummationStatistics.enumType.Prevalence:
@@ -1599,16 +1572,11 @@ namespace APACElib
                         break;
                 }                
             }
-            // gather outcome statistics
-            if (_epiTimeIndex >= _set.WarmUpPeriodTimeIndex)
+            // update decision costs
+            if (_modelUse != EnumModelUse.Calibration)
             {
-                // update decision costs
-                _currentPeriodCost += _decisionMaker.CostOverThisDecisionPeriod;
+                EpidemicCostHealth.Add(_simTimeIndex, _decisionMaker.CostOverThisDecisionPeriod, 0);
                 _decisionMaker.CostOverThisDecisionPeriod = 0;
-
-                double coeff = Math.Pow(1+_set.AnnualInterestRate*_set.DeltaT, _epiTimeIndex);
-                _totalCost += coeff * _currentPeriodCost;
-                _totalQALY += coeff * _currentPeriodDALY;
             }
 
         }
@@ -1634,13 +1602,6 @@ namespace APACElib
         // return annual cost
         private void GatherEndOfSimulationStatistics()
         {
-            if (_decisionMaker.DecisionIntervalIndex== 0)
-                _annualCost = _totalCost;
-            else if (_set.AnnualInterestRate == 0)
-                _annualCost = (364 / _set.DecisionIntervalLength) * _totalCost / _decisionMaker.DecisionIntervalIndex;
-            else
-                _annualCost = _totalCost * _set.AnnualInterestRate / (1 - Math.Pow(1 + _set.AnnualInterestRate, -_decisionMaker.DecisionIntervalIndex));
-
             // gather end of simulation statistics in each ratio statistics
             foreach (RatioStatistics thisRatioStat in _ratioStatistics)
             {
@@ -1660,33 +1621,18 @@ namespace APACElib
         private double AccumulatedReward()
         {
             double reward = 0;
-            switch (_objectiveFunction)
+            switch (_set.ObjectiveFunction)
             {
                 case EnumObjectiveFunction.MaximizeNMB:
-                    reward = _set.WTPForHealth * _totalQALY - _totalCost;
+                    reward = EpidemicCostHealth.GetDiscountedNMB(_set.WTPForHealth);
                     break;
                 case EnumObjectiveFunction.MaximizeNHB:
-                    reward = _totalQALY - _totalCost / _set.WTPForHealth;
+                    reward = EpidemicCostHealth.GetDiscountedNHB(_set.WTPForHealth);
                     break;
             }
             return reward;
         }
-        // reward of this delta t period
-        private double CurrentDeltaTReward()
-        {
-            double reward = 0;
-            switch (_objectiveFunction)
-            {
-                case EnumObjectiveFunction.MaximizeNMB:
-                    reward = _set.WTPForHealth * _currentPeriodDALY - _currentPeriodCost;
-                    break;
-                case EnumObjectiveFunction.MaximizeNHB:
-                    reward = _currentPeriodDALY - _currentPeriodCost / _set.WTPForHealth;
-                    break;
-            }
-            return reward;
-        }
-
+        
         // check if stopping condition is satisfied
         private bool IsEradicationConditionsSatisfied()
         {
@@ -1720,6 +1666,10 @@ namespace APACElib
             // reset the rnd object
             _rng = new RNG(seed);
 
+            // health and cost outcomes
+            EpidemicCostHealth = new EpidemicCostHealth(_set.DeltaTDiscountRate, _set.WarmUpPeriodTimeIndex);
+            EpidemicCostHealth.Reset();
+
             // sample from parameters
             _arrSampledParameterValues = new double[_parameters.Count];
             if (sampleParameters == true)
@@ -1738,10 +1688,7 @@ namespace APACElib
             _nextTimeIndexToCollectSimulationOutputData = _simTimeIndex; 
             _nextTimeIndexToCollectObservationPeriodData = _nextTimeIndexToCollectSimulationOutputData;
 
-            // reset outcome
-            _totalCost = 0;
-            _totalQALY = 0;
-            _annualCost = 0;
+            
 
             // update intervention information
             _onOffStatusOfInterventionsAffectingContactPattern = new int[_numOfInterventionsAffectingContactPattern];

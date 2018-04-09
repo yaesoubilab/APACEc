@@ -78,11 +78,6 @@ namespace APACElib
             get { return false; }
         }
       
-        // update statistics
-        public void UpdateStatisticsAtTheEndOfDeltaT(int simTimeIndex, double deltaT)
-        {
-            ClassStat.CollectEndOfDeltaTStats(simTimeIndex);
-        }
         // read feature value  
         public double ReadFeatureValue(Feature_DefinedOnNewClassMembers feature)
         {

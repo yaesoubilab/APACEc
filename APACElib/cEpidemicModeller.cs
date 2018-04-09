@@ -66,7 +66,7 @@ namespace APACElib
         private double[] _arrSimulationAnnualCost;
         private ObservationBasedStatistics _obsTotalCost = new ObservationBasedStatistics("Total cost");
         private ObservationBasedStatistics _obsAnnualCost = new ObservationBasedStatistics("Annual cost");
-        private ObservationBasedStatistics _obsTotalQALY = new ObservationBasedStatistics("Total QALY");
+        private ObservationBasedStatistics _obsTotalDALY = new ObservationBasedStatistics("Total QALY");
         private ObservationBasedStatistics _obsTotalNMB = new ObservationBasedStatistics("Total NMB");
         private ObservationBasedStatistics _obsTotalNHB = new ObservationBasedStatistics("Total NHB");
         private ObservationBasedStatistics _obsNumOfSwitchesBtwDecisions = new ObservationBasedStatistics("Total switches");
@@ -191,15 +191,6 @@ namespace APACElib
         {
             get { return _numOfCalibratoinTargets; }
         }
-        // simulation outcomes
-        public double TotalNHB
-        {
-            get { return _parentEpidemic.TotalNHB; }
-        }
-        public double TotalNMB
-        {
-            get { return _parentEpidemic.TotalNMB; }
-        }
         // simulation summary
         public ObservationBasedStatistics obsTotalCost
         {
@@ -211,7 +202,7 @@ namespace APACElib
         }
         public ObservationBasedStatistics obsTotalQALY
         {
-            get { return _obsTotalQALY; }
+            get { return _obsTotalDALY; }
         }
         public ObservationBasedStatistics obsTotalNMB
         {
@@ -1025,11 +1016,14 @@ namespace APACElib
         private void StoreOutcomesOfThisEpidemic(Epidemic thisEpidemic, int epidemicIndex)
         {
             // summary statistics
-            _obsTotalQALY.Record(thisEpidemic.TotalQALY);
-            _obsTotalCost.Record(thisEpidemic.TotalCost);
-            _obsAnnualCost.Record(thisEpidemic.AnnualCost);
-            _obsTotalNHB.Record(thisEpidemic.TotalNHB);
-            _obsTotalNMB.Record(thisEpidemic.TotalNMB);
+            _obsTotalDALY.Record(thisEpidemic.EpidemicCostHealth.TotalDiscountedDALY);
+            _obsTotalCost.Record(thisEpidemic.EpidemicCostHealth.TotalDisountedCost);
+            _obsAnnualCost.Record(thisEpidemic.EpidemicCostHealth.GetEquivalentAnnualCost(
+                _set.AnnualDiscountRate, 
+                (int)(_set.WarmUpPeriodTimeIndex*_set.DeltaT), 
+                (int)(_set.TimeIndexToStop*_set.DeltaT)));
+            _obsTotalNHB.Record(thisEpidemic.EpidemicCostHealth.GetDiscountedNHB(_set.WTPForHealth));
+            _obsTotalNMB.Record(thisEpidemic.EpidemicCostHealth.GetDiscountedNMB(_set.WTPForHealth));
             _obsNumOfSwitchesBtwDecisions.Record(0);
             _obsTimeUsedToSimulateATrajectory.Record(thisEpidemic.TimeUsedToSimulateOneTrajectory);
 
@@ -1067,11 +1061,15 @@ namespace APACElib
             // sampled summary statistics  
             _arrSimItrs[epidemicIndex] = epidemicIndex;
             _arrRNGSeeds[epidemicIndex] = thisEpidemic.RNDSeedResultedInAnAcceptibleTrajectory;
-            _arrNHB[epidemicIndex] = thisEpidemic.TotalNHB;
-            _arrNMB[epidemicIndex] = thisEpidemic.TotalNMB;
-            _arrSimulationQALY[epidemicIndex] = thisEpidemic.TotalQALY;
-            _arrSimulationCost[epidemicIndex] = thisEpidemic.TotalCost;
-            _arrSimulationAnnualCost[epidemicIndex] = thisEpidemic.AnnualCost;
+            _arrNHB[epidemicIndex] = thisEpidemic.EpidemicCostHealth.GetDiscountedNHB(_set.WTPForHealth);
+            _arrNMB[epidemicIndex] = thisEpidemic.EpidemicCostHealth.GetDiscountedNMB(_set.WTPForHealth);
+            _arrSimulationQALY[epidemicIndex] = thisEpidemic.EpidemicCostHealth.TotalDiscountedDALY;
+            _arrSimulationCost[epidemicIndex] = thisEpidemic.EpidemicCostHealth.TotalDisountedCost;
+            _arrSimulationAnnualCost[epidemicIndex] = thisEpidemic.EpidemicCostHealth.GetEquivalentAnnualCost(
+                _set.AnnualDiscountRate,
+                (int)(_set.WarmUpPeriodTimeIndex * _set.DeltaT),
+                (int)(_set.TimeIndexToStop * _set.DeltaT));
+
         }  
         // get simulation iteration outcomes
         public void GetSimulationIterationOutcomes(ref string[] strIterationOutcomes, ref double[][] arrIterationOutcomes)
@@ -1154,11 +1152,11 @@ namespace APACElib
             strSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.NumOfSwitches - 1] = "Number of switches between decisions";
             // Total QALY
             arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.TotalQALY - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.Mean - 2] = _obsTotalQALY.Mean;
+                (int)ExcelInterface.enumSimulationStatisticsColumns.Mean - 2] = _obsTotalDALY.Mean;
             arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.TotalQALY - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.StDev - 2] = _obsTotalQALY.StDev;
+                (int)ExcelInterface.enumSimulationStatisticsColumns.StDev - 2] = _obsTotalDALY.StDev;
             arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.TotalQALY - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.StError - 2] = _obsTotalQALY.StErr;
+                (int)ExcelInterface.enumSimulationStatisticsColumns.StError - 2] = _obsTotalDALY.StErr;
             // Total cost
             arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.TotalCost - 1,
                 (int)ExcelInterface.enumSimulationStatisticsColumns.Mean - 2] = _obsTotalCost.Mean;
@@ -1277,10 +1275,10 @@ namespace APACElib
             switch (objectiveFunction)
             {
                 case EnumObjectiveFunction.MaximizeNHB:
-                    mean = _obsTotalQALY.Mean - _obsTotalCost.Mean / wtpForHealth;
+                    mean = _obsTotalDALY.Mean - _obsTotalCost.Mean / wtpForHealth;
                     break;
                 case EnumObjectiveFunction.MaximizeNMB:
-                    mean = wtpForHealth * _obsTotalQALY.Mean - _obsTotalCost.Mean;
+                    mean = wtpForHealth * _obsTotalDALY.Mean - _obsTotalCost.Mean;
                     break;
             }
             return mean;
@@ -1306,10 +1304,10 @@ namespace APACElib
             switch (objectiveFunction)
             {
                 case EnumObjectiveFunction.MaximizeNHB:
-                    mean = _obsTotalQALY.StDev + _obsTotalCost.StDev / wtpForHealth;
+                    mean = _obsTotalDALY.StDev + _obsTotalCost.StDev / wtpForHealth;
                     break;
                 case EnumObjectiveFunction.MaximizeNMB:
-                    mean = wtpForHealth * _obsTotalQALY.StDev + _obsTotalCost.StDev;
+                    mean = wtpForHealth * _obsTotalDALY.StDev + _obsTotalCost.StDev;
                     break;
             }
             return mean;
@@ -1335,12 +1333,12 @@ namespace APACElib
             switch (objectiveFunction)
             {
                 case EnumObjectiveFunction.MaximizeNHB:
-                    lowerBound = _obsTotalQALY.Mean - _obsTotalCost.Mean / wtpForHealth
-                        - (_obsTotalQALY.HalfWidth(significanceLevel) + _obsTotalCost.HalfWidth(significanceLevel) / wtpForHealth);
+                    lowerBound = _obsTotalDALY.Mean - _obsTotalCost.Mean / wtpForHealth
+                        - (_obsTotalDALY.HalfWidth(significanceLevel) + _obsTotalCost.HalfWidth(significanceLevel) / wtpForHealth);
                     break;
                 case EnumObjectiveFunction.MaximizeNMB:
-                    lowerBound = wtpForHealth*_obsTotalQALY.Mean - _obsTotalCost.Mean
-                        - (wtpForHealth * _obsTotalQALY.HalfWidth(significanceLevel) + _obsTotalCost.HalfWidth(significanceLevel));
+                    lowerBound = wtpForHealth*_obsTotalDALY.Mean - _obsTotalCost.Mean
+                        - (wtpForHealth * _obsTotalDALY.HalfWidth(significanceLevel) + _obsTotalCost.HalfWidth(significanceLevel));
                     break;
             }
             return lowerBound;
@@ -1366,12 +1364,12 @@ namespace APACElib
             switch (objectiveFunction)
             {
                 case EnumObjectiveFunction.MaximizeNHB:
-                    upperBound = _obsTotalQALY.Mean - _obsTotalCost.Mean / wtpForHealth
-                        + (_obsTotalQALY.HalfWidth(significanceLevel) + _obsTotalCost.HalfWidth(significanceLevel) / wtpForHealth);
+                    upperBound = _obsTotalDALY.Mean - _obsTotalCost.Mean / wtpForHealth
+                        + (_obsTotalDALY.HalfWidth(significanceLevel) + _obsTotalCost.HalfWidth(significanceLevel) / wtpForHealth);
                     break;
                 case EnumObjectiveFunction.MaximizeNMB:
-                    upperBound = wtpForHealth * _obsTotalQALY.Mean - _obsTotalCost.Mean
-                        + (wtpForHealth * _obsTotalQALY.HalfWidth(significanceLevel) + _obsTotalCost.HalfWidth(significanceLevel));
+                    upperBound = wtpForHealth * _obsTotalDALY.Mean - _obsTotalCost.Mean
+                        + (wtpForHealth * _obsTotalDALY.HalfWidth(significanceLevel) + _obsTotalCost.HalfWidth(significanceLevel));
                     break;
             }
             return upperBound;
@@ -1504,7 +1502,7 @@ namespace APACElib
 
             // reset statistics
             _obsTotalCost.Reset();
-            _obsTotalQALY.Reset();
+            _obsTotalDALY.Reset();
             _obsTotalNMB.Reset();
             _obsTotalNHB.Reset();
             _obsNumOfSwitchesBtwDecisions.Reset();

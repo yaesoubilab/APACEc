@@ -129,7 +129,7 @@ namespace APACElib
         double _deltaTDiscountRate;
         double _warmUpSimIndex;
 
-        public EpidemicCostHealth( double deltaTDiscountRate, int warmUpSimIndex)
+        public EpidemicCostHealth(double deltaTDiscountRate, int warmUpSimIndex)
         {
             _deltaTDiscountRate = deltaTDiscountRate;
             _warmUpSimIndex = warmUpSimIndex;
@@ -142,8 +142,8 @@ namespace APACElib
             {
                 if (simIndex>_currentSimIndex)
                 {
-                    TotalDisountedCost = deltaTCost * Math.Pow(_deltaTDiscountRate, simIndex-_warmUpSimIndex );
-                    TotalDiscountedDALY = deltaTDALY * Math.Pow(_deltaTDiscountRate, simIndex-_warmUpSimIndex );
+                    TotalDisountedCost = deltaTCost / Math.Pow(1+_deltaTDiscountRate, simIndex-_warmUpSimIndex );
+                    TotalDiscountedDALY = deltaTDALY / Math.Pow(1+_deltaTDiscountRate, simIndex-_warmUpSimIndex );
 
                     _currentSimIndex = simIndex;
                     _deltaTCost = deltaTCost;
@@ -159,11 +159,26 @@ namespace APACElib
 
         public double GetEquivalentAnnualCost(double annualDiscountRate, int currentYear, int warmUpYear)
         {
-            return annualDiscountRate * TotalDisountedCost / (1 - Math.Pow(1 + annualDiscountRate, -(currentYear-warmUpYear)));
+            if (annualDiscountRate == 0)
+                return TotalDisountedCost/ (currentYear - warmUpYear);
+            else
+                return annualDiscountRate * TotalDisountedCost / (1 - Math.Pow(1 + annualDiscountRate, -(currentYear-warmUpYear)));
         }
-        public double GetEquivalentAnnualDALY(double annualDiscountRate, int currentYear)
+        public double GetEquivalentAnnualDALY(double annualDiscountRate, int currentYear, int warmUpYear)
         {
-            return annualDiscountRate * TotalDiscountedDALY / (1 - Math.Pow(1 + annualDiscountRate, -(currentYear-warmUpYear)));
+            if (annualDiscountRate == 0)
+                return TotalDiscountedDALY / (currentYear - warmUpYear);
+            else
+                return annualDiscountRate * TotalDiscountedDALY / (1 - Math.Pow(1 + annualDiscountRate, -(currentYear-warmUpYear)));
+        }
+
+        public double GetDiscountedNMB(double wtp)
+        {
+            return -TotalDisountedCost - wtp * TotalDiscountedDALY;
+        }
+        public double GetDiscountedNHB(double wtp)
+        {
+            return -TotalDisountedCost/ wtp - TotalDiscountedDALY;
         }
 
         public void Reset()

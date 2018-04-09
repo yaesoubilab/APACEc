@@ -88,8 +88,8 @@ namespace APACElib
         public int EpidemicConditionTimeIndex { get; set; }
         public EnumEpiDecisions DecisionRule { get; set; }
         public bool IfToShowSimulationTrajectories { get; set; }        
-        public double AnnualInterestRate { get; set; }
-        public double DecisionPeriodDiscountRate { get; set; }
+        public double AnnualDiscountRate { get; set; }
+        public double DeltaTDiscountRate { get; set; }
         public double WTPForHealth { get; set; }
 
         public EnumModelUse ModelUse { get => _modelUse; set => _modelUse = value; }
@@ -199,8 +199,8 @@ namespace APACElib
             DecisionRule = excelInterface.GetDecisionRule();
             IfToShowSimulationTrajectories = excelInterface.GetIfToShowSimulationTrajectories();
             
-            AnnualInterestRate = excelInterface.GetAnnualInterestRate();
-            //DecisionPeriodDiscountRate = 1 / (1 + AnnualInterestRate * DecisionIntervalLength / 364);
+            AnnualDiscountRate = excelInterface.GetAnnualInterestRate();
+            DeltaTDiscountRate = AnnualDiscountRate / DeltaT;
             WTPForHealth = excelInterface.GetWTPForHealth();
 
             // read RND seeds if necessary
