@@ -381,17 +381,17 @@ namespace APACElib
         {
             return (int)(double)GetCellValue("General Settings", "distanceBtwRNGSeeds");
         }
-        public double GetSimulationOutputIntervalLength()
+        public int GetNumDeltaTSimulationOutputInterval()
         {
-            return (double)GetCellValue("General Settings", "simOutputInterval");
+            return (int)(double)GetCellValue("General Settings", "nDeltaTSimOutputInterval");
         }
         public bool GetIfToShowSimulationTrajectories()
         {
             return SupportFunctions.ConvertYesNoToBool(GetCellValue("General Settings", "showSimTrajectories").ToString());
         }
-        public double GetObservationPeriodLength()
+        public int GetNumDeltaTObservationPeriod()
         {
-            return (double)GetCellValue("General Settings", "obsPeriodLengh");
+            return (int)(double)GetCellValue("General Settings", "nDeltaTObsPeriod");
         }
         public double GetAnnualInterestRate()
         {
@@ -411,9 +411,9 @@ namespace APACElib
         {
             return (double)GetCellValue("General Settings", "timeStep");
         }
-        public double GetDecisionIntervalLength()
+        public int GetNumDeltaTDecisionInterval()
         {
-            return (double)GetCellValue("General Settings", "decisionInterval");
+            return (int)(double)GetCellValue("General Settings", "nDeltaTDecisionInterval");
         }
         public double GetWarmUpPeriod()
         {

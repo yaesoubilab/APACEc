@@ -142,7 +142,7 @@ namespace APACElib
         {
             get { return _parentEpidemic.Classes;}
         }
-        public List<SummationStatistics> SummationStatistics
+        public List<SummationStatisticsOld> SummationStatistics
         {
             get {return _parentEpidemic.SummationStatistics; }
         }
@@ -895,7 +895,7 @@ namespace APACElib
             int numOfRows = matrixOfObservationsAndWeights.GetLength(0);
 
             // go over summation statistics
-            foreach (SummationStatistics sumStat in thisEpiModel.SummationStatistics.Where(s => s.IfIncludedInCalibration))
+            foreach (SummationStatisticsOld sumStat in thisEpiModel.SummationStatistics.Where(s => s.IfIncludedInCalibration))
             {
                 double[] arrObservations = new double[numOfRows];
                 double[] arrWeights = new double[numOfRows];
@@ -994,7 +994,7 @@ namespace APACElib
             //else //(if using sequential runs
             //{
             // summation statistics
-            foreach (SummationStatistics thisSumStat in _parentEpidemic.SummationStatistics.Where(s => s.IfIncludedInCalibration))
+            foreach (SummationStatisticsOld thisSumStat in _parentEpidemic.SummationStatistics.Where(s => s.IfIncludedInCalibration))
                 SupportFunctions.AddToEndOfArray(ref names, thisSumStat.Name);
             // ratio statistics
             foreach (RatioStatistics thisRatioStat in _parentEpidemic.RatioStatistics.Where(s => s.IfIncludedInCalibration))
@@ -1034,11 +1034,11 @@ namespace APACElib
                 if (thisClass is Class_Normal)
                     ((ObservationBasedStatistics)_prevalenceStats[prevalenceStatIndex++]).Record(thisClass.ClassStat.AveragePrevalenceStat.Mean, epidemicIndex);
             }
-            foreach (SummationStatistics thisSummationStatistics in thisEpidemic.SummationStatistics)
+            foreach (SummationStatisticsOld thisSummationStatistics in thisEpidemic.SummationStatistics)
             {
-                if (thisSummationStatistics.Type == APACElib.SummationStatistics.enumType.Incidence)
+                if (thisSummationStatistics.Type == APACElib.SummationStatisticsOld.enumType.Incidence)
                     ((ObservationBasedStatistics)_incidenceStats[incidentStatIndex++]).Record(thisSummationStatistics.AccumulatedNewMembers, epidemicIndex);
-                if (thisSummationStatistics.Type ==  APACElib.SummationStatistics.enumType.Prevalence)
+                if (thisSummationStatistics.Type ==  APACElib.SummationStatisticsOld.enumType.Prevalence)
                     ((ObservationBasedStatistics)_prevalenceStats[prevalenceStatIndex++]).Record(thisSummationStatistics.AveragePrevalence, epidemicIndex);
             }
             foreach (RatioStatistics thisRatioStatistics in thisEpidemic.RatioStatistics)
@@ -1468,14 +1468,14 @@ namespace APACElib
                         _prevalenceStats.Add(new ObservationBasedStatistics("Average Size: " + thisClass.Name, numOfSimulationIterations));                    
                 }
             }
-            foreach (SummationStatistics thisSummationStatistics in GetSummationStatistics())
+            foreach (SummationStatisticsOld thisSummationStatistics in GetSummationStatistics())
             {
-                if (thisSummationStatistics.Type == APACElib.SummationStatistics.enumType.Incidence)
+                if (thisSummationStatistics.Type == APACElib.SummationStatisticsOld.enumType.Incidence)
                 {
                     name = "Total: " + thisSummationStatistics.Name;
                     _incidenceStats.Add(new ObservationBasedStatistics(name, numOfSimulationIterations));
                 }
-                else if (thisSummationStatistics.Type == APACElib.SummationStatistics.enumType.Prevalence)
+                else if (thisSummationStatistics.Type == APACElib.SummationStatisticsOld.enumType.Prevalence)
                 {
                     name = "Averge size: " + thisSummationStatistics.Name;
                     _prevalenceStats.Add(new ObservationBasedStatistics(name, numOfSimulationIterations));
@@ -1582,7 +1582,7 @@ namespace APACElib
             return _parentEpidemic.Classes;
         }
         // get summation statistics
-        private List<SummationStatistics> GetSummationStatistics()
+        private List<SummationStatisticsOld> GetSummationStatistics()
         {
             return _parentEpidemic.SummationStatistics;
         }

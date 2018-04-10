@@ -23,7 +23,7 @@ namespace APACElib
         private List<Event> _events = new List<Event>();
         private ArrayList _resources = new ArrayList();
         private ArrayList _resourceRules = new ArrayList();
-        private List<SummationStatistics> _summationStatistics = new List<SummationStatistics>();
+        private List<SummationStatisticsOld> _summationStatistics = new List<SummationStatisticsOld>();
         private List<RatioStatistics> _ratioStatistics = new List<RatioStatistics>();
         private ArrayList _features = new ArrayList();
         private DecisionMaker _decisionMaker;
@@ -226,7 +226,7 @@ namespace APACElib
         {
             get { return _decisionMaker.Interventions; }
         }
-        public List<SummationStatistics> SummationStatistics
+        public List<SummationStatisticsOld> SummationStatistics
         {
             get { return _summationStatistics; }
         }
@@ -289,7 +289,7 @@ namespace APACElib
             _events = new List<Event>();
             _resources = new ArrayList();
             _resourceRules = new ArrayList();
-            _summationStatistics = new List<SummationStatistics>();
+            _summationStatistics = new List<SummationStatisticsOld>();
             _ratioStatistics = new List<RatioStatistics>();
             _features = new ArrayList();
             _decisionMaker.ResetForAnotherSimulationRun();
@@ -839,7 +839,7 @@ namespace APACElib
                     while (startTime < lastTimeToUseThisIntervention)
                     {
                         numOfDecisionIntervals = minNumOfDecisionPeriodsToUse;
-                        while (numOfDecisionIntervals * _set.DecisionIntervalLength<= lastTimeToUseThisIntervention - startTime)
+                        while (numOfDecisionIntervals * _set.NumOfDeltaT_inDecisionInterval*_set.DeltaT<= lastTimeToUseThisIntervention - startTime)
                         {
                             // design
                             interventionStartTimes[interventionID] = startTime;
@@ -849,7 +849,7 @@ namespace APACElib
 
                             numOfDecisionIntervals += minNumOfDecisionPeriodsToUse;
                         }
-                        startTime += minNumOfDecisionPeriodsToUse * _set.DecisionIntervalLength;
+                        startTime += minNumOfDecisionPeriodsToUse * _set.NumOfDeltaT_inDecisionInterval * _set.DeltaT;
                     }
                 }
             }            
@@ -1117,7 +1117,7 @@ namespace APACElib
                     // the current time and interval
                     thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = simReplication;
                     thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = _simTimeIndex * _set.DeltaT;
-                    thisSimulationIntervalBasedOutputs[0][colIndexSimulationIntervalBasedOutputs++] = Math.Floor(_simTimeIndex * _set.DeltaT / _set.SimulationOutputIntervalLength);
+                    thisSimulationIntervalBasedOutputs[0][colIndexSimulationIntervalBasedOutputs++] = _simTimeIndex/_set.NumOfDeltaT_inSimulationOutputInterval;
                     // action combination
                     thisActionCombination[0] = (int[])_decisionMaker.CurrentDecision.Clone();
 
@@ -1132,17 +1132,17 @@ namespace APACElib
                             thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = thisClass.ClassStat.AccumulatedIncidence;
                     }
                     // summation statistics
-                    foreach (SummationStatistics thisSumStat in _summationStatistics.Where(s => s.IfDisplay))
+                    foreach (SummationStatisticsOld thisSumStat in _summationStatistics.Where(s => s.IfDisplay))
                     {
                         switch (thisSumStat.Type)
                         {
-                            case APACElib.SummationStatistics.enumType.Incidence:
+                            case APACElib.SummationStatisticsOld.enumType.Incidence:
                                 thisSimulationIntervalBasedOutputs[0][colIndexSimulationIntervalBasedOutputs++] = thisSumStat.NewMemberOverPastSimulationInterval;
                                 break;
-                            case APACElib.SummationStatistics.enumType.AccumulatingIncident:
+                            case APACElib.SummationStatisticsOld.enumType.AccumulatingIncident:
                                 thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = thisSumStat.AccumulatedNewMembers;
                                 break;
-                            case APACElib.SummationStatistics.enumType.Prevalence:
+                            case APACElib.SummationStatisticsOld.enumType.Prevalence:
                                 thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = thisSumStat.CurrentMembers;
                                 break;
                         }
@@ -1225,22 +1225,22 @@ namespace APACElib
                 thisResourceAvailability[0] = new double[_resources.Count];
 
                 // report summation statistics for which surveillance is available
-                foreach (SummationStatistics thisSumStat in _summationStatistics.Where(s => s.SurveillanceDataAvailable))
+                foreach (SummationStatisticsOld thisSumStat in _summationStatistics.Where(s => s.SurveillanceDataAvailable))
                 {
                     switch (thisSumStat.Type)
                     {
-                        case APACElib.SummationStatistics.enumType.Incidence:
+                        case APACElib.SummationStatisticsOld.enumType.Incidence:
                             {
                                 if (thisSumStat.FirstObservationMarksTheStartOfTheSpread)
                                     thisObservedOutputs[0][colIndexObservableOutputs++] = thisSumStat.NewMembersOverPastObservableObsPeriod;
                             }
                             break;
-                        case APACElib.SummationStatistics.enumType.AccumulatingIncident:
+                        case APACElib.SummationStatisticsOld.enumType.AccumulatingIncident:
                             {
                                 thisObservedOutputs[0][colIndexObservableOutputs++] = thisSumStat.ObservedAccumulatedNewMembers;
                             }
                             break;
-                        case APACElib.SummationStatistics.enumType.Prevalence:
+                        case APACElib.SummationStatisticsOld.enumType.Prevalence:
                             {
                                 thisObservedOutputs[0][colIndexObservableOutputs++] = thisSumStat.CurrentMembers;
                             }
@@ -1298,7 +1298,7 @@ namespace APACElib
                 {
                     case EnumMarkOfEpidemicStartTime.TimeZero:
                         {
-                            thisTimeOfObservableOutputs[0][0] = Math.Floor(_simTimeIndex * _set.DeltaT / _set.ObservationPeriodLength); 
+                            thisTimeOfObservableOutputs[0][0] = _simTimeIndex / _set.NumOfDeltaT_inObservationPeriod; 
                         }
                         break;
                     case EnumMarkOfEpidemicStartTime.TimeOfFirstObservation:
@@ -1311,7 +1311,7 @@ namespace APACElib
                             }
                             // time of epidemic observation
                             if (_firstObservationObtained)
-                                thisTimeOfObservableOutputs[0][0] = Math.Floor(_simTimeIndex * _set.DeltaT / _set.ObservationPeriodLength); //this.CurrentEpidemicTime;
+                                thisTimeOfObservableOutputs[0][0] = _simTimeIndex / _set.NumOfDeltaT_inObservationPeriod; //this.CurrentEpidemicTime;
                             else
                                 thisTimeOfObservableOutputs[0][0] = -1;
                         }
@@ -1339,12 +1339,12 @@ namespace APACElib
                 {
                     thisCalibrationObservation[0] = new double[_numOfCalibratoinTargets];
                     // go over summation statistics that are included in calibration
-                    foreach (SummationStatistics thisSumStat in _summationStatistics.Where(s => s.IfIncludedInCalibration))
+                    foreach (SummationStatisticsOld thisSumStat in _summationStatistics.Where(s => s.IfIncludedInCalibration))
                     {
                         // find this summation stat type:
                         switch (thisSumStat.Type)
                         {
-                            case APACElib.SummationStatistics.enumType.Incidence:
+                            case APACElib.SummationStatisticsOld.enumType.Incidence:
                                 {
                                     // check if within feasible range
                                     if (thisSumStat.IfCheckWithinFeasibleRange)
@@ -1360,7 +1360,7 @@ namespace APACElib
                                     thisCalibrationObservation[0][colIndexCalibrationObservation++] = thisSumStat.NewMembersOverPastObservableObsPeriod;
                                 }
                                 break;
-                            case APACElib.SummationStatistics.enumType.AccumulatingIncident:
+                            case APACElib.SummationStatisticsOld.enumType.AccumulatingIncident:
                                 {
                                     // check if within feasible range
                                     if (endOfSimulation && thisSumStat.IfCheckWithinFeasibleRange)
@@ -1376,7 +1376,7 @@ namespace APACElib
                                     thisCalibrationObservation[0][colIndexCalibrationObservation++] = thisSumStat.ObservedAccumulatedNewMembers;
                                 }
                                 break;
-                            case APACElib.SummationStatistics.enumType.Prevalence:
+                            case APACElib.SummationStatisticsOld.enumType.Prevalence:
                                 {
                                     // check if within feasible range
                                     if (thisSumStat.IfCheckWithinFeasibleRange)
@@ -1452,7 +1452,7 @@ namespace APACElib
                 #endregion
 
                 // reset new member observations gather during past observation period
-                foreach (SummationStatistics thisSumStat in _summationStatistics)
+                foreach (SummationStatisticsOld thisSumStat in _summationStatistics)
                     thisSumStat.ResetNewMembersOverPastObsPeriod();                
             }
             #endregion
@@ -1524,15 +1524,15 @@ namespace APACElib
                 thisClass.ReturnAndResetNumOfMembersOutOfEventsOverPastDeltaT(ref arrNumOfNewMembersOutOfEventsOverPastDeltaT);
             }
 
-            foreach (SummationStatistics thisSumStat in _summationStatistics)
+            foreach (SummationStatisticsOld thisSumStat in _summationStatistics)
             {
                 switch (thisSumStat.DefinedOn)
                 {
-                    case APACElib.SummationStatistics.enumDefinedOn.Classes:
+                    case APACElib.SummationStatisticsOld.enumDefinedOn.Classes:
                         {
                             switch (thisSumStat.Type)
                             {
-                                case APACElib.SummationStatistics.enumType.Incidence:
+                                case APACElib.SummationStatisticsOld.enumType.Incidence:
                                     {
                                         thisSumStat.AddNewMembers(ref _classes, _set.DeltaT);
                                         EpidemicCostHealth.Add(
@@ -1541,7 +1541,7 @@ namespace APACElib
                                             thisSumStat.CurrentQALY);
                                     }
                                     break;
-                                case APACElib.SummationStatistics.enumType.Prevalence:
+                                case APACElib.SummationStatisticsOld.enumType.Prevalence:
                                     {
                                         thisSumStat.AddCurrentMembers(_epiTimeIndex * _set.DeltaT, _arrNumOfMembersInEachClass, _modelUse != EnumModelUse.Calibration);
                                     }
@@ -1549,11 +1549,11 @@ namespace APACElib
                             }
                         }
                         break;
-                    case APACElib.SummationStatistics.enumDefinedOn.Events:
+                    case APACElib.SummationStatisticsOld.enumDefinedOn.Events:
                         {
                             switch (thisSumStat.Type)
                             {
-                                case APACElib.SummationStatistics.enumType.Incidence:
+                                case APACElib.SummationStatisticsOld.enumType.Incidence:
                                     {
                                         thisSumStat.AddNewMembers(arrNumOfNewMembersOutOfEventsOverPastDeltaT, _set.DeltaT);
                                         EpidemicCostHealth.Add(
@@ -1562,7 +1562,7 @@ namespace APACElib
                                             thisSumStat.CurrentQALY);
                                     }
                                     break;
-                                case APACElib.SummationStatistics.enumType.Prevalence:
+                                case APACElib.SummationStatisticsOld.enumType.Prevalence:
                                     {
                                         // error
                                     }
@@ -1752,23 +1752,23 @@ namespace APACElib
             //foreach (Class thisClass in _classes)
             //    thisClass.Reset();
             // reset summation statistics
-            foreach (SummationStatistics thisSumStat in _summationStatistics)
+            foreach (SummationStatisticsOld thisSumStat in _summationStatistics)
                 thisSumStat.ResetStatistics(_set.WarmUpPeriodTimeIndex * _set.DeltaT, ifToResetForAnotherSimulationRun);
             // reset ratio statistics
             foreach (RatioStatistics thisRatioStat in _ratioStatistics)
                 thisRatioStat.ResetForAnotherSimulationRun();
 
             // reset summation statistics
-            foreach (SummationStatistics thisSumStat in _summationStatistics)
+            foreach (SummationStatisticsOld thisSumStat in _summationStatistics)
             {
                 switch (thisSumStat.Type)
                 {
-                    case APACElib.SummationStatistics.enumType.Incidence:
+                    case APACElib.SummationStatisticsOld.enumType.Incidence:
                         {
                             // do nothing
                         }
                         break;
-                    case APACElib.SummationStatistics.enumType.Prevalence:
+                    case APACElib.SummationStatisticsOld.enumType.Prevalence:
                         {
                             thisSumStat.AddCurrentMembers(_epiTimeIndex * _set.DeltaT, _arrNumOfMembersInEachClass, _modelUse != EnumModelUse.Calibration);
                         }
@@ -2364,8 +2364,8 @@ namespace APACElib
             _set = modelSettings;
 
             _decisionMaker = new DecisionMaker(
-                _set.EpidemicTimeIndexToStartDecisionMaking, 
-                (int)(_set.DecisionIntervalLength/_set.DeltaT));            
+                _set.EpidemicTimeIndexToStartDecisionMaking,
+                _set.NumOfDeltaT_inDecisionInterval);            
 
             // reset the epidemic
             Reset();
@@ -2509,15 +2509,15 @@ namespace APACElib
                 if (thisClass.ShowAccumIncidence)
                     ++_numOfTimeBasedOutputsToReport;
             }
-            foreach (SummationStatistics thisSumStat in _summationStatistics.Where(s => s.IfDisplay))
+            foreach (SummationStatisticsOld thisSumStat in _summationStatistics.Where(s => s.IfDisplay))
             {
                 switch (thisSumStat.Type)
                 {
-                    case APACElib.SummationStatistics.enumType.Incidence:
+                    case APACElib.SummationStatisticsOld.enumType.Incidence:
                         ++_numOfIntervalBasedOutputsToReport;
                         break;
-                    case APACElib.SummationStatistics.enumType.AccumulatingIncident:
-                    case APACElib.SummationStatistics.enumType.Prevalence:
+                    case APACElib.SummationStatisticsOld.enumType.AccumulatingIncident:
+                    case APACElib.SummationStatisticsOld.enumType.Prevalence:
                         ++_numOfTimeBasedOutputsToReport;
                         break;
                 }
@@ -2798,7 +2798,7 @@ namespace APACElib
                 #endregion
 
                 // class statistics 
-                _classes.Last().ClassStat = new ClassStatistics(showStatisticsInSimulationResults, _set.WarmUpPeriodTimeIndex, showAccumIncidence);
+                _classes.Last().ClassStat = new ClassTrajectory(showStatisticsInSimulationResults, _set.WarmUpPeriodTimeIndex, showAccumIncidence);
                 // adding time series
                 _classes.Last().ClassStat.AddTimeSeries(
                     collectIncidenceTimeSeries, collectPrevalenceTimeSeries, collectAccumIncidenceTimeSeries, _set.NumOfDeltaT_inSimulationOutputInterval);
@@ -3107,13 +3107,13 @@ namespace APACElib
                 string sumFormula = Convert.ToString(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Formula));
 
                 // defined on 
-                APACElib.SummationStatistics.enumDefinedOn definedOn = APACElib.SummationStatistics.enumDefinedOn.Classes;
-                if (strDefinedOn == "Events") definedOn = APACElib.SummationStatistics.enumDefinedOn.Events;
+                APACElib.SummationStatisticsOld.enumDefinedOn definedOn = APACElib.SummationStatisticsOld.enumDefinedOn.Classes;
+                if (strDefinedOn == "Events") definedOn = APACElib.SummationStatisticsOld.enumDefinedOn.Events;
 
                 // type
-                APACElib.SummationStatistics.enumType type = APACElib.SummationStatistics.enumType.Incidence;
-                if (strType == "Prevalence") type = APACElib.SummationStatistics.enumType.Prevalence;
-                else if (strType == "Accumulating Incidence") type = APACElib.SummationStatistics.enumType.AccumulatingIncident;
+                APACElib.SummationStatisticsOld.enumType type = APACElib.SummationStatisticsOld.enumType.Incidence;
+                if (strType == "Prevalence") type = APACElib.SummationStatisticsOld.enumType.Prevalence;
+                else if (strType == "Accumulating Incidence") type = APACElib.SummationStatisticsOld.enumType.AccumulatingIncident;
 
                 // if display
                 bool ifDispay = SupportFunctions.ConvertYesNoToBool(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfDisplay).ToString());
@@ -3179,9 +3179,9 @@ namespace APACElib
                 //numOfPastObsPeriodsToStore = Math.Max(numOfPastObsPeriodsToStore, 1);
 
                 // build and add the summation statistics
-                SummationStatistics thisSummationStatistics = new
-                    SummationStatistics(statID, name, definedOn, type, sumFormula, QALYLossPerNewMember, costPerNewMember, surveillanceDataAvailable, firstObservationMarksTheStartOfTheSpread,
-                                       (int)(_set.SimulationOutputIntervalLength / _set.ObservationPeriodLength), (int)(_set.ObservationPeriodLength / _set.DeltaT), numOfObservationPeriodsDelayBeforeObservating);
+                SummationStatisticsOld thisSummationStatistics = new
+                    SummationStatisticsOld(statID, name, definedOn, type, sumFormula, QALYLossPerNewMember, costPerNewMember, surveillanceDataAvailable, firstObservationMarksTheStartOfTheSpread,
+                                       (int)(_set.NumOfDeltaT_inSimulationOutputInterval / _set.NumOfDeltaT_inObservationPeriod), _set.NumOfDeltaT_inObservationPeriod, numOfObservationPeriodsDelayBeforeObservating);
                 // if display
                 thisSummationStatistics.IfDisplay = ifDispay;
 

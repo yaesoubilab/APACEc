@@ -20,7 +20,7 @@ namespace APACElib
         public bool IfNeedsToBeProcessed { get; set; }
         public bool IfMembersWaitingToSendOutBeforeNextDeltaT { get; set; }
         // statistics
-        public ClassStatistics ClassStat { get; set; }
+        public ClassTrajectory ClassStat { get; set; }
 
         // show in simulation output 
         public bool ShowIncidence { get; set; }
@@ -533,6 +533,7 @@ namespace APACElib
         public override void ResetNumOfMembersSendingToEachDestinationClasses()
         {
             _arrNumOfMembersSendingToEachDestinationClasses = new int[2];
+            ClassStat.Prevalence = 0;
             IfMembersWaitingToSendOutBeforeNextDeltaT = false;
         }
         // Reset statistics for another simulation run

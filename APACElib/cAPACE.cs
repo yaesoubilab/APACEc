@@ -844,7 +844,7 @@ namespace APACElib
                 }
 
                 // get the index of observation periods
-                int numOfObsPeriods = (int)(_modelSettings.TimeIndexToStop/ _modelSettings.ObservationPeriodLength);
+                int numOfObsPeriods = (int)(_modelSettings.TimeIndexToStop/ _modelSettings.NumOfDeltaT_inObservationPeriod);
                 int[] obsPeriodIndex = new int[numOfObsPeriods];
                 for (int i = 0; i < numOfObsPeriods; i++)
                     obsPeriodIndex[i] = i+1;
@@ -892,22 +892,22 @@ namespace APACElib
                     ComputationLib.SupportFunctions.AddToEndOfArray(ref arrTimeBasedOutputsHeading, "Sum To: " + thisClass.Name);
             }
             // summation statistics header
-            foreach (SummationStatistics thisSumStat in _epidemicModeller.SummationStatistics.Where(s => s.IfDisplay))
+            foreach (SummationStatisticsOld thisSumStat in _epidemicModeller.SummationStatistics.Where(s => s.IfDisplay))
             {
                 switch (thisSumStat.Type)
                 {
-                    case SummationStatistics.enumType.Incidence:
+                    case SummationStatisticsOld.enumType.Incidence:
                         ComputationLib.SupportFunctions.AddToEndOfArray(ref arrIntervalBasedOutputs, thisSumStat.Name);
                         break;
-                    case SummationStatistics.enumType.AccumulatingIncident:
-                    case SummationStatistics.enumType.Prevalence:
+                    case SummationStatisticsOld.enumType.AccumulatingIncident:
+                    case SummationStatisticsOld.enumType.Prevalence:
                         ComputationLib.SupportFunctions.AddToEndOfArray(ref arrTimeBasedOutputsHeading, thisSumStat.Name);
                         break;
                 }
             }
 
             // surveillance statistics header for summation statistics
-            foreach (SummationStatistics thisSumStat in _epidemicModeller.SummationStatistics.Where(s => (s.SurveillanceDataAvailable && s.IfDisplay)))
+            foreach (SummationStatisticsOld thisSumStat in _epidemicModeller.SummationStatistics.Where(s => (s.SurveillanceDataAvailable && s.IfDisplay)))
             {    
                  ComputationLib.SupportFunctions.AddToEndOfArray(ref arrObservableOutputs, "Surveillance | " + thisSumStat.Name);
             }

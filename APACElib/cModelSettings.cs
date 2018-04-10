@@ -75,11 +75,9 @@ namespace APACElib
         // delta t
         public double DeltaT { get; set; }
         // simulation, observation and decision periods
-        public double DecisionIntervalLength { get; set; }
-        public double ObservationPeriodLength { get; set; }
-        public double SimulationOutputIntervalLength { get; set; }
         public int NumOfDeltaT_inSimulationOutputInterval { get; set; }
         public int NumOfDeltaT_inObservationPeriod { get; set; }
+        public int NumOfDeltaT_inDecisionInterval { get; set; }
 
         public int EpidemicTimeIndexToStartDecisionMaking { get; set; }
         public EnumMarkOfEpidemicStartTime MarkOfEpidemicStartTime { get; set; }
@@ -183,12 +181,9 @@ namespace APACElib
             _simulationRNDSeedsSource = excelInterface.GetSimulationRNDSeedsSource();
 
             DeltaT = excelInterface.GetTimeStep();
-            SimulationOutputIntervalLength = excelInterface.GetSimulationOutputIntervalLength();
-            ObservationPeriodLength = excelInterface.GetObservationPeriodLength();
-            DecisionIntervalLength = excelInterface.GetDecisionIntervalLength();
-
-            NumOfDeltaT_inSimulationOutputInterval = (int)(SimulationOutputIntervalLength / DeltaT);
-            NumOfDeltaT_inObservationPeriod = (int)(ObservationPeriodLength / DeltaT);
+            NumOfDeltaT_inDecisionInterval = excelInterface.GetNumDeltaTDecisionInterval();
+            NumOfDeltaT_inSimulationOutputInterval = excelInterface.GetNumDeltaTSimulationOutputInterval();
+            NumOfDeltaT_inObservationPeriod = excelInterface.GetNumDeltaTObservationPeriod();
             
 
             EpidemicTimeIndexToStartDecisionMaking = (int)(excelInterface.GetTimeToStartDecisionMaking()/DeltaT);
@@ -320,7 +315,7 @@ namespace APACElib
         public void ReadPastObservations(ref ExcelInterface excelInterface, int numOfCalibrationTargets)
         {
             // find the number of observations that should be eliminated during the warm-up period
-            int numOfInitialObsToRemove = (int)(WarmUpPeriodTimeIndex / ObservationPeriodLength);
+            int numOfInitialObsToRemove = (int)(WarmUpPeriodTimeIndex / NumOfDeltaT_inObservationPeriod);
             // read observations
             _matrixOfObservationsAndWeights = excelInterface.GetMatrixOfObservationsAndWeights(numOfInitialObsToRemove, numOfCalibrationTargets);
         }

@@ -8,7 +8,7 @@ using SimulationLib;
 namespace APACElib
 {
     // Summation statistics
-    public class SummationStatistics
+    public class SummationStatisticsOld
     {
         public enum enumDefinedOn
         {
@@ -49,7 +49,7 @@ namespace APACElib
         private int _currentMembers;
         private int _accumulatedNewMembers;
 
-        public SummationStatistics(int ID, string name, enumDefinedOn definedOn, enumType type, string sumFormula, double QALYLossPerNewMember, double costPerNewMember, 
+        public SummationStatisticsOld(int ID, string name, enumDefinedOn definedOn, enumType type, string sumFormula, double QALYLossPerNewMember, double costPerNewMember, 
                                    bool surveillanceDataAvailable, bool firstObservationMarksTheStartOfTheSpread,
                                    int numOfPastObsPeriodsToStore, int numOfDeltaTInEachObsPeriod, int numOfObsPeriodsDelayed)
         {
