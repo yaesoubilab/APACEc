@@ -10,17 +10,18 @@ namespace APACElib
     public abstract class TimeSeries
     {
         public List<double> ObsList { get; set; } = new List<double>();
-        protected int _counter = 0;
-        protected int _nOfRecodingsInEachObsPeriod;
+        protected int _nRecordingsInThisPeriod = 0;
+        protected int _nRecodingsInEachPeriod;
 
-        public TimeSeries(int nOfRecodingsInEachObsPeriod)
+        public TimeSeries(int nRecodingsInEachPeriod)
         {
-            _nOfRecodingsInEachObsPeriod = nOfRecodingsInEachObsPeriod;
+            _nRecodingsInEachPeriod = nRecodingsInEachPeriod;
             ObsList.Add(0); // 0 added for the interval 0
         }
 
         public abstract void Record(double value);
 
+        /// <returns> the last period observation </returns>
         public double GetLastObs()
         {
             return ObsList.Last();
@@ -30,26 +31,27 @@ namespace APACElib
         {
             ObsList.Clear();
             ObsList.Add(0); // 0 added for the interval 0
-            _counter = 0;
+            _nRecordingsInThisPeriod = 0;
         }
     }
 
     public class IncidenceTimeSeries: TimeSeries
     {
-        public IncidenceTimeSeries(int nOfRecodingsInEachObsPeriod):base(nOfRecodingsInEachObsPeriod)
+        public IncidenceTimeSeries(int nOfRecodingsInEachPeriod):base(nOfRecodingsInEachPeriod)
         {
         }
 
         public override void Record(double value)
         {
             // find if a new element should be added to the list
-            if (_counter % _nOfRecodingsInEachObsPeriod == 0)
+            if (_nRecordingsInThisPeriod % _nRecodingsInEachPeriod == 0)
             {
                 ObsList.Add(value);
-                ++_counter;
+                ++_nRecordingsInThisPeriod;
             }
             else
             {
+                // increment the observation in the current period
                 ObsList[ObsList.Count-1] += value;
             }
         }
@@ -57,33 +59,34 @@ namespace APACElib
      
     public class PrevalenceTimeSeries : TimeSeries
     {
-        public PrevalenceTimeSeries(int nOfRecodingsInEachObsPeriod) : base(nOfRecodingsInEachObsPeriod)
+        public PrevalenceTimeSeries(int nRecodingsInEachObsPeriod) : base(nRecodingsInEachObsPeriod)
         {
         }
 
         public override void Record(double value)
         {
             // find if a new element should be added to the list
-            if (_counter % _nOfRecodingsInEachObsPeriod == 0)
+            if (_nRecordingsInThisPeriod % _nRecodingsInEachPeriod == 0)
             {
                 ObsList.Add(value);
-                ++_counter;
+                ++_nRecordingsInThisPeriod;
             }
         }
     }
 
-    public abstract class Trajectory
+    public class GeneralTrajectory
     {
+        protected int _warmUpSimIndex;
 
-    }
-
-    public class ClassTrajectory
-    {
-        private int _warmUpSimIndex;
         // statistics 
-        public int NumOfNewMembersOverPastDeltaT { get; set; }
-        public int Prevalence { get; set; }
+        public int ID { get; set; }
+        public string Name { get; set; }
+
         public bool IfCollectAccumulatedIncidence { get; set; } = false;
+        public bool IfCalculateAvePrevalence { get; set; } = false;
+
+        public int NumOfNewMembersOverPastPeriod { get; set; }
+        public int Prevalence { get; set; }
         public int AccumulatedIncidence { get; set; }
         public int AccumulatedIncidenceAfterWarmUp { get; set; }
         
@@ -97,39 +100,43 @@ namespace APACElib
         // average prevalence
         public ObservationBasedStatistics AveragePrevalenceStat { get; set; }
 
-        public ClassTrajectory(bool showStatsInSummaryResults, int warmUpSimIndex, bool collectAccumulatedIncidence)
+        public GeneralTrajectory(int id, string name, int warmUpSimIndex)
         {
+            ID = id;
+            Name = name;
             _warmUpSimIndex = warmUpSimIndex;
+        }
 
+        public void SetupAvePrevalenceAndAccumIncidence(bool collectAccumulatedIncidence, bool calculateAvePrevalence)
+        {
             IfCollectAccumulatedIncidence = collectAccumulatedIncidence;
-
-            if (showStatsInSummaryResults)
+            IfCalculateAvePrevalence = calculateAvePrevalence;
+            if (IfCalculateAvePrevalence)
                 AveragePrevalenceStat = new ObservationBasedStatistics("Average prevalence");
         }
 
-        public void AddTimeSeries(bool collectIncidence, bool collectPrevalence, bool collectAccumIncidence, int nDeltaTInSimPeriod)
+        public void AddTimeSeries(bool collectIncidence, bool collectPrevalence, bool collectAccumIncidence, int nDeltaTInAPeriod)
         {
             if (collectIncidence)
-                IncidenceTimeSeries = new IncidenceTimeSeries(nDeltaTInSimPeriod);
+                IncidenceTimeSeries = new IncidenceTimeSeries(nDeltaTInAPeriod);
             if (collectPrevalence)
-                PrevalenceTimeSeries = new PrevalenceTimeSeries(nDeltaTInSimPeriod);
+                PrevalenceTimeSeries = new PrevalenceTimeSeries(nDeltaTInAPeriod);
             if (collectAccumIncidence)
-                AccumIncidenceTimeSeries = new PrevalenceTimeSeries(nDeltaTInSimPeriod);
+                AccumIncidenceTimeSeries = new PrevalenceTimeSeries(nDeltaTInAPeriod);
         }
 
         public void AddCostHealthOutcomes(
-            int warmUpSimIndex,
             double DALYPerNewMember,
             double costPerNewMember,
             double disabilityWeightPerDeltaT,
             double costPerDeltaT)
         {
-            DeltaCostHealthCollector = new DeltaTCostHealth(warmUpSimIndex, DALYPerNewMember, costPerNewMember, disabilityWeightPerDeltaT, costPerDeltaT);
+            DeltaCostHealthCollector = new DeltaTCostHealth(_warmUpSimIndex, DALYPerNewMember, costPerNewMember, disabilityWeightPerDeltaT, costPerDeltaT);
         }
 
         public void Add(int value)
         {
-            NumOfNewMembersOverPastDeltaT += value;
+            NumOfNewMembersOverPastPeriod += value;
             Prevalence += value;                       
         }
 
@@ -138,34 +145,34 @@ namespace APACElib
             // accumulated incidence
             if (IfCollectAccumulatedIncidence)
             {
-                AccumulatedIncidence += NumOfNewMembersOverPastDeltaT;
+                AccumulatedIncidence += NumOfNewMembersOverPastPeriod;
+                if (simIndex >= _warmUpSimIndex)
+                    AccumulatedIncidenceAfterWarmUp += NumOfNewMembersOverPastPeriod;
             }
 
-            if (simIndex >= _warmUpSimIndex)
-                AccumulatedIncidenceAfterWarmUp += NumOfNewMembersOverPastDeltaT;
-
             // average prevalence
-            if (!(AveragePrevalenceStat is null))
+            if (IfCalculateAvePrevalence)
                     AveragePrevalenceStat.Record(Prevalence);
 
             // time series
             if (!(IncidenceTimeSeries is null))
-                IncidenceTimeSeries.Record(NumOfNewMembersOverPastDeltaT);
+                IncidenceTimeSeries.Record(NumOfNewMembersOverPastPeriod);
             if ((!(PrevalenceTimeSeries is null)))
                 PrevalenceTimeSeries.Record(Prevalence);
             if ((!(AccumIncidenceTimeSeries is null)))
                 AccumIncidenceTimeSeries.Record(AccumulatedIncidence);
 
             // cost and health outcomes
-            DeltaCostHealthCollector.Update(simIndex, Prevalence, NumOfNewMembersOverPastDeltaT);
+            DeltaCostHealthCollector.Update(simIndex, Prevalence, NumOfNewMembersOverPastPeriod);
 
         }
 
         public void Reset()
         {
-            NumOfNewMembersOverPastDeltaT = 0;
+            NumOfNewMembersOverPastPeriod = 0;
             Prevalence = 0;
-            AccumulatedIncidence=0;
+            AccumulatedIncidence = 0;
+            AccumulatedIncidenceAfterWarmUp = 0;
             if (IncidenceTimeSeries != null)
                 IncidenceTimeSeries.Reset();
             if (PrevalenceTimeSeries != null)
@@ -174,26 +181,203 @@ namespace APACElib
                 AccumIncidenceTimeSeries.Reset();
             DeltaCostHealthCollector.Reset();
         }
+        
     }
 
-    public abstract class AggregatedTrajectory
+    public abstract class SumTrajectory : GeneralTrajectory
     {
+        public enum EnumType
+        {
+            Incidence = 0,
+            AccumulatingIncident = 1,
+            Prevalence = 2,
+        }
+
+        protected EnumType _type;
+
+        public SumTrajectory(
+            int ID,
+            string name,
+            EnumType type,
+            int warmUpSimIndex,
+            int nDeltaTInSimPeriod)
+            : base(ID, name, warmUpSimIndex)
+        {
+            _type = type;
+            switch (_type)
+            {
+                case EnumType.Incidence:
+                    SetupAvePrevalenceAndAccumIncidence(
+                        collectAccumulatedIncidence: false,
+                        calculateAvePrevalence: false);
+                    AddTimeSeries(
+                        collectIncidence: true,
+                        collectPrevalence: false,
+                        collectAccumIncidence: false,
+                        nDeltaTInAPeriod: nDeltaTInSimPeriod);
+                    break;
+                case EnumType.AccumulatingIncident:
+                    SetupAvePrevalenceAndAccumIncidence(
+                        collectAccumulatedIncidence: true,
+                        calculateAvePrevalence: false);
+                    AddTimeSeries(
+                        collectIncidence: false,
+                        collectPrevalence: false,
+                        collectAccumIncidence: true,
+                        nDeltaTInAPeriod: nDeltaTInSimPeriod);
+                    break;
+                case EnumType.Prevalence:
+                    SetupAvePrevalenceAndAccumIncidence(
+                        collectAccumulatedIncidence: false, 
+                        calculateAvePrevalence: true);
+                    AddTimeSeries(
+                        collectIncidence: false,
+                        collectPrevalence: true,
+                        collectAccumIncidence: false,
+                        nDeltaTInAPeriod: nDeltaTInSimPeriod);
+                    break;
+            }
+        }
+
+        public int GetLastObs()
+        {
+            int value = 0;
+            switch (_type)
+            {
+                case EnumType.Incidence:
+                    value = (int)IncidenceTimeSeries.GetLastObs();
+                    break;
+                case EnumType.AccumulatingIncident:
+                    value = AccumulatedIncidenceAfterWarmUp;
+                    break;
+                case EnumType.Prevalence:
+                    value = (int)PrevalenceTimeSeries.GetLastObs();
+                    break;
+            }
+            return value;
+        }
+
+        // convert sum formula into the array of class IDs or event IDs
+        protected int[] ConvertSumFormulaToArrayOfIDs(string formula)
+        {
+            string[] arrClassIDs = formula.Split('+');
+            return Array.ConvertAll<string, int>(arrClassIDs, Convert.ToInt32);
+        }
 
     }
 
-    public class SumClassesTrajectory: AggregatedTrajectory
+    public class SumClassesTrajectory: SumTrajectory
     {
+        int[] _arrClassIDs;
 
+        public SumClassesTrajectory(
+            int ID,
+            string name,
+            EnumType type,
+            string sumFormula,
+            int warmUpSimIndex,
+            int nDeltaTInAPeriod) 
+            :base(ID, name, type, warmUpSimIndex, nDeltaTInAPeriod)
+        {           
+            _arrClassIDs = ConvertSumFormulaToArrayOfIDs(sumFormula);
+        }
+
+        public void Add(int simIndex, ref List<Class> classes)
+        {
+            NumOfNewMembersOverPastPeriod = 0;
+            for (int i = 0; i < _arrClassIDs.Length; ++i)
+                NumOfNewMembersOverPastPeriod += classes[_arrClassIDs[i]].ClassStat.NumOfNewMembersOverPastPeriod;
+
+            CollectEndOfDeltaTStats(simIndex);
+        }        
     }
 
-    public class SumEventsTrajectory : AggregatedTrajectory
+    public class SumEventTrajectory: SumTrajectory
     {
+        int[] _arrEventIDs;
 
-    }
+        public SumEventTrajectory(
+            int ID,
+            string name,
+             EnumType type,
+            string sumFormula,
+            int warmUpSimIndex,
+            int nDeltaTInAPeriod) 
+            :base(ID, name, type, warmUpSimIndex, nDeltaTInAPeriod)
+        {
+            _arrEventIDs = ConvertSumFormulaToArrayOfIDs(sumFormula);
+        }
+
+        public void Add(int simIndex, ref List<Event> events)
+        {
+            NumOfNewMembersOverPastPeriod = 0;
+            for (int i = 0; i < _arrEventIDs.Length; ++i)
+                NumOfNewMembersOverPastPeriod += events[_arrEventIDs[i]].MembersOutOverPastDeltaT;
+
+            CollectEndOfDeltaTStats(simIndex);
+        }
+    }    
 
     public class RatioTrajectory
     {
+        public enum EnumType
+        {
+            IncidenceOverIncidence = 0,
+            AccumulatedIncidenceOverAccumulatedIncidence = 1,
+            PrevalenceOverPrevalence = 2,
+            IncidenceOverPrevalence = 3,
+        }
 
+        public int ID { get; }
+        public PrevalenceTimeSeries TimeSeries { get; set; }
+        public ObservationBasedStatistics AveragePrevalenceStat { get; set; }
+
+        EnumType _type;
+        int _nominatorSpecialStatID;
+        int _denominatorSpecialStatID;
+        int _warmUpSimIndex;
+
+        public RatioTrajectory(
+            int id,
+            string name,
+            EnumType type,
+            string ratioFormula,
+            int warmUpSimIndex,
+            int nDeltaTInAPeriod)            
+        {
+            ID = id;
+            _type = type;
+            int[] arrRatio = ConvertRatioFormulaToArrayOfClassIDs(ratioFormula);
+            _nominatorSpecialStatID = arrRatio[0];
+            _denominatorSpecialStatID = arrRatio[1];
+            _warmUpSimIndex = warmUpSimIndex;
+
+            TimeSeries = new PrevalenceTimeSeries(nDeltaTInAPeriod);
+            
+            if (_type == EnumType.PrevalenceOverPrevalence)
+                AveragePrevalenceStat = new ObservationBasedStatistics("Average prevalence");
+        }
+
+        public void Add(int simIndex, ref List<SumTrajectory> sumTrajectories)
+        {
+            double ratio = -1;
+            if (simIndex >= _warmUpSimIndex)
+            {
+                ratio = sumTrajectories[_nominatorSpecialStatID].GetLastObs()
+                    / sumTrajectories[_denominatorSpecialStatID].GetLastObs();
+
+                if (_type == EnumType.PrevalenceOverPrevalence)
+                    AveragePrevalenceStat.Record(ratio);
+            }
+
+            TimeSeries.Record(ratio);            
+        }
+        // convert ratio formula into the array of class IDs
+        private int[] ConvertRatioFormulaToArrayOfClassIDs(string formula)
+        {
+            string[] arrClassIDs = formula.Split('/');
+            return Array.ConvertAll<string, int>(arrClassIDs, Convert.ToInt32);
+        }
     }
 
 
@@ -396,6 +580,4 @@ namespace APACElib
         }        
     }
 
-
-    
 }

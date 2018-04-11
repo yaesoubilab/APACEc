@@ -187,25 +187,25 @@ namespace APACElib
         }
 
         // add new members
-        public void AddNewMembers(int[] arrNumOfNewMembersOverPastDeltaT, double deltaT)
-        {
-            int sumNumMembers = 0;
+        //public void AddNewMembers(int[] arrNumOfNewMembersOverPastDeltaT, double deltaT)
+        //{
+        //    int sumNumMembers = 0;
 
-            for (int i = 0; i < _arrClassOrEventIDs.Length; ++i)
-                sumNumMembers += arrNumOfNewMembersOverPastDeltaT[_arrClassOrEventIDs[i]];
+        //    for (int i = 0; i < _arrClassOrEventIDs.Length; ++i)
+        //        sumNumMembers += arrNumOfNewMembersOverPastDeltaT[_arrClassOrEventIDs[i]];
 
-            // record the sum of new members
-            if (_type == enumType.Incidence)
-                _accumulatedNewMembers += sumNumMembers;
+        //    // record the sum of new members
+        //    if (_type == enumType.Incidence)
+        //        _accumulatedNewMembers += sumNumMembers;
 
-            _countStatisticsNewMembers.AddAnObservation(sumNumMembers, deltaT);            
-        }
+        //    _countStatisticsNewMembers.AddAnObservation(sumNumMembers, deltaT);            
+        //}
         public void AddNewMembers(ref List<Class> classes, double deltaT)
         {
             int sumNumMembers = 0;
 
             for (int i = 0; i < _arrClassOrEventIDs.Length; ++i)
-                sumNumMembers += classes[_arrClassOrEventIDs[i]].ClassStat.NumOfNewMembersOverPastDeltaT;
+                sumNumMembers += classes[_arrClassOrEventIDs[i]].ClassStat.NumOfNewMembersOverPastPeriod;
 
             // record the sum of new members
             if (_type == enumType.Incidence)
@@ -213,12 +213,12 @@ namespace APACElib
 
             _countStatisticsNewMembers.AddAnObservation(sumNumMembers, deltaT);
         }
-        public void AddNewMembers(ref List<Event> processes, double deltaT)
+        public void AddNewMembers(ref List<Event> events, double deltaT)
         {
             int sumNumMembers = 0;
 
             for (int i = 0; i < _arrClassOrEventIDs.Length; ++i)
-                sumNumMembers += processes[_arrClassOrEventIDs[i]].MembersOutOverPastDeltaT;
+                sumNumMembers += events[_arrClassOrEventIDs[i]].MembersOutOverPastDeltaT;
 
             _accumulatedNewMembers += sumNumMembers;
 

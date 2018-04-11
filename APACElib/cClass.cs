@@ -20,7 +20,7 @@ namespace APACElib
         public bool IfNeedsToBeProcessed { get; set; }
         public bool IfMembersWaitingToSendOutBeforeNextDeltaT { get; set; }
         // statistics
-        public ClassTrajectory ClassStat { get; set; }
+        public GeneralTrajectory ClassStat { get; set; }
 
         // show in simulation output 
         public bool ShowIncidence { get; set; }
@@ -138,7 +138,7 @@ namespace APACElib
         public virtual void ResetNumOfMembersSendingToEachDestinationClasses()
         { }
         // find the members out of active processes
-        public virtual void ReturnAndResetNumOfMembersOutOfEventsOverPastDeltaT(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
+        public virtual void ResetNumOfMembersOutOfEventsOverPastDeltaT()//(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
         { }
 
         // reset for another simulation run
@@ -409,11 +409,11 @@ namespace APACElib
             IfMembersWaitingToSendOutBeforeNextDeltaT = false;
         }
         // find the members out of active processes
-        public override void ReturnAndResetNumOfMembersOutOfEventsOverPastDeltaT(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
+        public override void ResetNumOfMembersOutOfEventsOverPastDeltaT()//(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
         {
             foreach (Event activeProcess in _activeEvents)
             {
-                arrNumOfMembersOutOfProcessesOverPastDeltaT[activeProcess.ID] += activeProcess.MembersOutOverPastDeltaT;
+                //arrNumOfMembersOutOfProcessesOverPastDeltaT[activeProcess.ID] += activeProcess.MembersOutOverPastDeltaT;
                 activeProcess.MembersOutOverPastDeltaT = 0;
             }
         }

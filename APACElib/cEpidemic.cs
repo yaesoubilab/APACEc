@@ -1461,7 +1461,7 @@ namespace APACElib
         private void ResetClassNumberOfNewMembers()
         {           
             foreach (Class thisClass in _classes)
-                thisClass.ClassStat.NumOfNewMembersOverPastDeltaT= 0;
+                thisClass.ClassStat.NumOfNewMembersOverPastPeriod= 0;
         }
         // transfer class members        
         private void TransferClassMembers()
@@ -1509,7 +1509,7 @@ namespace APACElib
                 _arrNumOfMembersInEachClass[thisClass.ID] = thisClass.ClassStat.Prevalence;
 
             // update and gather statistics defined for events                         
-            int[] arrNumOfNewMembersOutOfEventsOverPastDeltaT = new int[_events.Count];
+            //int[] arrNumOfNewMembersOutOfEventsOverPastDeltaT = new int[_events.Count];
             foreach (Class thisClass in _classes)
             {
                 thisClass.ClassStat.CollectEndOfDeltaTStats(_simTimeIndex);
@@ -1521,7 +1521,7 @@ namespace APACElib
                         thisClass.ClassStat.DeltaCostHealthCollector.DeltaTDALY);
                 }
                 // find number of members out of active events for this class
-                thisClass.ReturnAndResetNumOfMembersOutOfEventsOverPastDeltaT(ref arrNumOfNewMembersOutOfEventsOverPastDeltaT);
+                //thisClass.ReturnAndResetNumOfMembersOutOfEventsOverPastDeltaT(ref arrNumOfNewMembersOutOfEventsOverPastDeltaT);
             }
 
             foreach (SummationStatisticsOld thisSumStat in _summationStatistics)
@@ -1555,7 +1555,7 @@ namespace APACElib
                             {
                                 case APACElib.SummationStatisticsOld.enumType.Incidence:
                                     {
-                                        thisSumStat.AddNewMembers(arrNumOfNewMembersOutOfEventsOverPastDeltaT, _set.DeltaT);
+                                        thisSumStat.AddNewMembers(ref _events, _set.DeltaT);
                                         EpidemicCostHealth.Add(
                                             _simTimeIndex,
                                             thisSumStat.CurrentCost,
@@ -1572,6 +1572,11 @@ namespace APACElib
                         break;
                 }                
             }
+
+            // reset number of members out of active events for all classes
+            foreach (Class thisClass in _classes)
+                thisClass.ResetNumOfMembersOutOfEventsOverPastDeltaT();
+
             // update decision costs
             if (_modelUse != EnumModelUse.Calibration)
             {
@@ -2798,13 +2803,14 @@ namespace APACElib
                 #endregion
 
                 // class statistics 
-                _classes.Last().ClassStat = new ClassTrajectory(showStatisticsInSimulationResults, _set.WarmUpPeriodTimeIndex, showAccumIncidence);
+                _classes.Last().ClassStat = new GeneralTrajectory(classID, name, _set.WarmUpPeriodTimeIndex);
+                _classes.Last().ClassStat.SetupAvePrevalenceAndAccumIncidence(showAccumIncidence, false);
                 // adding time series
                 _classes.Last().ClassStat.AddTimeSeries(
                     collectIncidenceTimeSeries, collectPrevalenceTimeSeries, collectAccumIncidenceTimeSeries, _set.NumOfDeltaT_inSimulationOutputInterval);
                 // adding cost and health outcomes
                 _classes.Last().ClassStat.AddCostHealthOutcomes(
-                    _set.WarmUpPeriodTimeIndex, DALYPerNewMember, costPerNewMember, healthQualityPerUnitOfTime * _set.DeltaT, costPerUnitOfTime * _set.DeltaT);
+                    DALYPerNewMember, costPerNewMember, healthQualityPerUnitOfTime * _set.DeltaT, costPerUnitOfTime * _set.DeltaT);
 
                 // set up which statistics to show
                 _classes.Last().ShowStatisticsInSimulationResults = showStatisticsInSimulationResults;
@@ -3116,10 +3122,10 @@ namespace APACElib
                 else if (strType == "Accumulating Incidence") type = APACElib.SummationStatisticsOld.enumType.AccumulatingIncident;
 
                 // if display
-                bool ifDispay = SupportFunctions.ConvertYesNoToBool(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfDisplay).ToString());
+                //bool ifDispay = SupportFunctions.ConvertYesNoToBool(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfDisplay).ToString());
 
                 // QALY loss and cost outcomes
-                double QALYLossPerNewMember = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.QALYLoss));
+                double QALYLossPerNewMember = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.DALYPerNewMember));
                 double costPerNewMember = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.CostPerNewMember));
                 // real-time monitoring
                 bool surveillanceDataAvailable = SupportFunctions.ConvertYesNoToBool(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.SurveillanceDataAvailable).ToString());
@@ -3183,7 +3189,7 @@ namespace APACElib
                     SummationStatisticsOld(statID, name, definedOn, type, sumFormula, QALYLossPerNewMember, costPerNewMember, surveillanceDataAvailable, firstObservationMarksTheStartOfTheSpread,
                                        (int)(_set.NumOfDeltaT_inSimulationOutputInterval / _set.NumOfDeltaT_inObservationPeriod), _set.NumOfDeltaT_inObservationPeriod, numOfObservationPeriodsDelayBeforeObservating);
                 // if display
-                thisSummationStatistics.IfDisplay = ifDispay;
+                thisSummationStatistics.IfDisplay = true;
 
                 // set up calibration
                 thisSummationStatistics.IfIncludedInCalibration = ifIncludedInCalibration;
@@ -3268,7 +3274,7 @@ namespace APACElib
                 string ratioFormula = Convert.ToString(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Formula));
 
                 // if display
-                bool ifDispay = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfDisplay).ToString());
+                //bool ifDispay = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfDisplay).ToString());
 
                 bool ifSurveillanceDataAvailable = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.SurveillanceDataAvailable).ToString());
                 
@@ -3344,7 +3350,7 @@ namespace APACElib
                         break;
                 }
                 // if display
-                thisRatioStatistics.IfDisplay = ifDispay;
+                thisRatioStatistics.IfDisplay = true;
 
                 // set up calibration
                 thisRatioStatistics.IfIncludedInCalibration = ifIncludedInCalibration;
