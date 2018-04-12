@@ -8,7 +8,7 @@ using ComputationLib;
 
 namespace SimulationLib
 {
-    public class Calibration
+    public class CalibrationOld
     {        
         #region Variables
 
@@ -78,7 +78,7 @@ namespace SimulationLib
         #endregion
 
         // Instantiation
-        public Calibration(int numOfParameters)
+        public CalibrationOld(int numOfParameters)
         {
             _numOfParameters = numOfParameters;
         }
@@ -595,6 +595,23 @@ namespace SimulationLib
         }
 
     }
+
+    public class TrajectoryCalibrationInfo
+    {
+        public bool IfIncluded { get; } = false;
+        public bool IfCheckWithinFeasibleRange { get; } = false;
+        public double LowFeasibleRange { get; }
+        public double UpFeasibleRange { get; }
+
+        public TrajectoryCalibrationInfo(bool ifIncluded, bool ifCheckWithinFeasibleRange, double lowFeasibleBound=0, double upFeasibleBound=double.MaxValue)
+        {
+            IfIncluded = ifIncluded;
+            IfCheckWithinFeasibleRange = ifCheckWithinFeasibleRange;
+            LowFeasibleRange = lowFeasibleBound;
+            UpFeasibleRange = upFeasibleBound;
+        }
+    }
+
 }
 
 

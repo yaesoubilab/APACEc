@@ -333,8 +333,8 @@ namespace APACElib
                         _modelSettings.AdpParameterDesigns[epiID][(int)enumADPParameter.EpsilonGreedy_beta]);
 
                     // update time to start decision making and storing outcomes
-                    thisEpidemicModeller.UpdateTheTimeToStartDecisionMakingAndWarmUpPeriod
-                        (epidemicTimeToStartDecisionMaking, warmUpPeriod);
+                    //thisEpidemicModeller.UpdateTheTimeToStartDecisionMakingAndWarmUpPeriod
+                    //    (epidemicTimeToStartDecisionMaking, warmUpPeriod);
 
                     // add this epidemic modeler
                     _epidemicModellers.Add(thisEpidemicModeller);
@@ -366,8 +366,8 @@ namespace APACElib
                         _modelSettings.AdpParameterDesigns[epiID][(int)enumADPParameter.EpsilonGreedy_beta]);
 
                     // update time to start decision making and storing outcomes
-                    thisEpidemicModeller.UpdateTheTimeToStartDecisionMakingAndWarmUpPeriod
-                        (epidemicTimeToStartDecisionMaking, warmUpPeriod);
+                    //thisEpidemicModeller.UpdateTheTimeToStartDecisionMakingAndWarmUpPeriod
+                    //    (epidemicTimeToStartDecisionMaking, warmUpPeriod);
 
                     // add this epidemic modeler
                     lock (thisLock)
@@ -420,8 +420,8 @@ namespace APACElib
                         0);
 
                     // update time to start decision making and storing outcomes
-                    thisEpidemicModeller.UpdateTheTimeToStartDecisionMakingAndWarmUpPeriod
-                        (_modelSettings.EpidemicTimeIndexToStartDecisionMaking, warmUpPeriod);
+                    //thisEpidemicModeller.UpdateTheTimeToStartDecisionMakingAndWarmUpPeriod
+                    //    (_modelSettings.EpidemicTimeIndexToStartDecisionMaking, warmUpPeriod);
 
                     // add this epidemic modeler
                     _epidemicModellers.Add(thisEpidemicModeller);
@@ -455,8 +455,8 @@ namespace APACElib
                         0);
 
                     // update time to start decision making and storing outcomes
-                    thisEpidemicModeller.UpdateTheTimeToStartDecisionMakingAndWarmUpPeriod
-                        (_modelSettings.EpidemicTimeIndexToStartDecisionMaking, warmUpPeriod);
+                    //thisEpidemicModeller.UpdateTheTimeToStartDecisionMakingAndWarmUpPeriod
+                    //    (_modelSettings.EpidemicTimeIndexToStartDecisionMaking, warmUpPeriod);
 
                     // add this epidemic modeler
                     lock (thisLock)
@@ -865,87 +865,15 @@ namespace APACElib
         // setup simulation output sheet
         private void SetupSimulationOutputSheet()
         {
-            //if (_epidemicModeller.ReportEpidemicTrajectories == false)
-            //    return;
-            
-            // define the header
-            string[] arrTimeBasedOutputsHeading = new string[0];
-            string[] arrIntervalBasedOutputs = new string[0];
-            string[] arrObservableOutputs = new string[0];
-            string[] arrResourceOutputs = new string[0];
+            string[] prevalenceOutputs = new string[0];
+            string[] incidenceOutputs = new string[0];
+            string[] observableOutputs = new string[0]; 
+            string[] resourceOutputs = new string[0];
 
-            // create headers
-            ComputationLib.SupportFunctions.AddToEndOfArray(ref arrTimeBasedOutputsHeading, "Simulation Replication");
-            ComputationLib.SupportFunctions.AddToEndOfArray(ref arrTimeBasedOutputsHeading, "Simulation Time");
-            ComputationLib.SupportFunctions.AddToEndOfArray(ref arrIntervalBasedOutputs, "Decision Code");
-            ComputationLib.SupportFunctions.AddToEndOfArray(ref arrIntervalBasedOutputs, "Observation Period");            
-            ComputationLib.SupportFunctions.AddToEndOfArray(ref arrObservableOutputs, "Surveillance Period");
-
-            // class headers
-            foreach (Class thisClass in _epidemicModeller.Classes)            
-            {
-                if (thisClass.ShowIncidence)
-                    ComputationLib.SupportFunctions.AddToEndOfArray(ref arrIntervalBasedOutputs, "To: " + thisClass.Name);
-                if (thisClass.ShowPrevalence)
-                    ComputationLib.SupportFunctions.AddToEndOfArray(ref arrTimeBasedOutputsHeading, "In: " + thisClass.Name);
-                if (thisClass.ShowAccumIncidence)
-                    ComputationLib.SupportFunctions.AddToEndOfArray(ref arrTimeBasedOutputsHeading, "Sum To: " + thisClass.Name);
-            }
-            // summation statistics header
-            foreach (SummationStatisticsOld thisSumStat in _epidemicModeller.SummationStatistics.Where(s => s.IfDisplay))
-            {
-                switch (thisSumStat.Type)
-                {
-                    case SummationStatisticsOld.enumType.Incidence:
-                        ComputationLib.SupportFunctions.AddToEndOfArray(ref arrIntervalBasedOutputs, thisSumStat.Name);
-                        break;
-                    case SummationStatisticsOld.enumType.AccumulatingIncident:
-                    case SummationStatisticsOld.enumType.Prevalence:
-                        ComputationLib.SupportFunctions.AddToEndOfArray(ref arrTimeBasedOutputsHeading, thisSumStat.Name);
-                        break;
-                }
-            }
-
-            // surveillance statistics header for summation statistics
-            foreach (SummationStatisticsOld thisSumStat in _epidemicModeller.SummationStatistics.Where(s => (s.SurveillanceDataAvailable && s.IfDisplay)))
-            {    
-                 ComputationLib.SupportFunctions.AddToEndOfArray(ref arrObservableOutputs, "Surveillance | " + thisSumStat.Name);
-            }
-
-            // ratio statistics
-            foreach (RatioStatistics thisRatioStat in _epidemicModeller.RatioStatistics.Where(s => s.IfDisplay))
-            {
-                // find the type of this ratio statistics
-                switch (thisRatioStat.Type)
-                {
-                    case APACElib.RatioStatistics.enumType.IncidenceOverIncidence:
-                        ComputationLib.SupportFunctions.AddToEndOfArray(ref arrIntervalBasedOutputs, thisRatioStat.Name);
-                        break;
-                    case APACElib.RatioStatistics.enumType.AccumulatedIncidenceOverAccumulatedIncidence:
-                        ComputationLib.SupportFunctions.AddToEndOfArray(ref arrTimeBasedOutputsHeading, thisRatioStat.Name);
-                        break;
-                    case APACElib.RatioStatistics.enumType.PrevalenceOverPrevalence:
-                        ComputationLib.SupportFunctions.AddToEndOfArray(ref arrTimeBasedOutputsHeading, thisRatioStat.Name);
-                        break;
-                    case APACElib.RatioStatistics.enumType.IncidenceOverPrevalence:
-                        ComputationLib.SupportFunctions.AddToEndOfArray(ref arrIntervalBasedOutputs, thisRatioStat.Name);
-                        break;
-                }
-
-                // surveillance statistics header for ratio statistics
-                if (thisRatioStat.SurveillanceDataAvailable)
-                    ComputationLib.SupportFunctions.AddToEndOfArray(ref arrObservableOutputs, "Surveillance | " + thisRatioStat.Name);
-            }
-
-            // resource header
-            foreach (Resource thisResource in _epidemicModeller.Resources)
-            {
-                if (thisResource.ShowAvailability)
-                    ComputationLib.SupportFunctions.AddToEndOfArray(ref arrResourceOutputs, thisResource.Name);
-            }
+            _epidemicModeller.ParentEpidemic.EpidemicHistory.CreateOutputHeaders(ref prevalenceOutputs, ref incidenceOutputs);
 
             // write header
-            _excelInterface.SetupSimulationOutputSheet(arrTimeBasedOutputsHeading, arrIntervalBasedOutputs, arrObservableOutputs, arrResourceOutputs);                             
+            _excelInterface.SetupSimulationOutputSheet(prevalenceOutputs, incidenceOutputs, observableOutputs, resourceOutputs);                             
         }
         // report simulation statistics
         private void ReportTrajectoriesAndSimulationStatistics(EpidemicModeller thisEpidemicModeller)

@@ -192,19 +192,28 @@ namespace APACElib
             AccumulatingIncident = 1,
             Prevalence = 2,
         }
+        public enum EnumDefinedOn
+        {
+            Classes = 0,
+            Events = 1,
+        }
 
-        protected EnumType _type;
+        public Boolean DisplayInSimOutput { get; set; }
+        public EnumType Type { get; set; }
+        public TrajectoryCalibrationInfo CalibInfo { get; set; }
 
         public SumTrajectory(
             int ID,
             string name,
             EnumType type,
+            bool displayInSimOutput,
             int warmUpSimIndex,
-            int nDeltaTInSimPeriod)
+            int nDeltaTInAPeriod)
             : base(ID, name, warmUpSimIndex)
         {
-            _type = type;
-            switch (_type)
+            Type = type;
+            DisplayInSimOutput = displayInSimOutput;
+            switch (Type)
             {
                 case EnumType.Incidence:
                     SetupAvePrevalenceAndAccumIncidence(
@@ -214,7 +223,7 @@ namespace APACElib
                         collectIncidence: true,
                         collectPrevalence: false,
                         collectAccumIncidence: false,
-                        nDeltaTInAPeriod: nDeltaTInSimPeriod);
+                        nDeltaTInAPeriod: nDeltaTInAPeriod);
                     break;
                 case EnumType.AccumulatingIncident:
                     SetupAvePrevalenceAndAccumIncidence(
@@ -224,7 +233,7 @@ namespace APACElib
                         collectIncidence: false,
                         collectPrevalence: false,
                         collectAccumIncidence: true,
-                        nDeltaTInAPeriod: nDeltaTInSimPeriod);
+                        nDeltaTInAPeriod: nDeltaTInAPeriod);
                     break;
                 case EnumType.Prevalence:
                     SetupAvePrevalenceAndAccumIncidence(
@@ -234,7 +243,7 @@ namespace APACElib
                         collectIncidence: false,
                         collectPrevalence: true,
                         collectAccumIncidence: false,
-                        nDeltaTInAPeriod: nDeltaTInSimPeriod);
+                        nDeltaTInAPeriod: nDeltaTInAPeriod);
                     break;
             }
         }
@@ -242,7 +251,7 @@ namespace APACElib
         public int GetLastObs()
         {
             int value = 0;
-            switch (_type)
+            switch (Type)
             {
                 case EnumType.Incidence:
                     value = (int)IncidenceTimeSeries.GetLastObs();
@@ -275,9 +284,10 @@ namespace APACElib
             string name,
             EnumType type,
             string sumFormula,
+            bool displayInSimOutput,
             int warmUpSimIndex,
             int nDeltaTInAPeriod) 
-            :base(ID, name, type, warmUpSimIndex, nDeltaTInAPeriod)
+            :base(ID, name, type, displayInSimOutput, warmUpSimIndex, nDeltaTInAPeriod)
         {           
             _arrClassIDs = ConvertSumFormulaToArrayOfIDs(sumFormula);
         }
@@ -301,9 +311,10 @@ namespace APACElib
             string name,
              EnumType type,
             string sumFormula,
+            bool displayInSimOutput,
             int warmUpSimIndex,
             int nDeltaTInAPeriod) 
-            :base(ID, name, type, warmUpSimIndex, nDeltaTInAPeriod)
+            :base(ID, name, type, displayInSimOutput, warmUpSimIndex, nDeltaTInAPeriod)
         {
             _arrEventIDs = ConvertSumFormulaToArrayOfIDs(sumFormula);
         }
@@ -327,12 +338,15 @@ namespace APACElib
             PrevalenceOverPrevalence = 2,
             IncidenceOverPrevalence = 3,
         }
+        public TrajectoryCalibrationInfo CalibInfo { get; set; }
 
         public int ID { get; }
+        public string Name { get; set; }
+        public Boolean DisplayInSimOutput { get; set; }
         public PrevalenceTimeSeries TimeSeries { get; set; }
         public ObservationBasedStatistics AveragePrevalenceStat { get; set; }
 
-        EnumType _type;
+        public EnumType Type { get; set; }
         int _nominatorSpecialStatID;
         int _denominatorSpecialStatID;
         int _warmUpSimIndex;
@@ -342,11 +356,14 @@ namespace APACElib
             string name,
             EnumType type,
             string ratioFormula,
+            bool displayInSimOutput,
             int warmUpSimIndex,
             int nDeltaTInAPeriod)            
         {
             ID = id;
-            _type = type;
+            Name = name;
+            Type = type;
+            DisplayInSimOutput = displayInSimOutput;
             int[] arrRatio = ConvertRatioFormulaToArrayOfClassIDs(ratioFormula);
             _nominatorSpecialStatID = arrRatio[0];
             _denominatorSpecialStatID = arrRatio[1];
@@ -354,29 +371,213 @@ namespace APACElib
 
             TimeSeries = new PrevalenceTimeSeries(nDeltaTInAPeriod);
             
-            if (_type == EnumType.PrevalenceOverPrevalence)
+            if (Type == EnumType.PrevalenceOverPrevalence)
                 AveragePrevalenceStat = new ObservationBasedStatistics("Average prevalence");
         }
 
         public void Add(int simIndex, ref List<SumTrajectory> sumTrajectories)
         {
-            double ratio = -1;
+            double ratio = sumTrajectories[_nominatorSpecialStatID].GetLastObs()
+                    / sumTrajectories[_denominatorSpecialStatID].GetLastObs();
+            TimeSeries.Record(ratio);
+
             if (simIndex >= _warmUpSimIndex)
             {
-                ratio = sumTrajectories[_nominatorSpecialStatID].GetLastObs()
-                    / sumTrajectories[_denominatorSpecialStatID].GetLastObs();
-
-                if (_type == EnumType.PrevalenceOverPrevalence)
+                if (Type == EnumType.PrevalenceOverPrevalence)
                     AveragePrevalenceStat.Record(ratio);
-            }
-
-            TimeSeries.Record(ratio);            
+            }                        
         }
         // convert ratio formula into the array of class IDs
         private int[] ConvertRatioFormulaToArrayOfClassIDs(string formula)
         {
             string[] arrClassIDs = formula.Split('/');
             return Array.ConvertAll<string, int>(arrClassIDs, Convert.ToInt32);
+        }
+    }
+
+
+    public class ObservedTrajectories
+    {
+
+        public void Record (int simTimeIndex)
+        {
+            double[][] thisCalibrationObservation = new double[1][];
+            double[][] thisTimeOfObservableOutputs = new double[1][];
+            //int colIndexObservableOutputs = 0;
+            //int colIndexCalibrationObservation = 0;
+        }
+    }
+
+    public class SimulationTrajectories
+    {
+        private int _simReplication;
+        private double _deltaT;
+        private int _nDeltaTInSimOutputInterval;
+        private int _nextSimTimeIndexToStore; // for visualization
+        private DecisionMaker _decisionMaker;
+        private List<Class> _classes;
+        private List<SumTrajectory> _sumTrajectories;
+        private List<RatioTrajectory> _ratioTrajectories;
+
+        public int NumOfPrevalenceOutputsToReport { get; set; }
+        public int NumOfIncidenceOutputsToReport { get; set; }
+
+        private int[][] _interventionCombinations;
+        private double[][] _simPrevalenceOutputs;
+        private double[][] _simIncidenceOutputs;
+
+        public SimulationTrajectories(
+            int simReplication, 
+            double deltaT,
+            int nDeltaTInSimOutputInterval,
+            ref DecisionMaker decisionMaker,
+            ref List<Class> classes,
+            ref List<SumTrajectory> sumTrajectories,
+            ref List<RatioTrajectory> ratioTrajectories)
+        {
+            _simReplication = simReplication;
+            _deltaT = deltaT;
+            _nDeltaTInSimOutputInterval = nDeltaTInSimOutputInterval;
+            _decisionMaker = decisionMaker;
+            _classes = classes;
+            _sumTrajectories = sumTrajectories;
+            _ratioTrajectories = ratioTrajectories;        
+
+            _nextSimTimeIndexToStore = 0;
+        }
+
+        // store selected outputs while simulating
+        public void Record(int simTimeIndex)
+        {
+            // check if it is time to store output
+            if (simTimeIndex < _nextSimTimeIndexToStore)
+                return;
+
+            // define the jagged array to store current observation
+            int[][] thisActionCombination = new int[1][];
+            double[][] thisPrevalenceOutputs = new double[1][];
+            double[][] thisIncidenceOutputs = new double[1][];                        
+            int colIndexPrevalenceOutputs = 0;
+            int colIndexIncidenceOutputs = 0;
+            
+            thisPrevalenceOutputs[0] = new double[NumOfPrevalenceOutputsToReport];
+            thisIncidenceOutputs[0] = new double[NumOfIncidenceOutputsToReport];
+
+            // store the current time and the current interval
+            thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = _simReplication;
+            thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = simTimeIndex * _deltaT;
+            thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = simTimeIndex / _nDeltaTInSimOutputInterval;
+
+            // action combination
+            thisActionCombination[0] = (int[])_decisionMaker.CurrentDecision.Clone();
+
+            // classes
+            foreach (Class thisClass in _classes)
+            {
+                if (thisClass.ShowIncidence)
+                    thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = thisClass.ClassStat.IncidenceTimeSeries.GetLastObs();
+                if (thisClass.ShowPrevalence)
+                    thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = thisClass.ClassStat.Prevalence;
+                if (thisClass.ShowAccumIncidence)
+                    thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = thisClass.ClassStat.AccumulatedIncidence;
+            }
+
+            // summation statistics
+            foreach (SumTrajectory thisSumTraj in _sumTrajectories.Where(s => s.DisplayInSimOutput))
+            {
+                switch (thisSumTraj.Type)
+                {
+                    case SumTrajectory.EnumType.Incidence:
+                        thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = thisSumTraj.IncidenceTimeSeries.GetLastObs();
+                        break;
+                    case SumTrajectory.EnumType.AccumulatingIncident:
+                        thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = thisSumTraj.AccumulatedIncidence;
+                        break;
+                    case SumTrajectory.EnumType.Prevalence:
+                        thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = thisSumTraj.Prevalence;
+                        break;
+                }
+            }
+            // ratio statistics
+            foreach (RatioTrajectory thisRatioTraj in _ratioTrajectories.Where(s => s.DisplayInSimOutput))
+            {
+                thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = thisRatioTraj.TimeSeries.GetLastObs();
+            }
+
+            // concatenate this row 
+            _simPrevalenceOutputs = SupportFunctions.ConcatJaggedArray(_simPrevalenceOutputs, thisPrevalenceOutputs);
+            _simIncidenceOutputs = SupportFunctions.ConcatJaggedArray(_simIncidenceOutputs, thisIncidenceOutputs);
+            // record the action combination
+            _interventionCombinations = SupportFunctions.ConcatJaggedArray(_interventionCombinations, thisActionCombination);
+        }
+
+
+        // get header
+        public void CreateOutputHeaders(ref string[] arrPrevalenceOutputsHeader, ref string[] arrIncidenceOutputsHeader)
+        {
+            // define the header
+            arrPrevalenceOutputsHeader = new string[0];
+            arrIncidenceOutputsHeader = new string[0];
+
+            // create headers
+            SupportFunctions.AddToEndOfArray(ref arrPrevalenceOutputsHeader, "Simulation Replication");
+            SupportFunctions.AddToEndOfArray(ref arrPrevalenceOutputsHeader, "Simulation Time");
+            SupportFunctions.AddToEndOfArray(ref arrIncidenceOutputsHeader, "Decision Code");
+            SupportFunctions.AddToEndOfArray(ref arrIncidenceOutputsHeader, "Observation Period");
+
+            // class headers
+            foreach (Class thisClass in _classes)
+            {
+                if (thisClass.ShowIncidence)
+                    SupportFunctions.AddToEndOfArray(ref arrIncidenceOutputsHeader, "To: " + thisClass.Name);
+                if (thisClass.ShowPrevalence)
+                    SupportFunctions.AddToEndOfArray(ref arrPrevalenceOutputsHeader, "In: " + thisClass.Name);
+                if (thisClass.ShowAccumIncidence)
+                    SupportFunctions.AddToEndOfArray(ref arrPrevalenceOutputsHeader, "Sum To: " + thisClass.Name);
+            }
+            // summation statistics header
+            foreach (SumTrajectory thisSumTraj in _sumTrajectories.Where(s => s.DisplayInSimOutput))
+            {
+                switch (thisSumTraj.Type)
+                {
+                    case SumTrajectory.EnumType.Incidence:
+                        SupportFunctions.AddToEndOfArray(ref arrIncidenceOutputsHeader, thisSumTraj.Name);
+                        break;
+                    case SumTrajectory.EnumType.AccumulatingIncident:
+                    case SumTrajectory.EnumType.Prevalence:
+                        SupportFunctions.AddToEndOfArray(ref arrPrevalenceOutputsHeader, thisSumTraj.Name);
+                        break;
+                }
+            }
+            // ratio statistics
+            foreach (RatioTrajectory thisRatioTaj in _ratioTrajectories.Where(s => s.DisplayInSimOutput))
+            {
+                // find the type of this ratio statistics
+                switch (thisRatioTaj.Type)
+                {
+                    case RatioTrajectory.EnumType.IncidenceOverIncidence:
+                        SupportFunctions.AddToEndOfArray(ref arrIncidenceOutputsHeader, thisRatioTaj.Name);
+                        break;
+                    case RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
+                        SupportFunctions.AddToEndOfArray(ref arrPrevalenceOutputsHeader, thisRatioTaj.Name);
+                        break;
+                    case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
+                        SupportFunctions.AddToEndOfArray(ref arrPrevalenceOutputsHeader, thisRatioTaj.Name);
+                        break;
+                    case RatioTrajectory.EnumType.IncidenceOverPrevalence:
+                        SupportFunctions.AddToEndOfArray(ref arrIncidenceOutputsHeader, thisRatioTaj.Name);
+                        break;
+                }
+            }
+
+            // find the number of outputs to report
+            NumOfPrevalenceOutputsToReport = arrPrevalenceOutputsHeader.Length - 2;
+            NumOfIncidenceOutputsToReport = arrIncidenceOutputsHeader.Length - 2;
+        }
+
+        public void Reset()
+        {            
+            _nextSimTimeIndexToStore = 0;
         }
     }
 

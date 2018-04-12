@@ -18,7 +18,9 @@ namespace APACElib
         private int _ID;
         private ModelSettings _set;
         // parent epidemic and collection of epidemics
-        private Epidemic _parentEpidemic;
+        public Epidemic _parentEpidemic;
+        public Epidemic ParentEpidemic { get { return _parentEpidemic; } }
+
         //private ArrayList _epidemics = new ArrayList();
         private List<Epidemic> _epidemics = new List<Epidemic>();
         // model information
@@ -43,8 +45,8 @@ namespace APACElib
 
         // simulation outputs
         private int _numOfMonitoredSimulationOutputs;
-        private int _numOfTimeBasedOutputsToReport;
-        private int _numOfIntervalBasedOutputsToReport;
+        private int _numOfPrevalenceOutputsToReport;
+        private int _numOfIncidenceOutputsToReport;
         private int _numOfResourcesToReport;
         private int[][] _pastActionCombinations;
         private double[][] _simulationTimeBasedOutputs;
@@ -72,7 +74,7 @@ namespace APACElib
         private ObservationBasedStatistics _obsNumOfSwitchesBtwDecisions = new ObservationBasedStatistics("Total switches");
         private double[][] _sampledParameterValues;
         // calibration
-        private Calibration _calibration;
+        private CalibrationOld _calibration;
         private int _numOfCalibratoinTargets;
         //private int _numOfSpecialStatisticsIncludedInCalibration;
         //private double _calibratoinWarmUpPeriodLength;
@@ -138,33 +140,18 @@ namespace APACElib
         {
             get { return _storeEpidemicTrajectories; }
         }
-        public List<Class> Classes
-        {
-            get { return _parentEpidemic.Classes;}
-        }
-        public List<SummationStatisticsOld> SummationStatistics
-        {
-            get {return _parentEpidemic.SummationStatistics; }
-        }
-        public List<RatioStatistics> RatioStatistics
-        {
-            get {return _parentEpidemic.RatioStatistics;}
-        }
-        public ArrayList Resources
-        {
-            get { return _parentEpidemic.Resources;}
-        }
+        
         public int[][] PastActionCombinations
         {
             get { return _pastActionCombinations; }
         }
         public double[,] SimulationTimeBasedOutputs
         {
-            get { return SupportFunctions.ConvertFromJaggedArrayToRegularArray(_simulationTimeBasedOutputs, _numOfTimeBasedOutputsToReport); }
+            get { return SupportFunctions.ConvertFromJaggedArrayToRegularArray(_simulationTimeBasedOutputs, _numOfPrevalenceOutputsToReport); }
         }
         public double[,] SimulationIntervalBasedOutputs
         {
-            get { return SupportFunctions.ConvertFromJaggedArrayToRegularArray(_simulationIntervalBasedOutputs, _numOfIntervalBasedOutputsToReport); }
+            get { return SupportFunctions.ConvertFromJaggedArrayToRegularArray(_simulationIntervalBasedOutputs, _numOfIncidenceOutputsToReport); }
         }
         public double[,] TimeOfSimulationObservableOutputs
         {
@@ -183,7 +170,7 @@ namespace APACElib
             get { return _numOfMonitoredSimulationOutputs; }
         }
         // calibration
-        public Calibration Calibration
+        public CalibrationOld Calibration
         {
             get { return _calibration; }
         }
@@ -637,128 +624,7 @@ namespace APACElib
             else
                 _parentEpidemic.StoreEpidemicTrajectories = yesOrNo;
         }
-        // update the time to start decision making and collecting epidemic outcomes
-        public void UpdateTheTimeToStartDecisionMakingAndWarmUpPeriod(double timeToStartDecisionMaking, double warmUpPeriod)
-        {
-            if (_set.UseParallelComputing)
-            {
-                foreach (Epidemic thisEpidemic in _epidemics)
-                    thisEpidemic.UpdateTheTimeToStartDecisionMakingAndWarmUpPeriod(timeToStartDecisionMaking, warmUpPeriod);
-            }
-            else
-                _parentEpidemic.UpdateTheTimeToStartDecisionMakingAndWarmUpPeriod(timeToStartDecisionMaking, warmUpPeriod);
-        }
-
-
-        //// build one epidemic model - sequantial processing
-        //public void BuildAnEpidemicModelForSequentialSimulation(Epidemic parentEpidemic, Array parametersSheet, Array pathogensSheet,
-        //    Array classesSheet, Array interventionsSheet, Array resourcesSheet, Array processesSheet,
-        //    Array summationStatisticsSheet, Array ratioStatisticsSheet,
-        //    int[,] connectionsMatrix)
-        //{
-        //    _modelSettings.UseParallelComputing = false;
-        //    // build the parent epidemic model
-        //    _parentEpidemic = parentEpidemic.Clone(0);
-        //    //_parentEpidemic.BuildModel(parametersSheet, pathogensSheet, classesSheet, interventionsSheet, resourcesSheet, processesSheet,
-        //    //    summationStatisticsSheet, ratioStatisticsSheet, connectionsMatrix);//, baseContactMatrices, percentChangeInContactMatricesParIDs);
-
-        //    //// setup storing simulation trajectories
-        //    //_parentEpidemic.SetupStoringSimulationTrajectory();
-
-        //    // gather model information
-        //    CollectInformationAvailableAfterModelIsBuilt();
-        //}
         
-        //// build a collection of epidemic model - parallel processing
-        //public void BuildCollectionOfEpidemicModelForParralelSimulation(int numOfParallelEpidemics, Epidemic parentEpidemic,
-        //    Array parametersSheet, Array pathogensSheet, Array classesSheet, Array interventionsSheet, Array resourcesSheet, Array processesSheet,
-        //    Array summationStatisticsSheet, Array ratioStatisticsSheet,
-        //    int[,] connectionsMatrix)
-        //{
-        //    _modelSettings.UseParallelComputing = true;
-        //    // build collection of epidemics
-        //    _epidemics.Clear();
-        //    Object thisLock = new Object();
-        //    Parallel.For(0, numOfParallelEpidemics, simItr =>
-        //    {
-        //        // create an epidemic
-        //        Epidemic thisEpidemic = parentEpidemic.Clone(simItr);
-        //        //// build the parent epidemic model
-        //        //thisEpidemic.BuildModel(parametersSheet, pathogensSheet, classesSheet, interventionsSheet, resourcesSheet, processesSheet,
-        //        //    summationStatisticsSheet, ratioStatisticsSheet, 
-        //        //    connectionsMatrix);//, baseContactMatrices, percentChangeInContactMatricesParIDs);
-
-        //        //// setup storing simulation trajectories
-        //        //thisEpidemic.SetupStoringSimulationTrajectory();
-
-        //        // add this epidemic
-        //        lock (thisLock)
-        //        {
-        //            _epidemics.Add(thisEpidemic);
-        //        }
-        //    });
-        //    // gather model information
-        //    CollectInformationAvailableAfterModelIsBuilt();
-        //}
-
-        //// add contact matrices
-        //public void AddContactMatrices(double[][,] baseContactMatrices, int[][][,] percentChangeInContactMatricesParIDs)
-        //{
-        //    if (_modelSettings.UseParallelComputing)
-        //    {
-        //        foreach (Epidemic thisEpidemic in _epidemics)
-        //            thisEpidemic.AddContactMatrices(ref baseContactMatrices, ref percentChangeInContactMatricesParIDs);
-        //    }
-        //    else _parentEpidemic.AddContactMatrices(ref baseContactMatrices, ref percentChangeInContactMatricesParIDs);
-        //}
-        
-        //// specify RNG source, sequential
-        //public void SpecifyRNGSource(int firstRNGSeed, int distanceBtwRNGSeeds)
-        //{
-        //    _simulationRNDSeedsSource = enumSimulationRNDSeedsSource.StartFrom0;
-        //    _firstRNGSeed = firstRNGSeed;            
-        //    _distanceBtwRNGSeeds = distanceBtwRNGSeeds;
-        //}
-        //// specify RNG source, prespecified 
-        //public void SpecifyRNGSource(int[] rndSeeds)
-        //{
-        //    _simulationRNDSeedsSource = enumSimulationRNDSeedsSource.PrespecifiedSquence;
-        //    _rndSeeds = rndSeeds;
-        //}
-        //// specify RNG source, weighted
-        //public void SpecifyRNGSource(int[] rndSeeds, double[] rndSeedsGoodnessOfFit)
-        //{
-        //    _simulationRNDSeedsSource = enumSimulationRNDSeedsSource.WeightedPrespecifiedSquence;
-        //    _rndSeeds = (int[])rndSeeds.Clone();
-        //    _rndSeedsGoodnessOfFit = (double[])rndSeedsGoodnessOfFit.Clone();
-
-        //    double[] arrProb = new double[rndSeeds.Length];
-        //    for (int i = 0; i < rndSeeds.Length; i++)
-        //        //arrProb[i] = 1 / _rndSeedsGoodnessOfFit[i];
-        //        arrProb[i] = _rndSeedsGoodnessOfFit[i];// Math.Exp(-Math.Pow(_rndSeedsGoodnessOfFit[i],2));
-
-        //    // form a probability function over rnd seeds
-        //    double sum = arrProb.Sum();
-        //    for (int i = 0; i < rndSeeds.Length; i++)
-        //        arrProb[i] = arrProb[i] / sum;
-
-        //    // define the sampling object
-        //    _discreteDistributionOverSeeds = new Discrete("Discrete distribution over RND seeds", SupportFunctions.ConvertArrayToDouble(rndSeeds), arrProb);
-        //}
-
-        //// switch off all interventions controled by decision rule
-        //public void SwitchOffAllInterventionsControlledByDecisionRule()
-        //{
-        //    if (_modelSettings.UseParallelComputing)
-        //        foreach (Epidemic thisEpidemic in _epidemics)
-        //        {
-        //            // update initial decision
-        //            thisEpidemic.SwitchOffAllInterventionsControlledByDecisionRule();
-        //        }
-        //    else
-        //        // update initial decision
-        //        _parentEpidemic.SwitchOffAllInterventionsControlledByDecisionRule();
-        //}
         // get possible intervention combinations for on/off static policies
         public ArrayList GetIntervalBasedStaticPoliciesDesigns()
         {
@@ -878,7 +744,7 @@ namespace APACElib
         // set up calibration
         public void SetUpCalibration()
         {
-            _calibration = new Calibration(0);
+            _calibration = new CalibrationOld(0);
             _storeEpidemicTrajectories = false;                        
 
             // find the names of the parameters
@@ -895,7 +761,7 @@ namespace APACElib
             int numOfRows = matrixOfObservationsAndWeights.GetLength(0);
 
             // go over summation statistics
-            foreach (SummationStatisticsOld sumStat in thisEpiModel.SummationStatistics.Where(s => s.IfIncludedInCalibration))
+            foreach (SumTrajectory sumStat in thisEpiModel.SumTrajectories.Where(s => s.CalibInfo.IfIncluded))
             {
                 double[] arrObservations = new double[numOfRows];
                 double[] arrWeights = new double[numOfRows];
@@ -907,22 +773,22 @@ namespace APACElib
                 }
                 j += 2;
                 // enter observations for this target
-                switch (sumStat.GoodnessOfFitMeasure)
-                {
-                    case CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_timeSeries:
-                        _calibration.AddACalibrationTarget_timeSeries(sumStat.Name, sumStat.Weight_overalFit, arrObservations, arrWeights);
-                        break;
-                    case CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_average:
-                        _calibration.AddACalibrationTarget_aveTimeSeries(sumStat.Name, sumStat.Weight_overalFit, arrObservations, arrWeights);
-                        break;
-                    case CalibrationTarget.enumGoodnessOfFitMeasure.Fourier:
-                        _calibration.AddACalibrationTarget_fourier(sumStat.Name, sumStat.Weight_overalFit, arrObservations, sumStat.Weight_fourierSimilarities);
-                        break;
-                }
+                //switch (sumStat.GoodnessOfFitMeasure)
+                //{
+                //    case CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_timeSeries:
+                //        _calibration.AddACalibrationTarget_timeSeries(sumStat.Name, sumStat.Weight_overalFit, arrObservations, arrWeights);
+                //        break;
+                //    case CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_average:
+                //        _calibration.AddACalibrationTarget_aveTimeSeries(sumStat.Name, sumStat.Weight_overalFit, arrObservations, arrWeights);
+                //        break;
+                //    case CalibrationTarget.enumGoodnessOfFitMeasure.Fourier:
+                //        _calibration.AddACalibrationTarget_fourier(sumStat.Name, sumStat.Weight_overalFit, arrObservations, sumStat.Weight_fourierSimilarities);
+                //        break;
+                //}
             }
 
             // go over ratio statistics
-            foreach (RatioStatistics ratioStat in thisEpiModel.RatioStatistics.Where(r => r.IfIncludedInCalibration))
+            foreach (RatioTrajectory ratioStat in thisEpiModel.RatioTrajectories.Where(r => r.CalibInfo.IfIncluded))
             {
                 double[] arrObservations = new double[numOfRows];
                 double[] arrWeights = new double[numOfRows];
@@ -934,18 +800,18 @@ namespace APACElib
                 }
                 j += 2;
                 // enter observations for this target
-                switch (ratioStat.GoodnessOfFitMeasure)
-                {
-                    case CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_timeSeries:
-                        _calibration.AddACalibrationTarget_timeSeries(ratioStat.Name, ratioStat.Weight_overalFit, arrObservations, arrWeights);
-                        break;
-                    case CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_average:
-                        _calibration.AddACalibrationTarget_aveTimeSeries(ratioStat.Name, ratioStat.Weight_overalFit, arrObservations, arrWeights);
-                        break;
-                    case CalibrationTarget.enumGoodnessOfFitMeasure.Fourier:
-                        _calibration.AddACalibrationTarget_fourier(ratioStat.Name, ratioStat.Weight_overalFit, arrObservations, ratioStat.Weight_fourierSimilarities);
-                        break;
-                }
+                //switch (ratioStat.GoodnessOfFitMeasure)
+                //{
+                //    case CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_timeSeries:
+                //        _calibration.AddACalibrationTarget_timeSeries(ratioStat.Name, ratioStat.Weight_overalFit, arrObservations, arrWeights);
+                //        break;
+                //    case CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_average:
+                //        _calibration.AddACalibrationTarget_aveTimeSeries(ratioStat.Name, ratioStat.Weight_overalFit, arrObservations, arrWeights);
+                //        break;
+                //    case CalibrationTarget.enumGoodnessOfFitMeasure.Fourier:
+                //        _calibration.AddACalibrationTarget_fourier(ratioStat.Name, ratioStat.Weight_overalFit, arrObservations, ratioStat.Weight_fourierSimilarities);
+                //        break;
+                //}
             }
         }
         // set up optimization 
@@ -982,23 +848,12 @@ namespace APACElib
             // find the names of the parameters
             string[] names = new string[0];
 
-            //if (_modelSettings.UseParallelComputing)
-            //{
-            //    // summation statistics
-            //    foreach (SummationStatistics thisSumStat in _epidemics[0].SummationStatistics.Where(s => s.IfIncludedInCalibration))
-            //        SupportFunctions.AddToEndOfArray(ref names, thisSumStat.Name);
-            //    // ratio statistics
-            //    foreach (RatioStatistics thisRatioStat in _epidemics[0].RatioStatistics.Where(s => s.IfIncludedInCalibration))
-            //        SupportFunctions.AddToEndOfArray(ref names, thisRatioStat.Name);
-            //}
-            //else //(if using sequential runs
-            //{
             // summation statistics
-            foreach (SummationStatisticsOld thisSumStat in _parentEpidemic.SummationStatistics.Where(s => s.IfIncludedInCalibration))
-                SupportFunctions.AddToEndOfArray(ref names, thisSumStat.Name);
+            foreach (SumTrajectory thisSumTraj in _parentEpidemic.SumTrajectories.Where(s => s.CalibInfo.IfIncluded))
+                SupportFunctions.AddToEndOfArray(ref names, thisSumTraj.Name);
             // ratio statistics
-            foreach (RatioStatistics thisRatioStat in _parentEpidemic.RatioStatistics.Where(s => s.IfIncludedInCalibration))
-                SupportFunctions.AddToEndOfArray(ref names, thisRatioStat.Name);
+            foreach (RatioTrajectory thisRatioTraj in _parentEpidemic.RatioTrajectories.Where(s => s.CalibInfo.IfIncluded))
+                SupportFunctions.AddToEndOfArray(ref names, thisRatioTraj.Name);
             //}
 
             return names;
@@ -1034,25 +889,25 @@ namespace APACElib
                 if (thisClass is Class_Normal)
                     ((ObservationBasedStatistics)_prevalenceStats[prevalenceStatIndex++]).Record(thisClass.ClassStat.AveragePrevalenceStat.Mean, epidemicIndex);
             }
-            foreach (SummationStatisticsOld thisSummationStatistics in thisEpidemic.SummationStatistics)
+            foreach (SumTrajectory sumTraj in thisEpidemic.SumTrajectories)
             {
-                if (thisSummationStatistics.Type == APACElib.SummationStatisticsOld.enumType.Incidence)
-                    ((ObservationBasedStatistics)_incidenceStats[incidentStatIndex++]).Record(thisSummationStatistics.AccumulatedNewMembers, epidemicIndex);
-                if (thisSummationStatistics.Type ==  APACElib.SummationStatisticsOld.enumType.Prevalence)
-                    ((ObservationBasedStatistics)_prevalenceStats[prevalenceStatIndex++]).Record(thisSummationStatistics.AveragePrevalence, epidemicIndex);
+                if (sumTraj.Type == SumTrajectory.EnumType.Incidence)
+                    ((ObservationBasedStatistics)_incidenceStats[incidentStatIndex++]).Record(sumTraj.AccumulatedIncidenceAfterWarmUp, epidemicIndex);
+                if (sumTraj.Type == SumTrajectory.EnumType.Prevalence)
+                    ((ObservationBasedStatistics)_prevalenceStats[prevalenceStatIndex++]).Record(sumTraj.AveragePrevalenceStat.Mean, epidemicIndex);
             }
-            foreach (RatioStatistics thisRatioStatistics in thisEpidemic.RatioStatistics)
+            foreach (RatioTrajectory ratioTraj in thisEpidemic.RatioTrajectories)
             {
-                switch (thisRatioStatistics.Type)
+                switch (ratioTraj.Type)
                 {
-                    case APACElib.RatioStatistics.enumType.AccumulatedIncidenceOverAccumulatedIncidence:
-                        ((ObservationBasedStatistics)_ratioStatistics[ratioStatIndex]).Record(thisRatioStatistics.CurrentValue, epidemicIndex);
+                    case RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
+                        ((ObservationBasedStatistics)_ratioStatistics[ratioStatIndex]).Record(ratioTraj.TimeSeries.GetLastObs(), epidemicIndex);
                         break;
-                    case APACElib.RatioStatistics.enumType.PrevalenceOverPrevalence:
-                        ((ObservationBasedStatistics)_ratioStatistics[ratioStatIndex]).Record(thisRatioStatistics.Mean, epidemicIndex);
+                    case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
+                        ((ObservationBasedStatistics)_ratioStatistics[ratioStatIndex]).Record(ratioTraj.AveragePrevalenceStat.Mean, epidemicIndex);
                         break;
-                    case APACElib.RatioStatistics.enumType.IncidenceOverIncidence:
-                        ((ObservationBasedStatistics)_ratioStatistics[ratioStatIndex]).Record(thisRatioStatistics.Mean, epidemicIndex);
+                    case RatioTrajectory.EnumType.IncidenceOverIncidence:
+                        ((ObservationBasedStatistics)_ratioStatistics[ratioStatIndex]).Record(ratioTraj.TimeSeries.ObsList.Average(), epidemicIndex);
                         break;
                 }
                 ++ratioStatIndex;
@@ -1468,22 +1323,22 @@ namespace APACElib
                         _prevalenceStats.Add(new ObservationBasedStatistics("Average Size: " + thisClass.Name, numOfSimulationIterations));                    
                 }
             }
-            foreach (SummationStatisticsOld thisSummationStatistics in GetSummationStatistics())
+            foreach (SumTrajectory thisSumTraj in _parentEpidemic.SumTrajectories)
             {
-                if (thisSummationStatistics.Type == APACElib.SummationStatisticsOld.enumType.Incidence)
+                if (thisSumTraj.Type == SumTrajectory.EnumType.Incidence || thisSumTraj.Type == SumTrajectory.EnumType.AccumulatingIncident)
                 {
-                    name = "Total: " + thisSummationStatistics.Name;
+                    name = "Total: " + thisSumTraj.Name;
                     _incidenceStats.Add(new ObservationBasedStatistics(name, numOfSimulationIterations));
                 }
-                else if (thisSummationStatistics.Type == APACElib.SummationStatisticsOld.enumType.Prevalence)
+                else if (thisSumTraj.Type == SumTrajectory.EnumType.Prevalence)
                 {
-                    name = "Averge size: " + thisSummationStatistics.Name;
+                    name = "Averge size: " + thisSumTraj.Name;
                     _prevalenceStats.Add(new ObservationBasedStatistics(name, numOfSimulationIterations));
                 }
             }
-            foreach (RatioStatistics thisRatioStatistics in GetRatioStatistics())
+            foreach (RatioTrajectory thisRatioTaj in _parentEpidemic.RatioTrajectories)
             {
-                name = "Ratio Statistics: " + thisRatioStatistics.Name;
+                name = " Average ratio: " + thisRatioTaj.Name;
                 _ratioStatistics.Add(new ObservationBasedStatistics(name, numOfSimulationIterations));
             }
             
@@ -1532,21 +1387,21 @@ namespace APACElib
         // collect information available after model is built
         private void CollectInformationAvailableAfterModelIsBuilt(Epidemic thisEpidemic)
         {
-            _numOfInterventions = thisEpidemic.NumOfInterventions;
+            _numOfInterventions = thisEpidemic.DecisionMaker.NumOfInterventions;
             _numOfInterventionsAffectingContactPattern = thisEpidemic.NumOfInterventionsAffectingContactPattern;
             //_numOfInterventionsControlledDynamically = thisEpidemic.NumOfInterventionsControlledDynamically;
             _storeEpidemicTrajectories = thisEpidemic.StoreEpidemicTrajectories;
-            _numOfTimeBasedOutputsToReport = thisEpidemic.NumOfTimeBasedOutputsToReport;
-            _numOfIntervalBasedOutputsToReport = thisEpidemic.NumOfIntervalBasedOutputsToReport;
+            _numOfPrevalenceOutputsToReport = thisEpidemic.EpidemicHistory.NumOfPrevalenceOutputsToReport;
+            _numOfIncidenceOutputsToReport = thisEpidemic.EpidemicHistory.NumOfIncidenceOutputsToReport;
             _numOfResourcesToReport = thisEpidemic.NumOfResourcesToReport;
             _numOfParametersToCalibrate = thisEpidemic.NumOfParametersToCalibrate;
-            _numOfMonitoredSimulationOutputs = thisEpidemic.NumOfMonitoredSimulationOutputs;
+            _numOfMonitoredSimulationOutputs = 0;// thisEpidemic.NumOfMonitoredSimulationOutputs;
             // calibration information            
             _numOfCalibratoinTargets= thisEpidemic.NumOfCalibratoinTargets;
             // decision names
             _interventionNames = new string[_numOfInterventions];
             _namesOfDefaultInterventionsAndThoseSpecifiedByDynamicRule = new string[0];
-            foreach (Intervention thisIntervention in thisEpidemic.Interventions)
+            foreach (Intervention thisIntervention in thisEpidemic.DecisionMaker.Interventions)
             {
                 _interventionNames[thisIntervention.Index] = thisIntervention.Name;
                 if (thisIntervention.DecisionRule is DecionRule_Dynamic
@@ -1581,17 +1436,7 @@ namespace APACElib
         {
             return _parentEpidemic.Classes;
         }
-        // get summation statistics
-        private List<SummationStatisticsOld> GetSummationStatistics()
-        {
-            return _parentEpidemic.SummationStatistics;
-        }
-        // get ratio statistics
-        private List<RatioStatistics> GetRatioStatistics()
-        {
-            return _parentEpidemic.RatioStatistics;
-        }
-
+        
         // toggle modeller to different operation
         public void ToggleModellerTo(EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool reportEpidemicTrajectories)
         {

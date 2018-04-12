@@ -17,16 +17,21 @@ namespace APACElib
         #region Variable Definition
 
         ModelSettings _set;
-        public int ID { get; set; }        
-        private List<Parameter> _parameters = new List<Parameter>();
+        public int ID { get; set; }
+        private DecisionMaker _decisionMaker;
+        public List<Parameter> Parameters { get; set; } = new List<Parameter>();
         private List<Class> _classes = new List<Class>();
         private List<Event> _events = new List<Event>();
         private ArrayList _resources = new ArrayList();
         private ArrayList _resourceRules = new ArrayList();
-        private List<SummationStatisticsOld> _summationStatistics = new List<SummationStatisticsOld>();
-        private List<RatioStatistics> _ratioStatistics = new List<RatioStatistics>();
+        public List<SumTrajectory> SumTrajectories { get; set; } = new List<SumTrajectory>();
+        public List<RatioTrajectory> RatioTrajectories { get; set; } = new List<RatioTrajectory>();
+        public SimulationTrajectories EpidemicHistory { get; set; }
+
+        //private List<SummationStatisticsOld> _summationStatistics = new List<SummationStatisticsOld>();
+        //private List<RatioStatistics> _ratioStatistics = new List<RatioStatistics>();
         private ArrayList _features = new ArrayList();
-        private DecisionMaker _decisionMaker;
+        
         private MonitorOfInterventionsInEffect _monitorofInterventionsInEffect;
         private int[] _pathogenIDs;
 
@@ -38,19 +43,13 @@ namespace APACElib
         private int _rndSeedResultedInAnAcceptibleTrajectory;
         private double[] _arrSampledParameterValues;
         private EnumModelUse _modelUse = EnumModelUse.Simulation;
-        private bool _ifWarmUpPeriodHasEnded;
 
         // simulation output settings      
         public bool StoreEpidemicTrajectories { get; set; } = true;
-        
-        private int _nextTimeIndexToCollectSimulationOutputData;
-        private int _nextTimeIndexToCollectObservationPeriodData;
-        private int _numOfTimeBasedOutputsToReport;
-        private int _numOfIntervalBasedOutputsToReport;
-        private int _numOfMonitoredSimulationOutputs;
-        
+              
         private int _timeIndexOfTheFirstObservation;
         private bool _firstObservationObtained;
+
         private int[][] _pastActionCombinations;
         private double[][] _simulationTimeBasedOutputs;
         private double[][] _simulationIntervalBasedOutputs;
@@ -141,14 +140,6 @@ namespace APACElib
             set { _modelUse = value; }
         }
 
-        public int NumOfTimeBasedOutputsToReport
-        {
-            get { return _numOfTimeBasedOutputsToReport; }
-        }
-        public int NumOfIntervalBasedOutputsToReport
-        {
-            get { return _numOfIntervalBasedOutputsToReport; }
-        }
         public int NumOfResourcesToReport
         {
             get { return _resources.Count; }
@@ -186,21 +177,10 @@ namespace APACElib
         {
             get { return SupportFunctions.ConvertFromJaggedArrayToRegularArray(_arrADPIterationResults, 5); }
         }
-        public int NumOfInterventions
-        {
-            get { return _decisionMaker.NumOfInterventions; }
-        }        
+            
         public int NumOfFeatures
         {
             get { return _features.Count; }
-        }
-        //public int NumOfInterventionsControlledDynamically
-        //{
-        //    //get { return _decisionMaker.NumOfActionsControlledDynamically; }
-        //}
-        public int NumOfMonitoredSimulationOutputs
-        {
-            get { return _numOfMonitoredSimulationOutputs; }
         }
         public int NumOfDiscardedTrajectoriesAmongCalibrationRuns
         {
@@ -221,26 +201,10 @@ namespace APACElib
         public List<Class> Classes
         {
             get { return _classes; }
-        }
-        public List<Intervention> Interventions
-        {
-            get { return _decisionMaker.Interventions; }
-        }
-        public List<SummationStatisticsOld> SummationStatistics
-        {
-            get { return _summationStatistics; }
-        }
-        public List<RatioStatistics> RatioStatistics
-        {
-            get { return _ratioStatistics; }
-        }
+        }        
         public ArrayList Resources
         {
             get { return _resources; }
-        }
-        public List<Parameter> Parameters
-        {
-            get { return _parameters; }
         }
         public ArrayList Features
         {
@@ -284,15 +248,16 @@ namespace APACElib
         // reset 
         private void Reset()
         {
-            _parameters = new List<Parameter>();
+            Parameters = new List<Parameter>();
             _classes = new List<Class>();
             _events = new List<Event>();
             _resources = new ArrayList();
             _resourceRules = new ArrayList();
-            _summationStatistics = new List<SummationStatisticsOld>();
-            _ratioStatistics = new List<RatioStatistics>();
+            SumTrajectories = new List<SumTrajectory>();
+            RatioTrajectories = new List<RatioTrajectory>();
+
             _features = new ArrayList();
-            _decisionMaker.ResetForAnotherSimulationRun();
+            _decisionMaker.Reset();
     }
         // clean except the results
         public void CleanExceptResults()
@@ -769,7 +734,7 @@ namespace APACElib
         {
             double[] parValues = new double[_numOfParametersToCalibrate];
             int i = 0;
-            foreach (Parameter thisParameter in _parameters.Where(p => p.IncludedInCalibration == true))
+            foreach (Parameter thisParameter in Parameters.Where(p => p.IncludedInCalibration == true))
                 parValues[i++] =  thisParameter.Value;
 
             return (double[])parValues.Clone();
@@ -887,8 +852,14 @@ namespace APACElib
             toStop = false;
             while (!toStop)
             {
-                // store outputs if necessary               
-                StoreSelectedOutputWhileSimulating(simReplication, false, ref ifThisIsAFeasibleCalibrationTrajectory);
+                // make decisions if decision is not predetermined and announce the new decisions (may not necessarily go into effect)
+                _monitorofInterventionsInEffect.Update(_epiTimeIndex, false, ref _classes);
+
+                // update the effect of chance in time dependent parameter value
+                UpdateTheEffectOfChangeInTimeDependentParameterValues(_simTimeIndex * _set.DeltaT);
+
+                // update recorded trajectories 
+                EpidemicHistory.Record(_simTimeIndex);
 
                 // check if this is has been a feasible trajectory for calibration
                 if (_modelUse == EnumModelUse.Calibration && !ifThisIsAFeasibleCalibrationTrajectory)
@@ -897,29 +868,8 @@ namespace APACElib
                     return acceptableTrajectory;
                 }
 
-                // reset statistics if warm-up period has ended
-                ResetStatisticsIfWarmUpPeriodHasEnded();
-
-                // Update the resource status
-                //if (_resources.Count != 0)
-                //    CheckIfResourcesHaveBecomeAvailable();
-
-                // read feature values if optimizing or using greedy decisions:
-                //if (_features.Count > 0 && _decisionRule == EnumEpiDecisions.SpecifiedByPolicy)
-                //    // update values of features
-                //    ReadValuesOfFeatures();
-
-                // make decisions if decision is not predetermined and announce the new decisions (may not necessarily go into effect)
-                _monitorofInterventionsInEffect.Update(_epiTimeIndex, false, ref _classes);
-
-                // update the effect of chance in time dependent parameter value
-                UpdateTheEffectOfChangeInTimeDependentParameterValues(_simTimeIndex * _set.DeltaT);
-
                 // update transmission rates
                 UpdateTransmissionRates();
-
-                // reset the number of new members to each class
-                ResetClassNumberOfNewMembers();
 
                 // send transfer class members                    
                 TransferClassMembers();
@@ -936,28 +886,13 @@ namespace APACElib
                 if (_epiTimeIndex >= timeIndexToStop || IsEradicationConditionsSatisfied() == true)
                 {
                     toStop = true;
-                    // is this trajectory acceptable
-                    acceptableTrajectory = false;
-                    if (_epiTimeIndex >= _set.EpidemicConditionTimeIndex)
-                        acceptableTrajectory = true;
-                    
-                    // record end of simulation statistics
-                    if (_modelUse == EnumModelUse.Simulation && acceptableTrajectory == true)
-                    {
-                        // record simulation outcomes only if simulation time horizon has reached
-                        if (_epiTimeIndex >= _set.TimeIndexToStop || _stoppedDueToEradication)
-                            // update annual cost
-                            GatherEndOfSimulationStatistics();
-                        // report simulation trajectories if necessary
-                        StoreSelectedOutputWhileSimulating(simReplication, true, ref ifThisIsAFeasibleCalibrationTrajectory);
-                    }
-                    // store epidemic history for calibration purpose    
-                    if (_modelUse == EnumModelUse.Calibration && acceptableTrajectory == true)
-                        // report simulation trajectories if necessary // if (_stoppedDueToEradication)
-                        StoreSelectedOutputWhileSimulating(simReplication, true, ref acceptableTrajectory);
+                    // update recorded trajectories 
+                    EpidemicHistory.Record(_simTimeIndex);
 
-                    // reset statistics if warm-up period has ended
-                    ResetStatisticsIfWarmUpPeriodHasEnded();
+                    // find if it is an acceptable trajectory
+                    acceptableTrajectory = true;
+                    if (_epiTimeIndex < _set.EpidemicConditionTimeIndex)
+                        acceptableTrajectory = false;
                 }
             } // end while (!toStop)
             return acceptableTrajectory;
@@ -1027,448 +962,13 @@ namespace APACElib
             return SupportFunctions.ConvertToBase10FromBase2(_onOffStatusOfInterventionsAffectingContactPattern);
         }
         
-        // store selected outputs while simulating
-        private void StoreSelectedOutputWhileSimulating(int simReplication, bool endOfSimulation, ref bool ifThisIsAFeasibleTrajectory)
-        {
-            // check if it is time to report output
-            if (_simTimeIndex < _nextTimeIndexToCollectSimulationOutputData &&
-                _simTimeIndex < _nextTimeIndexToCollectObservationPeriodData && endOfSimulation == false)
-                return;
-
-            // define the jagged array to store current observation
-            int[][] thisActionCombination = new int[1][];
-            double[][] thisSimulationTimeBasedOutputs = new double[1][];
-            double[][] thisSimulationIntervalBasedOutputs = new double[1][];
-            double[][] thisObservedOutputs = new double[1][];
-            double[][] thisCalibrationObservation= new double[1][];
-            double[][] thisResourceAvailability = new double[1][];
-            double[][] thisTimeOfObservableOutputs = new double[1][];
-            int colIndexSimulationTimeBasedOutputs = 0;
-            int colIndexSimulationIntervalBasedOutputs = 0;
-            int colIndexObservableOutputs = 0;
-            int colIndexCalibrationObservation = 0;
-            double nominatorValue = 0, denominatorValue = 0, ratio = 0;
-
-            // first find the values of ratio statistics (using observed simulation outputs)
-            // ratio statistics
-            foreach (RatioStatistics thisRatioStat in _ratioStatistics)
-            {
-                // find the type of this ratio statistics
-                switch (thisRatioStat.Type)
-                {
-                    case APACElib.RatioStatistics.enumType.IncidenceOverIncidence:
-                        {
-                            nominatorValue = (_summationStatistics[thisRatioStat.NominatorSpecialStatID]).NewMembersOverPastObservableObsPeriod;
-                            denominatorValue = (_summationStatistics[thisRatioStat.DenominatorSpecialStatID]).NewMembersOverPastObservableObsPeriod;
-                            if (denominatorValue != 0)
-                            {
-                                ratio = nominatorValue / denominatorValue;
-                                thisRatioStat.Record(nominatorValue, denominatorValue);
-                            }
-                        }
-                        break;
-                    case APACElib.RatioStatistics.enumType.AccumulatedIncidenceOverAccumulatedIncidence:
-                        {
-                            nominatorValue = (_summationStatistics[thisRatioStat.NominatorSpecialStatID]).ObservedAccumulatedNewMembers;
-                            denominatorValue = (_summationStatistics[thisRatioStat.DenominatorSpecialStatID]).ObservedAccumulatedNewMembers;
-                            if (denominatorValue != 0)
-                            {
-                                ratio = nominatorValue / denominatorValue;
-                                thisRatioStat.Record(nominatorValue, denominatorValue);
-                            }
-                        }
-                        break;
-                    case APACElib.RatioStatistics.enumType.PrevalenceOverPrevalence:
-                        {
-                            nominatorValue = (_summationStatistics[thisRatioStat.NominatorSpecialStatID]).CurrentMembers;
-                            denominatorValue = (_summationStatistics[thisRatioStat.DenominatorSpecialStatID]).CurrentMembers;
-                            if (denominatorValue != 0)
-                            {
-                                ratio = nominatorValue / denominatorValue;
-                                thisRatioStat.Record(nominatorValue, denominatorValue);
-                            }
-                        }
-                        break;
-                    case APACElib.RatioStatistics.enumType.IncidenceOverPrevalence:
-                        {
-                            nominatorValue = (_summationStatistics[thisRatioStat.NominatorSpecialStatID]).NewMembersOverPastObservableObsPeriod;
-                            denominatorValue = (_summationStatistics[thisRatioStat.DenominatorSpecialStatID]).CurrentMembers;
-                            if (denominatorValue != 0)
-                            {
-                                ratio = nominatorValue / denominatorValue;
-                                thisRatioStat.Record(nominatorValue, denominatorValue);
-                            }
-                        }
-                        break;
-                }
-            }
-
-            // store simulation output data - time based and interval based
-            #region store simulation output data
-            if (_simTimeIndex >= _nextTimeIndexToCollectSimulationOutputData)
-            {
-                // next time index outputs should be recorded
-                _nextTimeIndexToCollectSimulationOutputData += _set.NumOfDeltaT_inSimulationOutputInterval;                
-
-                if (StoreEpidemicTrajectories == true)
-                {
-                    thisSimulationTimeBasedOutputs[0] = new double[_numOfTimeBasedOutputsToReport];
-                    thisSimulationIntervalBasedOutputs[0] = new double[_numOfIntervalBasedOutputsToReport];
-                    // the current time and interval
-                    thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = simReplication;
-                    thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = _simTimeIndex * _set.DeltaT;
-                    thisSimulationIntervalBasedOutputs[0][colIndexSimulationIntervalBasedOutputs++] = _simTimeIndex/_set.NumOfDeltaT_inSimulationOutputInterval;
-                    // action combination
-                    thisActionCombination[0] = (int[])_decisionMaker.CurrentDecision.Clone();
-
-                    // check which statistics should be reported
-                    foreach (Class thisClass in _classes)
-                    {
-                        if (thisClass.ShowIncidence)
-                            thisSimulationIntervalBasedOutputs[0][colIndexSimulationIntervalBasedOutputs++] = thisClass.ClassStat.IncidenceTimeSeries.GetLastObs();
-                        if (thisClass.ShowPrevalence)
-                            thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = thisClass.ClassStat.Prevalence;
-                        if (thisClass.ShowAccumIncidence)
-                            thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = thisClass.ClassStat.AccumulatedIncidence;
-                    }
-                    // summation statistics
-                    foreach (SummationStatisticsOld thisSumStat in _summationStatistics.Where(s => s.IfDisplay))
-                    {
-                        switch (thisSumStat.Type)
-                        {
-                            case APACElib.SummationStatisticsOld.enumType.Incidence:
-                                thisSimulationIntervalBasedOutputs[0][colIndexSimulationIntervalBasedOutputs++] = thisSumStat.NewMemberOverPastSimulationInterval;
-                                break;
-                            case APACElib.SummationStatisticsOld.enumType.AccumulatingIncident:
-                                thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = thisSumStat.AccumulatedNewMembers;
-                                break;
-                            case APACElib.SummationStatisticsOld.enumType.Prevalence:
-                                thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = thisSumStat.CurrentMembers;
-                                break;
-                        }
-                    }
-                    // ratio statistics
-                    foreach (RatioStatistics thisRatioStat in _ratioStatistics.Where(s => s.IfDisplay))
-                    {
-                        // find the type of this ratio statistics
-                        switch (thisRatioStat.Type)
-                        {
-                            case APACElib.RatioStatistics.enumType.IncidenceOverIncidence:
-                                {
-                                    nominatorValue = (_summationStatistics[thisRatioStat.NominatorSpecialStatID]).NewMemberOverPastSimulationInterval;
-                                    denominatorValue = (_summationStatistics[thisRatioStat.DenominatorSpecialStatID]).NewMemberOverPastSimulationInterval;
-                                    if (denominatorValue == 0)
-                                        ratio = -1;
-                                    else
-                                        ratio = nominatorValue / denominatorValue;
-                                    thisSimulationIntervalBasedOutputs[0][colIndexSimulationIntervalBasedOutputs++] = ratio;
-                                    //thisRatioStat.Record(nominatorValue, denominatorValue);
-                                }
-                                break;
-                            case APACElib.RatioStatistics.enumType.AccumulatedIncidenceOverAccumulatedIncidence:
-                                {
-                                    nominatorValue = (_summationStatistics[thisRatioStat.NominatorSpecialStatID]).AccumulatedNewMembers;
-                                    denominatorValue = (_summationStatistics[thisRatioStat.DenominatorSpecialStatID]).AccumulatedNewMembers;
-                                    if (denominatorValue == 0)
-                                        ratio = -1;
-                                    else
-                                        ratio = nominatorValue / denominatorValue;
-                                    thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = ratio;
-                                }
-                                break;
-                            case APACElib.RatioStatistics.enumType.PrevalenceOverPrevalence:
-                                {
-                                    nominatorValue = (_summationStatistics[thisRatioStat.NominatorSpecialStatID]).CurrentMembers;
-                                    denominatorValue = (_summationStatistics[thisRatioStat.DenominatorSpecialStatID]).CurrentMembers;
-                                    if (denominatorValue == 0)
-                                        ratio = -1;
-                                    else
-                                        ratio = nominatorValue / denominatorValue;
-                                    thisSimulationTimeBasedOutputs[0][colIndexSimulationTimeBasedOutputs++] = ratio;
-                                    //thisRatioStat.Record(nominatorValue, denominatorValue);
-                                }
-                                break;
-                            case APACElib.RatioStatistics.enumType.IncidenceOverPrevalence:
-                                {
-                                    nominatorValue = (_summationStatistics[thisRatioStat.NominatorSpecialStatID]).NewMemberOverPastSimulationInterval;
-                                    denominatorValue = (_summationStatistics[thisRatioStat.DenominatorSpecialStatID]).CurrentMembers;
-                                    if (denominatorValue == 0)
-                                        ratio = -1;
-                                    else
-                                        ratio = nominatorValue / denominatorValue;
-                                    thisSimulationIntervalBasedOutputs[0][colIndexSimulationIntervalBasedOutputs++] = ratio;
-                                    //thisRatioStat.Record(nominatorValue, denominatorValue);
-                                }
-                                break;
-                        }
-                    }
-                    
-                    // concatenate thisRow 
-                    _simulationTimeBasedOutputs = ComputationLib.SupportFunctions.ConcatJaggedArray(_simulationTimeBasedOutputs, thisSimulationTimeBasedOutputs);
-                    _simulationIntervalBasedOutputs = ComputationLib.SupportFunctions.ConcatJaggedArray(_simulationIntervalBasedOutputs, thisSimulationIntervalBasedOutputs);
-                    // record the action combination
-                    _pastActionCombinations = ComputationLib.SupportFunctions.ConcatJaggedArray(_pastActionCombinations, thisActionCombination);
-                }
-            }
-            #endregion
-
-            // collect observation period and calibration data
-            #region collect observation period and calibration data
-            if (_simTimeIndex >= _nextTimeIndexToCollectObservationPeriodData)
-            {
-                _nextTimeIndexToCollectObservationPeriodData += _set.NumOfDeltaT_inObservationPeriod;
-
-                // collect observation period data
-                #region collect observation period data
-
-                thisObservedOutputs[0] = new double[_numOfMonitoredSimulationOutputs];
-                thisResourceAvailability[0] = new double[_resources.Count];
-
-                // report summation statistics for which surveillance is available
-                foreach (SummationStatisticsOld thisSumStat in _summationStatistics.Where(s => s.SurveillanceDataAvailable))
-                {
-                    switch (thisSumStat.Type)
-                    {
-                        case APACElib.SummationStatisticsOld.enumType.Incidence:
-                            {
-                                if (thisSumStat.FirstObservationMarksTheStartOfTheSpread)
-                                    thisObservedOutputs[0][colIndexObservableOutputs++] = thisSumStat.NewMembersOverPastObservableObsPeriod;
-                            }
-                            break;
-                        case APACElib.SummationStatisticsOld.enumType.AccumulatingIncident:
-                            {
-                                thisObservedOutputs[0][colIndexObservableOutputs++] = thisSumStat.ObservedAccumulatedNewMembers;
-                            }
-                            break;
-                        case APACElib.SummationStatisticsOld.enumType.Prevalence:
-                            {
-                                thisObservedOutputs[0][colIndexObservableOutputs++] = thisSumStat.CurrentMembers;
-                            }
-                            break;
-                    }
-                }
-                // report ratio statistics for which surveillance is available
-                foreach (RatioStatistics thisRatioStat in _ratioStatistics.Where(r => r.SurveillanceDataAvailable))
-                {
-                    //switch (thisRatioStat.Type)
-                    //{
-                    //    case APACE_lib.RatioStatistics.enumType.IncidenceOverIncidence:
-                    //        {
-                    //            nominatorValue = (_summationStatistics[thisRatioStat.NominatorSpecialStatID]).NewMembersOverPastObservableObsPeriod;
-                    //            denominatorValue = (_summationStatistics[thisRatioStat.DenominatorSpecialStatID]).NewMembersOverPastObservableObsPeriod;
-                    //        }
-                    //        break;
-                    //    case APACE_lib.RatioStatistics.enumType.AccumulatedIncidenceOverAccumulatedIncidence:
-                    //        {
-                    //            nominatorValue = (_summationStatistics[thisRatioStat.NominatorSpecialStatID]).ObservedAccumulatedNewMembers;
-                    //            denominatorValue = (_summationStatistics[thisRatioStat.DenominatorSpecialStatID]).ObservedAccumulatedNewMembers;
-                    //        }
-                    //        break;
-                    //    case APACE_lib.RatioStatistics.enumType.PrevalenceOverPrevalence:
-                    //        {
-                    //            nominatorValue = (_summationStatistics[thisRatioStat.NominatorSpecialStatID]).CurrentMembers;
-                    //            denominatorValue = (_summationStatistics[thisRatioStat.DenominatorSpecialStatID]).CurrentMembers;
-                    //        }
-                    //        break;
-                    //    case APACE_lib.RatioStatistics.enumType.IncidenceOverPrevalence:
-                    //        {
-                    //            nominatorValue = (_summationStatistics[thisRatioStat.NominatorSpecialStatID]).NewMembersOverPastObservableObsPeriod;
-                    //            denominatorValue = (_summationStatistics[thisRatioStat.DenominatorSpecialStatID]).CurrentMembers;
-                    //        }
-                    //        break;
-                    //}
-                    //if (denominatorValue == 0)
-                    //    ratio = -1;
-                    //else
-                    //    ratio = nominatorValue / denominatorValue;
-                    //thisRatioStat.CurrentValue = ratio;
-                    thisObservedOutputs[0][colIndexObservableOutputs++] = thisRatioStat.CurrentValue;
-                }
-
-                // epidemic observation
-                _simulationObservableOutputs
-                    = ComputationLib.SupportFunctions.ConcatJaggedArray(_simulationObservableOutputs, thisObservedOutputs);  
-                #endregion
-
-                // collect observation times
-                #region collect observation times
-                thisTimeOfObservableOutputs[0] = new double[1];
-                // check if an observation is made
-                switch (_set.MarkOfEpidemicStartTime)
-                {
-                    case EnumMarkOfEpidemicStartTime.TimeZero:
-                        {
-                            thisTimeOfObservableOutputs[0][0] = _simTimeIndex / _set.NumOfDeltaT_inObservationPeriod; 
-                        }
-                        break;
-                    case EnumMarkOfEpidemicStartTime.TimeOfFirstObservation:
-                        {
-                            if (_firstObservationObtained == false && Math.Abs(thisObservedOutputs[0].Sum()) > 0)
-                            {
-                                _firstObservationObtained = true;
-                                _timeIndexOfTheFirstObservation = _simTimeIndex;
-                                UpdateCurrentEpidemicTimeIndex();
-                            }
-                            // time of epidemic observation
-                            if (_firstObservationObtained)
-                                thisTimeOfObservableOutputs[0][0] = _simTimeIndex / _set.NumOfDeltaT_inObservationPeriod; //this.CurrentEpidemicTime;
-                            else
-                                thisTimeOfObservableOutputs[0][0] = -1;
-                        }
-                        break;
-                }
-                // time of observation
-                _timesOfEpidemicObservationsOverPastObservationPeriods
-                    = ComputationLib.SupportFunctions.ConcatJaggedArray(_timesOfEpidemicObservationsOverPastObservationPeriods, thisTimeOfObservableOutputs);
-                #endregion
-
-                // resources
-                #region resources
-                // available resources
-                foreach (Resource thisResource in _resources)
-                    if (thisResource.ShowAvailability)
-                        thisResourceAvailability[0][thisResource.ID] = thisResource.CurrentUnitsAvailable;
-                // resource availability
-                _simulationResourceAvailabilityOutput =
-                    ComputationLib.SupportFunctions.ConcatJaggedArray(_simulationResourceAvailabilityOutput, thisResourceAvailability);
-                #endregion      
-
-                // collect calibration data
-                #region collect calibration data
-                if (_modelUse == EnumModelUse.Calibration && _epiTimeIndex > _set.WarmUpPeriodTimeIndex)
-                {
-                    thisCalibrationObservation[0] = new double[_numOfCalibratoinTargets];
-                    // go over summation statistics that are included in calibration
-                    foreach (SummationStatisticsOld thisSumStat in _summationStatistics.Where(s => s.IfIncludedInCalibration))
-                    {
-                        // find this summation stat type:
-                        switch (thisSumStat.Type)
-                        {
-                            case APACElib.SummationStatisticsOld.enumType.Incidence:
-                                {
-                                    // check if within feasible range
-                                    if (thisSumStat.IfCheckWithinFeasibleRange)
-                                    {
-                                        if (thisSumStat.NewMembersOverPastObservableObsPeriod < thisSumStat.FeasibleRange_min ||
-                                            thisSumStat.NewMembersOverPastObservableObsPeriod > thisSumStat.FeasibleRange_max)
-                                        {
-                                            ifThisIsAFeasibleTrajectory = false;
-                                            return;
-                                        }
-                                    }
-                                    // find the observation
-                                    thisCalibrationObservation[0][colIndexCalibrationObservation++] = thisSumStat.NewMembersOverPastObservableObsPeriod;
-                                }
-                                break;
-                            case APACElib.SummationStatisticsOld.enumType.AccumulatingIncident:
-                                {
-                                    // check if within feasible range
-                                    if (endOfSimulation && thisSumStat.IfCheckWithinFeasibleRange)
-                                    {
-                                        if (thisSumStat.ObservedAccumulatedNewMembers < thisSumStat.FeasibleRange_min ||
-                                            thisSumStat.ObservedAccumulatedNewMembers > thisSumStat.FeasibleRange_max)
-                                        {
-                                            ifThisIsAFeasibleTrajectory = false;
-                                            return;
-                                        }
-                                    }
-                                    // find the observation
-                                    thisCalibrationObservation[0][colIndexCalibrationObservation++] = thisSumStat.ObservedAccumulatedNewMembers;
-                                }
-                                break;
-                            case APACElib.SummationStatisticsOld.enumType.Prevalence:
-                                {
-                                    // check if within feasible range
-                                    if (thisSumStat.IfCheckWithinFeasibleRange)
-                                    {
-                                        if (thisSumStat.CurrentMembers < thisSumStat.FeasibleRange_min ||
-                                            thisSumStat.CurrentMembers > thisSumStat.FeasibleRange_max)
-                                        {
-                                            ifThisIsAFeasibleTrajectory = false;
-                                            return;
-                                        }
-                                    }
-                                    // find the observation
-                                    thisCalibrationObservation[0][colIndexCalibrationObservation++] = thisSumStat.CurrentMembers;
-                                }
-                                break;
-                        }
-                    }
-
-                    // go over ratio statistics that are included in calibration                  
-                    foreach (RatioStatistics thisRatioStat in _ratioStatistics.Where(r => r.IfIncludedInCalibration))
-                    {
-                        // find the type of this ratio statistics
-                        switch (thisRatioStat.Type)
-                        {
-                            case APACElib.RatioStatistics.enumType.IncidenceOverIncidence:
-                                {
-                                    nominatorValue = (_summationStatistics[thisRatioStat.NominatorSpecialStatID]).NewMembersOverPastObservableObsPeriod;
-                                    denominatorValue = (_summationStatistics[thisRatioStat.DenominatorSpecialStatID]).NewMembersOverPastObservableObsPeriod;
-                                }
-                                break;
-                            case APACElib.RatioStatistics.enumType.AccumulatedIncidenceOverAccumulatedIncidence:
-                                {
-                                    nominatorValue = (_summationStatistics[thisRatioStat.NominatorSpecialStatID]).ObservedAccumulatedNewMembers;
-                                    denominatorValue = Math.Max(1, (_summationStatistics[thisRatioStat.DenominatorSpecialStatID]).ObservedAccumulatedNewMembers);
-                                }
-                                break;
-                            case APACElib.RatioStatistics.enumType.PrevalenceOverPrevalence:
-                                {
-                                    nominatorValue = (_summationStatistics[thisRatioStat.NominatorSpecialStatID]).CurrentMembers;
-                                    denominatorValue = (_summationStatistics[thisRatioStat.DenominatorSpecialStatID]).CurrentMembers;
-                                }
-                                break;  
-                            case APACElib.RatioStatistics.enumType.IncidenceOverPrevalence:
-                                {
-                                    nominatorValue = (_summationStatistics[thisRatioStat.NominatorSpecialStatID]).NewMembersOverPastObservableObsPeriod;
-                                    denominatorValue = (_summationStatistics[thisRatioStat.DenominatorSpecialStatID]).CurrentMembers;
-                                }
-                                break;
-                        }
-
-                        // find the goodness of fit measure
-                        ratio = nominatorValue / denominatorValue;
-
-                        // check if within feasible range
-                        if (thisRatioStat.IfCheckWithinFeasibleRange && !double.IsNaN(ratio))
-                        {
-                            if (ratio < thisRatioStat.FeasibleRange_min ||
-                                ratio > thisRatioStat.FeasibleRange_max)
-                            {
-                                ifThisIsAFeasibleTrajectory = false;
-                                return;
-                            }
-                        }
-
-                        // find the observation
-                        thisCalibrationObservation[0][colIndexCalibrationObservation++] = ratio;                        
-                    }
-
-                    // calibration observation
-                    _calibrationObservation = 
-                        ComputationLib.SupportFunctions.ConcatJaggedArray(_calibrationObservation, thisCalibrationObservation);
-                }
-                #endregion
-
-                // reset new member observations gather during past observation period
-                foreach (SummationStatisticsOld thisSumStat in _summationStatistics)
-                    thisSumStat.ResetNewMembersOverPastObsPeriod();                
-            }
-            #endregion
-        }
-        // set class number of new members
-        private void ResetClassNumberOfNewMembers()
-        {           
-            foreach (Class thisClass in _classes)
-                thisClass.ClassStat.NumOfNewMembersOverPastPeriod= 0;
-        }
+        
         // transfer class members        
         private void TransferClassMembers()
         {
-            //// update transmission rates
-            //if(_thereAreTimeDependentParameters_affectingTranmissionDynamics)
-            //    UpdateTransmissionRates();
+            // reset number of new members over past period for all classes
+            foreach (Class thisClass in _classes)
+                thisClass.ClassStat.NumOfNewMembersOverPastPeriod = 0;
 
             // do the transfer on all members
             foreach (Class thisClass in _classes.Where(c => c.ClassStat.Prevalence>0))
@@ -1508,8 +1008,7 @@ namespace APACElib
             foreach (Class thisClass in _classes)
                 _arrNumOfMembersInEachClass[thisClass.ID] = thisClass.ClassStat.Prevalence;
 
-            // update and gather statistics defined for events                         
-            //int[] arrNumOfNewMembersOutOfEventsOverPastDeltaT = new int[_events.Count];
+            // update class statistics                      
             foreach (Class thisClass in _classes)
             {
                 thisClass.ClassStat.CollectEndOfDeltaTStats(_simTimeIndex);
@@ -1520,59 +1019,20 @@ namespace APACElib
                         thisClass.ClassStat.DeltaCostHealthCollector.DeltaTCost,
                         thisClass.ClassStat.DeltaCostHealthCollector.DeltaTDALY);
                 }
-                // find number of members out of active events for this class
-                //thisClass.ReturnAndResetNumOfMembersOutOfEventsOverPastDeltaT(ref arrNumOfNewMembersOutOfEventsOverPastDeltaT);
             }
 
-            foreach (SummationStatisticsOld thisSumStat in _summationStatistics)
+            // update summation statistics
+            foreach (SumTrajectory thisSumTaj in SumTrajectories)
             {
-                switch (thisSumStat.DefinedOn)
-                {
-                    case APACElib.SummationStatisticsOld.enumDefinedOn.Classes:
-                        {
-                            switch (thisSumStat.Type)
-                            {
-                                case APACElib.SummationStatisticsOld.enumType.Incidence:
-                                    {
-                                        thisSumStat.AddNewMembers(ref _classes, _set.DeltaT);
-                                        EpidemicCostHealth.Add(
-                                            _simTimeIndex,
-                                            thisSumStat.CurrentCost,
-                                            thisSumStat.CurrentQALY);
-                                    }
-                                    break;
-                                case APACElib.SummationStatisticsOld.enumType.Prevalence:
-                                    {
-                                        thisSumStat.AddCurrentMembers(_epiTimeIndex * _set.DeltaT, _arrNumOfMembersInEachClass, _modelUse != EnumModelUse.Calibration);
-                                    }
-                                    break;
-                            }
-                        }
-                        break;
-                    case APACElib.SummationStatisticsOld.enumDefinedOn.Events:
-                        {
-                            switch (thisSumStat.Type)
-                            {
-                                case APACElib.SummationStatisticsOld.enumType.Incidence:
-                                    {
-                                        thisSumStat.AddNewMembers(ref _events, _set.DeltaT);
-                                        EpidemicCostHealth.Add(
-                                            _simTimeIndex,
-                                            thisSumStat.CurrentCost,
-                                            thisSumStat.CurrentQALY);
-                                    }
-                                    break;
-                                case APACElib.SummationStatisticsOld.enumType.Prevalence:
-                                    {
-                                        // error
-                                    }
-                                    break;
-                            }
-                        }
-                        break;
-                }                
+                if (thisSumTaj is SumClassesTrajectory)
+                    ((SumClassesTrajectory)thisSumTaj).Add(_simTimeIndex, ref _classes);
+                else
+                    ((SumEventTrajectory)thisSumTaj).Add(_simTimeIndex, ref _events);
             }
 
+            // update the aggregated trajectories
+            EpidemicHistory.Record(_simTimeIndex);
+            
             // reset number of members out of active events for all classes
             foreach (Class thisClass in _classes)
                 thisClass.ResetNumOfMembersOutOfEventsOverPastDeltaT();
@@ -1585,16 +1045,7 @@ namespace APACElib
             }
 
         }
-        // reset statistics if warm-up period has ended
-        private void ResetStatisticsIfWarmUpPeriodHasEnded()
-        {
-            if (_epiTimeIndex >= _set.WarmUpPeriodTimeIndex && _ifWarmUpPeriodHasEnded == false)
-            {
-                _ifWarmUpPeriodHasEnded = true;
-                // reset statistics
-                ResetStatistics(false);
-            }           
-        }
+        
         // update the cost of current ADP state-decision
         private void UpdateRewardOfCurrentADPStateDecision()
         {
@@ -1604,24 +1055,7 @@ namespace APACElib
             //    _decisionMaker.AddToDecisionIntervalReward(_adpSimItr, numOfADPStates - 1, CurrentDeltaTReward());
             //((ADP_State)_POMDP_ADP.ADPStates[numOfADPStates - 1]).AddToDecisionIntervalReward();
         }
-        // return annual cost
-        private void GatherEndOfSimulationStatistics()
-        {
-            // gather end of simulation statistics in each ratio statistics
-            foreach (RatioStatistics thisRatioStat in _ratioStatistics)
-            {
-                switch (thisRatioStat.Type)
-                {                    
-                    case APACElib.RatioStatistics.enumType.AccumulatedIncidenceOverAccumulatedIncidence:
-                        {
-                            int nominatorValue = (_summationStatistics[thisRatioStat.NominatorSpecialStatID]).AccumulatedNewMembers;
-                            long denominatorValue = (_summationStatistics[thisRatioStat.DenominatorSpecialStatID]).AccumulatedNewMembers;
-                            thisRatioStat.Record(nominatorValue, denominatorValue);
-                        }
-                        break;
-                }
-            }  
-        }
+
         // return accumulated reward
         private double AccumulatedReward()
         {
@@ -1671,29 +1105,19 @@ namespace APACElib
             // reset the rnd object
             _rng = new RNG(seed);
 
-            // health and cost outcomes
-            EpidemicCostHealth = new EpidemicCostHealth(_set.DeltaTDiscountRate, _set.WarmUpPeriodTimeIndex);
-            EpidemicCostHealth.Reset();
-
-            // sample from parameters
-            _arrSampledParameterValues = new double[_parameters.Count];
-            if (sampleParameters == true)
-                SampleFromParameters(0, false);
-            else
-                _arrSampledParameterValues = parameterValues;
-
             // reset time
-            _ifWarmUpPeriodHasEnded = false;
             _timeIndexOfTheFirstObservation = 0;
             _firstObservationObtained = false;
             _simTimeIndex = 0;
             // epidemic start time
-            UpdateCurrentEpidemicTimeIndex();   
+            UpdateCurrentEpidemicTimeIndex();
 
-            _nextTimeIndexToCollectSimulationOutputData = _simTimeIndex; 
-            _nextTimeIndexToCollectObservationPeriodData = _nextTimeIndexToCollectSimulationOutputData;
-
-            
+            // sample from parameters
+            _arrSampledParameterValues = new double[Parameters.Count];
+            if (sampleParameters == true)
+                SampleFromParameters(0, false);
+            else
+                _arrSampledParameterValues = parameterValues;
 
             // update intervention information
             _onOffStatusOfInterventionsAffectingContactPattern = new int[_numOfInterventionsAffectingContactPattern];
@@ -1708,10 +1132,15 @@ namespace APACElib
                 _arrNumOfMembersInEachClass[thisClass.ID] = thisClass.ClassStat.Prevalence;
             }
 
+            // reset epidemic history 
+            EpidemicHistory.Reset();
+
+            // health and cost outcomes
+            EpidemicCostHealth = new EpidemicCostHealth(_set.DeltaTDiscountRate, _set.WarmUpPeriodTimeIndex);
+            EpidemicCostHealth.Reset();
+
             // reset decisions
-            _decisionMaker.ResetForAnotherSimulationRun();//(ref _totalCost);
-            foreach (Intervention thisIntervention in _decisionMaker.Interventions)
-                thisIntervention.ResetForAnotherSimulationRun();
+            _decisionMaker.Reset();//(ref _totalCost);
 
             // update decisions
             _monitorofInterventionsInEffect.Update(0, true, ref _classes);
@@ -1730,13 +1159,7 @@ namespace APACElib
                 thisClass.Reset();
             }
 
-            // if at the beginning of simulation 
-            //if (ifToInitializeSimulatoin)
-            UpdateTransmissionRates();
-
-            // reset statistics
-            ResetStatistics(true);
-            
+           
             // reset features
             _arrCurrentValuesOfFeatures = new double[_features.Count];
             
@@ -1750,37 +1173,6 @@ namespace APACElib
             _timesOfEpidemicObservationsOverPastObservationPeriods = new double[0][];
         }
 
-        // reset statistics
-        private void ResetStatistics(bool ifToResetForAnotherSimulationRun)
-        {
-            // reset class statistics
-            //foreach (Class thisClass in _classes)
-            //    thisClass.Reset();
-            // reset summation statistics
-            foreach (SummationStatisticsOld thisSumStat in _summationStatistics)
-                thisSumStat.ResetStatistics(_set.WarmUpPeriodTimeIndex * _set.DeltaT, ifToResetForAnotherSimulationRun);
-            // reset ratio statistics
-            foreach (RatioStatistics thisRatioStat in _ratioStatistics)
-                thisRatioStat.ResetForAnotherSimulationRun();
-
-            // reset summation statistics
-            foreach (SummationStatisticsOld thisSumStat in _summationStatistics)
-            {
-                switch (thisSumStat.Type)
-                {
-                    case APACElib.SummationStatisticsOld.enumType.Incidence:
-                        {
-                            // do nothing
-                        }
-                        break;
-                    case APACElib.SummationStatisticsOld.enumType.Prevalence:
-                        {
-                            thisSumStat.AddCurrentMembers(_epiTimeIndex * _set.DeltaT, _arrNumOfMembersInEachClass, _modelUse != EnumModelUse.Calibration);
-                        }
-                        break;
-                }
-            }  
-        }
         // Sample this parameter
         private void SampleThisParameter(Parameter thisPar, double time)
         {
@@ -1872,188 +1264,16 @@ namespace APACElib
         {
             if (updateOnlyTimeDependent == false)
             {
-                foreach (Parameter thisParameter in _parameters)
+                foreach (Parameter thisParameter in Parameters)
                     SampleThisParameter(thisParameter, time);
             }
             else
             {
-                foreach (Parameter thisParameter in _parameters.Where(p => p.ShouldBeUpdatedByTime))
+                foreach (Parameter thisParameter in Parameters.Where(p => p.ShouldBeUpdatedByTime))
                     SampleThisParameter(thisParameter, time);
-                //{ 
-                    //if (thisParameter.ShouldBeUpdatedByTime)
-                        
-                //}
-            }
-            
-            //// first sample independent parameters
-            //bool parameterFound = false;
-            //foreach (Parameter thisParameter in _parameters)
-            //{
-            //    parameterFound = false;
-
-            //    // if independent parameter
-            //    IndependetParameter thisIndependetParameter = thisParameter as IndependetParameter;
-            //    if (thisIndependetParameter != null)
-            //    {
-            //        parameterFound = true;
-            //        _arrSampledParameterValues[thisParameter.ID] = ((IndependetParameter)thisParameter).Sample(_rng);
-            //    }
-
-            //    if (!parameterFound)
-            //    {
-            //        // if correlated parameter
-            //        CorrelatedParameter thisCorrelatedParameter = thisParameter as CorrelatedParameter;
-            //        if (thisCorrelatedParameter != null)
-            //        {
-            //            parameterFound = true;
-            //            int parameterIDCorrelatedTo = thisCorrelatedParameter.ParameterIDcorrelctedTo;
-            //            double valueOfTheParameterIDCorrelatedTo = _arrSampledParameterValues[parameterIDCorrelatedTo];
-            //            _arrSampledParameterValues[thisParameter.ID] = thisCorrelatedParameter.Sample(valueOfTheParameterIDCorrelatedTo);
-            //        }
-
-            //        if (!parameterFound)
-            //        {
-            //            // if multiplicative parameter
-            //            MultiplicativeParameter thisMultiplicativeParameter = thisParameter as MultiplicativeParameter;
-            //            if (thisMultiplicativeParameter != null)
-            //            {
-            //                parameterFound = true;
-            //                int firstParID = thisMultiplicativeParameter.FirstParameterID;
-            //                int secondParID = thisMultiplicativeParameter.SecondParameterID;
-            //                _arrSampledParameterValues[thisParameter.ID] = thisMultiplicativeParameter.Sample(_arrSampledParameterValues[firstParID], _arrSampledParameterValues[secondParID]);
-            //            }
-
-            //            if (!parameterFound)
-            //            {
-            //                // if linear combination parameter
-            //                LinearCombination thisLinearCombinationPar = thisParameter as LinearCombination;
-            //                if (thisLinearCombinationPar != null)
-            //                {
-            //                    parameterFound = true;
-            //                    int[] arrParIDs = thisLinearCombinationPar.arrParIDs;
-            //                    double[] arrValueOfParameters = new double[arrParIDs.Length];
-
-            //                    for (int i = 0; i < arrParIDs.Length; i++)
-            //                        arrValueOfParameters[i] = _arrSampledParameterValues[arrParIDs[i]];
-
-            //                    _arrSampledParameterValues[thisParameter.ID] = thisLinearCombinationPar.Sample(arrValueOfParameters);
-            //                }
-
-            //                if (!parameterFound)
-            //                {
-            //                    // if multiple combination parameter
-            //                    MultipleCombination thisMultipleCombinationPar = thisParameter as MultipleCombination;
-            //                    if (thisMultipleCombinationPar != null)
-            //                    {
-            //                        parameterFound = true;
-            //                        int[] arrParIDs = thisMultipleCombinationPar.arrParIDs;
-            //                        double[] arrValueOfParameters = new double[arrParIDs.Length];
-
-            //                        for (int i = 0; i < arrParIDs.Length; i++)
-            //                            arrValueOfParameters[i] = _arrSampledParameterValues[arrParIDs[i]];
-
-            //                        _arrSampledParameterValues[thisParameter.ID] = thisMultipleCombinationPar.Sample(arrValueOfParameters);
-            //                    }
-
-            //                    if (!parameterFound)
-            //                    {
-            //                        // if time dependent linear parameter
-            //                        TimeDependetLinear thisTimeDepedentLinearPar = thisParameter as TimeDependetLinear;
-            //                        if (thisTimeDepedentLinearPar != null)
-            //                        {
-            //                            parameterFound = true;
-            //                            double intercept = _arrSampledParameterValues[thisTimeDepedentLinearPar.InterceptParID];
-            //                            double slope = _arrSampledParameterValues[thisTimeDepedentLinearPar.SlopeParID];
-            //                            double timeOn = thisTimeDepedentLinearPar.TimeOn;
-            //                            double timeOff = thisTimeDepedentLinearPar.TimeOff;
-
-            //                            _arrSampledParameterValues[thisParameter.ID] = thisTimeDepedentLinearPar.Sample(time, intercept, slope, timeOn, timeOff);
-            //                        }
-
-            //                        if (!parameterFound)
-            //                        {
-            //                            // if time dependent oscillating parameter
-            //                            TimeDependetOscillating thisTimeDepedentOscillatingPar = thisParameter as TimeDependetOscillating;
-            //                            if (thisTimeDepedentOscillatingPar != null)
-            //                            {
-            //                                double a0 = _arrSampledParameterValues[thisTimeDepedentOscillatingPar.a0ParID];
-            //                                double a1 = _arrSampledParameterValues[thisTimeDepedentOscillatingPar.a1ParID];
-            //                                double a2 = _arrSampledParameterValues[thisTimeDepedentOscillatingPar.a2ParID];
-            //                                double a3 = _arrSampledParameterValues[thisTimeDepedentOscillatingPar.a3ParID];
-
-            //                                _arrSampledParameterValues[thisParameter.ID] = thisTimeDepedentOscillatingPar.Sample(time, a0, a1, a2, a3);
-            //                            }
-            //                        }
-            //                    }
-            //                }
-            //            }
-            //        }
-            //    }
-            //}  
-            ////// then sample dependent parameter                       
-            ////UpdateDependentParameterValues();
-        }
-        //// update the value of parameters that are functions of other parameters
-        //private void UpdateDependentParameterValues()
-        //{
-        //    bool parameterFound = false;
-        //    foreach (Parameter thisParameter in _parameters)
-        //    {
-        //        parameterFound = false;
-        //        CorrelatedParameter thisCorrelatedParameterPar = thisParameter as CorrelatedParameter;
-        //        if (thisCorrelatedParameterPar != null)
-        //        {
-        //            parameterFound = true;
-        //            int parameterIDCorrelatedTo = thisCorrelatedParameterPar.ParameterIDcorrelctedTo;
-        //            double valueOfTheParameterIDCorrelatedTo = _arrSampledParameterValues[parameterIDCorrelatedTo];
-        //            _arrSampledParameterValues[thisParameter.ID] = thisCorrelatedParameterPar.Sample(valueOfTheParameterIDCorrelatedTo);
-        //        }
-
-        //        if (!parameterFound)
-        //        {
-        //            MultiplicativeParameter thisMultiplicativeParameterPar = thisParameter as MultiplicativeParameter;
-        //            if (thisMultiplicativeParameterPar != null)
-        //            {
-        //                parameterFound = true;
-        //                int firstParID = thisMultiplicativeParameterPar.FirstParameterID;
-        //                int secondParID = thisMultiplicativeParameterPar.SecondParameterID;
-        //                _arrSampledParameterValues[thisParameter.ID] = thisMultiplicativeParameterPar.Sample(_arrSampledParameterValues[firstParID], _arrSampledParameterValues[secondParID]);
-        //            }
-
-        //            if (!parameterFound)
-        //            {
-        //                LinearCombination thisLinearCombinationPar = thisParameter as LinearCombination;
-        //                if (thisLinearCombinationPar != null)
-        //                {
-        //                    parameterFound = true;
-        //                    int[] arrParIDs = thisLinearCombinationPar.arrParIDs;
-        //                    double[] arrValueOfParameters = new double[arrParIDs.Length];
-
-        //                    for (int i = 0; i < arrParIDs.Length; i++)
-        //                        arrValueOfParameters[i] = _arrSampledParameterValues[arrParIDs[i]];
-
-        //                    _arrSampledParameterValues[thisParameter.ID] = thisLinearCombinationPar.Sample(arrValueOfParameters);
-        //                }
-
-        //                if (!parameterFound)
-        //                {
-        //                    MultipleCombination thisMultipleCombinationPar = thisParameter as MultipleCombination;
-        //                    if (thisMultipleCombinationPar != null)
-        //                    {
-        //                        parameterFound = true;
-        //                        int[] arrParIDs = thisMultipleCombinationPar.arrParIDs;
-        //                        double[] arrValueOfParameters = new double[arrParIDs.Length];
-
-        //                        for (int i = 0; i < arrParIDs.Length; i++)
-        //                            arrValueOfParameters[i] = _arrSampledParameterValues[arrParIDs[i]];
-
-        //                        _arrSampledParameterValues[thisParameter.ID] = thisMultipleCombinationPar.Sample(arrValueOfParameters);
-        //                    }
-        //                }
-        //            }
-        //        }
-        //    }
-        //}
+            }         
+           
+        }        
 
         // update the effect of change in time dependent parameters
         private void UpdateTheEffectOfChangeInTimeDependentParameterValues(double time)
@@ -2237,10 +1457,6 @@ namespace APACElib
                         }
                     }
 
-                    // store the rate
-                    //if (rate<0)
-                    //    MessageBox.Show("Transmission rates cannot be negative (Seed: " + _rng.Seed + ").", "Error in Calculating Transmission Rates");
-
                     arrTransmissionRatesByPathogen[pathogenID] = rate;
                 }
 
@@ -2392,29 +1608,16 @@ namespace APACElib
             AddRatioStatistics(modelSettings.RatioStatisticsSheet);
             // add connections
             AddConnections(modelSettings.ConnectionsMatrix);
-            // setup storing simulation trajectories
-            SetupStoringSimulationTrajectory();
             // update contact matrices
             UpdateContactMatrices();
             // monitor of interventions in effect
             _monitorofInterventionsInEffect = new MonitorOfInterventionsInEffect(ref _decisionMaker);
         }
-        ///// <summary>
-        ///// ad contact matrices
-        ///// </summary>
-        ///// <param name="baseContactMatrices">[pathogenID][class ID, class ID] </param>
-        ///// <param name="percentChangeInContactMatricesParIDs">[intervention ID][pathogenID][class ID, class ID]</param>
-        //public void AddContactMatrices(ref double[][,] baseContactMatrices, ref int[][][,] percentChangeInContactMatricesParIDs)
-        //{
-        //    _baseContactMatrices = baseContactMatrices;
-        //    _percentChangeInContactMatricesParIDs = percentChangeInContactMatricesParIDs;
-        //}
         public void UpdateContactMatrices()
         {
             _baseContactMatrices = _set.GetBaseContactMatrices();
             _percentChangeInContactMatricesParIDs = _set.GetPercentChangeInContactMatricesParIDs();
         }
-        
 
         // setup dynamic policy related settings
         public void SetupDynamicPolicySettings
@@ -2494,65 +1697,7 @@ namespace APACElib
         {
             //_decisionMaker.UpdateQFunctionCoefficients(qFunctionCoefficients);
         }     
-        // setup storing the simulation trajectory
-        public void SetupStoringSimulationTrajectory()
-        {
-            // return if trajectories should not be reported
-            if (StoreEpidemicTrajectories == false)
-                return;
-
-            _numOfTimeBasedOutputsToReport = 2; // 1 for simulation replication and 1 for simulation time
-            _numOfIntervalBasedOutputsToReport = 1; // 1 for interval 
-            _numOfMonitoredSimulationOutputs = 0;
-
-            foreach (Class thisClass in _classes)
-            {
-                if (thisClass.ShowIncidence)
-                    ++_numOfIntervalBasedOutputsToReport;
-                if (thisClass.ShowPrevalence)
-                    ++_numOfTimeBasedOutputsToReport;
-                if (thisClass.ShowAccumIncidence)
-                    ++_numOfTimeBasedOutputsToReport;
-            }
-            foreach (SummationStatisticsOld thisSumStat in _summationStatistics.Where(s => s.IfDisplay))
-            {
-                switch (thisSumStat.Type)
-                {
-                    case APACElib.SummationStatisticsOld.enumType.Incidence:
-                        ++_numOfIntervalBasedOutputsToReport;
-                        break;
-                    case APACElib.SummationStatisticsOld.enumType.AccumulatingIncident:
-                    case APACElib.SummationStatisticsOld.enumType.Prevalence:
-                        ++_numOfTimeBasedOutputsToReport;
-                        break;
-                }
-            }
-            foreach (RatioStatistics thisRatioStat in _ratioStatistics.Where(r => r.IfDisplay))
-            {
-                switch (thisRatioStat.Type)
-                {
-                    case APACElib.RatioStatistics.enumType.IncidenceOverIncidence:                    
-                    case APACElib.RatioStatistics.enumType.IncidenceOverPrevalence:
-                        ++_numOfIntervalBasedOutputsToReport;
-                        break;
-                    case APACElib.RatioStatistics.enumType.PrevalenceOverPrevalence:
-                    case APACElib.RatioStatistics.enumType.AccumulatedIncidenceOverAccumulatedIncidence:
-                        ++_numOfTimeBasedOutputsToReport;
-                        break;
-                }                
-            }
-
-            // report summation statistics for which surveillance is available
-            _numOfMonitoredSimulationOutputs = _summationStatistics.Where(s => s.SurveillanceDataAvailable).Count();
-            // report ratio statistics for which surveillance is available
-            _numOfMonitoredSimulationOutputs += _ratioStatistics.Where(r => r.SurveillanceDataAvailable).Count();
-        }
-               
-        // update the time to start decision making
-        public void UpdateTheTimeToStartDecisionMakingAndWarmUpPeriod(double epidemicTimeToStartDecisionMaking, double warmUpPeriod)
-        {
-            //_epidemicTimeIndexToStartDecisionMaking = (int)(epidemicTimeToStartDecisionMaking / _set.DeltaT);            
-        }
+                       
         // get which interventions are affecting contact pattern
         public bool[] IfInterventionsAreAffectingContactPattern()
         {
@@ -2667,7 +1812,7 @@ namespace APACElib
                     ++_numOfParametersToCalibrate;
 
                 // add the parameter to the list
-                _parameters.Add(thisParameter);
+                Parameters.Add(thisParameter);
             }
         }
         // add pathogens
@@ -2741,13 +1886,13 @@ namespace APACElib
                             if (_thereAreTimeDependentParameters)
                             {
                                 for (int i = 0; i < thisNormalClass.InfectivityParIDs.Length; i++)
-                                    if (_parameters[thisNormalClass.InfectivityParIDs[i]].ShouldBeUpdatedByTime)
+                                    if (Parameters[thisNormalClass.InfectivityParIDs[i]].ShouldBeUpdatedByTime)
                                     {
                                         _thereAreTimeDependentParameters_affectingTranmissionDynamics = true;
                                         _thereAreTimeDependentParameters_affectingInfectivities = true;
                                     }
                                 for (int i = 0; i < thisNormalClass.SusceptibilityParIDs.Length; i++)
-                                    if (_parameters[thisNormalClass.SusceptibilityParIDs[i]].ShouldBeUpdatedByTime)
+                                    if (Parameters[thisNormalClass.SusceptibilityParIDs[i]].ShouldBeUpdatedByTime)
                                     {
                                         _thereAreTimeDependentParameters_affectingTranmissionDynamics = true;
                                         _thereAreTimeDependentParameters_affectingSusceptibilities = true;
@@ -2779,7 +1924,7 @@ namespace APACElib
                             _classes.Add(thisSplittingClass);
 
                             // check if the rate parameter is time dependent
-                            if (_thereAreTimeDependentParameters && _parameters[parIDForProbOfSuccess].ShouldBeUpdatedByTime)
+                            if (_thereAreTimeDependentParameters && Parameters[parIDForProbOfSuccess].ShouldBeUpdatedByTime)
                                 _thereAreTimeDependentParameters_affectingSplittingClasses = true;
                         }
                         break;
@@ -3038,7 +2183,7 @@ namespace APACElib
                             _events.Add(thisEvent_EpidemicIndependent);
 
                             // check if the rate parameter is time dependent
-                            if (_thereAreTimeDependentParameters && _parameters[IDOfRateParameter].ShouldBeUpdatedByTime)
+                            if (_thereAreTimeDependentParameters && Parameters[IDOfRateParameter].ShouldBeUpdatedByTime)
                                     _thereAreTimeDependentParameters_affectingNaturalHistoryRates = true;
                         }
                         break;
@@ -3113,16 +2258,16 @@ namespace APACElib
                 string sumFormula = Convert.ToString(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Formula));
 
                 // defined on 
-                APACElib.SummationStatisticsOld.enumDefinedOn definedOn = APACElib.SummationStatisticsOld.enumDefinedOn.Classes;
-                if (strDefinedOn == "Events") definedOn = APACElib.SummationStatisticsOld.enumDefinedOn.Events;
+                SumTrajectory.EnumDefinedOn definedOn = SumTrajectory.EnumDefinedOn.Classes;
+                if (strDefinedOn == "Events") definedOn = SumTrajectory.EnumDefinedOn.Events;
 
                 // type
-                APACElib.SummationStatisticsOld.enumType type = APACElib.SummationStatisticsOld.enumType.Incidence;
-                if (strType == "Prevalence") type = APACElib.SummationStatisticsOld.enumType.Prevalence;
-                else if (strType == "Accumulating Incidence") type = APACElib.SummationStatisticsOld.enumType.AccumulatingIncident;
+                SumTrajectory.EnumType type = SumTrajectory.EnumType.Incidence;
+                if (strType == "Prevalence") type = SumTrajectory.EnumType.Prevalence;
+                else if (strType == "Accumulating Incidence") type = SumTrajectory.EnumType.AccumulatingIncident;
 
                 // if display
-                //bool ifDispay = SupportFunctions.ConvertYesNoToBool(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfDisplay).ToString());
+                bool ifDispay = SupportFunctions.ConvertYesNoToBool(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfDisplay).ToString());
 
                 // QALY loss and cost outcomes
                 double QALYLossPerNewMember = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.DALYPerNewMember));
@@ -3137,7 +2282,7 @@ namespace APACElib
                 
                 // goodness of fit measure
                 // default values
-                SimulationLib.CalibrationTarget.enumGoodnessOfFitMeasure goodnessOfFitMeasure = CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_timeSeries;
+                CalibrationTarget.enumGoodnessOfFitMeasure goodnessOfFitMeasure = CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_timeSeries;
                 double[] fourierWeights = new double[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.SIZE];
                 bool ifCheckWithinFeasibleRange = false;
                 double feasibleMin = 0, feasibleMax = 0;
@@ -3177,87 +2322,23 @@ namespace APACElib
                     }
                 }
 
-                // feature selection
-                // TODO: check if features are defined on enough number of obs periods!
-                string strNewMemberFeature = Convert.ToString(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.NewMember_FeatureType));
-                enumFeatureCombinations newMemberFeature = SupportProcedures.ConvertToFeatureCombination(strNewMemberFeature);
-                //int numOfPastObsPeriodsToStore = Convert.ToInt32(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.NewMember_NumOfPastObsPeriodsToStore));
-                //numOfPastObsPeriodsToStore = Math.Max(numOfPastObsPeriodsToStore, 1);
-
                 // build and add the summation statistics
-                SummationStatisticsOld thisSummationStatistics = new
-                    SummationStatisticsOld(statID, name, definedOn, type, sumFormula, QALYLossPerNewMember, costPerNewMember, surveillanceDataAvailable, firstObservationMarksTheStartOfTheSpread,
-                                       (int)(_set.NumOfDeltaT_inSimulationOutputInterval / _set.NumOfDeltaT_inObservationPeriod), _set.NumOfDeltaT_inObservationPeriod, numOfObservationPeriodsDelayBeforeObservating);
-                // if display
-                thisSummationStatistics.IfDisplay = true;
-
-                // set up calibration
-                thisSummationStatistics.IfIncludedInCalibration = ifIncludedInCalibration;
-                if (ifIncludedInCalibration)
-                {                    
-                    ++_numOfCalibratoinTargets;
-                    thisSummationStatistics.GoodnessOfFitMeasure = goodnessOfFitMeasure;
-                    thisSummationStatistics.Weight_overalFit = overalWeight;
-
-                    if (goodnessOfFitMeasure == CalibrationTarget.enumGoodnessOfFitMeasure.Fourier)
-                        thisSummationStatistics.Weight_fourierSimilarities = (double[])fourierWeights.Clone();
-
-                    if (ifCheckWithinFeasibleRange)
-                    {
-                        thisSummationStatistics.IfCheckWithinFeasibleRange = ifCheckWithinFeasibleRange;
-                        thisSummationStatistics.FeasibleRange_min = feasibleMin;
-                        thisSummationStatistics.FeasibleRange_max = feasibleMax;
-                    }
-                }
-
-                // add the summation statistics
-                _summationStatistics.Add(thisSummationStatistics);
-
-                // setup feature for new members
-                switch (newMemberFeature)
+                if (definedOn == SumTrajectory.EnumDefinedOn.Classes)
                 {
-                    case enumFeatureCombinations.IncidenceOnly:
-                        {
-                            // incidence only
-                            _features.Add(new Feature_DefinedOnSummationStatistics(name + ": Incidence", _numOfFeatures, Feature.enumFeatureType.Incidence, statID));
-                            ++_numOfFeatures;
-                        }
-                        break;
-                    case enumFeatureCombinations.PredictionOnly:
-                        {
-                            // prediction only
-                            // NOTE: THIS SHOULD BE UPDATED
-                            //_features.Add(new Feature_DefinedOnSummationStatistics(name + ": Prediction", _numOfFeatures, Feature.enumFeatureType.Prediction, statID, numOfPastObsPeriodsToStore));
-                            ++_numOfFeatures;
-                        }
-                        break;
-                    case enumFeatureCombinations.AccumulatingIncidenceOnly:
-                        {
-                            // accumulating incidence only
-                            _features.Add(new Feature_DefinedOnSummationStatistics(name + ": Accumulating incidence", _numOfFeatures, Feature.enumFeatureType.AccumulatingIncidence, statID));
-                            ++_numOfFeatures;
-                        }
-                        break;
-                    case enumFeatureCombinations.AccumulatingIncidenceANDPrediction:
-                        {
-                            // accumulating incidence and prediction
-                            _features.Add(new Feature_DefinedOnSummationStatistics(name + ": Accumulating incidence", _numOfFeatures, Feature.enumFeatureType.AccumulatingIncidence, statID));
-                            ++_numOfFeatures;
-                            // NOTE: THIS SHOULD BE UPDATED
-                            //_features.Add(new Feature_DefinedOnSummationStatistics(name + ": Prediction", _numOfFeatures, Feature.enumFeatureType.Prediction, statID, numOfPastObsPeriodsToStore));
-                            ++_numOfFeatures;
-                        }
-                        break;
-                    case enumFeatureCombinations.IncidenceANDAccumulatingIncidence:
-                        {
-                            // total count and accumulating incidence
-                            _features.Add(new Feature_DefinedOnSummationStatistics(name + ": Incidence", _numOfFeatures, Feature.enumFeatureType.Incidence, statID));
-                            ++_numOfFeatures;
-                            _features.Add(new Feature_DefinedOnSummationStatistics(name + ": Accumulating incidence", _numOfFeatures, Feature.enumFeatureType.AccumulatingIncidence, statID));
-                            ++_numOfFeatures;
-                        }
-                        break;
+                    SumClassesTrajectory thisSumClassTraj = new SumClassesTrajectory(statID, name, type, sumFormula, ifDispay, _set.WarmUpPeriodTimeIndex, _set.NumOfDeltaT_inSimulationOutputInterval);
+                    // add the summation statistics
+                    SumTrajectories.Add(thisSumClassTraj);
                 }
+                else // if defined on events
+                {
+                    SumEventTrajectory thisSumEventTraj = new SumEventTrajectory(statID, name, type, sumFormula, ifDispay, _set.WarmUpPeriodTimeIndex, _set.NumOfDeltaT_inSimulationOutputInterval);
+                    // add the summation statistics
+                    SumTrajectories.Add(thisSumEventTraj);
+                }
+
+                // update calibraton infor
+                SumTrajectories.Last().CalibInfo = new TrajectoryCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
+                
             }
         }
         // add ratio statistics
@@ -3274,7 +2355,7 @@ namespace APACElib
                 string ratioFormula = Convert.ToString(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Formula));
 
                 // if display
-                //bool ifDispay = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfDisplay).ToString());
+                bool ifDispay = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfDisplay).ToString());
 
                 bool ifSurveillanceDataAvailable = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.SurveillanceDataAvailable).ToString());
                 
@@ -3282,7 +2363,7 @@ namespace APACElib
                 bool ifIncludedInCalibration = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfIncludedInCalibration).ToString());
 
                 // default values
-                SimulationLib.CalibrationTarget.enumGoodnessOfFitMeasure goodnessOfFitMeasure = CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_timeSeries;
+                CalibrationTarget.enumGoodnessOfFitMeasure goodnessOfFitMeasure = CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_timeSeries;
                 double[] fourierWeights = new double[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.SIZE];
                 bool ifCheckWithinFeasibleRange = false;
                 double feasibleMin = 0, feasibleMax = 0;
@@ -3332,47 +2413,32 @@ namespace APACElib
                     }
                 }
 
-                // build a ratio stat
-                RatioStatistics thisRatioStatistics = null;
+                // find the type
+                RatioTrajectory.EnumType type = RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence;
                 switch (strType)
                 {
                     case "Incidence/Incidence":
-                        thisRatioStatistics = new RatioStatistics(statID, name, APACElib.RatioStatistics.enumType.IncidenceOverIncidence, ratioFormula, ifSurveillanceDataAvailable);
+                        type = RatioTrajectory.EnumType.IncidenceOverIncidence;
                         break;
                     case "Accumulated Incidence/Accumulated Incidence":
-                        thisRatioStatistics = new RatioStatistics(statID, name, APACElib.RatioStatistics.enumType.AccumulatedIncidenceOverAccumulatedIncidence, ratioFormula, ifSurveillanceDataAvailable);
+                        type = RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence;
                         break;
                     case "Prevalence/Prevalence":
-                        thisRatioStatistics = new RatioStatistics(statID, name, APACElib.RatioStatistics.enumType.PrevalenceOverPrevalence, ratioFormula, ifSurveillanceDataAvailable);
+                        type = RatioTrajectory.EnumType.PrevalenceOverPrevalence;
                         break;
                     case "Incidence/Prevalence":
-                        thisRatioStatistics = new RatioStatistics(statID, name, APACElib.RatioStatistics.enumType.IncidenceOverPrevalence, ratioFormula, ifSurveillanceDataAvailable);
+                        type = RatioTrajectory.EnumType.IncidenceOverPrevalence;
                         break;
                 }
-                // if display
-                thisRatioStatistics.IfDisplay = true;
+
+                // build a ratio stat
+                RatioTrajectory thisRatioTraj = new RatioTrajectory(statID, name, type, ratioFormula, ifDispay, _set.WarmUpPeriodTimeIndex, _set.NumOfDeltaT_inSimulationOutputInterval);
 
                 // set up calibration
-                thisRatioStatistics.IfIncludedInCalibration = ifIncludedInCalibration;
-                if (ifIncludedInCalibration)
-                {
-                    ++_numOfCalibratoinTargets;
-                    thisRatioStatistics.GoodnessOfFitMeasure = goodnessOfFitMeasure;
-                    thisRatioStatistics.Weight_overalFit = overalWeight;
-
-                    if (goodnessOfFitMeasure == CalibrationTarget.enumGoodnessOfFitMeasure.Fourier)
-                        thisRatioStatistics.Weight_fourierSimilarities = (double[])fourierWeights.Clone();
-
-                    if (ifCheckWithinFeasibleRange)
-                    {
-                        thisRatioStatistics.IfCheckWithinFeasibleRange = ifCheckWithinFeasibleRange;
-                        thisRatioStatistics.FeasibleRange_min = feasibleMin;
-                        thisRatioStatistics.FeasibleRange_max = feasibleMax;
-                    }
-                }
+                thisRatioTraj.CalibInfo = new TrajectoryCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
 
                 // add the summation statistics
-                _ratioStatistics.Add(thisRatioStatistics);
+                RatioTrajectories.Add(thisRatioTraj);
             }
         }
         // add connections
@@ -3387,8 +2453,6 @@ namespace APACElib
                 ((Class_Normal)_classes[classID]).AddAnEvent((Event)_events[processID]);
                 
                 ++i;
-
-                
             }
         }        
         #endregion

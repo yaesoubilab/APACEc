@@ -154,28 +154,29 @@ namespace APACElib
             Type = 5,
             Formula = 6,
 
-            DALYPerNewMember = 8,
-            CostPerNewMember = 9,
+            IfDisplay = 8,
+            DALYPerNewMember = 9,
+            CostPerNewMember = 10,
 
-            SurveillanceDataAvailable = 11,
-            NumOfObservationPeriodsDelayBeforeObservating = 12,
-            FirstObservationMarksTheStartOfTheSpread = 13,  
+            SurveillanceDataAvailable = 12,
+            NumOfObservationPeriodsDelayBeforeObservating = 13,
+            FirstObservationMarksTheStartOfTheSpread = 14,  
             
-            IfIncludedInCalibration = 15,
-            MeasureOfFit = 16,
-            Weight_OveralFit = 17,
-            Weight_FourierCosine = 18,
-            Weight_FourierEuclidean = 19,
-            Weight_FourierAverage = 20,
-            Weight_FourierStDev = 21,
-            Weight_FourierMin = 22,
-            Weight_FourierMax = 23,
-            IfCheckWithinFeasibleRange = 24,
-            FeasibleRange_minimum = 25,
-            FeasibleRange_maximum = 26,
+            IfIncludedInCalibration = 16,
+            MeasureOfFit = 17,
+            Weight_OveralFit = 18,
+            Weight_FourierCosine = 19,
+            Weight_FourierEuclidean = 20,
+            Weight_FourierAverage = 21,
+            Weight_FourierStDev = 22,
+            Weight_FourierMin = 23,
+            Weight_FourierMax = 24,
+            IfCheckWithinFeasibleRange = 25,
+            FeasibleRange_minimum = 26,
+            FeasibleRange_maximum = 27,
 
-            NewMember_FeatureType = 28,
-            NewMember_NumOfPastObsPeriodsToStore = 29,
+            NewMember_FeatureType = 29,
+            NewMember_NumOfPastObsPeriodsToStore = 30,
 
         }        
         public enum enumSimulationStatisticsColumns : int
@@ -1042,7 +1043,7 @@ namespace APACElib
         #region Report results subs
 
         // setup simulation output sheet
-        public void SetupSimulationOutputSheet(string[] timeBasedOutputs, string[] intervalBasedOutputs, string[] observableOutputs, string[] resouceOutputs)
+        public void SetupSimulationOutputSheet(string[] prevalenceOutputs, string[] incidenceOutputs, string[] observableOutputs, string[] resouceOutputs)
         {
             base.ActivateSheet("Simulation Output");
             int rowIndex1 = 2;
@@ -1063,14 +1064,14 @@ namespace APACElib
                 return;
             }
             // report and format the heading
-            colIndex2 = timeBasedOutputs.Length + intervalBasedOutputs.Length +  observableOutputs.Length;
-            base.WriteToRow(timeBasedOutputs, "simulationOutput", 0, 0);
+            colIndex2 = prevalenceOutputs.Length + incidenceOutputs.Length +  observableOutputs.Length;
+            base.WriteToRow(prevalenceOutputs, "simulationOutput", 0, 0);
             base.AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
-            base.WriteToRow(intervalBasedOutputs, "simulationOutput", 0, timeBasedOutputs.Length);
+            base.WriteToRow(incidenceOutputs, "simulationOutput", 0, prevalenceOutputs.Length);
             base.AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
-            base.WriteToRow(observableOutputs, "simulationOutput", 0, timeBasedOutputs.Length + intervalBasedOutputs.Length);
+            base.WriteToRow(observableOutputs, "simulationOutput", 0, prevalenceOutputs.Length + incidenceOutputs.Length);
             base.AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
-            base.WriteToCell(resouceOutputs, "simulationOutput", 0, timeBasedOutputs.Length + intervalBasedOutputs.Length + observableOutputs.Length);
+            base.WriteToCell(resouceOutputs, "simulationOutput", 0, prevalenceOutputs.Length + incidenceOutputs.Length + observableOutputs.Length);
             base.AddABorder(rowIndex1, colIndex1, rowIndex1, colIndex2, ExcelInteractor.enumBorder.Bottom);
             base.Align(rowIndex1, colIndex1, rowIndex1, colIndex2, ExcelInteractor.enumAlignment.Center);
             base.WrapText(rowIndex1, colIndex1, rowIndex1, colIndex2);

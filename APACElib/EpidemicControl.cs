@@ -174,10 +174,13 @@ namespace APACElib
             }
         }
 
-        public void ResetForAnotherSimulationRun()
+        public void Reset()
         {
             CostOverThisDecisionPeriod = 0;
             CurrentDecision = (int[])DefaultDecision.Clone();
+
+            foreach (Intervention thisIntervention in Interventions)
+                thisIntervention.ResetForAnotherSimulationRun();
         }
 
         private void ReadValuesOfFeatures(int epiTimeIndex)
