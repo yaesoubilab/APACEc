@@ -854,7 +854,7 @@ namespace APACElib
             }
             // read past actions
             _modelSettings.ReadPastActions(ref _excelInterface);
-            _modelSettings.ReadPastObservations(ref _excelInterface, _epidemicModeller.NumOfCalibratoinTargets);
+            _modelSettings.ReadPastObservations(ref _excelInterface, 0);
         }
 
         #endregion

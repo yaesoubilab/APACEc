@@ -612,6 +612,12 @@ namespace SimulationLib
         }
     }
 
+    public class Calibration
+    {
+        public int NumOfCalibratoinTargets { get; } = 0;
+        public int NumOfDiscardedTrajectoriesAmongCalibrationRuns { get; private set; }
+    }
+
 }
 
 

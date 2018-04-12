@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using RandomVariateLib;
+using ComputationLib;
+using 
 
 namespace APACElib
 {
@@ -243,7 +247,6 @@ namespace APACElib
             return tIndex;
         }
     }
-    
 
     public class MonitorOfInterventionsInEffect
     {
@@ -301,9 +304,259 @@ namespace APACElib
         
     }
 
-
     public class ADP
     {
+        // ADP stuff
+        double[] _arrSimulationObjectiveFunction;
+        private double[] _arrCurrentValuesOfFeatures = null;
+        private int _adpSimItr; // the index of simulation runs that should be done before doing back-propagation
+        private int[] _adpRndSeeds;
+        Discrete _discreteDistOverSeeds;
+        private bool _storeADPIterationResults;
+        private double[][] _arrADPIterationResults;
+        public ArrayList Features { get; private set; } = new ArrayList();
+
+        public bool UseEpidemicTimeAsFeature { get; private set; }
+
+        public double[,] ArrADPIterationResults
+        {
+            get { return SupportFunctions.ConvertFromJaggedArrayToRegularArray(_arrADPIterationResults, 5); }
+
+        }
+
+        // set up POMDP-ADP
+        public void SetUpADPAlgorithm(EnumObjectiveFunction objectiveFunction,
+            int numOfADPIterations, int numOfSimRunsToBackPropogate,
+            double wtpForHealth, double harmonicRule_a, double epsilonGreedy_beta, double epsilonGreedy_delta,
+            bool storeADPIterationResults)
+        {
+            // ADP
+            //_adpSimItr = 0;
+            //_simDecisionMaker.SetupTraining(numOfSimRunsToBackPropogate);
+            //_simDecisionMaker.SetupAHarmonicStepSizeRule(harmonicRule_a);
+            //_simDecisionMaker.SetupAnEpsilonGreedyExplorationRule(epsilonGreedy_beta, epsilonGreedy_delta);
+            //_simDecisionMaker.NumberOfADPIterations = numOfADPIterations;
+
+            _storeADPIterationResults = storeADPIterationResults;
+            if (_storeADPIterationResults)
+                _arrADPIterationResults = new double[0][];
+        }
+
+        // update the cost of current ADP state-decision
+        private void UpdateRewardOfCurrentADPStateDecision()
+        {
+            //// add reward
+            //int numOfADPStates = _decisionMaker.NumberOfADPStates(_adpSimItr);
+            //if (numOfADPStates > 0)
+            //    _decisionMaker.AddToDecisionIntervalReward(_adpSimItr, numOfADPStates - 1, CurrentDeltaTReward());
+            //((ADP_State)_POMDP_ADP.ADPStates[numOfADPStates - 1]).AddToDecisionIntervalReward();
+        }
+
+        // find the approximately optimal dynamic policy
+        public void FindOptimalDynamicPolicy()
+        {
+            // sample rnd seeds if trajectories need to be sampled
+            //int[,] sampledRNDseeds = new int[_simDecisionMaker.NumberOfADPIterations, _simDecisionMaker.NumOfSimRunsToBackPropogate];
+            //if (_simulationRNDSeedsSource == enumSimulationRNDSeedsSource.WeightedPrespecifiedSquence)
+            //{
+            //    _rng = new RNG(0);
+            //    for (int itr = 1; itr <= _simDecisionMaker.NumberOfADPIterations; ++itr)
+            //        for (int j = 1; j <= _simDecisionMaker.NumOfSimRunsToBackPropogate; ++j)
+            //            sampledRNDseeds[itr - 1, j - 1] = _rndSeeds[_discreteDistOverSeeds.SampleDiscrete(_rng)];
+            //}
+
+            //int rndSeedForThisItr = 0;
+            //int[] rndSeeds = new int[_simDecisionMaker.NumOfSimRunsToBackPropogate];
+            //int indexOfRNDSeeds = 0;
+            //int adpItr = 1;
+            //_storeEpidemicTrajectories = false;
+
+            //int optStartTime, optEndTime;
+            //optStartTime = Environment.TickCount;
+            //_totalSimulationTimeToFindOneDynamicPolicy = 0;       
+
+            //// optimize
+            //for (int itr = 1; itr <= _simDecisionMaker.NumberOfADPIterations; ++itr)
+            //{                
+            //    // find the RND seed for this iteration
+            //    switch (_simulationRNDSeedsSource)
+            //    {
+            //        case enumSimulationRNDSeedsSource.StartFrom0:
+            //            break;
+            //        case enumSimulationRNDSeedsSource.PrespecifiedSquence:
+            //            {
+            //                for (int j = 1; j <= _simDecisionMaker.NumOfSimRunsToBackPropogate; j++)
+            //                {
+            //                    if (indexOfRNDSeeds >= _rndSeeds.Length)
+            //                        indexOfRNDSeeds = 0;
+            //                    rndSeeds[j-1] = _rndSeeds[indexOfRNDSeeds++];
+            //                }
+            //            }
+            //            break;
+            //        case enumSimulationRNDSeedsSource.WeightedPrespecifiedSquence:
+            //            {
+            //                for (int j = 1; j <= _simDecisionMaker.NumOfSimRunsToBackPropogate; j++)
+            //                    rndSeeds[j-1] = sampledRNDseeds[itr-1, j-1];
+            //            }
+            //            break;
+            //    }
+
+            //    // get ready for another ADP iteration
+            //    GetReadyForAnotherADPIteration(itr);
+
+            //    // simulate 
+            //    int simStartTime, simEndTime;
+            //    simStartTime = Environment.TickCount;
+            //    switch (_simulationRNDSeedsSource)
+            //    {
+            //        case enumSimulationRNDSeedsSource.StartFrom0:
+            //            SimulateNTrajectories(_simDecisionMaker.NumOfSimRunsToBackPropogate, ref rndSeedForThisItr);
+            //            break;
+            //        case enumSimulationRNDSeedsSource.PrespecifiedSquence:                        
+            //        case enumSimulationRNDSeedsSource.WeightedPrespecifiedSquence:
+            //            SimulateNTrajectories(_simDecisionMaker.NumOfSimRunsToBackPropogate, rndSeeds);
+            //            break;
+            //    }
+
+            //    // accumulated simulation time
+            //    simEndTime = Environment.TickCount;
+            //    _totalSimulationTimeToFindOneDynamicPolicy += (double)(simEndTime - simStartTime) / 1000;
+
+            //    // do backpropogation
+            //    _simDecisionMaker.DoBackpropagation(itr, _discountRate, _stoppedDueToEradication, false);
+
+            //    // store ADP iterations
+            //    if (_modelUse == enumModelUse.Optimization && _storeADPIterationResults == true)
+            //    {
+            //        for (int dim = 0; dim < _simDecisionMaker.NumOfSimRunsToBackPropogate; ++dim)
+            //        {
+            //            if (_simDecisionMaker.BackPropagationResult(dim) == true)
+            //            {
+            //                double[][] thisADPIterationResult = new double[1][];
+            //                thisADPIterationResult[0] = new double[5];
+
+            //                // iteration
+            //                thisADPIterationResult[0][0] = adpItr;
+            //                // reward
+            //                thisADPIterationResult[0][1] = _arrSimulationObjectiveFunction[dim];
+            //                // report errors
+            //                thisADPIterationResult[0][2] = _simDecisionMaker.ADPPredictionErrors(dim, 0); //_POMDP_ADP.PredictionErrorForTheFirstEligibleADPState(dim);
+            //                thisADPIterationResult[0][3] = _simDecisionMaker.ADPPredictionErrors(dim, (int)_simDecisionMaker.NumberOfValidADPStates(dim) / 2);
+            //                thisADPIterationResult[0][4] = _simDecisionMaker.ADPPredictionErrors(dim, _simDecisionMaker.NumberOfValidADPStates(dim) - 1); //_POMDP_ADP.PredictionErrorForTheLastEligibleADPState(dim); //
+            //                // concatenate 
+            //                _arrADPIterationResults = SupportFunctions.ConcatJaggedArray(_arrADPIterationResults, thisADPIterationResult);
+            //                ++adpItr;
+            //            }
+            //        }
+            //    }
+            //}
+            //// optimization time
+            //optEndTime = Environment.TickCount;
+            //_timeUsedToFindOneDynamicPolicy = (double)(optEndTime - optStartTime) / 1000;
+
+            //// reverse back the rnd seeds
+            //if (_rndSeeds != null)
+            //    _rndSeeds = _rndSeeds.Reverse().ToArray();
+        }
+
+        // get dynamic policy // only one dimensional
+        public void GetOptimalDynamicPolicy(ref string featureName, ref double[] headers, ref int[] optimalDecisions,
+            int numOfIntervalsToDescretizeFeatures)
+        {
+            if (Features.Count > 1) return; // this procedure works when the feature set constrains 1 feature
+
+            headers = new double[numOfIntervalsToDescretizeFeatures + 1];
+            optimalDecisions = new int[numOfIntervalsToDescretizeFeatures + 1];
+
+            // get the only feature
+            Feature theOnlyFeature = (Feature)Features[0];
+
+            // setup the interval length for each feature
+            int featureIndex = theOnlyFeature.Index;
+            double featureMin = theOnlyFeature.Min;
+            double featureMax = theOnlyFeature.Max;
+            double featureIntervalLength = (featureMax - featureMin) / numOfIntervalsToDescretizeFeatures;
+            double featureNumOfBreakPoints = numOfIntervalsToDescretizeFeatures + 1;
+            featureName = theOnlyFeature.Name;
+
+            // reset available action combinations to the initial setting
+            //_simDecisionMaker.MakeAllDynamicallyControlledActionsAvailable();
+            // find the dynamic policy
+            double featureValue = 0;
+            for (int fIndex = 0; fIndex < featureNumOfBreakPoints; ++fIndex)
+            {
+                // value of the feature
+                featureValue = featureMin + fIndex * featureIntervalLength;
+                // header
+                headers[fIndex] = featureValue;
+                // make an array of feature
+                double[] arrFeatureValue = new double[1];
+                arrFeatureValue[0] = featureValue;
+                // find the optimal decision
+                //optimalDecisions[fIndex] = ComputationLib.SupportFunctions.ConvertToBase10FromBase2(
+                //        _simDecisionMaker.FindTheOptimalDynamicallyControlledActionCombination(arrFeatureValue));//, _timeIndexToStartDecisionMaking));
+            }
+        }
+
+        // get dynamic policy // only two dimensional
+        public void GetOptimalDynamicPolicy(ref string[] strFeatureNames, ref double[][] headers, ref int[,] optimalDecisions,
+            int numOfIntervalsToDescretizeFeatures)
+        {
+            int numOfFeatures = Features.Count;
+
+            strFeatureNames = new string[numOfFeatures];
+            headers = new double[2][];
+            headers[0] = new double[numOfIntervalsToDescretizeFeatures + 1];
+            headers[1] = new double[numOfIntervalsToDescretizeFeatures + 1];
+            optimalDecisions = new int[numOfIntervalsToDescretizeFeatures + 1, numOfIntervalsToDescretizeFeatures + 1];
+
+            // setup the interval length for each feature
+            double[] arrFeatureMin = new double[numOfFeatures];
+            double[] arrFeatureMax = new double[numOfFeatures];
+            double[] arrFeatureIntervalLengths = new double[numOfFeatures];
+            double[] arrFeatureNumOfBreakPoints = new double[numOfFeatures];
+
+            int featureIndex;
+            foreach (Feature thisFeature in Features)
+            {
+                featureIndex = thisFeature.Index;
+                arrFeatureMin[featureIndex] = thisFeature.Min;
+                arrFeatureMax[featureIndex] = thisFeature.Max;
+                arrFeatureIntervalLengths[featureIndex] = (arrFeatureMax[featureIndex] - arrFeatureMin[featureIndex]) / numOfIntervalsToDescretizeFeatures;
+                arrFeatureNumOfBreakPoints[featureIndex] = numOfIntervalsToDescretizeFeatures + 1;
+            }
+            // feature names
+            foreach (Feature thisFeature in Features)
+                strFeatureNames[thisFeature.Index] = thisFeature.Name;
+
+            // reset available action combinations to the initial setting
+            //_simDecisionMaker.MakeAllDynamicallyControlledActionsAvailable();
+
+            // write the dynamic Policy
+            double[] arrFeatureValues = new double[Features.Count];
+            for (int f0Index = 0; f0Index < arrFeatureNumOfBreakPoints[0]; ++f0Index)
+            {
+                // feature 0 values
+                arrFeatureValues[0] = arrFeatureMin[0] + f0Index * arrFeatureIntervalLengths[0];
+                // header
+                headers[0][f0Index] = arrFeatureValues[0];
+                for (int f1Index = 0; f1Index < arrFeatureNumOfBreakPoints[1]; f1Index++)
+                {
+                    // feature 1 value
+                    arrFeatureValues[1] = arrFeatureMin[1] + f1Index * arrFeatureIntervalLengths[1];
+                    // header
+                    headers[1][f1Index] = arrFeatureValues[1];
+                    // optimal decision ID
+                    //optimalDecisions[f0Index, f1Index] = ComputationLib.SupportFunctions.ConvertToBase10FromBase2(
+                    //    _simDecisionMaker.FindTheOptimalDynamicallyControlledActionCombination(arrFeatureValues));
+                }
+            }
+        }
+
+        public void Reset()
+        {
+            Features = new ArrayList();
+        }
 
         // add current ADP state-decision
         private void StoreCurrentADPStateDecision()
@@ -408,7 +661,7 @@ namespace APACElib
 //                                                // check how much longer this intervention should remain in use
 //                                                else if (thisIntervention.EpidemicTimeIndexWhenThisInterventionTurnedOn +
 //                                                    thisIntervention.NumOfTimeIndeciesDelayedBeforeGoingIntoEffectOnceTurnedOn +
-//                                                    thisIntervention.ThresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention <= _currentEpidemicTimeIndex)
+//                                                    thisIntervention.ThresholdBasedEmployment_numOfTimeIndicesToUseThisIntervention <= _)
 //                                                    return false;
 //                                            }
 //                                            else // if (observedEpidemiologicalMeasure >= threshold)

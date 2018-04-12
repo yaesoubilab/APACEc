@@ -144,5 +144,22 @@ namespace APACElib
 
     }   
     
+
+    public class Timer
+    {
+        // simulation run time
+        private int _startTime;
+        public double TimePassed { get; private set; }
+
+        public void Start()
+        {
+            _startTime = Environment.TickCount;
+        }
+        public void Stop()
+        {
+            int endTime = Environment.TickCount;
+            TimePassed = (double)(endTime - _startTime) / 1000;
+        }
+    }
 }
 

@@ -75,12 +75,6 @@ namespace APACElib
         private double[][] _sampledParameterValues;
         // calibration
         private CalibrationOld _calibration;
-        private int _numOfCalibratoinTargets;
-        //private int _numOfSpecialStatisticsIncludedInCalibration;
-        //private double _calibratoinWarmUpPeriodLength;
-        //private int _numOfWarmUpObservationPeriodsForCalibration;
-        //private int[][] _prespecifiedDecisionsOverObservationPeriods;
-        private int _numOfParametersToCalibrate;
 
         // computation statistics
         private double _actualTimeUsedToSimulateAllTrajectories; // seconds        
@@ -97,7 +91,7 @@ namespace APACElib
         { get { return _namesOfParameters; } }
         public int CurrentRNDSeed
         {
-            get { return _parentEpidemic.RNDSeedResultedInAnAcceptibleTrajectory; }
+            get { return _parentEpidemic.SeedProducedAcceptibleTraj; }
         }
         public int CurrentEpidemicTimeIndex
         {
@@ -173,10 +167,6 @@ namespace APACElib
         public CalibrationOld Calibration
         {
             get { return _calibration; }
-        }
-        public int NumOfCalibratoinTargets
-        {
-            get { return _numOfCalibratoinTargets; }
         }
         // simulation summary
         public ObservationBasedStatistics obsTotalCost
@@ -264,14 +254,12 @@ namespace APACElib
             _ID = ID;
             _set = modelSettings;
 
+            // build a parent epidemic model 
             _parentEpidemic = new Epidemic(0);
             _parentEpidemic.BuildModel(ref _set);
 
-            // gather model information
-            CollectInformationAvailableAfterModelIsBuilt(_parentEpidemic);
-
             // read contact matrices
-            _set.ReadContactMatrices(ref excelInterface, _numOfInterventionsAffectingContactPattern);
+            _set.ReadContactMatrices(ref excelInterface, _parentEpidemic.NumOfInterventionsAffectingContactPattern);
             _parentEpidemic.UpdateContactMatrices();
 
             // find the names of parameters
@@ -496,16 +484,16 @@ namespace APACElib
                     _totalSimulationTimeUsedByCalibration += _parentEpidemic.TimeUsedToSimulateOneTrajectory;
 
                     // find the number of discarded trajectories    
-                    if (_parentEpidemic.RNDSeedResultedInAnAcceptibleTrajectory == -1)
+                    if (_parentEpidemic.SeedProducedAcceptibleTraj == -1)
                         _numOfTrajectoriesDiscardedByCalibration += 1;
                     else
                     {
                         // add this simulation observations
                         //_calibration.AddResultOfASimulationRun(simItr, _parentEpidemic.RNDSeedResultedInAnAcceptibleTrajectory, _parentEpidemic.GetValuesOfParametersToCalibrate(),
                         //SupportFunctions.ConvertFromJaggedArrayToRegularArray(_parentEpidemic.CalibrationObservation, _parentEpidemic.NumOfCalibratoinTargets));
-                        double[,] mOfObs = SupportFunctions.ConvertFromJaggedArrayToRegularArray(_parentEpidemic.CalibrationObservation, _parentEpidemic.NumOfCalibratoinTargets);
+                        double[,] mOfObs = SupportFunctions.ConvertFromJaggedArrayToRegularArray(new double[0][], _parentEpidemic.NumOfCalibratoinTargets);
                         double[] par = new double[0];
-                        _calibration.AddResultOfASimulationRun(simItr, _parentEpidemic.RNDSeedResultedInAnAcceptibleTrajectory, ref par, ref mOfObs);
+                        _calibration.AddResultOfASimulationRun(simItr, _parentEpidemic.SeedProducedAcceptibleTraj, ref par, ref mOfObs);
 
                         // find the fit of the stored simulation results
                         _calibration.FindTheFitOfRecordedSimulationResults(_set.UseParallelComputing);
@@ -550,14 +538,14 @@ namespace APACElib
 
                         // find the number of discarded trajectories    
                         //_numOfTrajectoriesDiscardedByCalibration += thisEpidemic.NumOfDiscardedTrajectoriesAmongCalibrationRuns;
-                        if (thisEpidemic.RNDSeedResultedInAnAcceptibleTrajectory == -1)
+                        if (thisEpidemic.SeedProducedAcceptibleTraj == -1)
                             _numOfTrajectoriesDiscardedByCalibration += 1;
                         else
                         {
-                            double[,] mOfObs = SupportFunctions.ConvertFromJaggedArrayToRegularArray(thisEpidemic.CalibrationObservation, thisEpidemic.NumOfCalibratoinTargets);
+                            double[,] mOfObs = SupportFunctions.ConvertFromJaggedArrayToRegularArray(new double[0][], thisEpidemic.NumOfCalibratoinTargets);
                             double[] par = new double[0];
                             // add this simulation observations
-                            _calibration.AddResultOfASimulationRun(simItr, thisEpidemic.RNDSeedResultedInAnAcceptibleTrajectory, ref par, ref mOfObs);
+                            _calibration.AddResultOfASimulationRun(simItr, thisEpidemic.SeedProducedAcceptibleTraj, ref par, ref mOfObs);
                         }
                     }
                     
@@ -603,15 +591,7 @@ namespace APACElib
         {
             _parentEpidemic.ContinueSimulatingThisTrajectory(additionalDeltaTs);
         }
-        // get if stop condition of this epidemic satisfied
-        public bool GetIfEitherEradicatedOrSimulationHorizonHasReached()
-        {
-            bool value = false;
-            if (_parentEpidemic.IfStoppedDueToEradication ||
-                (_parentEpidemic.CurrentEpidemicTimeIndex >= _set.TimeIndexToStop))
-                value = true;
-            return value;
-        }
+
         // change the status of storing epidemic trajectories
         public void ShouldStoreEpidemicTrajectories(bool yesOrNo)
         {
@@ -915,7 +895,7 @@ namespace APACElib
 
             // sampled summary statistics  
             _arrSimItrs[epidemicIndex] = epidemicIndex;
-            _arrRNGSeeds[epidemicIndex] = thisEpidemic.RNDSeedResultedInAnAcceptibleTrajectory;
+            _arrRNGSeeds[epidemicIndex] = thisEpidemic.SeedProducedAcceptibleTraj;
             _arrNHB[epidemicIndex] = thisEpidemic.EpidemicCostHealth.GetDiscountedNHB(_set.WTPForHealth);
             _arrNMB[epidemicIndex] = thisEpidemic.EpidemicCostHealth.GetDiscountedNMB(_set.WTPForHealth);
             _arrSimulationQALY[epidemicIndex] = thisEpidemic.EpidemicCostHealth.TotalDiscountedDALY;
@@ -1385,30 +1365,30 @@ namespace APACElib
                 thisObsStat.Reset();
         }
         // collect information available after model is built
-        private void CollectInformationAvailableAfterModelIsBuilt(Epidemic thisEpidemic)
-        {
-            _numOfInterventions = thisEpidemic.DecisionMaker.NumOfInterventions;
-            _numOfInterventionsAffectingContactPattern = thisEpidemic.NumOfInterventionsAffectingContactPattern;
-            //_numOfInterventionsControlledDynamically = thisEpidemic.NumOfInterventionsControlledDynamically;
-            _storeEpidemicTrajectories = thisEpidemic.StoreEpidemicTrajectories;
-            _numOfPrevalenceOutputsToReport = thisEpidemic.EpidemicHistory.NumOfPrevalenceOutputsToReport;
-            _numOfIncidenceOutputsToReport = thisEpidemic.EpidemicHistory.NumOfIncidenceOutputsToReport;
-            _numOfResourcesToReport = thisEpidemic.NumOfResourcesToReport;
-            _numOfParametersToCalibrate = thisEpidemic.NumOfParametersToCalibrate;
-            _numOfMonitoredSimulationOutputs = 0;// thisEpidemic.NumOfMonitoredSimulationOutputs;
-            // calibration information            
-            _numOfCalibratoinTargets= thisEpidemic.NumOfCalibratoinTargets;
-            // decision names
-            _interventionNames = new string[_numOfInterventions];
-            _namesOfDefaultInterventionsAndThoseSpecifiedByDynamicRule = new string[0];
-            foreach (Intervention thisIntervention in thisEpidemic.DecisionMaker.Interventions)
-            {
-                _interventionNames[thisIntervention.Index] = thisIntervention.Name;
-                if (thisIntervention.DecisionRule is DecionRule_Dynamic
-                    || thisIntervention.Type == EnumInterventionType.Default)
-                    SupportFunctions.AddToEndOfArray(ref _namesOfDefaultInterventionsAndThoseSpecifiedByDynamicRule, thisIntervention.Name);
-            }
-        }
+        //private void CollectInformationAvailableAfterModelIsBuilt(Epidemic thisEpidemic)
+        //{
+        //    _numOfInterventions = thisEpidemic.DecisionMaker.NumOfInterventions;
+        //    _numOfInterventionsAffectingContactPattern = thisEpidemic.NumOfInterventionsAffectingContactPattern;
+        //    //_numOfInterventionsControlledDynamically = thisEpidemic.NumOfInterventionsControlledDynamically;
+        //    _storeEpidemicTrajectories = thisEpidemic.StoreEpidemicTrajectories;
+        //    _numOfPrevalenceOutputsToReport = thisEpidemic.SumTrajectories.Where(s=>s.DisplayInSimOutput).Count();
+        //    _numOfIncidenceOutputsToReport = thisEpidemic.EpidemicHistory.NumOfIncidenceOutputsToReport;
+        //    _numOfResourcesToReport = thisEpidemic.NumOfResourcesToReport;
+        //    _numOfParametersToCalibrate = thisEpidemic.NumOfParametersToCalibrate;
+        //    _numOfMonitoredSimulationOutputs = 0;// thisEpidemic.NumOfMonitoredSimulationOutputs;
+        //    // calibration information            
+        //    _numOfCalibratoinTargets= thisEpidemic.NumOfCalibratoinTargets;
+        //    // decision names
+        //    _interventionNames = new string[_numOfInterventions];
+        //    _namesOfDefaultInterventionsAndThoseSpecifiedByDynamicRule = new string[0];
+        //    foreach (Intervention thisIntervention in thisEpidemic.DecisionMaker.Interventions)
+        //    {
+        //        _interventionNames[thisIntervention.Index] = thisIntervention.Name;
+        //        if (thisIntervention.DecisionRule is DecionRule_Dynamic
+        //            || thisIntervention.Type == EnumInterventionType.Default)
+        //            SupportFunctions.AddToEndOfArray(ref _namesOfDefaultInterventionsAndThoseSpecifiedByDynamicRule, thisIntervention.Name);
+        //    }
+        //}
         // find the names of parameters
         private void FindNamesOfParameters()
         {

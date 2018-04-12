@@ -248,6 +248,8 @@ namespace APACElib
             }
         }
 
+        public virtual void Add(int simIndex, ref List<Class> classes, ref List<Event> events) { return; }
+
         public int GetLastObs()
         {
             int value = 0;
@@ -292,7 +294,7 @@ namespace APACElib
             _arrClassIDs = ConvertSumFormulaToArrayOfIDs(sumFormula);
         }
 
-        public void Add(int simIndex, ref List<Class> classes)
+        public override void Add(int simIndex, ref List<Class> classes, ref List<Event> events)
         {
             NumOfNewMembersOverPastPeriod = 0;
             for (int i = 0; i < _arrClassIDs.Length; ++i)
@@ -319,7 +321,7 @@ namespace APACElib
             _arrEventIDs = ConvertSumFormulaToArrayOfIDs(sumFormula);
         }
 
-        public void Add(int simIndex, ref List<Event> events)
+        public override void Add(int simIndex, ref List<Class> classes, ref List<Event> events)
         {
             NumOfNewMembersOverPastPeriod = 0;
             for (int i = 0; i < _arrEventIDs.Length; ++i)

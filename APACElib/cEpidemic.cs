@@ -13,95 +13,39 @@ namespace APACElib
 {
     public class Epidemic
     {
-        // Variable Definition 
-        #region Variable Definition
-
         ModelSettings _set;
         public int ID { get; set; }
-        private DecisionMaker _decisionMaker;
-        public List<Parameter> Parameters { get; set; } = new List<Parameter>();
+        public EnumModelUse ModelUse { get; set; } = EnumModelUse.Simulation;
+        public bool StoreEpidemicTrajectories { get; set; } = true;
+        // model entities
+        public DecisionMaker DecisionMaker { get; private set; }
+        private ParameterManager _paramManager;
+        private ForceOfInfectionModeller _FOI;
+        private MonitorOfInterventionsInEffect _monitorOfInterventionsInEffect;
         private List<Class> _classes = new List<Class>();
+        public List<Class> Classes { get => _classes; }
         private List<Event> _events = new List<Event>();
-        private ArrayList _resources = new ArrayList();
-        private ArrayList _resourceRules = new ArrayList();
-        public List<SumTrajectory> SumTrajectories { get; set; } = new List<SumTrajectory>();
-        public List<RatioTrajectory> RatioTrajectories { get; set; } = new List<RatioTrajectory>();
-        public SimulationTrajectories EpidemicHistory { get; set; }
-
-        //private List<SummationStatisticsOld> _summationStatistics = new List<SummationStatisticsOld>();
-        //private List<RatioStatistics> _ratioStatistics = new List<RatioStatistics>();
-        private ArrayList _features = new ArrayList();
-        
-        private MonitorOfInterventionsInEffect _monitorofInterventionsInEffect;
+        public List<SumTrajectory> _sumTrajectories = new List<SumTrajectory>();
+        public List<SumTrajectory> SumTrajectories { get => _sumTrajectories; set => _sumTrajectories = value; }
+        public List<RatioTrajectory> _ratioTrajectories = new List<RatioTrajectory>();
+        public List<RatioTrajectory> RatioTrajectories { get => _ratioTrajectories; set => _ratioTrajectories = value; } 
+        public SimulationTrajectories EpidemicHistory { get; private set; }
+        public EpidemicCostHealth EpidemicCostHealth { get; set; }
+        public Timer Timer { get; private set; } = new Timer();
+        public Calibration Calibration { get; private set; } = new Calibration();
         private int[] _pathogenIDs;
 
-        private int _numOfClasses;
+        RNG _rng;
+        private int _numOfClasses;        
         private int _numOfPathogens;
-
-        // simulation setting
-        RNG _rng;        
-        private int _rndSeedResultedInAnAcceptibleTrajectory;
-        private double[] _arrSampledParameterValues;
-        private EnumModelUse _modelUse = EnumModelUse.Simulation;
-
-        // simulation output settings      
-        public bool StoreEpidemicTrajectories { get; set; } = true;
-              
-        private int _timeIndexOfTheFirstObservation;
-        private bool _firstObservationObtained;
-
-        private int[][] _pastActionCombinations;
-        private double[][] _simulationTimeBasedOutputs;
-        private double[][] _simulationIntervalBasedOutputs;
-        private double[][] _simulationObservableOutputs;
-        private double[][] _simulationResourceAvailabilityOutput;
-        private double[][] _timesOfEpidemicObservationsOverPastObservationPeriods;
-        private double[][] _calibrationObservation;
-
-        // contact and transmission matrices
-        private double[][,] _baseContactMatrices = null; //[pathogen ID][group i, group j] 
-        private int[][][,] _percentChangeInContactMatricesParIDs = null; //[intervention ID][pathogen ID][group i, group j]
-        private double[][][,] _contactMatrices = null; //[intervention ID][pathogen ID][group i, group j]
-        private double[][][][] _tranmissionMatrices = null; // [intervention ID][pathogen ID][group i][group j]
-        private int _numOfInterventionsAffectingContactPattern = 0;
-        private int[] _indecesOfInterventionsAffectingContactPattern;
-        private int[] _onOffStatusOfInterventionsAffectingContactPattern;
-        // simulation
-        private int _simTimeIndex;
-        private int _epiTimeIndex;
-        private bool _stoppedDueToEradication;
+        private int _simTimeIndex;  // simulation time index
+        private int _epiTimeIndex;  // time indeces since the detection of epidemic
         private int[] _arrNumOfMembersInEachClass;
-        // decision
-        
-        // dynamic policy
-        private int _numOfFeatures;
-        private bool _useEpidemicTimeAsFeature;
-        private double[] _arrCurrentValuesOfFeatures = null;        
-        // outcomes                
-        double[] _arrSimulationObjectiveFunction;
-        public EpidemicCostHealth EpidemicCostHealth { get; set; }
-
-        // optimization        
-        private int _adpSimItr; // the index of simulation runs that should be done before doing back-propagation
-        private int[] _rndSeeds;
-        Discrete _discreteDistOverSeeds;        
-        private bool _storeADPIterationResults;
-        private double[][] _arrADPIterationResults;
-        // calibration
-        private int _numOfCalibratoinTargets;
-        private int _numOfDiscardedTrajectoriesAmongCalibrationRuns;
-        private int _numOfParametersToCalibrate;        
-        // computation time
-        private double _timeUsedToSimulateOneTrajectory;
-        // parameters
-        private bool _thereAreTimeDependentParameters = false;
-        private bool _thereAreTimeDependentParameters_affectingSusceptibilities = false;
-        private bool _thereAreTimeDependentParameters_affectingInfectivities = false;
-        private bool _thereAreTimeDependentParameters_affectingTranmissionDynamics = false;
-        private bool _thereAreTimeDependentParameters_affectingNaturalHistoryRates = false;
-        private bool _thereAreTimeDependentParameters_affectingSplittingClasses = false;
-
-        #endregion
+        private bool _firstObservationObtained;
+        public int TimeIndexOfTheFirstObservation { get; private set; }
+        private bool _areClassesWithEradicationCondition = false;
+        public bool StoppedDueToEradication { get; private set; }
+        public int SeedProducedAcceptibleTraj { get; private set; }
 
         // Instantiation
         public Epidemic(int id)
@@ -109,751 +53,73 @@ namespace APACElib
             ID = id;
         }
 
-        #region Properties
-
-        public int CurrentEpidemicTimeIndex
-        {
-            get {return _epiTimeIndex;}
-        }
-        public double CurrentEpidemicTime
-        {
-            get { return _epiTimeIndex * _set.DeltaT; }
-        }
-       
-        public int TimeIndexOfTheFirstObservation
-        {
-            get { return _timeIndexOfTheFirstObservation; }
-        }       
-   
-        public bool IfStoppedDueToEradication
-        {
-            get { return _stoppedDueToEradication; }
-        }
-        public int NumOfInterventionsAffectingContactPattern
-        {
-            get { return _numOfInterventionsAffectingContactPattern; }
-        }
-
-        public EnumModelUse ModelUse
-        {
-            get { return _modelUse; }
-            set { _modelUse = value; }
-        }
-
-        public int NumOfResourcesToReport
-        {
-            get { return _resources.Count; }
-        }            
-        public int[][] PastActionCombinations
-        {
-            get { return _pastActionCombinations; }
-        }
-        public double[][] SimulationTimeBasedOutputs
-        {
-            get { return _simulationTimeBasedOutputs; }
-        }
-        public double[][] SimulationIntervalBasedOutputs
-        {
-            get { return _simulationIntervalBasedOutputs; }
-        }
-        public double[][] SimulationObservableOutputs
-        {
-            get {return _simulationObservableOutputs; }
-        }
-        public double[][] CalibrationObservation
-        {
-            get { return _calibrationObservation; }
-        }
-        public double[][] SimulationResourceOutpus
-        {
-            get { return _simulationResourceAvailabilityOutput; }
-        }
-        public double[][] TimesOfEpidemicObservationsOverPastObservationPeriods
-        {
-            get { return _timesOfEpidemicObservationsOverPastObservationPeriods; }
-        }
-        
-        public double[,] ArrADPIterationResults
-        {
-            get { return SupportFunctions.ConvertFromJaggedArrayToRegularArray(_arrADPIterationResults, 5); }
-        }
-            
-        public int NumOfFeatures
-        {
-            get { return _features.Count; }
-        }
-        public int NumOfDiscardedTrajectoriesAmongCalibrationRuns
-        {
-            get { return _numOfDiscardedTrajectoriesAmongCalibrationRuns; }
-        }
-        public int NumOfParametersToCalibrate
-        {
-            get { return _numOfParametersToCalibrate; }
-        }
-        public int NumOfCalibratoinTargets
-        { 
-            get { return _numOfCalibratoinTargets; } 
-        }
-        public bool UseEpidemicTimeAsFeature
-        {
-            get { return _useEpidemicTimeAsFeature; }
-        }
-        public List<Class> Classes
-        {
-            get { return _classes; }
-        }        
-        public ArrayList Resources
-        {
-            get { return _resources; }
-        }
-        public ArrayList Features
-        {
-            get { return _features; }
-        }
-        public DecisionMaker DecisionMaker
-        {
-            get { return _decisionMaker; }
-        }
-        public int RNDSeedResultedInAnAcceptibleTrajectory
-        {
-            get { return _rndSeedResultedInAnAcceptibleTrajectory; }
-        }
-        public double[] arrSampledParameterValues
-        { get { return _arrSampledParameterValues; } }
-
-
-        // simulation run time
-        public double TimeUsedToSimulateOneTrajectory
-        {
-            get { return _timeUsedToSimulateOneTrajectory; }
-        }
-        #endregion
-
-        // clone
-        //public Epidemic Clone(int ID)
-        //{
-        //    Epidemic clone = new Epidemic(ID);
-
-        //    clone.ModelUse = _modelUse;
-        //    clone.DecisionRule = _decisionRule;
-
-        //    if (_modelUse == EnumModelUse.Calibration)
-        //    {
-        //        clone._observationMatrix = _observationMatrix;
-        //    }
-
-        //    return clone;
-        //}
-
-        // reset 
-        private void Reset()
-        {
-            Parameters = new List<Parameter>();
-            _classes = new List<Class>();
-            _events = new List<Event>();
-            _resources = new ArrayList();
-            _resourceRules = new ArrayList();
-            SumTrajectories = new List<SumTrajectory>();
-            RatioTrajectories = new List<RatioTrajectory>();
-
-            _features = new ArrayList();
-            _decisionMaker.Reset();
-    }
         // clean except the results
         public void CleanExceptResults()
         {
             _set = null;
-
-            Reset();
-
-            _arrSampledParameterValues = null;
-            _baseContactMatrices = null; 
-            _percentChangeInContactMatricesParIDs = null; 
-            _contactMatrices = null; 
-            _tranmissionMatrices = null; 
-            _indecesOfInterventionsAffectingContactPattern = null;
-            _onOffStatusOfInterventionsAffectingContactPattern = null;
-             _arrCurrentValuesOfFeatures = null;
-            _rndSeeds = null;
+            _paramManager = new ParameterManager();
+            _classes = new List<Class>();
+            _events = new List<Event>();
+            SumTrajectories = new List<SumTrajectory>();
+            RatioTrajectories = new List<RatioTrajectory>();
+            _FOI.Clean();            
     }
         
         // Simulate one trajectory (parameters will be sampled)
-        public void SimulateTrajectoriesUntilOneAcceptibleFound(int threadSpecificSeedNumber, int seedNumberToStopTryingFindingATrajectory, int simReplication, int timeIndexToStop)
+        public int SimulateTrajectoriesUntilOneAcceptibleFound(int beginSeed, int stopSeed, int simReplication, int timeIndexToStop)
         {
-            // time keeping
-            int startTime, endTime;
-            startTime = Environment.TickCount;
-
             bool acceptableTrajectoryFound = false;
-            _numOfDiscardedTrajectoriesAmongCalibrationRuns = 0;
+            int nTrajDiscarded = 0;
 
-            while (!acceptableTrajectoryFound && threadSpecificSeedNumber < seedNumberToStopTryingFindingATrajectory)
+            while (!acceptableTrajectoryFound && beginSeed <= stopSeed)
             {
                 // reset for another simulation
-                ResetForAnotherSimulation(threadSpecificSeedNumber);
+                ResetForAnotherSimulation(beginSeed);
                 // simulate
                 if (Simulate(simReplication, timeIndexToStop) == true)
                 {
                     acceptableTrajectoryFound = true;
-                    _rndSeedResultedInAnAcceptibleTrajectory = threadSpecificSeedNumber;
+                    SeedProducedAcceptibleTraj = beginSeed;
                 }
                 else
                 {
-                    ++threadSpecificSeedNumber;
+                    ++beginSeed;
                     // if the model is used for calibration, record the number of discarded trajectories due to violating the feasible ranges
                     if (_set.ModelUse == EnumModelUse.Calibration)
-                        ++_numOfDiscardedTrajectoriesAmongCalibrationRuns;
+                        ++nTrajDiscarded;
                 }
             }
-
-            // simulation time
-            endTime = Environment.TickCount;
-            _timeUsedToSimulateOneTrajectory = (double)(endTime - startTime) / 1000;    
+            return nTrajDiscarded;
         }
         // Simulate one trajectory (parameters will be sampled)
-        public void SimulateOneTrajectory(int threadSpecificSeedNumber, int simReplication, int timeIndexToStop)
+        public void SimulateOneTrajectory(int seed, int simReplication, int timeIndexToStop)
         {
-            int startTime, endTime;
-            startTime = Environment.TickCount;
-            _rndSeedResultedInAnAcceptibleTrajectory = -1;
+            Timer.Start();       // reset the timer     
+            SeedProducedAcceptibleTraj = -1;
             
             // reset for another simulation
-            ResetForAnotherSimulation(threadSpecificSeedNumber);
+            ResetForAnotherSimulation(seed);
             // simulate
             if (Simulate(simReplication, timeIndexToStop) == true)
-                _rndSeedResultedInAnAcceptibleTrajectory = threadSpecificSeedNumber;
+                SeedProducedAcceptibleTraj = seed;
 
-            // simulation time
-            endTime = Environment.TickCount;
-            _timeUsedToSimulateOneTrajectory = (double)(endTime - startTime) / 1000;
-        }
-        /// <summary>
-        /// Simulate one trajectory (parameters should be assigned)
-        /// </summary>
-        /// <param name="threadSpecificSeedNumber"></param>
-        /// <param name="parameterValues"></param>
-        //public void SimulateOneTrajectory(int threadSpecificSeedNumber, int simReplication, int timeIndexToStop, double[] parameterValues)
-        //{
-        //    bool acceptableTrajectoryFound = false;
-        //    while (!acceptableTrajectoryFound)
-        //    {
-        //        // reset for another simulation
-        //        ResetForAnotherSimulation(threadSpecificSeedNumber, false, parameterValues);
-        //        // simulate
-        //        if (Simulate(simReplication, timeIndexToStop) == true)
-        //        {
-        //            acceptableTrajectoryFound = true;
-        //            _rndSeedResultedInAnAcceptibleTrajectory = threadSpecificSeedNumber;
-        //        }
-        //        else
-        //            ++threadSpecificSeedNumber;
-        //    }
-        //}
-        // simulate one trajectory until the first time decisions should be made
-        public void SimulateOneTrajectoryUntilTheFirstDecisionPoint(int threadSpecificSeedNumber)
-        {
-            // stop simulating this trajectory when it is time to make decisions
-            bool acceptableTrajectoryFound = false;
-            while (!acceptableTrajectoryFound)
-            {
-                // reset for another simulation
-                ResetForAnotherSimulation(threadSpecificSeedNumber);
-                // simulate until the first decision point
-                if (Simulate(0, _set.EpidemicTimeIndexToStartDecisionMaking) == true)
-                {
-                    acceptableTrajectoryFound = true;
-                    _rndSeedResultedInAnAcceptibleTrajectory = threadSpecificSeedNumber;
-                }
-                else
-                    ++threadSpecificSeedNumber;
-            }
-        }
-        // continue simulating current trajectory 
-        public void ContinueSimulatingThisTrajectory(int additionalDeltaTs)
-        {
-            // find the stop time
-            int timeIndexToStopSimulation = _simTimeIndex + additionalDeltaTs;
-            // continue the simulation
-            Simulate(0, timeIndexToStopSimulation);
-        }
-        // simulate N trajectories - this sub is exclusively for the ADP algorithm
-        private void SimulateNTrajectories(int numOfSimulationIterations, int [] rndSeeds)
-        {
-            _arrSimulationObjectiveFunction = new double[numOfSimulationIterations];
-            for (_adpSimItr = 0; _adpSimItr < numOfSimulationIterations; ++_adpSimItr)
-            {
-                // simulate one epidemic trajectory
-                SimulateTrajectoriesUntilOneAcceptibleFound(rndSeeds[_adpSimItr], rndSeeds[_adpSimItr] + 1, _adpSimItr, _set.TimeIndexToStop);
-                
-                // store outcomes of this epidemic 
-                _arrSimulationObjectiveFunction[_adpSimItr] = AccumulatedReward();
-            }
-        }
-        private void SimulateNTrajectories(int numOfSimulationIterations, ref int seedNumber)
-        {
-            _arrSimulationObjectiveFunction = new double[numOfSimulationIterations];
-            for (_adpSimItr = 0; _adpSimItr < numOfSimulationIterations; ++_adpSimItr)
-            {
-                // simulate one epidemic trajectory
-                SimulateTrajectoriesUntilOneAcceptibleFound(seedNumber, seedNumber + 1, _adpSimItr, _set.TimeIndexToStop);
-                seedNumber = _rndSeedResultedInAnAcceptibleTrajectory + 1;
-                // store outcomes of this epidemic 
-                _arrSimulationObjectiveFunction[_adpSimItr] = AccumulatedReward();
-            }
-        }
-
-        // set up POMDP-ADP
-        public void SetUpADPAlgorithm(EnumObjectiveFunction objectiveFunction,
-            int numOfADPIterations, int numOfSimRunsToBackPropogate, 
-            double wtpForHealth, double harmonicRule_a, double epsilonGreedy_beta, double epsilonGreedy_delta,
-            bool storeADPIterationResults)
-        {
-            _modelUse = EnumModelUse.Optimization;         
-
-            // ADP
-            //_adpSimItr = 0;
-            //_simDecisionMaker.SetupTraining(numOfSimRunsToBackPropogate);
-            //_simDecisionMaker.SetupAHarmonicStepSizeRule(harmonicRule_a);
-            //_simDecisionMaker.SetupAnEpsilonGreedyExplorationRule(epsilonGreedy_beta, epsilonGreedy_delta);
-            //_simDecisionMaker.NumberOfADPIterations = numOfADPIterations;
-
-            _storeADPIterationResults = storeADPIterationResults;
-            if (_storeADPIterationResults)
-                _arrADPIterationResults = new double[0][]; 
-        }
-        // set up the ADP random number source
-        public void SetUpADPRandomNumberSource(int[] rndSeeds)
-        {
-            //_simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.PrespecifiedSquence;
-            _rndSeeds = (int[])rndSeeds.Clone();            
-        }
-        public void SetUpADPRandomNumberSource(int[] rndSeeds, double[] rndSeedsGoodnessOfFit)
-        {
-            //_simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence;
-            _rndSeeds = (int[])rndSeeds.Clone();
-
-            double[] arrProb = new double[rndSeeds.Length];
-            for (int i = 0; i < rndSeeds.Length; i++)
-                arrProb[i] = 1 / rndSeedsGoodnessOfFit[i];
-
-            // form a probability function over rnd seeds
-            double sumInv = 1/arrProb.Sum();
-            for (int i = 0; i < rndSeeds.Length; i++)
-                arrProb[i] = arrProb[i] * sumInv;
-
-            // define the sampling object
-            _discreteDistOverSeeds = new Discrete("Discrete distribution over RND seeds", arrProb);            
-        }
-        // find the approximately optimal dynamic policy
-        public void FindOptimalDynamicPolicy()
-        {
-            // sample rnd seeds if trajectories need to be sampled
-            //int[,] sampledRNDseeds = new int[_simDecisionMaker.NumberOfADPIterations, _simDecisionMaker.NumOfSimRunsToBackPropogate];
-            //if (_simulationRNDSeedsSource == enumSimulationRNDSeedsSource.WeightedPrespecifiedSquence)
-            //{
-            //    _rng = new RNG(0);
-            //    for (int itr = 1; itr <= _simDecisionMaker.NumberOfADPIterations; ++itr)
-            //        for (int j = 1; j <= _simDecisionMaker.NumOfSimRunsToBackPropogate; ++j)
-            //            sampledRNDseeds[itr - 1, j - 1] = _rndSeeds[_discreteDistOverSeeds.SampleDiscrete(_rng)];
-            //}
-
-            //int rndSeedForThisItr = 0;
-            //int[] rndSeeds = new int[_simDecisionMaker.NumOfSimRunsToBackPropogate];
-            //int indexOfRNDSeeds = 0;
-            //int adpItr = 1;
-            //_storeEpidemicTrajectories = false;
-
-            //int optStartTime, optEndTime;
-            //optStartTime = Environment.TickCount;
-            //_totalSimulationTimeToFindOneDynamicPolicy = 0;       
-
-            //// optimize
-            //for (int itr = 1; itr <= _simDecisionMaker.NumberOfADPIterations; ++itr)
-            //{                
-            //    // find the RND seed for this iteration
-            //    switch (_simulationRNDSeedsSource)
-            //    {
-            //        case enumSimulationRNDSeedsSource.StartFrom0:
-            //            break;
-            //        case enumSimulationRNDSeedsSource.PrespecifiedSquence:
-            //            {
-            //                for (int j = 1; j <= _simDecisionMaker.NumOfSimRunsToBackPropogate; j++)
-            //                {
-            //                    if (indexOfRNDSeeds >= _rndSeeds.Length)
-            //                        indexOfRNDSeeds = 0;
-            //                    rndSeeds[j-1] = _rndSeeds[indexOfRNDSeeds++];
-            //                }
-            //            }
-            //            break;
-            //        case enumSimulationRNDSeedsSource.WeightedPrespecifiedSquence:
-            //            {
-            //                for (int j = 1; j <= _simDecisionMaker.NumOfSimRunsToBackPropogate; j++)
-            //                    rndSeeds[j-1] = sampledRNDseeds[itr-1, j-1];
-            //            }
-            //            break;
-            //    }
-
-            //    // get ready for another ADP iteration
-            //    GetReadyForAnotherADPIteration(itr);
-
-            //    // simulate 
-            //    int simStartTime, simEndTime;
-            //    simStartTime = Environment.TickCount;
-            //    switch (_simulationRNDSeedsSource)
-            //    {
-            //        case enumSimulationRNDSeedsSource.StartFrom0:
-            //            SimulateNTrajectories(_simDecisionMaker.NumOfSimRunsToBackPropogate, ref rndSeedForThisItr);
-            //            break;
-            //        case enumSimulationRNDSeedsSource.PrespecifiedSquence:                        
-            //        case enumSimulationRNDSeedsSource.WeightedPrespecifiedSquence:
-            //            SimulateNTrajectories(_simDecisionMaker.NumOfSimRunsToBackPropogate, rndSeeds);
-            //            break;
-            //    }
-                
-            //    // accumulated simulation time
-            //    simEndTime = Environment.TickCount;
-            //    _totalSimulationTimeToFindOneDynamicPolicy += (double)(simEndTime - simStartTime) / 1000;
-
-            //    // do backpropogation
-            //    _simDecisionMaker.DoBackpropagation(itr, _discountRate, _stoppedDueToEradication, false);
-
-            //    // store ADP iterations
-            //    if (_modelUse == enumModelUse.Optimization && _storeADPIterationResults == true)
-            //    {
-            //        for (int dim = 0; dim < _simDecisionMaker.NumOfSimRunsToBackPropogate; ++dim)
-            //        {
-            //            if (_simDecisionMaker.BackPropagationResult(dim) == true)
-            //            {
-            //                double[][] thisADPIterationResult = new double[1][];
-            //                thisADPIterationResult[0] = new double[5];
-                            
-            //                // iteration
-            //                thisADPIterationResult[0][0] = adpItr;
-            //                // reward
-            //                thisADPIterationResult[0][1] = _arrSimulationObjectiveFunction[dim];
-            //                // report errors
-            //                thisADPIterationResult[0][2] = _simDecisionMaker.ADPPredictionErrors(dim, 0); //_POMDP_ADP.PredictionErrorForTheFirstEligibleADPState(dim);
-            //                thisADPIterationResult[0][3] = _simDecisionMaker.ADPPredictionErrors(dim, (int)_simDecisionMaker.NumberOfValidADPStates(dim) / 2);
-            //                thisADPIterationResult[0][4] = _simDecisionMaker.ADPPredictionErrors(dim, _simDecisionMaker.NumberOfValidADPStates(dim) - 1); //_POMDP_ADP.PredictionErrorForTheLastEligibleADPState(dim); //
-            //                // concatenate 
-            //                _arrADPIterationResults = SupportFunctions.ConcatJaggedArray(_arrADPIterationResults, thisADPIterationResult);
-            //                ++adpItr;
-            //            }
-            //        }
-            //    }
-            //}
-            //// optimization time
-            //optEndTime = Environment.TickCount;
-            //_timeUsedToFindOneDynamicPolicy = (double)(optEndTime - optStartTime) / 1000;
-
-            //// reverse back the rnd seeds
-            //if (_rndSeeds != null)
-            //    _rndSeeds = _rndSeeds.Reverse().ToArray();
-        }
-        // get q-function coefficient estimates
-        public double[] GetQFunctionCoefficientEstiamtes()
-        {
-            return new double[0];// _simDecisionMaker.GetQFunctionCoefficientEstimates();
-        }
-        // get dynamic policy // only one dimensional
-        public void GetOptimalDynamicPolicy(ref string featureName, ref double[] headers, ref int[] optimalDecisions,
-            int numOfIntervalsToDescretizeFeatures)
-        {
-            if (_features.Count > 1) return; // this procedure works when the feature set constrains 1 feature
-
-            headers = new double[numOfIntervalsToDescretizeFeatures + 1];
-            optimalDecisions = new int[numOfIntervalsToDescretizeFeatures + 1];
-
-            // get the only feature
-            Feature theOnlyFeature = (Feature)_features[0];
-
-            // setup the interval length for each feature
-            int featureIndex = theOnlyFeature.Index;
-            double featureMin = theOnlyFeature.Min;
-            double featureMax = theOnlyFeature.Max;
-            double featureIntervalLength = (featureMax - featureMin) / numOfIntervalsToDescretizeFeatures;
-            double featureNumOfBreakPoints = numOfIntervalsToDescretizeFeatures + 1;
-            featureName = theOnlyFeature.Name;
-
-            // reset available action combinations to the initial setting
-            //_simDecisionMaker.MakeAllDynamicallyControlledActionsAvailable();
-            // find the dynamic policy
-            double featureValue = 0;
-            for (int fIndex = 0; fIndex < featureNumOfBreakPoints; ++fIndex)
-            {
-                // value of the feature
-                featureValue = featureMin + fIndex * featureIntervalLength;
-                // header
-                headers[fIndex] = featureValue;
-                // make an array of feature
-                double[] arrFeatureValue = new double[1];
-                arrFeatureValue[0] = featureValue;
-                // find the optimal decision
-                //optimalDecisions[fIndex] = ComputationLib.SupportFunctions.ConvertToBase10FromBase2(
-                //        _simDecisionMaker.FindTheOptimalDynamicallyControlledActionCombination(arrFeatureValue));//, _timeIndexToStartDecisionMaking));
-            }
-        }
-        // get dynamic policy // only two dimensional
-        public void GetOptimalDynamicPolicy(ref string[] strFeatureNames, ref double[][] headers, ref int[,] optimalDecisions,
-            int numOfIntervalsToDescretizeFeatures)
-        {       
-            int numOfFeatures = _features.Count;            
-
-            strFeatureNames = new string[numOfFeatures];
-            headers = new double[2][];
-            headers[0] = new double[numOfIntervalsToDescretizeFeatures + 1];
-            headers[1] = new double[numOfIntervalsToDescretizeFeatures + 1];
-            optimalDecisions = new int[numOfIntervalsToDescretizeFeatures + 1, numOfIntervalsToDescretizeFeatures + 1];
-
-            // setup the interval length for each feature
-            double[] arrFeatureMin = new double[numOfFeatures];
-            double[] arrFeatureMax = new double[numOfFeatures];
-            double[] arrFeatureIntervalLengths = new double[numOfFeatures];
-            double[] arrFeatureNumOfBreakPoints = new double[numOfFeatures];
-
-            int featureIndex;
-            foreach (Feature thisFeature in _features)
-            {
-                featureIndex = thisFeature.Index;
-                arrFeatureMin[featureIndex] = thisFeature.Min;
-                arrFeatureMax[featureIndex] = thisFeature.Max;
-                arrFeatureIntervalLengths[featureIndex] = (arrFeatureMax[featureIndex] - arrFeatureMin[featureIndex]) / numOfIntervalsToDescretizeFeatures;
-                arrFeatureNumOfBreakPoints[featureIndex] = numOfIntervalsToDescretizeFeatures + 1;
-            }
-            // feature names
-            foreach (Feature thisFeature in _features)
-                strFeatureNames[thisFeature.Index] = thisFeature.Name;
-
-            // reset available action combinations to the initial setting
-            //_simDecisionMaker.MakeAllDynamicallyControlledActionsAvailable();
-
-            // write the dynamic Policy
-            double[] arrFeatureValues = new double[_features.Count];
-            for (int f0Index = 0; f0Index < arrFeatureNumOfBreakPoints[0]; ++f0Index)
-            {
-                // feature 0 values
-                arrFeatureValues[0] = arrFeatureMin[0] + f0Index * arrFeatureIntervalLengths[0];
-                // header
-                headers[0][f0Index] = arrFeatureValues[0];
-                for (int f1Index = 0; f1Index < arrFeatureNumOfBreakPoints[1]; f1Index++)
-                {
-                    // feature 1 value
-                    arrFeatureValues[1] = arrFeatureMin[1] + f1Index * arrFeatureIntervalLengths[1];
-                    // header
-                    headers[1][f1Index] = arrFeatureValues[1];
-                    // optimal decision ID
-                    //optimalDecisions[f0Index, f1Index] = ComputationLib.SupportFunctions.ConvertToBase10FromBase2(
-                    //    _simDecisionMaker.FindTheOptimalDynamicallyControlledActionCombination(arrFeatureValues));
-                }
-            }
-        }
-        // get dynamic policy //  two dimensional + 1 resource feature
-        public void GetOptimalDynamicPolicy(ref string[] strFeatureNames, ref double[][] headers, ref int[][,] optimalDecisions, int numOfIntervalsToDescretizeFeatures)
-        {
-            int numOfFeatures = _features.Count;
-
-            strFeatureNames = new string[numOfFeatures];
-            headers = new double[3][];
-            headers[0] = new double[numOfIntervalsToDescretizeFeatures + 1];
-            headers[1] = new double[numOfIntervalsToDescretizeFeatures + 1];
-            headers[2] = new double[numOfIntervalsToDescretizeFeatures + 1];
-            optimalDecisions = new int[numOfIntervalsToDescretizeFeatures + 1][,];
-            //                [numOfIntervalsToDescretizeEpidemicFeatures + 1, numOfIntervalsToDescretizeEpidemicFeatures + 1];
-
-            // setup the interval length for each feature
-            double[] arrFeatureMin = new double[numOfFeatures];
-            double[] arrFeatureMax = new double[numOfFeatures];
-            double[] arrFeatureIntervalLengths = new double[numOfFeatures];
-            double[] arrFeatureNumOfBreakPoints = new double[numOfFeatures];
-
-            int featureIndex;
-            foreach (Feature thisFeature in _features)
-            {
-                featureIndex = thisFeature.Index;
-                arrFeatureMin[featureIndex] = thisFeature.Min;
-                arrFeatureMax[featureIndex] = thisFeature.Max;
-                arrFeatureIntervalLengths[featureIndex] = (arrFeatureMax[featureIndex] - arrFeatureMin[featureIndex]) / numOfIntervalsToDescretizeFeatures;
-                arrFeatureNumOfBreakPoints[featureIndex] = numOfIntervalsToDescretizeFeatures + 1;
-            }
-            // feature names
-            foreach (Feature thisFeature in _features)
-                strFeatureNames[thisFeature.Index] = thisFeature.Name;
-
-            // reset available action combinations to the initial setting
-            //_simDecisionMaker.MakeAllDynamicallyControlledActionsAvailable();
-
-            // write the dynamic Policy
-            double[] arrFeatureValues = new double[_features.Count];
-            for (int fResourceIndex = 0; fResourceIndex < arrFeatureNumOfBreakPoints[0]; ++fResourceIndex)
-            {
-                optimalDecisions[fResourceIndex] = new int[numOfIntervalsToDescretizeFeatures + 1, numOfIntervalsToDescretizeFeatures + 1];
-
-                // feature 0 (resource) values
-                arrFeatureValues[0] = arrFeatureMin[0] + fResourceIndex * arrFeatureIntervalLengths[0];
-                // header
-                headers[0][fResourceIndex] = arrFeatureValues[0];
-                for (int f1Index = 0; f1Index < arrFeatureNumOfBreakPoints[1]; f1Index++)
-                {
-                    // feature 1 values
-                    arrFeatureValues[1] = arrFeatureMin[1] + f1Index * arrFeatureIntervalLengths[1];
-                    // header
-                    headers[1][f1Index] = arrFeatureValues[1];
-                    for (int f2Index = 0; f2Index < arrFeatureNumOfBreakPoints[2]; f2Index++)
-                    {
-                        // feature 1 value
-                        arrFeatureValues[2] = arrFeatureMin[2] + f2Index * arrFeatureIntervalLengths[2];
-                        // header
-                        headers[2][f2Index] = arrFeatureValues[2];
-                        // optimal decision ID
-                        //optimalDecisions[fResourceIndex][f1Index, f2Index] =
-                        //    ComputationLib.SupportFunctions.ConvertToBase10FromBase2(_simDecisionMaker.FindTheOptimalDynamicallyControlledActionCombination(arrFeatureValues));
-                    }
-                }
-            }
-        }
-        // switch off all interventions controlled by decision rule
-        //public void SwitchOffAllInterventionsControlledByDecisionRule()
-        //{
-        //    int[] interventionCombination = new int[_simDecisionMaker.NumOfActions];
-
-        //    foreach (Intervention thisIntervention in _simDecisionMaker.Actions)
-        //    {
-        //        if (thisIntervention.Type == SimulationLib.Intervention.enumActionType.Default)
-        //            interventionCombination[thisIntervention.ID] = 1;
-        //        else if (thisIntervention.OnOffSwitchSetting == SimulationLib.Intervention.enumOnOffSwitchSetting.Dynamic)
-        //            interventionCombination[thisIntervention.ID] = 0;
-        //        else if (thisIntervention.OnOffSwitchSetting == SimulationLib.Intervention.enumOnOffSwitchSetting.Predetermined)
-        //            interventionCombination[thisIntervention.ID] = (int)thisIntervention.PredeterminedSwitchValue;
-        //    }
-
-        //    //_POMDP_ADP.DefaultActionCombination(interventionCombination);
-        //}
-
-        // get the value of parameters to calibrate
-        public double[] GetValuesOfParametersToCalibrate()
-        {
-            double[] parValues = new double[_numOfParametersToCalibrate];
-            int i = 0;
-            foreach (Parameter thisParameter in Parameters.Where(p => p.IncludedInCalibration == true))
-                parValues[i++] =  thisParameter.Value;
-
-            return (double[])parValues.Clone();
-        }
-
-        // get possible designs for interval-based policies
-        public ArrayList GetIntervalBasedStaticPoliciesDesigns()
-        {
-            //TODO: update this procedure based on the latest changes to POMDP_ADP 
-
-            ArrayList designs = new ArrayList();
-            int numOfActions = _decisionMaker.NumOfInterventions;
-
-            // add design for when all interventions are off (if allowed)
-            //designs.Add(new IntervalBasedStaticPolicy(0,
-              //  GetIntervetionCombinationCodeWithAllSpecifiedByDecisionRuleInterventionTurnedOff(), new double[numOfActions], new int[numOfActions]));
-
-            // for each possible combination 
-            int designID = 1;
-            for (int decisionsCode = 0; decisionsCode < Math.Pow(2, numOfActions); decisionsCode++)
-            {
-                // find a combination
-                int[] interventionCombination = new int[0];// _simDecisionMaker.DynamicallyControlledActionCombinations[decisionsCode];
-                // see if this is a feasible combination
-                bool feasible = true;
-                foreach (Intervention thisIntervention in _decisionMaker.Interventions)
-                {
-                    int index = thisIntervention.Index;
-                    // if this intervention is default, it can't be turned off
-                    if (thisIntervention.Type == EnumInterventionType.Default)
-                    {
-                        if (interventionCombination[index] == 0)
-                            feasible = false;
-                    }
-                    else if (thisIntervention.DecisionRule is DecionRule_Predetermined)
-                    {
-                        if (interventionCombination[index] != _decisionMaker.DefaultDecision[index])
-                            feasible = false;
-                    }
-                    else if (thisIntervention.DecisionRule is DecionRule_IntervalBased && interventionCombination[index] == 0)
-                        feasible = false;                    
-
-                    if (feasible == false)
-                        break;
-                }
-                // if not feasible break the loop
-                if (feasible == true)
-                {
-                    // find the design for the interval-based policy (ASSUMING that only one intervention can be used by the interval-based policy)
-                    int interventionID = 0;
-                    double startTime = _set.EpidemicTimeIndexToStartDecisionMaking * _set.DeltaT;
-                    int numOfDecisionIntervals = 0;
-                    double lastTimeToUseThisIntervention = 0;
-                    int minNumOfDecisionPeriodsToUse = 0;
-                    double[] interventionStartTimes = new double[numOfActions];
-                    int[] numOfDecisionPeriodsToUse = new int[numOfActions];
-
-                    foreach (Intervention thisIntervention in _decisionMaker.Interventions)
-                        if (thisIntervention.DecisionRule is DecionRule_IntervalBased)
-                        {
-                            interventionID = thisIntervention.Index;
-                            //lastTimeToUseThisIntervention = thisIntervention.IntervalBaseEmployment_availableUntilThisTime;
-                            //minNumOfDecisionPeriodsToUse = thisIntervention.IntervalBaseEmployment_minNumOfDecisionPeriodsToUse;
-                        }
-
-                    // interval-based parameters
-                    while (startTime < lastTimeToUseThisIntervention)
-                    {
-                        numOfDecisionIntervals = minNumOfDecisionPeriodsToUse;
-                        while (numOfDecisionIntervals * _set.NumOfDeltaT_inDecisionInterval*_set.DeltaT<= lastTimeToUseThisIntervention - startTime)
-                        {
-                            // design
-                            interventionStartTimes[interventionID] = startTime;
-                            numOfDecisionPeriodsToUse[interventionID] = numOfDecisionIntervals;
-                            // add design
-                            designs.Add(new IntervalBasedStaticPolicy(designID++, decisionsCode, interventionStartTimes, numOfDecisionPeriodsToUse));
-
-                            numOfDecisionIntervals += minNumOfDecisionPeriodsToUse;
-                        }
-                        startTime += minNumOfDecisionPeriodsToUse * _set.NumOfDeltaT_inDecisionInterval * _set.DeltaT;
-                    }
-                }
-            }            
-                        
-            return designs;
-        }
-        // get intervention combination for always on/off static policies with all interventions off expect for those that are always on
-        //public int GetIntervetionCombinationCodeWithAllSpecifiedByDecisionRuleInterventionTurnedOff()
-        //{
-        //    int[] thisCombination = (int[])_simDecisionMaker.DefaultActionCombination.Clone();
-        //    foreach (Intervention thisIntervention in _simDecisionMaker.Actions)
-        //    {
-        //        if (thisIntervention.Type == SimulationLib.Intervention.enumActionType.Default)
-        //            thisCombination[thisIntervention.ID] = 1;
-        //        if (thisIntervention.OnOffSwitchSetting == SimulationLib.Intervention.enumOnOffSwitchSetting.IntervalBased ||
-        //            thisIntervention.OnOffSwitchSetting == SimulationLib.Intervention.enumOnOffSwitchSetting.ThresholdBased||
-        //            thisIntervention.OnOffSwitchSetting == SimulationLib.Intervention.enumOnOffSwitchSetting.Periodic ||
-        //            thisIntervention.OnOffSwitchSetting == SimulationLib.Intervention.enumOnOffSwitchSetting.Dynamic)
-        //            thisCombination[thisIntervention.ID] = 0;
-        //    }
-        //    return SupportFunctions.ConvertToBase10FromBase2(thisCombination);
-        //}        
-
-        // ********* private subs to run the simulation model *************
+            Timer.Stop(); // stop timer
+        }                
+        
         #region private subs to run the simulation model
         
-            // simulate the trajectory assuming that parameter values are already assigned
+        // simulate the trajectory assuming that parameter values are already assigned
         private bool Simulate(int simReplication, int timeIndexToStop)
         {
-            bool toStop;
+            bool toStop = false;
             bool acceptableTrajectory = false;
             bool ifThisIsAFeasibleCalibrationTrajectory = true;        
 
             // simulate the epidemic
-            toStop = false;
             while (!toStop)
             {
                 // make decisions if decision is not predetermined and announce the new decisions (may not necessarily go into effect)
-                _monitorofInterventionsInEffect.Update(_epiTimeIndex, false, ref _classes);
+                _monitorOfInterventionsInEffect.Update(_epiTimeIndex, false, ref _classes);
 
                 // update the effect of chance in time dependent parameter value
                 UpdateTheEffectOfChangeInTimeDependentParameterValues(_simTimeIndex * _set.DeltaT);
@@ -862,7 +128,7 @@ namespace APACElib
                 EpidemicHistory.Record(_simTimeIndex);
 
                 // check if this is has been a feasible trajectory for calibration
-                if (_modelUse == EnumModelUse.Calibration && !ifThisIsAFeasibleCalibrationTrajectory)
+                if (ModelUse == EnumModelUse.Calibration && !ifThisIsAFeasibleCalibrationTrajectory)
                 {
                     acceptableTrajectory = false;
                     return acceptableTrajectory;
@@ -874,16 +140,15 @@ namespace APACElib
                 // send transfer class members                    
                 TransferClassMembers();
 
+                // check if eradicated
+                CheckIfEradicated();
+
                 // advance time  
                 _simTimeIndex += 1;
                 UpdateCurrentEpidemicTimeIndex();
 
-                // if optimizing, update the cost of current decision period
-                if (_modelUse == EnumModelUse.Optimization)
-                    UpdateRewardOfCurrentADPStateDecision();                
-
                 // check if stopping rules are satisfied 
-                if (_epiTimeIndex >= timeIndexToStop || IsEradicationConditionsSatisfied() == true)
+                if (_epiTimeIndex >= timeIndexToStop || StoppedDueToEradication == true)
                 {
                     toStop = true;
                     // update recorded trajectories 
@@ -894,91 +159,26 @@ namespace APACElib
                     if (_epiTimeIndex < _set.EpidemicConditionTimeIndex)
                         acceptableTrajectory = false;
                 }
-            } // end while (!toStop)
+            } 
             return acceptableTrajectory;
         }
-
-        //// Update the resource status
-        //private void CheckIfResourcesHaveBecomeAvailable()
-        //{
-        //    _aResourceJustReplinished = false;
-
-        //    foreach (Resource thisResource in _resources)
-        //    {
-        //        thisResource.ReplenishIfAvailable(_currentEpidemicTimeIndex * _set.DeltaT);
-        //        if (_arrAvailableResources[thisResource.ID] != thisResource.CurrentUnitsAvailable)
-        //        {
-        //            _arrAvailableResources[thisResource.ID] = thisResource.CurrentUnitsAvailable;
-        //            _aResourceJustReplinished = true;
-        //        }
-        //    }
-        //    // update the available resources to other classes
-        //    if (_aResourceJustReplinished)
-        //        UpdateResourceAvailabilityInformationForEachClass(_arrAvailableResources);
-        //}
-        //// update resources
-        //private void UpdateResourceAvailabilityBasedOnConsumptionOfThisClass(int[] arrResourcesConsumed)
-        //{
-        //    if (arrResourcesConsumed.Length == 0 || arrResourcesConsumed.Sum() == 0)
-        //        return;
-
-        //    foreach (Resource thisResource in _resources)
-        //    {
-        //        thisResource.CurrentUnitsAvailable -= arrResourcesConsumed[thisResource.ID];
-        //        _arrAvailableResources[thisResource.ID] = thisResource.CurrentUnitsAvailable;
-        //    }
-
-        //    // update the available resources to other classes
-        //    UpdateResourceAvailabilityInformationForEachClass(_arrAvailableResources);
-        //}
-        //// update the information of resource availability for each resource-contained class 
-        //private void UpdateResourceAvailabilityInformationForEachClass(int[] arrAvailableResources)
-        //{            
-        //    foreach (Class thisClass in _classes)
-        //        thisClass.UpdateAvailableResources(arrAvailableResources);         
-        //}
-
-        // read the feature values
-
-       
-      
-        
-        // find the index of this intervention combination in transmission matrix
-        private int FindIndexOfInterventionCombimbinationInTransmissionMatrix(int[] interventionCombination)
-        {
-            for (int i = 0; i < _numOfInterventionsAffectingContactPattern; i++)
-            {
-                _onOffStatusOfInterventionsAffectingContactPattern[i] = interventionCombination[_indecesOfInterventionsAffectingContactPattern[i]];
-            }
-            return SupportFunctions.ConvertToBase10FromBase2(_onOffStatusOfInterventionsAffectingContactPattern);
-        }
-        // find the index of this intervention combination in contact matrices
-        private int FindIndexOfInterventionCombimbinationInContactMatrices(int[] interventionCombination)
-        {
-            for (int i = 0; i < _numOfInterventionsAffectingContactPattern; i++)
-            {
-                _onOffStatusOfInterventionsAffectingContactPattern[i] = interventionCombination[_indecesOfInterventionsAffectingContactPattern[i]];
-            }
-            return SupportFunctions.ConvertToBase10FromBase2(_onOffStatusOfInterventionsAffectingContactPattern);
-        }
-        
         
         // transfer class members        
         private void TransferClassMembers()
         {
             // reset number of new members over past period for all classes
-            foreach (Class thisClass in _classes)
+            foreach (Class thisClass in Classes)
                 thisClass.ClassStat.NumOfNewMembersOverPastPeriod = 0;
 
             // do the transfer on all members
-            foreach (Class thisClass in _classes.Where(c => c.ClassStat.Prevalence>0))
+            foreach (Class thisClass in Classes.Where(c => c.ClassStat.Prevalence>0))
                 thisClass.IfNeedsToBeProcessed = true;
 
             bool thereAreClassesToBeProcessed= true;
             while (thereAreClassesToBeProcessed)
             {
                 // if members are waiting
-                foreach (Class thisClass in _classes.Where(c => c.IfNeedsToBeProcessed))
+                foreach (Class thisClass in Classes.Where(c => c.IfNeedsToBeProcessed))
                 {                    
                     // calculate the number of members to be sent out from each class
                     thisClass.SendOutMembers(_set.DeltaT, _rng);
@@ -987,10 +187,10 @@ namespace APACElib
                 }
 
                 // receive members
-                foreach (Class thisSendingOutClass in _classes.Where(c => c.IfMembersWaitingToSendOutBeforeNextDeltaT))
+                foreach (Class thisSendingOutClass in Classes.Where(c => c.IfMembersWaitingToSendOutBeforeNextDeltaT))
                 {
                     for (int j = 0; j < thisSendingOutClass.ArrDestinationClasseIDs.Length; j++)
-                        _classes[thisSendingOutClass.ArrDestinationClasseIDs[j]].AddNewMembers(thisSendingOutClass.ArrNumOfMembersSendingToEachDestinationClasses[j]);
+                        Classes[thisSendingOutClass.ArrDestinationClasseIDs[j]].AddNewMembers(thisSendingOutClass.ArrNumOfMembersSendingToEachDestinationClasses[j]);
                     // reset number of members sending out to each destination class
                     thisSendingOutClass.ResetNumOfMembersSendingToEachDestinationClasses();
                 }
@@ -998,21 +198,21 @@ namespace APACElib
                 // check if there are members waiting to be sent out
                 thereAreClassesToBeProcessed = false;
                 for (int i = _numOfClasses - 1; i >= 0; i--)
-                    if (_classes[i].IfNeedsToBeProcessed)
+                    if (Classes[i].IfNeedsToBeProcessed)
                     {
                         thereAreClassesToBeProcessed = true;
                         break;
                     }
             } // end of while (membersWaitingToBeTransferred)
 
-            foreach (Class thisClass in _classes)
+            foreach (Class thisClass in Classes)
                 _arrNumOfMembersInEachClass[thisClass.ID] = thisClass.ClassStat.Prevalence;
 
             // update class statistics                      
-            foreach (Class thisClass in _classes)
+            foreach (Class thisClass in Classes)
             {
                 thisClass.ClassStat.CollectEndOfDeltaTStats(_simTimeIndex);
-                if (_modelUse != EnumModelUse.Calibration)
+                if (ModelUse != EnumModelUse.Calibration)
                 {
                     EpidemicCostHealth.Add(
                         _simTimeIndex,
@@ -1023,37 +223,21 @@ namespace APACElib
 
             // update summation statistics
             foreach (SumTrajectory thisSumTaj in SumTrajectories)
-            {
-                if (thisSumTaj is SumClassesTrajectory)
-                    ((SumClassesTrajectory)thisSumTaj).Add(_simTimeIndex, ref _classes);
-                else
-                    ((SumEventTrajectory)thisSumTaj).Add(_simTimeIndex, ref _events);
-            }
+                thisSumTaj.Add(_simTimeIndex, ref _classes, ref _events);
 
             // update the aggregated trajectories
             EpidemicHistory.Record(_simTimeIndex);
             
             // reset number of members out of active events for all classes
-            foreach (Class thisClass in _classes)
+            foreach (Class thisClass in Classes)
                 thisClass.ResetNumOfMembersOutOfEventsOverPastDeltaT();
 
             // update decision costs
-            if (_modelUse != EnumModelUse.Calibration)
+            if (ModelUse != EnumModelUse.Calibration)
             {
-                EpidemicCostHealth.Add(_simTimeIndex, _decisionMaker.CostOverThisDecisionPeriod, 0);
-                _decisionMaker.CostOverThisDecisionPeriod = 0;
+                EpidemicCostHealth.Add(_simTimeIndex, DecisionMaker.CostOverThisDecisionPeriod, 0);
+                DecisionMaker.CostOverThisDecisionPeriod = 0;
             }
-
-        }
-        
-        // update the cost of current ADP state-decision
-        private void UpdateRewardOfCurrentADPStateDecision()
-        {
-            //// add reward
-            //int numOfADPStates = _decisionMaker.NumberOfADPStates(_adpSimItr);
-            //if (numOfADPStates > 0)
-            //    _decisionMaker.AddToDecisionIntervalReward(_adpSimItr, numOfADPStates - 1, CurrentDeltaTReward());
-            //((ADP_State)_POMDP_ADP.ADPStates[numOfADPStates - 1]).AddToDecisionIntervalReward();
         }
 
         // return accumulated reward
@@ -1073,16 +257,15 @@ namespace APACElib
         }
         
         // check if stopping condition is satisfied
-        private bool IsEradicationConditionsSatisfied()
+        private bool CheckIfEradicated()
         {
-            bool eradicated = true;
-
             // check if any class has eradication condition
-            if (_classes.Where(s => s.EmptyToEradicate).Count() == 0)
+            bool eradicated = true;
+            if (_areClassesWithEradicationCondition)
                 eradicated = false;
             else
             {
-                foreach (Class thisClass in _classes)
+                foreach (Class thisClass in Classes)
                 {
                     // if a class should be empty while it is not then return false
                     if (thisClass.EmptyToEradicate == true && thisClass.ClassStat.Prevalence > 0)
@@ -1092,7 +275,7 @@ namespace APACElib
                     }
                 }
             }
-            _stoppedDueToEradication = eradicated;
+            StoppedDueToEradication = eradicated;
             return eradicated;
         }
         // reset for another simulation
@@ -1106,29 +289,26 @@ namespace APACElib
             _rng = new RNG(seed);
 
             // reset time
-            _timeIndexOfTheFirstObservation = 0;
-            _firstObservationObtained = false;
             _simTimeIndex = 0;
-            // epidemic start time
+            TimeIndexOfTheFirstObservation = 0;
+            _firstObservationObtained = false;
             UpdateCurrentEpidemicTimeIndex();
 
-            // sample from parameters
-            _arrSampledParameterValues = new double[Parameters.Count];
-            if (sampleParameters == true)
-                SampleFromParameters(0, false);
-            else
-                _arrSampledParameterValues = parameterValues;
+            // resample parameters 
+            _paramManager.Resample(_rng);
 
-            // update intervention information
-            _onOffStatusOfInterventionsAffectingContactPattern = new int[_numOfInterventionsAffectingContactPattern];
-            foreach (Intervention thisIntervention in _decisionMaker.Interventions)
-                thisIntervention.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn = (int)(_arrSampledParameterValues[thisIntervention.ParIDDelayToGoIntoEffectOnceTurnedOn] / _set.DeltaT);
+            // reset force of infection manager 
+            _FOI.Reset();
+            
+            // update intervention information            
+            foreach (Intervention thisIntervention in DecisionMaker.Interventions)
+                thisIntervention.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn = (int)(_paramManager.ParValues[thisIntervention.ParIDDelayToGoIntoEffectOnceTurnedOn] / _set.DeltaT);
 
             // reset the number of people in each compartment
             _arrNumOfMembersInEachClass = new int[_numOfClasses];
-            foreach (Class thisClass in _classes)
+            foreach (Class thisClass in Classes)
             {
-                thisClass.UpdateInitialNumberOfMembers((int)Math.Round(_arrSampledParameterValues[thisClass.InitialMemebersParID]));
+                thisClass.UpdateInitialNumberOfMembers((int)Math.Round(_paramManager.ParValues[thisClass.InitialMemebersParID]));
                 _arrNumOfMembersInEachClass[thisClass.ID] = thisClass.ClassStat.Prevalence;
             }
 
@@ -1140,10 +320,10 @@ namespace APACElib
             EpidemicCostHealth.Reset();
 
             // reset decisions
-            _decisionMaker.Reset();//(ref _totalCost);
+            DecisionMaker.Reset();//(ref _totalCost);
 
             // update decisions
-            _monitorofInterventionsInEffect.Update(0, true, ref _classes);
+            _monitorOfInterventionsInEffect.Update(0, true, ref _classes);
 
             // calculate contact matrices
             CalculateContactMatrices();
@@ -1152,128 +332,15 @@ namespace APACElib
             UpdateSusceptilityAndInfectivityOfClasses(true, true);
 
             // update rates associated with each class and their initial size
-            foreach (Class thisClass in _classes)
+            foreach (Class thisClass in Classes)
             {
-                thisClass.UpdateRatesOfBirthAndEpiIndpEvents(_arrSampledParameterValues);
-                thisClass.UpdateProbOfSuccess(_arrSampledParameterValues);
+                thisClass.UpdateRatesOfBirthAndEpiIndpEvents(_paramManager.ParValues);
+                thisClass.UpdateProbOfSuccess(_paramManager.ParValues);
                 thisClass.Reset();
             }
-
-           
-            // reset features
-            _arrCurrentValuesOfFeatures = new double[_features.Count];
-            
-            // reset the jagged array containing trajectories
-            _pastActionCombinations = new int[0][];
-            _simulationTimeBasedOutputs = new double[0][];
-            _simulationIntervalBasedOutputs = new double[0][]; 
-            _simulationObservableOutputs = new double[0][];
-            _calibrationObservation = new double[0][];
-            _simulationResourceAvailabilityOutput = new double[0][];
-            _timesOfEpidemicObservationsOverPastObservationPeriods = new double[0][];
         }
 
-        // Sample this parameter
-        private void SampleThisParameter(Parameter thisPar, double time)
-        {
-            switch (thisPar.Type)
-            {
-                // independent parameter
-                case Parameter.EnumType.Independet:
-                    {
-                        _arrSampledParameterValues[thisPar.ID] = ((IndependetParameter)thisPar).Sample(_rng);
-                    }
-                    break;
-                
-                // correlated parameter
-                case Parameter.EnumType.Correlated:
-                    {
-                        CorrelatedParameter thisCorrelatedParameter = thisPar as CorrelatedParameter;
-                        int parameterIDCorrelatedTo = thisCorrelatedParameter.IDOfDepedentPar;
-                        double valueOfTheParameterIDCorrelatedTo = _arrSampledParameterValues[parameterIDCorrelatedTo];
-                        _arrSampledParameterValues[thisPar.ID] = thisCorrelatedParameter.Sample(valueOfTheParameterIDCorrelatedTo);
-                    }
-                    break;
-                
-                // multiplicative parameter
-                case Parameter.EnumType.Multiplicative:
-                    {
-                        MultiplicativeParameter thisMultiplicativeParameter = thisPar as MultiplicativeParameter;
-                        int firstParID = thisMultiplicativeParameter.FirstParameterID;
-                        int secondParID = thisMultiplicativeParameter.SecondParameterID;
-                        _arrSampledParameterValues[thisPar.ID] = thisMultiplicativeParameter.Sample(_arrSampledParameterValues[firstParID], _arrSampledParameterValues[secondParID]);
-                    }
-                    break;
-
-                // linear combination parameter
-                case  Parameter.EnumType.LinearCombination:
-                    {
-                        LinearCombination thisLinearCombinationPar = thisPar as LinearCombination;
-                        int[] arrParIDs = thisLinearCombinationPar.arrParIDs;
-                        double[] arrValueOfParameters = new double[arrParIDs.Length];
-
-                        for (int i = 0; i < arrParIDs.Length; i++)
-                            arrValueOfParameters[i] = _arrSampledParameterValues[arrParIDs[i]];
-
-                        _arrSampledParameterValues[thisPar.ID] = thisLinearCombinationPar.Sample(arrValueOfParameters);
-                    }
-                    break;   
-
-                // multiple combination parameter
-                case Parameter.EnumType.MultipleCombination:
-                    {
-                        MultipleCombination thisMultipleCombinationPar = thisPar as MultipleCombination;
-                        int[] arrParIDs = thisMultipleCombinationPar.arrParIDs;
-                        double[] arrValueOfParameters = new double[arrParIDs.Length];
-                        for (int i = 0; i < arrParIDs.Length; i++)
-                            arrValueOfParameters[i] = _arrSampledParameterValues[arrParIDs[i]];
-
-                        _arrSampledParameterValues[thisPar.ID] = thisMultipleCombinationPar.Sample(arrValueOfParameters);
-                    }
-                    break;
-                          
-                // time dependent linear parameter
-                case Parameter.EnumType.TimeDependetLinear:
-                    {
-                        TimeDependetLinear thisTimeDepedentLinearPar = thisPar as TimeDependetLinear;
-                        double intercept = _arrSampledParameterValues[thisTimeDepedentLinearPar.InterceptParID];
-                        double slope = _arrSampledParameterValues[thisTimeDepedentLinearPar.SlopeParID];
-                        double timeOn = thisTimeDepedentLinearPar.TimeOn;
-                        double timeOff = thisTimeDepedentLinearPar.TimeOff;
-                        
-                        _arrSampledParameterValues[thisPar.ID] = thisTimeDepedentLinearPar.Sample(time, intercept, slope, timeOn, timeOff);
-                    }
-                    break;   
-   
-                // time dependent oscillating parameter
-                case Parameter.EnumType.TimeDependetOscillating:
-                    {
-                        TimeDependetOscillating thisTimeDepedentOscillatingPar = thisPar as TimeDependetOscillating;
-                        double a0 = _arrSampledParameterValues[thisTimeDepedentOscillatingPar.a0ParID];
-                        double a1 = _arrSampledParameterValues[thisTimeDepedentOscillatingPar.a1ParID];
-                        double a2 = _arrSampledParameterValues[thisTimeDepedentOscillatingPar.a2ParID];
-                        double a3 = _arrSampledParameterValues[thisTimeDepedentOscillatingPar.a3ParID];
-                        
-                        _arrSampledParameterValues[thisPar.ID] = thisTimeDepedentOscillatingPar.Sample(time, a0, a1, a2, a3);
-                    }
-                    break;  
-            }
-        }
-        // sample from parameters
-        private void SampleFromParameters(double time, bool updateOnlyTimeDependent)
-        {
-            if (updateOnlyTimeDependent == false)
-            {
-                foreach (Parameter thisParameter in Parameters)
-                    SampleThisParameter(thisParameter, time);
-            }
-            else
-            {
-                foreach (Parameter thisParameter in Parameters.Where(p => p.ShouldBeUpdatedByTime))
-                    SampleThisParameter(thisParameter, time);
-            }         
-           
-        }        
+               
 
         // update the effect of change in time dependent parameters
         private void UpdateTheEffectOfChangeInTimeDependentParameterValues(double time)
@@ -1340,23 +407,23 @@ namespace APACElib
             if (_thereAreTimeDependentParameters_affectingNaturalHistoryRates)
             {
                 // update rates associated with each class and their initial size
-                foreach (Class thisClass in _classes)
-                    thisClass.UpdateRatesOfBirthAndEpiIndpEvents(_arrSampledParameterValues);
+                foreach (Class thisClass in Classes)
+                    thisClass.UpdateRatesOfBirthAndEpiIndpEvents(arrSampledParameterValues);
             }
 
             // update value of splitting class parameters
             if (_thereAreTimeDependentParameters_affectingSplittingClasses)
             {
                 // update the probability of success
-                foreach (Class thisClass in _classes)
-                    thisClass.UpdateProbOfSuccess(_arrSampledParameterValues);
+                foreach (Class thisClass in Classes)
+                    thisClass.UpdateProbOfSuccess(arrSampledParameterValues);
             }
         }
         // calculate contract matrices
         private void CalculateContactMatrices() //[intervention ID][pathogen ID][group i, group j]
         {
             int contactMatrixSize = _baseContactMatrices[0].GetLength(0);
-            int numOfCombinationsOfInterventionsAffectingContactPattern = (int)Math.Pow(2, _numOfInterventionsAffectingContactPattern);
+            int numOfCombinationsOfInterventionsAffectingContactPattern = (int)Math.Pow(2, NumOfInterventionsAffectingContactPattern);
             _contactMatrices = new double[numOfCombinationsOfInterventionsAffectingContactPattern][][,];
 
             // build the contact matrices
@@ -1366,8 +433,8 @@ namespace APACElib
                     _contactMatrices[intCombIndex] = _baseContactMatrices;
                 else
                 {
-                    int[] onOfStatusOfInterventionsAffectingContactPattern = SupportFunctions.ConvertToBase2FromBase10(intCombIndex, _numOfInterventionsAffectingContactPattern);
-                    for (int interventionIndex = 0; interventionIndex < _numOfInterventionsAffectingContactPattern; ++interventionIndex)
+                    int[] onOfStatusOfInterventionsAffectingContactPattern = SupportFunctions.ConvertToBase2FromBase10(intCombIndex, NumOfInterventionsAffectingContactPattern);
+                    for (int interventionIndex = 0; interventionIndex < NumOfInterventionsAffectingContactPattern; ++interventionIndex)
                     {
                         // initialize contact matrices
                         _contactMatrices[intCombIndex] = new double[_numOfPathogens][,];
@@ -1380,7 +447,7 @@ namespace APACElib
                                 for (int i = 0; i < contactMatrixSize; ++i)
                                     for (int j = 0; j < contactMatrixSize; ++j)
                                         _contactMatrices[intCombIndex][pathogenID][i, j] = _baseContactMatrices[pathogenID][i, j] +
-                                            _baseContactMatrices[pathogenID][i, j] * _arrSampledParameterValues[_percentChangeInContactMatricesParIDs[interventionIndex][pathogenID][i, j]];
+                                            _baseContactMatrices[pathogenID][i, j] * arrSampledParameterValues[_percentChangeInContactMatricesParIDs[interventionIndex][pathogenID][i, j]];
                             }
                         }
                     }
@@ -1392,26 +459,26 @@ namespace APACElib
         {
             if (updateSusceptibility && updateInfectivity)
             {
-                foreach (Class thisClass in _classes)
+                foreach (Class thisClass in Classes)
                 {
                     // susceptibility
                     if (thisClass.IsEpiDependentEventActive)
-                        thisClass.UpdateSusceptibilityParameterValues(_arrSampledParameterValues);
+                        thisClass.UpdateSusceptibilityParameterValues(arrSampledParameterValues);
                     // infectivity
-                    thisClass.UpdateInfectivityParameterValues(_arrSampledParameterValues);
+                    thisClass.UpdateInfectivityParameterValues(arrSampledParameterValues);
                 }
             }
             else if (updateSusceptibility)
             {
                 // only susceptibility
-                foreach (Class thisClass in _classes.Where(c => c.IsEpiDependentEventActive))
-                    thisClass.UpdateSusceptibilityParameterValues(_arrSampledParameterValues);
+                foreach (Class thisClass in Classes.Where(c => c.IsEpiDependentEventActive))
+                    thisClass.UpdateSusceptibilityParameterValues(arrSampledParameterValues);
             }
             else if (updateInfectivity)
             {
                 // only infectivity
-                foreach (Class thisClass in _classes)
-                    thisClass.UpdateInfectivityParameterValues(_arrSampledParameterValues);
+                foreach (Class thisClass in Classes)
+                    thisClass.UpdateInfectivityParameterValues(arrSampledParameterValues);
             }
         }
         // update transmission rates
@@ -1422,19 +489,19 @@ namespace APACElib
 
             // find the population size of each mixing group
             int[] populationSizeOfMixingGroups = new int[_baseContactMatrices[0].GetLength(0)];
-            foreach (Class thisClass in _classes)
+            foreach (Class thisClass in Classes)
             {
                 //_arrNumOfMembersInEachClass[thisClass.ID] = thisClass.ClassStat.Prevalence;
                 populationSizeOfMixingGroups[thisClass.RowIndexInContactMatrix] += thisClass.ClassStat.Prevalence;
             }
 
             // find the index of current action in the contact matrices
-            int indexOfIntCombInContactMatrices = FindIndexOfInterventionCombimbinationInTransmissionMatrix(_monitorofInterventionsInEffect.InterventionsInEffect);
+            int indexOfIntCombInContactMatrices = FindIndexOfInterventionCombimbinationInTransmissionMatrix(_monitorOfInterventionsInEffect.InterventionsInEffect);
 
             // calculate the transmission rates for each class
             double susContactInf = 0, rate = 0, infectivity = 0;
             double[] arrTransmissionRatesByPathogen = new double[_numOfPathogens];
-            foreach (Class thisRecievingClass in _classes.Where(c => c.IsEpiDependentEventActive && c.ClassStat.Prevalence > 0))
+            foreach (Class thisRecievingClass in Classes.Where(c => c.IsEpiDependentEventActive && c.ClassStat.Prevalence > 0))
             {
                 // calculate the transmission rate for each pathogen
                 for (int pathogenID = 0; pathogenID < _numOfPathogens; pathogenID++)
@@ -1443,16 +510,16 @@ namespace APACElib
                     for (int j = 0; j < _numOfClasses; j++)
                     {
                         // find the infectivity of infection-causing class
-                        if (_classes[j] is Class_Normal) 
+                        if (Classes[j] is Class_Normal) 
                         {
-                            infectivity = _classes[j].InfectivityValues[pathogenID];
+                            infectivity = Classes[j].InfectivityValues[pathogenID];
                             if (infectivity > 0)
                             {
                                 susContactInf = thisRecievingClass.SusceptibilityValues[pathogenID]
-                                                * _contactMatrices[indexOfIntCombInContactMatrices][pathogenID][thisRecievingClass.RowIndexInContactMatrix, _classes[j].RowIndexInContactMatrix]
+                                                * _contactMatrices[indexOfIntCombInContactMatrices][pathogenID][thisRecievingClass.RowIndexInContactMatrix, Classes[j].RowIndexInContactMatrix]
                                                 * infectivity;
 
-                                rate += susContactInf * _arrNumOfMembersInEachClass[j] / populationSizeOfMixingGroups[_classes[j].RowIndexInContactMatrix];
+                                rate += susContactInf * _arrNumOfMembersInEachClass[j] / populationSizeOfMixingGroups[Classes[j].RowIndexInContactMatrix];
                             }
                         }
                     }
@@ -1468,7 +535,7 @@ namespace APACElib
         private void CalculateTransmissionMatrix()//(int[] nextPeriodActionCombinationInEffect)
         {
             int contactMatrixSize = _baseContactMatrices[0].GetLength(0);
-            int numOfCombinationsOfInterventionsAffectingContactPattern = (int)Math.Pow(2, _numOfInterventionsAffectingContactPattern);
+            int numOfCombinationsOfInterventionsAffectingContactPattern = (int)Math.Pow(2, NumOfInterventionsAffectingContactPattern);
 
             double[][] arrInfectivity = new double[_numOfClasses][];            
             double[][] arrSusceptibility = new double[_numOfClasses][];
@@ -1484,8 +551,8 @@ namespace APACElib
                     contactMatrices[intCombIndex] = _baseContactMatrices;
                 else
                 {
-                    int[] onOfStatusOfInterventionsAffectingContactPattern = SupportFunctions.ConvertToBase2FromBase10(intCombIndex, _numOfInterventionsAffectingContactPattern);
-                    for (int interventionIndex = 0; interventionIndex < _numOfInterventionsAffectingContactPattern; ++interventionIndex)
+                    int[] onOfStatusOfInterventionsAffectingContactPattern = SupportFunctions.ConvertToBase2FromBase10(intCombIndex, NumOfInterventionsAffectingContactPattern);
+                    for (int interventionIndex = 0; interventionIndex < NumOfInterventionsAffectingContactPattern; ++interventionIndex)
                     {
                         // initialize contact matrices
                         contactMatrices[intCombIndex] = new double[_numOfPathogens][,];
@@ -1498,7 +565,7 @@ namespace APACElib
                                 for (int i = 0; i < contactMatrixSize; ++i)
                                     for (int j = 0; j < contactMatrixSize; ++j)
                                         contactMatrices[intCombIndex][pathogenID][i, j] = _baseContactMatrices[pathogenID][i,j]+
-                                            _baseContactMatrices[pathogenID][i, j] * _arrSampledParameterValues[_percentChangeInContactMatricesParIDs[interventionIndex][pathogenID][i, j]];
+                                            _baseContactMatrices[pathogenID][i, j] * arrSampledParameterValues[_percentChangeInContactMatricesParIDs[interventionIndex][pathogenID][i, j]];
                             }
                         }
                     }
@@ -1507,7 +574,7 @@ namespace APACElib
 
             // get the sample of infectivity and susceptibility of classes                    
             int classID = 0;
-            foreach (Class thisClass in _classes)
+            foreach (Class thisClass in Classes)
             {
                 // update the susceptibility and infectivity parameters based on the sampled parameter values
                 //thisClass.UpdateSusceptibilityAndInfectivityParameterValues(_arrSampledParameterValues);
@@ -1567,7 +634,7 @@ namespace APACElib
                 case EnumMarkOfEpidemicStartTime.TimeOfFirstObservation:
                     {
                         if (_firstObservationObtained)
-                            _epiTimeIndex = _simTimeIndex - _timeIndexOfTheFirstObservation + _set.NumOfDeltaT_inObservationPeriod;
+                            _epiTimeIndex = _simTimeIndex - TimeIndexOfTheFirstObservation + _set.NumOfDeltaT_inObservationPeriod;
                         else
                             _epiTimeIndex = int.MinValue;
                     }
@@ -1584,7 +651,7 @@ namespace APACElib
         {
             _set = modelSettings;
 
-            _decisionMaker = new DecisionMaker(
+            DecisionMaker = new DecisionMaker(
                 _set.EpidemicTimeIndexToStartDecisionMaking,
                 _set.NumOfDeltaT_inDecisionInterval);            
 
@@ -1611,7 +678,11 @@ namespace APACElib
             // update contact matrices
             UpdateContactMatrices();
             // monitor of interventions in effect
-            _monitorofInterventionsInEffect = new MonitorOfInterventionsInEffect(ref _decisionMaker);
+            _monitorOfInterventionsInEffect = new MonitorOfInterventionsInEffect(ref DecisionMaker);
+            // epidemic history
+            EpidemicHistory = new SimulationTrajectories(0, _set.DeltaT, _set.NumOfDeltaT_inSimulationOutputInterval, ref DecisionMaker, ref Classes, ref _sumTrajectories, ref _ratioTrajectories);
+
+            _areClassesWithEradicationCondition = Classes.Where(s => s.EmptyToEradicate).Count() == 0;
         }
         public void UpdateContactMatrices()
         {
@@ -1623,10 +694,10 @@ namespace APACElib
         public void SetupDynamicPolicySettings
             (ComputationLib.EnumQFunctionApproximationMethod qFunctionApproximationMethod, bool useEpidemicTimeAsFeature, int degreeOfPolynomialQFunction, double L2RegularizationPenalty)
         {
-            _useEpidemicTimeAsFeature = useEpidemicTimeAsFeature;
-            if (_useEpidemicTimeAsFeature)
+            UseEpidemicTimeAsFeature = useEpidemicTimeAsFeature;
+            if (UseEpidemicTimeAsFeature)
             {
-                _features.Add(new Feature_EpidemicTime("Epidemic Time", _numOfFeatures));
+                Features.Add(new Feature_EpidemicTime("Epidemic Time", _numOfFeatures));
                 ++_numOfFeatures;
             }            
 
@@ -1667,7 +738,7 @@ namespace APACElib
         // setup Q-functions with polynomial functions
         public void SetupPolynomialQFunctions(EnumQFunctionApproximationMethod qFunctionApproximationMethod, int degreeOfPolynomialQFunction)
         {
-            int numOfFeatures = _features.Count;
+            int numOfFeatures = Features.Count;
             //_decisionMaker.SetUpQFunctionApproximationModel(
             //    qFunctionApproximationMethod, SimulationLib.enumResponseTransformation.None, 
             //    numOfFeatures, degreeOfPolynomialQFunction, 2);
@@ -1701,9 +772,9 @@ namespace APACElib
         // get which interventions are affecting contact pattern
         public bool[] IfInterventionsAreAffectingContactPattern()
         {
-            bool[] result = new bool[_decisionMaker.NumOfInterventions];
+            bool[] result = new bool[DecisionMaker.NumOfInterventions];
 
-            foreach (Intervention thisIntervention in _decisionMaker.Interventions)
+            foreach (Intervention thisIntervention in DecisionMaker.Interventions)
                 if (thisIntervention.IfAffectingContactPattern)
                     result[thisIntervention.Index] = true;
             return result;
@@ -1717,7 +788,6 @@ namespace APACElib
         // read parameters
         private void AddParameters(Array parametersSheet)
         {
-            _numOfParametersToCalibrate = 0;
             int lastRowIndex = parametersSheet.GetLength(0);
             for (int rowIndex = 1; rowIndex <= lastRowIndex; ++rowIndex)
             {
@@ -1808,8 +878,8 @@ namespace APACElib
                 thisParameter.ShouldBeUpdatedByTime = updateAtEachTimeStep;
                 thisParameter.IncludedInCalibration = includedInCalibration;
                 
-                if (includedInCalibration)
-                    ++_numOfParametersToCalibrate;
+                //if (includedInCalibration)
+                //    ++_numOfParametersToCalibrate;
 
                 // add the parameter to the list
                 Parameters.Add(thisParameter);
@@ -1880,7 +950,7 @@ namespace APACElib
                             thisNormalClass.SetupTransmissionDynamicsProperties(strSusceptibilityIDs, strInfectivityIDs, rowInContactMatrix);
 
                             // add class
-                            _classes.Add(thisNormalClass);
+                            Classes.Add(thisNormalClass);
 
                             // check if infectivity and susceptibility parameters are time dependent
                             if (_thereAreTimeDependentParameters)
@@ -1906,7 +976,7 @@ namespace APACElib
                             Class_Death thisDealthClass = new Class_Death(classID, name);
 
                             // add class
-                            _classes.Add(thisDealthClass);
+                            Classes.Add(thisDealthClass);
                         }
                         break;
                     case "Class: Splitting":
@@ -1921,7 +991,7 @@ namespace APACElib
                             thisSplittingClass.SetUp(parIDForProbOfSuccess, destinationClassIDGivenSuccess, destinationClassIDGivenFailure);
 
                             // add class
-                            _classes.Add(thisSplittingClass);
+                            Classes.Add(thisSplittingClass);
 
                             // check if the rate parameter is time dependent
                             if (_thereAreTimeDependentParameters && Parameters[parIDForProbOfSuccess].ShouldBeUpdatedByTime)
@@ -1941,30 +1011,30 @@ namespace APACElib
                             thisResourceMonitorClass.SetUp(resourceIDToCheckAvailability, resourceUnitsConsumedPerArrival, destinationClassIDGivenSuccess, destinationClassIDGivenFailure);
 
                             // add class
-                            _classes.Add(thisResourceMonitorClass);
+                            Classes.Add(thisResourceMonitorClass);
                         }
                         break;
                 }
                 #endregion
 
                 // class statistics 
-                _classes.Last().ClassStat = new GeneralTrajectory(classID, name, _set.WarmUpPeriodTimeIndex);
-                _classes.Last().ClassStat.SetupAvePrevalenceAndAccumIncidence(showAccumIncidence, false);
+                Classes.Last().ClassStat = new GeneralTrajectory(classID, name, _set.WarmUpPeriodTimeIndex);
+                Classes.Last().ClassStat.SetupAvePrevalenceAndAccumIncidence(showAccumIncidence, false);
                 // adding time series
-                _classes.Last().ClassStat.AddTimeSeries(
+                Classes.Last().ClassStat.AddTimeSeries(
                     collectIncidenceTimeSeries, collectPrevalenceTimeSeries, collectAccumIncidenceTimeSeries, _set.NumOfDeltaT_inSimulationOutputInterval);
                 // adding cost and health outcomes
-                _classes.Last().ClassStat.AddCostHealthOutcomes(
+                Classes.Last().ClassStat.AddCostHealthOutcomes(
                     DALYPerNewMember, costPerNewMember, healthQualityPerUnitOfTime * _set.DeltaT, costPerUnitOfTime * _set.DeltaT);
 
                 // set up which statistics to show
-                _classes.Last().ShowStatisticsInSimulationResults = showStatisticsInSimulationResults;
-                _classes.Last().ShowIncidence = showIncidence;
-                _classes.Last().ShowPrevalence = showPrevalence;
-                _classes.Last().ShowAccumIncidence = showAccumIncidence;
+                Classes.Last().ShowStatisticsInSimulationResults = showStatisticsInSimulationResults;
+                Classes.Last().ShowIncidence = showIncidence;
+                Classes.Last().ShowPrevalence = showPrevalence;
+                Classes.Last().ShowAccumIncidence = showAccumIncidence;
 
             }// end of for
-            _numOfClasses = _classes.Count;
+            _numOfClasses = Classes.Count;
         }
         // add interventions
         private void AddInterventions(Array interventionsSheet)
@@ -2021,7 +1091,7 @@ namespace APACElib
 
                     if (affectingContactPattern)
                     {
-                        ++_numOfInterventionsAffectingContactPattern;
+                        ++NumOfInterventionsAffectingContactPattern;
                         SupportFunctions.AddToEndOfArray(ref _indecesOfInterventionsAffectingContactPattern, rowIndex - 1);
                     }
 
@@ -2101,11 +1171,11 @@ namespace APACElib
                 thisIntervention.SetUpCost(fixedCost, costPerUnitOfTime, penaltyForSwitchingFromOnToOff);
 
                 // add the intervention
-                _decisionMaker.AddAnIntervention(thisIntervention);
+                DecisionMaker.AddAnIntervention(thisIntervention);
             }
 
             // gather info
-            _decisionMaker.UpdateAfterAllInterventionsAdded();
+            DecisionMaker.UpdateAfterAllInterventionsAdded();
 
         }
         
@@ -2144,11 +1214,11 @@ namespace APACElib
                 // if its availability should be reported
                 thisResource.ShowAvailability = SupportFunctions.ConvertYesNoToBool(Convert.ToString(resourcesSheet.GetValue(rowIndex, (int)ExcelInterface.enumResourceColumns.ShowAvailableUnits)));
                 // add the resource
-                _resources.Add(thisResource);
+                Resources.Add(thisResource);
 
                 // if a feature should be associated to this
                 if (SupportFunctions.ConvertYesNoToBool(Convert.ToString(resourcesSheet.GetValue(rowIndex, (int)ExcelInterface.enumResourceColumns.SelectAsFeature))))
-                    _features.Add(new Feature_DefinedOnResources(name, _numOfFeatures++, ID));
+                    Features.Add(new Feature_DefinedOnResources(name, _numOfFeatures++, ID));
             } 
         }
         // add events
@@ -2206,7 +1276,7 @@ namespace APACElib
             if (resourceRulesSheet == null) return;
 
             // return if there is no resource
-            if (_resources.Count == 0) return;
+            if (Resources.Count == 0) return;
 
             for (int rowIndex = 1; rowIndex <= resourceRulesSheet.GetLength(0); ++rowIndex)
             {
@@ -2241,7 +1311,7 @@ namespace APACElib
                 }
 
                 // add the resource
-                _resourceRules.Add(thisResourceRule);
+                //_resourceRules.Add(thisResourceRule);
             }
         }
         // add summation statistics
@@ -2357,8 +1427,6 @@ namespace APACElib
                 // if display
                 bool ifDispay = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfDisplay).ToString());
 
-                bool ifSurveillanceDataAvailable = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.SurveillanceDataAvailable).ToString());
-                
                 // calibration
                 bool ifIncludedInCalibration = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfIncludedInCalibration).ToString());
 
@@ -2450,7 +1518,7 @@ namespace APACElib
             {
                 classID = connectionsMatrix[i, 0];
                 processID = connectionsMatrix[i, 1];
-                ((Class_Normal)_classes[classID]).AddAnEvent((Event)_events[processID]);
+                ((Class_Normal)Classes[classID]).AddAnEvent((Event)_events[processID]);
                 
                 ++i;
             }
