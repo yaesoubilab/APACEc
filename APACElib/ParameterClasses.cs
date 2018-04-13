@@ -9,20 +9,28 @@ using RandomVariateLib;
 
 namespace APACElib
 {
-    class ParameterManager
+    public class ParameterManager
     {
         public List<Parameter> Parameters { get; set; } = new List<Parameter>();
         public double[] ParameterValues { get; private set; }
-        private bool _thereAreTimeDepParms = false;
-        private bool _thereAreTimeDepParms_affectingSusceptibilities = false;
-        private bool _thereAreTimeDepParms_affectingInfectivities = false;
-        private bool _thereAreTimeDepParms_affectingTranmissionDynamics = false;
-        private bool _thereAreTimeDepParms_affectingNaturalHistoryRates = false;
-        private bool _thereAreTimeDepParms_affectingSplittingClasses = false;
+        public bool ThereAreTimeDepParms { get; private set; } = false;
+        public bool ThereAreTimeDepParms_susceptibilities { get; set; } = false;
+        public bool ThereAreTimeDepParms_infectivities { get; set; } = false;
+        public bool ThereAreTimeDepParms_tranmission { get; set; } = false;
+        public bool ThereAreTimeDepParms_diseaseProgression { get; set; } = false;
+        public bool ThereAreTimeDepParms_splittingClasses { get; set; } = false;
 
         public ParameterManager()
         {
 
+        }
+
+        public void Add(Parameter thisParam)
+        {
+            Parameters.Add(thisParam);
+
+            if (thisParam.ShouldBeUpdatedByTime)
+                ThereAreTimeDepParms = true;
         }
 
         // get the value of parameters to calibrate
@@ -36,45 +44,68 @@ namespace APACElib
             return parValues;
         }
 
+        // update the effect of change in time dependent parameters
+        public void UpdateTimeDepParams(ref RNG rng, double time, ref List<Class> classes)
+        {
+            if (ThereAreTimeDepParms)
+            {
+                // update time depedent parameters 
+                foreach (Parameter thisParameter in Parameters.Where(p => p.ShouldBeUpdatedByTime))
+                    SampleThisParameter(ref rng, thisParameter, time);
+                
+                // update transmission dynamic matrix if necessary
+                if (ThereAreTimeDepParms_tranmission)
+                {
+                    //CalculateTransmissionMatrix();
+                    // update transmission rates
+                    //UpdateTransmissionRates();
+                }
+
+                // update event rates if necessary
+                if (ThereAreTimeDepParms_diseaseProgression)
+                {
+                    // update rates associated with each class and their initial size
+                    foreach (Class thisClass in classes)
+                        thisClass.UpdateRatesOfBirthAndEpiIndpEvents(ParameterValues);
+                }
+
+                // update value of splitting class parameters
+                if (ThereAreTimeDepParms_splittingClasses)
+                {
+                    // update the probability of success
+                    foreach (Class thisClass in classes)
+                        thisClass.UpdateProbOfSuccess(ParameterValues);
+                }
+            }
+        }
+
+        // update susceptibility and infectivity of classes
+        public void UpdateClassesSusceptInfect(int simTimeIndex, ref List<Class> classes)
+        {
+            // calculate only at the initialization or when there are time depedent susceptibility or infectivity parameters
+            if (!(simTimeIndex == 0 || ThereAreTimeDepParms_susceptibilities || ThereAreTimeDepParms_infectivities))
+                return;
+
+            if (ThereAreTimeDepParms_susceptibilities)
+            {
+                // only susceptibility
+                foreach (Class thisClass in classes.Where(c => c.IsEpiDependentEventActive))
+                    thisClass.UpdateSusceptibilityParameterValues(ParameterValues);
+            }
+            if (ThereAreTimeDepParms_infectivities)
+            {
+                // only infectivity
+                foreach (Class thisClass in classes)
+                    thisClass.UpdateInfectivityParameterValues(ParameterValues);
+            }
+        }
+
         public void SampleAllParameters(ref RNG rng, double time)
         {
             // sample from parameters
             ParameterValues = new double[Parameters.Count];
             foreach (Parameter thisParameter in Parameters)
                 SampleThisParameter(ref rng, thisParameter, time);
-        }
-        public void UpdateTimeDepedentParameters(ref RNG rng, double time)
-        {
-            foreach (Parameter thisParameter in Parameters.Where(p => p.ShouldBeUpdatedByTime))
-                SampleThisParameter(ref rng, thisParameter, time);
-        }
-
-        // update time dependent parameters in the model
-        private void UpdateTimeDepedentParametersInTheModel(ref List<Class> classes)
-        {
-            // update transmission dynamic matrix if necessary
-            if (_thereAreTimeDepParms_affectingTranmissionDynamics)
-            {
-                //CalculateTransmissionMatrix();
-                // update transmission rates
-                //UpdateTransmissionRates();
-            }
-
-            // update event rates if necessary
-            if (_thereAreTimeDepParms_affectingNaturalHistoryRates)
-            {
-                // update rates associated with each class and their initial size
-                foreach (Class thisClass in classes)
-                    thisClass.UpdateRatesOfBirthAndEpiIndpEvents(ParameterValues);
-            }
-
-            // update value of splitting class parameters
-            if (_thereAreTimeDepParms_affectingSplittingClasses)
-            {
-                // update the probability of success
-                foreach (Class thisClass in classes)
-                    thisClass.UpdateProbOfSuccess(ParameterValues);
-            }
         }
 
         // Sample this parameter
@@ -166,31 +197,87 @@ namespace APACElib
        
     }
 
-    class ForceOfInfectionModeller
+    public class ForceOfInfectionModeller
     {
         private ParameterManager _paramManager;
-        private int _numOfPathogens;
+        private int _nOfPathogens;
         private double[][,] _baseContactMatrices = null;                    //[pathogen ID][group i, group j] 
         private int[][][,] _parID_percentageChangeInContactMatrices = null; //[intervention ID][pathogen ID][group i, group j]
         private double[][][,] _contactMatrices = null;                      //[intervention ID][pathogen ID][group i, group j]
-        private double[][][][] _tranmissionMatrices = null;                 // [intervention ID][pathogen ID][group i][group j]
-        private int[] _indicesOfIntrvsAffectingContactPattern;
-        private int[] _onOffStatusOfIntrvsAffectingContactPattern;
         public int NumOfIntrvnAffectingContacts { get; private set; } = 0;
-
+        private int[] _iOfIntrvsAffectingContacts;              // indeces of interventions affecting contacts
+        private int[] _onOffStatusOfIntrvsAffectingContacts;    // 0 and 1 array
+        
         public ForceOfInfectionModeller(
+            int nOfPathogens,
             ref ParameterManager paramManager, 
             double[][,] baseContactMatrices,
             int[][][,] parID_percentageChangeInContactMatrices)
         {
+            _nOfPathogens = nOfPathogens;
             _paramManager = paramManager;
             _baseContactMatrices = baseContactMatrices;
             _parID_percentageChangeInContactMatrices = parID_percentageChangeInContactMatrices;
         }
 
+
+        public void AddIntrvnAffectingContacts(int interventionIndex)
+        {
+            SupportFunctions.AddToEndOfArray(ref _iOfIntrvsAffectingContacts, interventionIndex);
+            ++NumOfIntrvnAffectingContacts;
+        }
+
         public void Reset()
         {
-            _onOffStatusOfIntrvsAffectingContactPattern = new int[NumOfIntrvnAffectingContacts];
+            _onOffStatusOfIntrvsAffectingContacts = new int[NumOfIntrvnAffectingContacts];
+        }
+
+        // update transmission rates
+        public void UpdateTransmissionRates(int simTimeIndex, int[] intvnsInEffect, ref List<Class> classes)
+        {
+            // update susceptibility and infectivity of classes
+            _paramManager.UpdateClassesSusceptInfect(simTimeIndex, ref classes);
+
+            // find the population size of each mixing group
+            int[] popSizeOfMixingGroups = new int[_baseContactMatrices[0].GetLength(0)];
+            foreach (Class thisClass in classes)
+                popSizeOfMixingGroups[thisClass.RowIndexInContactMatrix] += thisClass.ClassStat.Prevalence;
+
+            // find the index of current interventions in effect in the contact matrices
+            int indexOfIntCombInContactMatrices = IndxInContactMatrices(intvnsInEffect);
+
+            // calculate the transmission rates for each class
+            double susContactInf = 0, rate = 0, infectivity = 0;
+            double[] arrTransmissionRatesByPathogen = new double[_nOfPathogens];
+            foreach (Class thisRecievingClass in classes.Where(c => c.IsEpiDependentEventActive && c.ClassStat.Prevalence > 0))
+            {
+                // calculate the transmission rate for each pathogen
+                for (int pathogenID = 0; pathogenID < _nOfPathogens; pathogenID++)
+                {
+                    rate = 0;
+                    for (int j = 0; j < classes.Count; j++)
+                    {
+                        // find the infectivity of infection-causing class
+                        if (classes[j] is Class_Normal)
+                        {
+                            infectivity = classes[j].InfectivityValues[pathogenID];
+                            if (infectivity > 0)
+                            {
+                                susContactInf = thisRecievingClass.SusceptibilityValues[pathogenID]
+                                                * _contactMatrices[indexOfIntCombInContactMatrices][pathogenID][thisRecievingClass.RowIndexInContactMatrix, classes[j].RowIndexInContactMatrix]
+                                                * infectivity;
+
+                                rate += susContactInf * classes[j].ClassStat.Prevalence / popSizeOfMixingGroups[classes[j].RowIndexInContactMatrix];
+                            }
+                        }
+                    }
+
+                    arrTransmissionRatesByPathogen[pathogenID] = rate;
+                }
+
+                // update the transition rates of this class for all pathogens
+                thisRecievingClass.UpdateTransmissionRates(arrTransmissionRatesByPathogen);
+            }
         }
 
         // calculate contract matrices
@@ -212,11 +299,11 @@ namespace APACElib
                     for (int intrvn = 0; intrvn < NumOfIntrvnAffectingContacts; ++intrvn)
                     {
                         // initialize contact matrices
-                        _contactMatrices[intCombIndex] = new double[_numOfPathogens][,];
+                        _contactMatrices[intCombIndex] = new double[_nOfPathogens][,];
 
                         if (onOfStatusOfIntrvnAffectingContacts[intrvn] == 1)
                         {
-                            for (int pathogenID = 0; pathogenID < _numOfPathogens; pathogenID++)
+                            for (int pathogenID = 0; pathogenID < _nOfPathogens; pathogenID++)
                             {
                                 _contactMatrices[intCombIndex][pathogenID] 
                                     = new double[contactMatrixSize, contactMatrixSize];
@@ -234,106 +321,14 @@ namespace APACElib
             }
         }
 
-        // calculate transmission matrix
-        private void CalculateTransmissionMatrix()//(int[] nextPeriodActionCombinationInEffect)
-        {
-            int contactMatrixSize = _baseContactMatrices[0].GetLength(0);
-            int numOfCombinationsOfInterventionsAffectingContactPattern = (int)Math.Pow(2, NumOfIntrvnAffectingContacts);
-
-            double[][] arrInfectivity = new double[_numOfClasses][];
-            double[][] arrSusceptibility = new double[_numOfClasses][];
-            int[] arrRowInContactMatrix = new int[_numOfClasses];
-            double[][][,] contactMatrices = new double[numOfCombinationsOfInterventionsAffectingContactPattern][][,];
-            _tranmissionMatrices = new double[numOfCombinationsOfInterventionsAffectingContactPattern][][][];
-
-            // build the contact matrices
-            // for all possible intervention combinations
-            for (int intCombIndex = 0; intCombIndex < numOfCombinationsOfInterventionsAffectingContactPattern; ++intCombIndex)
-            {
-                if (intCombIndex == 0)
-                    contactMatrices[intCombIndex] = _baseContactMatrices;
-                else
-                {
-                    int[] onOfStatusOfInterventionsAffectingContactPattern = SupportFunctions.ConvertToBase2FromBase10(intCombIndex, NumOfIntrvnAffectingContacts);
-                    for (int interventionIndex = 0; interventionIndex < NumOfIntrvnAffectingContacts; ++interventionIndex)
-                    {
-                        // initialize contact matrices
-                        contactMatrices[intCombIndex] = new double[_numOfPathogens][,];
-
-                        if (onOfStatusOfInterventionsAffectingContactPattern[interventionIndex] == 1)
-                        {
-                            for (int pathogenID = 0; pathogenID < _numOfPathogens; pathogenID++)
-                            {
-                                contactMatrices[intCombIndex][pathogenID] = new double[contactMatrixSize, contactMatrixSize];
-                                for (int i = 0; i < contactMatrixSize; ++i)
-                                    for (int j = 0; j < contactMatrixSize; ++j)
-                                        contactMatrices[intCombIndex][pathogenID][i, j] = _baseContactMatrices[pathogenID][i, j] +
-                                            _baseContactMatrices[pathogenID][i, j] 
-                                            * _paramManager.ParameterValues[_parID_percentageChangeInContactMatrices[interventionIndex][pathogenID][i, j]];
-                            }
-                        }
-                    }
-                }
-            }
-
-            // get the sample of infectivity and susceptibility of classes                    
-            int classID = 0;
-            foreach (Class thisClass in Classes)
-            {
-                // update the susceptibility and infectivity parameters based on the sampled parameter values
-                //thisClass.UpdateSusceptibilityAndInfectivityParameterValues(_arrSampledParameterValues);
-
-                arrInfectivity[classID] = thisClass.InfectivityValues;
-                arrSusceptibility[classID] = thisClass.SusceptibilityValues;
-                arrRowInContactMatrix[classID] = thisClass.RowIndexInContactMatrix;
-                ++classID;
-            }
-
-            // populate the transmission matrix
-            for (int intCombIndex = 0; intCombIndex < numOfCombinationsOfInterventionsAffectingContactPattern; ++intCombIndex)
-            {
-                _tranmissionMatrices[intCombIndex] = new double[_numOfPathogens][][];
-                for (int pathogenID = 0; pathogenID < _numOfPathogens; pathogenID++)
-                {
-                    _tranmissionMatrices[intCombIndex][pathogenID] = new double[_numOfClasses][];
-                    for (int i = 0; i < _numOfClasses; ++i)
-                    {
-                        if (arrSusceptibility[i].Count() != 0)
-                        {
-                            _tranmissionMatrices[intCombIndex][pathogenID][i] = new double[_numOfClasses];
-                            for (int j = 0; j < _numOfClasses; ++j)
-                            {
-                                if (arrInfectivity[j].Count() != 0)
-                                {
-                                    _tranmissionMatrices[intCombIndex][pathogenID][i][j]
-                                        = arrSusceptibility[i][pathogenID]
-                                            * contactMatrices[intCombIndex][pathogenID][arrRowInContactMatrix[i], arrRowInContactMatrix[j]]
-                                            * arrInfectivity[j][pathogenID];
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // find the index of this intervention combination in transmission matrix
-        private int FindIndexOfInterventionCombimbinationInTransmissionMatrix(int[] interventionCombination)
-        {
-            for (int i = 0; i < NumOfIntrvnAffectingContacts; i++)
-            {
-                _onOffStatusOfIntrvsAffectingContactPattern[i] = interventionCombination[_indicesOfIntrvsAffectingContactPattern[i]];
-            }
-            return SupportFunctions.ConvertToBase10FromBase2(_onOffStatusOfIntrvsAffectingContactPattern);
-        }
         // find the index of this intervention combination in contact matrices
-        private int FindIndexOfInterventionCombimbinationInContactMatrices(int[] interventionCombination)
+        private int IndxInContactMatrices(int[] interventionCombination)
         {
             for (int i = 0; i < NumOfIntrvnAffectingContacts; i++)
             {
-                _onOffStatusOfIntrvsAffectingContactPattern[i] = interventionCombination[_indicesOfIntrvsAffectingContactPattern[i]];
+                _onOffStatusOfIntrvsAffectingContacts[i] = interventionCombination[_iOfIntrvsAffectingContacts[i]];
             }
-            return SupportFunctions.ConvertToBase10FromBase2(_onOffStatusOfIntrvsAffectingContactPattern);
+            return SupportFunctions.ConvertToBase10FromBase2(_onOffStatusOfIntrvsAffectingContacts);
         }
 
         public void Clean()
@@ -341,9 +336,8 @@ namespace APACElib
             _baseContactMatrices = null;
             _parID_percentageChangeInContactMatrices = null;
             _contactMatrices = null;
-            _tranmissionMatrices = null;
-            _indicesOfIntrvsAffectingContactPattern = null;
-            _onOffStatusOfIntrvsAffectingContactPattern = null;
+            _iOfIntrvsAffectingContacts = null;
+            _onOffStatusOfIntrvsAffectingContacts = null;
         }
     }
 }

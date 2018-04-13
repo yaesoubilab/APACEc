@@ -14,244 +14,26 @@ namespace APACElib
     public class EpidemicModeller
     {
         // Variable Definition 
-        #region Variable Definition
-        private int _ID;
+        public int ID { get; private set; }
         private ModelSettings _set;
-        // parent epidemic and collection of epidemics
-        public Epidemic _parentEpidemic;
-        public Epidemic ParentEpidemic { get { return _parentEpidemic; } }
-
-        //private ArrayList _epidemics = new ArrayList();
+        private RNDSeedGenerator _seedGenerator;
+        private Epidemic _parentEpidemic;
         private List<Epidemic> _epidemics = new List<Epidemic>();
-        // model information
-        int _numOfInterventions;
-        int _numOfInterventionsAffectingContactPattern;
-        int _numOfFeatures;
-        bool _storeEpidemicTrajectories;
-        string[] _interventionNames;
-        string[] _namesOfDefaultInterventionsAndThoseSpecifiedByDynamicRule;
-        string[] _featureNames;
-        string[] _namesOfParameters;
+        public Epidemic ParentEpidemic { get => _parentEpidemic; }        
+        public ModelInfo ModelInfo { get; private set; }
+        public SimSummary SimSummary { get; private set; }
+        public Timer Timer { get; private set; }
+
         // simulation setting
-        RNG _rng = new RNG(0);  
-        //private enumModelUse _modelUse = enumModelUse.Simulation;
-        //private enumSimulationRNDSeedsSource _simulationRNDSeedsSource = enumSimulationRNDSeedsSource.StartFrom0;
-        //private int _firstRNGSeed;
-        //private int _distanceBtwRNGSeeds;
-        //private int[] _rndSeeds;
-        //private double[] _rndSeedsGoodnessOfFit;
-        RandomVariateLib.Discrete _discreteDistributionOverSeeds;
-        private int[] _sampledRNDSeeds;
+        RNG _rng = new RNG(0);
 
-        // simulation outputs
-        private int _numOfMonitoredSimulationOutputs;
-        private int _numOfPrevalenceOutputsToReport;
-        private int _numOfIncidenceOutputsToReport;
-        private int _numOfResourcesToReport;
-        private int[][] _pastActionCombinations;
-        private double[][] _simulationTimeBasedOutputs;
-        private double[][] _simulationIntervalBasedOutputs;
-        private double[][] _simulationObservableOutputs;
-        private double[][] _simulationResourcesOutputs;
-        private double[][] _timeOfSimulationObservableOutputs;        
-        // simulation statistics collection
-        private ArrayList _incidenceStats = new ArrayList();
-        private ArrayList _prevalenceStats = new ArrayList();
-        private ArrayList _ratioStatistics = new ArrayList();
-        private ArrayList _computationStatistics = new ArrayList();
-        private int[] _arrSimItrs;
-        private int[] _arrRNGSeeds;
-        private double[] _arrNHB;
-        private double[] _arrNMB;
-        private double[] _arrSimulationQALY;
-        private double[] _arrSimulationCost;
-        private double[] _arrSimulationAnnualCost;
-        private ObservationBasedStatistics _obsTotalCost = new ObservationBasedStatistics("Total cost");
-        private ObservationBasedStatistics _obsAnnualCost = new ObservationBasedStatistics("Annual cost");
-        private ObservationBasedStatistics _obsTotalDALY = new ObservationBasedStatistics("Total QALY");
-        private ObservationBasedStatistics _obsTotalNMB = new ObservationBasedStatistics("Total NMB");
-        private ObservationBasedStatistics _obsTotalNHB = new ObservationBasedStatistics("Total NHB");
-        private ObservationBasedStatistics _obsNumOfSwitchesBtwDecisions = new ObservationBasedStatistics("Total switches");
-        private double[][] _sampledParameterValues;
         // calibration
-        private CalibrationOld _calibration;
-
-        // computation statistics
-        private double _actualTimeUsedToSimulateAllTrajectories; // seconds        
-        private ObservationBasedStatistics _obsTimeUsedToSimulateATrajectory = new ObservationBasedStatistics("Time used to simulate a trajectory");
-        private double _actualTimeUsedByCalibration;
-        private double _totalSimulationTimeUsedByCalibration;
-        private int _numOfTrajectoriesDiscardedByCalibration;
-
-        #endregion
-        #region Properties
-        public int ID
-        { get { return _ID; } }
-        public string[] ParameterNames
-        { get { return _namesOfParameters; } }
-        public int CurrentRNDSeed
-        {
-            get { return _parentEpidemic.SeedProducedAcceptibleTraj; }
-        }
-        public int CurrentEpidemicTimeIndex
-        {
-            get {return _parentEpidemic.CurrentEpidemicTimeIndex; }
-        }
-        public double CurrentEpidemicTime
-        {
-            get { return _parentEpidemic.CurrentEpidemicTime; }
-        }
-        public int NumOfInterventions
-        {
-            get { return _numOfInterventions; }
-        }
-        public int NumOfInterventionsAffectingContactPattern
-        {
-            get { return _numOfInterventionsAffectingContactPattern; }
-        }
-       
-        public string[] InterventionNames
-        {
-            get { return _interventionNames; }
-        }
-        public string[] NamesOfDefaultInterventionsAndThoseSpecifiedByDynamicRule
-        {
-            get { return _namesOfDefaultInterventionsAndThoseSpecifiedByDynamicRule; }
-        }
-        public ArrayList Features
-        {
-            get {return _parentEpidemic.Features;}
-        }
-        public int NumOfFeatures
-        {
-            get { return _numOfFeatures; }
-        }
-        public string[] FeatureNames
-        {
-            get { return _featureNames; }
-        }
-        public bool StoreEpidemicTrajectories
-        {
-            get { return _storeEpidemicTrajectories; }
-        }
-        
-        public int[][] PastActionCombinations
-        {
-            get { return _pastActionCombinations; }
-        }
-        public double[,] SimulationTimeBasedOutputs
-        {
-            get { return SupportFunctions.ConvertFromJaggedArrayToRegularArray(_simulationTimeBasedOutputs, _numOfPrevalenceOutputsToReport); }
-        }
-        public double[,] SimulationIntervalBasedOutputs
-        {
-            get { return SupportFunctions.ConvertFromJaggedArrayToRegularArray(_simulationIntervalBasedOutputs, _numOfIncidenceOutputsToReport); }
-        }
-        public double[,] TimeOfSimulationObservableOutputs
-        {
-            get { return SupportFunctions.ConvertFromJaggedArrayToRegularArray(_timeOfSimulationObservableOutputs, 1); }
-        }
-        public double[,] SimulationMonitoredOutputs
-        {
-            get { return SupportFunctions.ConvertFromJaggedArrayToRegularArray(_simulationObservableOutputs, _numOfMonitoredSimulationOutputs); }
-        }
-        public double[,] SimulationResourcesOutputs
-        {
-            get { return SupportFunctions.ConvertFromJaggedArrayToRegularArray(_simulationResourcesOutputs, _numOfResourcesToReport); }
-        }
-        public int NumOfMonitoredSimulationOutputs
-        {
-            get { return _numOfMonitoredSimulationOutputs; }
-        }
-        // calibration
-        public CalibrationOld Calibration
-        {
-            get { return _calibration; }
-        }
-        // simulation summary
-        public ObservationBasedStatistics obsTotalCost
-        {
-            get { return _obsTotalCost; }
-        }
-        public ObservationBasedStatistics obsAnnualCost
-        {
-            get { return _obsAnnualCost; }
-        }
-        public ObservationBasedStatistics obsTotalQALY
-        {
-            get { return _obsTotalDALY; }
-        }
-        public ObservationBasedStatistics obsTotalNMB
-        {
-            get { return _obsTotalNMB; }
-        }
-        public ObservationBasedStatistics obsTotalNHB
-        {
-            get { return _obsTotalNHB; }
-        }
-        public ObservationBasedStatistics obsNumberOfSwitchesBtwDecisions
-        {
-            get { return _obsNumOfSwitchesBtwDecisions; }
-        }        
-        // simulation iterations
-        public int[] SimulationIterations_itrs
-        {
-            get { return _arrSimItrs; }
-        }
-        public int[] SimulationIterations_RNGSeeds
-        {
-            get { return _arrRNGSeeds; }
-        }
-        public double[][] SimulationIterations_ParameterValues
-        {
-            get { return _sampledParameterValues; }
-        }
-        public double[] SimulationIterations_NHB
-        {
-            get { return _arrNHB; }
-        }
-        public double[] SimulationIterations_NMB
-        {
-            get { return _arrNMB; }
-        }
-        public double[] SimulationIterations_QALY
-        {
-            get { return _arrSimulationQALY; }
-        }
-        public double[] SimulationIterations_Cost
-        {
-            get { return _arrSimulationCost; }
-        }        
-        public double[] SimulationIterations_AnnualCost
-        {
-            get { return _arrSimulationAnnualCost; }
-        }
-        // computation performance
-        public ObservationBasedStatistics ObsTimeUsedToSimulateATrajectory
-        {
-            get{return _obsTimeUsedToSimulateATrajectory;}
-        }
-        public double ActualTimeUsedToSimulateAllTrajectories
-        {
-            get { return _actualTimeUsedToSimulateAllTrajectories; }
-        }
-        public double ActualTimeUsedByCalibration
-        {
-            get { return _actualTimeUsedByCalibration; }
-        }
-        public double TotalSimulationTimeUsedByCalibration
-        {
-            get { return _totalSimulationTimeUsedByCalibration; }
-        }
-        public int NumOfTrajectoriesDiscardedByCalibration
-        { get { return _numOfTrajectoriesDiscardedByCalibration; } }
-
-        #endregion
+        public CalibrationOld Calibration { get; set; }
 
         // Instantiation
         public EpidemicModeller(int ID, ref ExcelInterface excelInterface, ref ModelSettings modelSettings)
         {
-            _ID = ID;
+            this.ID = ID;
             _set = modelSettings;
 
             // build a parent epidemic model 
@@ -259,11 +41,10 @@ namespace APACElib
             _parentEpidemic.BuildModel(ref _set);
 
             // read contact matrices
-            _set.ReadContactMatrices(ref excelInterface, _parentEpidemic.NumOfInterventionsAffectingContactPattern);
-            _parentEpidemic.UpdateContactMatrices();
+            _set.ReadContactMatrices(ref excelInterface, _parentEpidemic.FOIModel.NumOfIntrvnAffectingContacts);
 
-            // find the names of parameters
-            FindNamesOfParameters();
+            // extract model information 
+            ModelInfo = new ModelInfo(ref _parentEpidemic);
 
             // if use parallel computing, create a collection of epidemics
             if (_set.UseParallelComputing)
@@ -273,7 +54,7 @@ namespace APACElib
                 switch (_set.ModelUse)
                 {
                     case EnumModelUse.Simulation:
-                        numOfEpis = _set.NumOfSimulationIterations;
+                        numOfEpis = _set.NumOfSimItrs;
                         break;
                     case EnumModelUse.Calibration:
                         numOfEpis = _set.NumOfSimulationsRunInParallelForCalibration;
@@ -295,142 +76,69 @@ namespace APACElib
                 });
             }
 
-            // add contact matrices
-            //AddContactMatrices(_modelSettings.GetBaseContactMatrices(), _modelSettings.GetPercentChangeInContactMatricesParIDs());
-
-            // set up adaptive policy related settings if necessary
-            //if (_numOfInterventionsControlledDynamically> 0)
-            //    AddDynamicPolicySettings(ref excelInterface);
-
             //// read prespecified interventions
             //if (_modelSettings.TempEpidemic.DecisionRule == enumDecisionRule.PredeterminedSequence ||
             //    _modelSettings.ModelUse == enumModelUse.Calibration)
             //    _prespecifiedDecisionsOverObservationPeriods = (int[][])_modelSettings.PrespecifiedSequenceOfInterventions.Clone();
-
-            // find the weighted RND seeds
-            if (_set.SimulationRNDSeedsSource == EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence)
-            {
-                int n = _set.RndSeeds.Length;
-                double[] arrProb = new double[n];
-                for (int i = 0; i < n; i++)
-                    arrProb[i] = _set.RndSeedsGoodnessOfFit[i];
-
-                // form a probability function over rnd seeds
-                double sum = arrProb.Sum();
-                for (int i = 0; i < n; i++)
-                    arrProb[i] = arrProb[i] / sum;
-
-                // define the sampling object
-                _discreteDistributionOverSeeds = new Discrete("Discrete distribution over RND seeds", arrProb); //SupportFunctions.ConvertArrayToDouble(_modelSettings.RndSeeds)
-            }            
-        }
-
-        // destruction
-        public void MyDestruct()
-        {
-            _epidemics.Clear();
-            _epidemics = null;
-            GC.Collect();
         }
 
         // simulate several epidemics
         public void SimulateEpidemics()
         {
-            // initialize simulation            
-            InitializeSimulation();
+            // create a rnd seed generator 
+            _seedGenerator = new RNDSeedGenerator(ref _set, ref _rng);
+            // simulatoin summary
+            SimSummary = new SimSummary(ref _set, ref _parentEpidemic);
+            SimSummary.Reset();
 
             // simulation time
-            int startTime, endTime;
-            startTime = Environment.TickCount;
+            Timer.Start();
 
             // use parallel computing? 
-            if (_set.UseParallelComputing == false)
+            if (!_set.UseParallelComputing)
             {
-                #region Use sequential computing
-                // build the parent epidemic model
-                //_parentEpidemic.BuildModel(ref _modelSettings);
-
-                int rndSeedToGetAnAcceptibleEpidemic = 0;
-                for (int simItr = 0; simItr < _set.NumOfSimulationIterations; ++simItr)
+                int seed = 0;
+                for (int simItr = 0; simItr < _set.NumOfSimItrs; ++simItr)
                 {
                     // find the RND seed for this iteration
-                    rndSeedToGetAnAcceptibleEpidemic = FindRNDSeed(simItr);
+                    seed = _seedGenerator.FindRNDSeed(simItr);
 
                     // simulate one epidemic trajectory
                     _parentEpidemic.SimulateTrajectoriesUntilOneAcceptibleFound(
-                        rndSeedToGetAnAcceptibleEpidemic, 
-                        rndSeedToGetAnAcceptibleEpidemic + Math.Max(_set.DistanceBtwRNGSeeds, 1), 
+                        seed,
+                        seed + Math.Max(_set.DistanceBtwRNGSeeds, 1),
                         simItr,
                         _set.TimeIndexToStop);
 
-                    // report this epidemic trajectory
-                    if (_storeEpidemicTrajectories)
-                    {
-                        _pastActionCombinations = SupportFunctions.ConcatJaggedArray(_pastActionCombinations, _parentEpidemic.PastActionCombinations);
-                        _simulationTimeBasedOutputs = SupportFunctions.ConcatJaggedArray(_simulationTimeBasedOutputs, _parentEpidemic.SimulationTimeBasedOutputs);
-                        _simulationIntervalBasedOutputs = SupportFunctions.ConcatJaggedArray(_simulationIntervalBasedOutputs, _parentEpidemic.SimulationIntervalBasedOutputs);
-                        _simulationObservableOutputs = SupportFunctions.ConcatJaggedArray(_simulationObservableOutputs, _parentEpidemic.SimulationObservableOutputs);
-                        _simulationResourcesOutputs = SupportFunctions.ConcatJaggedArray(_simulationResourcesOutputs, _parentEpidemic.SimulationResourceOutpus);
-                        _timeOfSimulationObservableOutputs = SupportFunctions.ConcatJaggedArray(_timeOfSimulationObservableOutputs, _parentEpidemic.TimesOfEpidemicObservationsOverPastObservationPeriods);
-
-                    }
-                    // store outcomes of this epidemic 
-                    if (_parentEpidemic.ModelUse == EnumModelUse.Simulation)
-                        StoreOutcomesOfThisEpidemic(_parentEpidemic, simItr);
-
-                    // store sampled parameter values
-                    _sampledParameterValues[simItr] = _parentEpidemic.arrSampledParameterValues;
+                    // store epidemic trajectories and outcomes
+                    SimSummary.Add(_parentEpidemic);
                 }
-                #endregion
             }
             else // (_modelSettings.UseParallelComputing == true)
             {
-                #region Use parallel computing
-
-                // simulate and store outcomes
-                int rndSeedToGetAnAcceptibleEpidemic = 0;
-
+                int seed = 0;
                 Parallel.ForEach(_epidemics, thisEpidemic =>
                 {
                     // build the parent epidemic model
                     thisEpidemic.BuildModel(ref _set);
 
                     // find the RND seed for this iteration
-                    rndSeedToGetAnAcceptibleEpidemic = FindRNDSeed(thisEpidemic.ID);
+                    seed = _seedGenerator.FindRNDSeed(thisEpidemic.ID);
 
                     // simulate
                     thisEpidemic.SimulateTrajectoriesUntilOneAcceptibleFound(
-                        rndSeedToGetAnAcceptibleEpidemic, 
-                        rndSeedToGetAnAcceptibleEpidemic + Math.Max(_set.DistanceBtwRNGSeeds, 1), 
-                        ((Epidemic)thisEpidemic).ID, 
+                        seed,
+                        seed + Math.Max(_set.DistanceBtwRNGSeeds, 1),
+                        ((Epidemic)thisEpidemic).ID,
                         _set.TimeIndexToStop);
                 });
 
                 // store epidemic trajectories and outcomes
                 foreach (Epidemic thisEpidemic in _epidemics)
-                {
-                    if (_storeEpidemicTrajectories)
-                    {
-                        _pastActionCombinations = SupportFunctions.ConcatJaggedArray(_pastActionCombinations, thisEpidemic.PastActionCombinations);
-                        _simulationTimeBasedOutputs = SupportFunctions.ConcatJaggedArray(_simulationTimeBasedOutputs, thisEpidemic.SimulationTimeBasedOutputs);
-                        _simulationIntervalBasedOutputs = SupportFunctions.ConcatJaggedArray(_simulationIntervalBasedOutputs, thisEpidemic.SimulationIntervalBasedOutputs);
-                        _simulationObservableOutputs = SupportFunctions.ConcatJaggedArray(_simulationObservableOutputs, thisEpidemic.SimulationObservableOutputs);
-                        _simulationResourcesOutputs = SupportFunctions.ConcatJaggedArray(_simulationResourcesOutputs, thisEpidemic.SimulationResourceOutpus);
-                        _timeOfSimulationObservableOutputs = SupportFunctions.ConcatJaggedArray(_timeOfSimulationObservableOutputs, thisEpidemic.TimesOfEpidemicObservationsOverPastObservationPeriods);
-                    }
-                    // store outcomes of this epidemic 
-                    if (thisEpidemic.ModelUse == EnumModelUse.Simulation)
-                        StoreOutcomesOfThisEpidemic(thisEpidemic, thisEpidemic.ID);
-
-                    // store sampled parameter values
-                    _sampledParameterValues[thisEpidemic.ID] = thisEpidemic.arrSampledParameterValues;
-                }
-                #endregion
+                    SimSummary.Add(thisEpidemic);
             }
-
             // simulation run time
-            endTime = Environment.TickCount;
-            _actualTimeUsedToSimulateAllTrajectories = (double)(endTime - startTime) / 1000;
+            Timer.Stop();
         }
         // calibrate
         public void Calibrate(int numOfInitialSimulationRuns, int numOfFittestRunsToReturn)
@@ -439,7 +147,7 @@ namespace APACElib
             int numOfSimulationsRunInParallelForCalibration = _set.NumOfSimulationsRunInParallelForCalibration;
 
             // reset calibration
-            _calibration.Reset();
+            Calibration.Reset();
             // toggle to calibration
             ToggleModellerTo(EnumModelUse.Calibration, EnumEpiDecisions.PredeterminedSequence, false); 
 
@@ -474,14 +182,14 @@ namespace APACElib
                     // increment the simulation iteration
                     ++simItr;
                     // find the RND seed for this iteration
-                    int rndSeedToGetAnAcceptibleEpidemic = FindRNDSeed(simItr);                    
+                    int rndSeedToGetAnAcceptibleEpidemic = _seedGenerator.FindRNDSeed(simItr);                    
 
                     // simulate one epidemic trajectory
                     //_parentEpidemic.SimulateTrajectoriesUntilOneAcceptibleFound(rndSeedToGetAnAcceptibleEpidemic, int.MaxValue, simItr, calibrationTimeHorizonIndex);
                     _parentEpidemic.SimulateOneTrajectory(rndSeedToGetAnAcceptibleEpidemic, simItr, calibrationTimeHorizonIndex);
 
                     // calibration time
-                    _totalSimulationTimeUsedByCalibration += _parentEpidemic.TimeUsedToSimulateOneTrajectory;
+                    _totalSimulationTimeUsedByCalibration += _parentEpidemic.Timer.TimePassed;
 
                     // find the number of discarded trajectories    
                     if (_parentEpidemic.SeedProducedAcceptibleTraj == -1)
@@ -491,12 +199,12 @@ namespace APACElib
                         // add this simulation observations
                         //_calibration.AddResultOfASimulationRun(simItr, _parentEpidemic.RNDSeedResultedInAnAcceptibleTrajectory, _parentEpidemic.GetValuesOfParametersToCalibrate(),
                         //SupportFunctions.ConvertFromJaggedArrayToRegularArray(_parentEpidemic.CalibrationObservation, _parentEpidemic.NumOfCalibratoinTargets));
-                        double[,] mOfObs = SupportFunctions.ConvertFromJaggedArrayToRegularArray(new double[0][], _parentEpidemic.NumOfCalibratoinTargets);
+                        double[,] mOfObs = SupportFunctions.ConvertFromJaggedArrayToRegularArray(new double[0][], 1);//_parentEpidemic.NumOfCalibratoinTargets);
                         double[] par = new double[0];
-                        _calibration.AddResultOfASimulationRun(simItr, _parentEpidemic.SeedProducedAcceptibleTraj, ref par, ref mOfObs);
+                        Calibration.AddResultOfASimulationRun(simItr, _parentEpidemic.SeedProducedAcceptibleTraj, ref par, ref mOfObs);
 
                         // find the fit of the stored simulation results
-                        _calibration.FindTheFitOfRecordedSimulationResults(_set.UseParallelComputing);
+                        Calibration.FindTheFitOfRecordedSimulationResults(_set.UseParallelComputing);
                     }
                     #endregion
                 }
@@ -517,7 +225,7 @@ namespace APACElib
                         simItr = numOfSimulationsRunInParallelForCalibration * parallelLoopIndex + thisEpidemic.ID;
 
                         // find the RND seed for this iteration
-                        rndSeedToGetAnAcceptibleEpidemic = FindRNDSeed(simItr);
+                        rndSeedToGetAnAcceptibleEpidemic = _seedGenerator.FindRNDSeed(simItr);
 
                         // simulate            
                         //((Epidemic)thisEpidemic).SimulateTrajectoriesUntilOneAcceptibleFound(rndSeedToGetAnAcceptibleEpidemic, int.MaxValue, simItr, calibrationTimeHorizonIndex);
@@ -532,7 +240,7 @@ namespace APACElib
                     {
                         ++ simItrParallel;
                         // simulation time
-                        _totalSimulationTimeUsedByCalibration += thisEpidemic.TimeUsedToSimulateOneTrajectory;
+                        _totalSimulationTimeUsedByCalibration += thisEpidemic.Timer.TimePassed;
                         // sim itr
                         simItr = numOfSimulationsRunInParallelForCalibration * parallelLoopIndex + thisEpidemic.ID;
 
@@ -542,15 +250,15 @@ namespace APACElib
                             _numOfTrajectoriesDiscardedByCalibration += 1;
                         else
                         {
-                            double[,] mOfObs = SupportFunctions.ConvertFromJaggedArrayToRegularArray(new double[0][], thisEpidemic.NumOfCalibratoinTargets);
+                            double[,] mOfObs = SupportFunctions.ConvertFromJaggedArrayToRegularArray(new double[0][], 1);// thisEpidemic.NumOfCalibratoinTargets);
                             double[] par = new double[0];
                             // add this simulation observations
-                            _calibration.AddResultOfASimulationRun(simItr, thisEpidemic.SeedProducedAcceptibleTraj, ref par, ref mOfObs);
+                            Calibration.AddResultOfASimulationRun(simItr, thisEpidemic.SeedProducedAcceptibleTraj, ref par, ref mOfObs);
                         }
                     }
                     
                     // find the fit of the stored simulation results
-                    _calibration.FindTheFitOfRecordedSimulationResults(_set.UseParallelComputing);
+                    Calibration.FindTheFitOfRecordedSimulationResults(_set.UseParallelComputing);
 
                     // increment the loop id
                     ++parallelLoopIndex;
@@ -560,19 +268,14 @@ namespace APACElib
             }
 
             // find the fittest runs
-            _calibration.FindTheFittestSimulationRuns(numOfFittestRunsToReturn);
+            Calibration.FindTheFittestSimulationRuns(numOfFittestRunsToReturn);
 
             // computation time
             endTime = Environment.TickCount;
             _actualTimeUsedByCalibration = (double)(endTime - startTime) / 1000;
 
         }
-        // find the optimal dynamic policy
-        public void FindOptimalDynamicPolicy()
-        {
-            // find the optimal dynamic policy
-            _parentEpidemic.FindOptimalDynamicPolicy();
-        }
+
         // simulate the optimal dynamic policy
         public void SimulateTheOptimalDynamicPolicy(int numOfSimulationIterations, int timeIndexToStop, int warmUpPeriodIndex, bool storeEpidemicTrajectories)
         {
@@ -581,17 +284,7 @@ namespace APACElib
             // simulate epidemic (sequential)
             SimulateEpidemics();
         }
-        // simulate one trajectory until the first time decisions should be made
-        public void SimulateOneTrajectoryUntilTheFirstDecisionPoint(int threadSpecificSeedNumber)
-        {
-            _parentEpidemic.SimulateOneTrajectoryUntilTheFirstDecisionPoint(threadSpecificSeedNumber);
-        }
-        // continue simulating current trajectory 
-        public void ContinueSimulatingThisTrajectory(int additionalDeltaTs)
-        {
-            _parentEpidemic.ContinueSimulatingThisTrajectory(additionalDeltaTs);
-        }
-
+       
         // change the status of storing epidemic trajectories
         public void ShouldStoreEpidemicTrajectories(bool yesOrNo)
         {
@@ -608,102 +301,62 @@ namespace APACElib
         // get possible intervention combinations for on/off static policies
         public ArrayList GetIntervalBasedStaticPoliciesDesigns()
         {
-            if (_set.UseParallelComputing)
-                return ((Epidemic)_epidemics[0]).GetIntervalBasedStaticPoliciesDesigns();
-            else
-                return _parentEpidemic.GetIntervalBasedStaticPoliciesDesigns();
+            //if (_set.UseParallelComputing)
+            //    return ((Epidemic)_epidemics[0]).GetIntervalBasedStaticPoliciesDesigns();
+            //else
+            //    return _parentEpidemic.GetIntervalBasedStaticPoliciesDesigns();
+            return null;
         }        
 
         // add policy related settings
         public void AddDynamicPolicySettings(ref ExcelInterface excelInterface)
         {
-            if (_set.UseParallelComputing)
-            {                
-                Parallel.ForEach(_epidemics.Cast<object>(), thisEpidemic =>
-                {
-                    // setup policy-related settings
-                    ((Epidemic)thisEpidemic).SetupDynamicPolicySettings(
-                        _set.QFunApxMethod, _set.IfEpidemicTimeIsUsedAsFeature,
-                        _set.DegreeOfPolynomialQFunction, _set.L2RegularizationPenalty);                    
-                });
-                // find the number of features
-                _numOfFeatures = ((Epidemic)_epidemics[0]).NumOfFeatures;
-                // read feature names                
-                _featureNames = new string[((Epidemic)_epidemics[0]).NumOfFeatures];
-                foreach (Feature thisFeature in ((Epidemic)_epidemics[0]).Features)
-                    _featureNames[thisFeature.Index] = thisFeature.Name;
-            }
-            else
-            {
-                // setup policy-related settings
-                _parentEpidemic.SetupDynamicPolicySettings(
-                    _set.QFunApxMethod, _set.IfEpidemicTimeIsUsedAsFeature,
-                    _set.DegreeOfPolynomialQFunction, _set.L2RegularizationPenalty);
-                // find the number of features
-                _numOfFeatures = _parentEpidemic.NumOfFeatures;
-                // read feature names                
-                _featureNames = new string[_parentEpidemic.NumOfFeatures];
-                foreach (Feature thisFeature in _parentEpidemic.Features)
-                    _featureNames[thisFeature.Index] = thisFeature.Name;
-            }
+            //if (_set.UseParallelComputing)
+            //{                
+            //    Parallel.ForEach(_epidemics.Cast<object>(), thisEpidemic =>
+            //    {
+            //        // setup policy-related settings
+            //        ((Epidemic)thisEpidemic).SetupDynamicPolicySettings(
+            //            _set.QFunApxMethod, _set.IfEpidemicTimeIsUsedAsFeature,
+            //            _set.DegreeOfPolynomialQFunction, _set.L2RegularizationPenalty);                    
+            //    });
+            //    // find the number of features
+            //    _numOfFeatures = ((Epidemic)_epidemics[0]).NumOfFeatures;
+            //    // read feature names                
+            //    _featureNames = new string[((Epidemic)_epidemics[0]).NumOfFeatures];
+            //    foreach (Feature thisFeature in ((Epidemic)_epidemics[0]).Features)
+            //        _featureNames[thisFeature.Index] = thisFeature.Name;
+            //}
+            //else
+            //{
+            //    // setup policy-related settings
+            //    _parentEpidemic.SetupDynamicPolicySettings(
+            //        _set.QFunApxMethod, _set.IfEpidemicTimeIsUsedAsFeature,
+            //        _set.DegreeOfPolynomialQFunction, _set.L2RegularizationPenalty);
+            //    // find the number of features
+            //    _numOfFeatures = _parentEpidemic.NumOfFeatures;
+            //    // read feature names                
+            //    _featureNames = new string[_parentEpidemic.NumOfFeatures];
+            //    foreach (Feature thisFeature in _parentEpidemic.Features)
+            //        _featureNames[thisFeature.Index] = thisFeature.Name;
+            //}
 
-            // update the q-function coefficients
-            double[] qFunCoefficients = excelInterface.GetQFunctionCoefficients(_numOfFeatures);
-            if (_set.UseParallelComputing)
-            {
-                Parallel.ForEach(_epidemics.Cast<object>(), thisEpidemic =>
-                {
-                    // q-function coefficients
-                    ((Epidemic)thisEpidemic).UpdateQFunctionCoefficients(qFunCoefficients);
-                });
-            }
-            else
-            {
-                // q-function coefficients
-                _parentEpidemic.UpdateQFunctionCoefficients(qFunCoefficients);
-            }
+            //// update the q-function coefficients
+            //double[] qFunCoefficients = excelInterface.GetQFunctionCoefficients(_numOfFeatures);
+            //if (_set.UseParallelComputing)
+            //{
+            //    Parallel.ForEach(_epidemics.Cast<object>(), thisEpidemic =>
+            //    {
+            //        // q-function coefficients
+            //        ((Epidemic)thisEpidemic).UpdateQFunctionCoefficients(qFunCoefficients);
+            //    });
+            //}
+            //else
+            //{
+            //    // q-function coefficients
+            //    _parentEpidemic.UpdateQFunctionCoefficients(qFunCoefficients);
+            //}
         }
-        // add always on/off and interval-based static policy settings
-        public void AddAlwaysOnOffAndIntervalBasedStaticPolicySettings(int[] interventionsOnOffSwitchStatus, double[] startTime, int[] numOfDecisionPeriodsToUse)
-        {
-            if (_set.UseParallelComputing)
-            {
-                foreach (Epidemic thisEpidemic in _epidemics)
-                    // setup policy-related settings
-                    thisEpidemic.SetupAlwaysOnOffAndIntervalBasedStaticPolicySettings(interventionsOnOffSwitchStatus, startTime, numOfDecisionPeriodsToUse);
-            }
-            else
-                // setup policy-related settings
-                _parentEpidemic.SetupAlwaysOnOffAndIntervalBasedStaticPolicySettings(interventionsOnOffSwitchStatus, startTime, numOfDecisionPeriodsToUse);
-        }
-        // add threshold-based static policy settings
-        public void AddThresholdBasedStaticPolicySettings
-            (int[] decisionIDs, int[] specialStatisticsIDs, double[] thresholds, int[] numOfDecisionPeriodsToUseInterventions)
-        {
-            if (_set.UseParallelComputing)
-            {
-                foreach (Epidemic thisEpidemic in _epidemics)
-                    // setup policy-related settings
-                    thisEpidemic.SetupThresholdBasedStaticPolicySettings(decisionIDs, specialStatisticsIDs, thresholds, numOfDecisionPeriodsToUseInterventions);
-            }
-            else
-                // setup policy-related settings
-                _parentEpidemic.SetupThresholdBasedStaticPolicySettings(decisionIDs, specialStatisticsIDs, thresholds, numOfDecisionPeriodsToUseInterventions);
-        }
-        public void AddThresholdBasedStaticPolicySettings
-           (int[] decisionIDs, double[] thresholds, int[] numOfDecisionPeriodsToUseInterventions)
-        {
-            if (_set.UseParallelComputing)
-            {
-                foreach (Epidemic thisEpidemic in _epidemics)
-                    // setup policy-related settings
-                    thisEpidemic.SetupThresholdBasedStaticPolicySettings(decisionIDs, thresholds, numOfDecisionPeriodsToUseInterventions);
-            }
-            else
-                // setup policy-related settings
-                _parentEpidemic.SetupThresholdBasedStaticPolicySettings(decisionIDs, thresholds, numOfDecisionPeriodsToUseInterventions);
-        }
-        
         
         public void UpdateQFunctionCoefficients(double[] qFunctionCoefficients)
         {
@@ -712,23 +365,20 @@ namespace APACElib
                 Parallel.ForEach(_epidemics.Cast<object>(), thisEpidemic =>
                 {
                     // q-function coefficients
-                    ((Epidemic)thisEpidemic).UpdateQFunctionCoefficients(qFunctionCoefficients);
+                    //((Epidemic)thisEpidemic).UpdateQFunctionCoefficients(qFunctionCoefficients);
                 });
             }
             else
             {
                 // q-function coefficients
-                _parentEpidemic.UpdateQFunctionCoefficients(qFunctionCoefficients);
+                //_parentEpidemic.UpdateQFunctionCoefficients(qFunctionCoefficients);
             }
         }   
         // set up calibration
         public void SetUpCalibration()
         {
-            _calibration = new CalibrationOld(0);
+            Calibration = new CalibrationOld(0);
             _storeEpidemicTrajectories = false;                        
-
-            // find the names of the parameters
-            FindNamesOfParametersToCalibrate();
 
             // add observations
             AddObservationsToSetUpCalibration(ref _parentEpidemic, _set.MatrixOfObservationsAndWeights);
@@ -798,26 +448,26 @@ namespace APACElib
         public void SetUpOptimization(
             double wtpForHealth, double harmonicRule_a, double epsilonGreedy_beta, double epsilonGreedy_delta)
         {
-            // setup ADP algorithm
-            _parentEpidemic.SetUpADPAlgorithm(_set.ObjectiveFunction, _set.NumOfADPIterations, _set.NumOfSimRunsToBackPropogate,
-                wtpForHealth, harmonicRule_a, epsilonGreedy_beta, epsilonGreedy_delta, true);
-            // update initial coefficients of the Q-function
-            _parentEpidemic.UpdateQFunctionCoefficients(_set.QFunctionCoefficientsInitialValues);
-            // don't store trajectories while simulating
-            _parentEpidemic.StoreEpidemicTrajectories = false;
+            //// setup ADP algorithm
+            //_parentEpidemic.SetUpADPAlgorithm(_set.ObjectiveFunction, _set.NumOfADPIterations, _set.NumOfSimRunsToBackPropogate,
+            //    wtpForHealth, harmonicRule_a, epsilonGreedy_beta, epsilonGreedy_delta, true);
+            //// update initial coefficients of the Q-function
+            //_parentEpidemic.UpdateQFunctionCoefficients(_set.QFunctionCoefficientsInitialValues);
+            //// don't store trajectories while simulating
+            //_parentEpidemic.StoreEpidemicTrajectories = false;
 
-            // specify rnd seeds for ADP algorithm
-            switch (_set.SimulationRNDSeedsSource)
-            {
-                case EnumSimulationRNDSeedsSource.StartFrom0:
-                    break;
-                case EnumSimulationRNDSeedsSource.PrespecifiedSquence:
-                    _parentEpidemic.SetUpADPRandomNumberSource(_set.RndSeeds);
-                    break;
-                case EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence:
-                    _parentEpidemic.SetUpADPRandomNumberSource(_set.RndSeeds, _set.RndSeedsGoodnessOfFit);
-                    break;
-            }
+            //// specify rnd seeds for ADP algorithm
+            //switch (_set.SimulationRNDSeedsSource)
+            //{
+            //    case EnumSimulationRNDSeedsSource.StartFrom0:
+            //        break;
+            //    case EnumSimulationRNDSeedsSource.PrespecifiedSquence:
+            //        _parentEpidemic.SetUpADPRandomNumberSource(_set.RndSeeds);
+            //        break;
+            //    case EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence:
+            //        _parentEpidemic.SetUpADPRandomNumberSource(_set.RndSeeds, _set.RndSeedsGoodnessOfFit);
+            //        break;
+            //}
         }
 
         // ******** Subs to return some information about the model *******
@@ -847,65 +497,6 @@ namespace APACElib
 
         // ******** Simulation result subs **********
         #region Simulation result subs
-        // store the outcomes of this epidemic
-        private void StoreOutcomesOfThisEpidemic(Epidemic thisEpidemic, int epidemicIndex)
-        {
-            // summary statistics
-            _obsTotalDALY.Record(thisEpidemic.EpidemicCostHealth.TotalDiscountedDALY);
-            _obsTotalCost.Record(thisEpidemic.EpidemicCostHealth.TotalDisountedCost);
-            _obsAnnualCost.Record(thisEpidemic.EpidemicCostHealth.GetEquivalentAnnualCost(
-                _set.AnnualDiscountRate, 
-                (int)(_set.WarmUpPeriodTimeIndex*_set.DeltaT), 
-                (int)(_set.TimeIndexToStop*_set.DeltaT)));
-            _obsTotalNHB.Record(thisEpidemic.EpidemicCostHealth.GetDiscountedNHB(_set.WTPForHealth));
-            _obsTotalNMB.Record(thisEpidemic.EpidemicCostHealth.GetDiscountedNMB(_set.WTPForHealth));
-            _obsNumOfSwitchesBtwDecisions.Record(0);
-            _obsTimeUsedToSimulateATrajectory.Record(thisEpidemic.TimeUsedToSimulateOneTrajectory);
-
-            int incidentStatIndex = 0, prevalenceStatIndex = 0, ratioStatIndex = 0;
-            foreach (Class thisClass in thisEpidemic.Classes.Where(c => c.ShowStatisticsInSimulationResults))
-            {
-                ((ObservationBasedStatistics)_incidenceStats[incidentStatIndex++]).Record(thisClass.ClassStat.AccumulatedIncidenceAfterWarmUp, epidemicIndex);
-                if (thisClass is Class_Normal)
-                    ((ObservationBasedStatistics)_prevalenceStats[prevalenceStatIndex++]).Record(thisClass.ClassStat.AveragePrevalenceStat.Mean, epidemicIndex);
-            }
-            foreach (SumTrajectory sumTraj in thisEpidemic.SumTrajectories)
-            {
-                if (sumTraj.Type == SumTrajectory.EnumType.Incidence)
-                    ((ObservationBasedStatistics)_incidenceStats[incidentStatIndex++]).Record(sumTraj.AccumulatedIncidenceAfterWarmUp, epidemicIndex);
-                if (sumTraj.Type == SumTrajectory.EnumType.Prevalence)
-                    ((ObservationBasedStatistics)_prevalenceStats[prevalenceStatIndex++]).Record(sumTraj.AveragePrevalenceStat.Mean, epidemicIndex);
-            }
-            foreach (RatioTrajectory ratioTraj in thisEpidemic.RatioTrajectories)
-            {
-                switch (ratioTraj.Type)
-                {
-                    case RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
-                        ((ObservationBasedStatistics)_ratioStatistics[ratioStatIndex]).Record(ratioTraj.TimeSeries.GetLastObs(), epidemicIndex);
-                        break;
-                    case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
-                        ((ObservationBasedStatistics)_ratioStatistics[ratioStatIndex]).Record(ratioTraj.AveragePrevalenceStat.Mean, epidemicIndex);
-                        break;
-                    case RatioTrajectory.EnumType.IncidenceOverIncidence:
-                        ((ObservationBasedStatistics)_ratioStatistics[ratioStatIndex]).Record(ratioTraj.TimeSeries.ObsList.Average(), epidemicIndex);
-                        break;
-                }
-                ++ratioStatIndex;
-            }
-
-            // sampled summary statistics  
-            _arrSimItrs[epidemicIndex] = epidemicIndex;
-            _arrRNGSeeds[epidemicIndex] = thisEpidemic.SeedProducedAcceptibleTraj;
-            _arrNHB[epidemicIndex] = thisEpidemic.EpidemicCostHealth.GetDiscountedNHB(_set.WTPForHealth);
-            _arrNMB[epidemicIndex] = thisEpidemic.EpidemicCostHealth.GetDiscountedNMB(_set.WTPForHealth);
-            _arrSimulationQALY[epidemicIndex] = thisEpidemic.EpidemicCostHealth.TotalDiscountedDALY;
-            _arrSimulationCost[epidemicIndex] = thisEpidemic.EpidemicCostHealth.TotalDisountedCost;
-            _arrSimulationAnnualCost[epidemicIndex] = thisEpidemic.EpidemicCostHealth.GetEquivalentAnnualCost(
-                _set.AnnualDiscountRate,
-                (int)(_set.WarmUpPeriodTimeIndex * _set.DeltaT),
-                (int)(_set.TimeIndexToStop * _set.DeltaT));
-
-        }  
         // get simulation iteration outcomes
         public void GetSimulationIterationOutcomes(ref string[] strIterationOutcomes, ref double[][] arrIterationOutcomes)
         {
@@ -1209,213 +800,16 @@ namespace APACElib
             }
             return upperBound;
         }
-        // get observations
-        public double[,] GetEpidemicObservations()
-        {
-            return SupportFunctions.ConvertFromJaggedArrayToRegularArray(_parentEpidemic.SimulationObservableOutputs, _numOfMonitoredSimulationOutputs);
-        }
-        // get past actions
-        //public int[] GetDecisionsOverPastObservationPeriods()
-        //{
-        //    return _parentEpidemic.DecisionsOverPastObservationPeriods;
-        //}
         #endregion
 
-        // ******* optimization result subs *********
-        #region Optimization result subs
-        // get  q-function coefficient estimates
-        public double[] GetQFunctionCoefficientEstiamtes()
-        {
-            return _parentEpidemic.GetQFunctionCoefficientEstiamtes();
-        }
-        // get ADP iterations
-        public double[,] GetADPIterations()
-        {
-            return _parentEpidemic.ArrADPIterationResults;
-        }
-        // get dynamic policy // only one dimensional
-        public void GetOptimalDynamicPolicy(ref string featureName, ref double[] headers, ref int[] optimalDecisions,
-            int numOfIntervalsToDescretizeFeatures)
-        {
-            _parentEpidemic.GetOptimalDynamicPolicy(ref featureName, ref headers, ref optimalDecisions, numOfIntervalsToDescretizeFeatures);
-        }
-        // get dynamic policy // only two dimensional
-        public void GetOptimalDynamicPolicy(ref string[] strFeatureNames, ref double[][] headers, ref int[,] optimalDecisions,
-            int numOfIntervalsToDescretizeFeatures)
-        {
-            _parentEpidemic.GetOptimalDynamicPolicy(ref strFeatureNames, ref headers, ref optimalDecisions, numOfIntervalsToDescretizeFeatures);
-        }
-        // get adaptive policy // two epidemilogical feature + 1 resource feature
-        public void GetOptimalDynamicPolicy(ref string[] strFeatureNames, ref double[][] headers, ref int[][,] optimalDecisions,
-            int numOfIntervalsToDescretizeFeatures)
-        {
-            _parentEpidemic.GetOptimalDynamicPolicy(ref strFeatureNames, ref headers, ref optimalDecisions, numOfIntervalsToDescretizeFeatures);
-        }
-        
-        #endregion
-
-        // ********  Private Subs ******** 
+         // ********  Private Subs ******** 
         #region Private Subs
-        // collect the information which becomes available after building the model
-        //private void CollectInformationAvailableAfterModelIsBuilt()
-        //{            
-        //    if (_modelSettings.UseParallelComputing)
-        //        CollectInformationAvailableAfterModelIsBuilt((Epidemic)_epidemics[0]);
-        //    else
-        //        CollectInformationAvailableAfterModelIsBuilt(_parentEpidemic);
-
-        //    // find the names of parameters
-        //    FindNamesOfParameters();
-        //}
         // initialize simulation
         private void InitializeSimulation()
         {    
-            // reset the rnd object
-            
-            if (_set.SimulationRNDSeedsSource == EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence)
-            {
-                _sampledRNDSeeds = new int[_set.NumOfSimulationIterations];
-                for (int i = 0; i< _set.NumOfSimulationIterations; i++)
-                    _sampledRNDSeeds[i] = _arrRNGSeeds[_discreteDistributionOverSeeds.SampleDiscrete(_rng)];
-            }
-
-            // setup statistics collector
-            SetupStatisticsCollectors();
-            // reset simulation statistics
-            ResetSimulationStatistics();            
+                      
         }
-        // set up statistics collectors
-        private void SetupStatisticsCollectors()
-        {
-            int numOfSimulationIterations = _set.NumOfSimulationIterations;
-            _incidenceStats.Clear();
-            _prevalenceStats.Clear();
-            _ratioStatistics.Clear();
-            _computationStatistics.Clear();
-
-            string name;
-            foreach (Class thisClass in GetClasses())
-            {
-                if (thisClass.ShowStatisticsInSimulationResults)
-                {
-                    _incidenceStats.Add(new ObservationBasedStatistics("Total New: " + thisClass.Name, numOfSimulationIterations));
-                    if (thisClass is Class_Normal)
-                        _prevalenceStats.Add(new ObservationBasedStatistics("Average Size: " + thisClass.Name, numOfSimulationIterations));                    
-                }
-            }
-            foreach (SumTrajectory thisSumTraj in _parentEpidemic.SumTrajectories)
-            {
-                if (thisSumTraj.Type == SumTrajectory.EnumType.Incidence || thisSumTraj.Type == SumTrajectory.EnumType.AccumulatingIncident)
-                {
-                    name = "Total: " + thisSumTraj.Name;
-                    _incidenceStats.Add(new ObservationBasedStatistics(name, numOfSimulationIterations));
-                }
-                else if (thisSumTraj.Type == SumTrajectory.EnumType.Prevalence)
-                {
-                    name = "Averge size: " + thisSumTraj.Name;
-                    _prevalenceStats.Add(new ObservationBasedStatistics(name, numOfSimulationIterations));
-                }
-            }
-            foreach (RatioTrajectory thisRatioTaj in _parentEpidemic.RatioTrajectories)
-            {
-                name = " Average ratio: " + thisRatioTaj.Name;
-                _ratioStatistics.Add(new ObservationBasedStatistics(name, numOfSimulationIterations));
-            }
-            
-            // reset the jagged array containing trajectories
-            _pastActionCombinations = new int[0][];
-            _simulationTimeBasedOutputs = new double[0][];
-            _simulationIntervalBasedOutputs = new double[0][];
-            _simulationObservableOutputs = new double[0][];
-            _simulationResourcesOutputs = new double[0][];
-            _timeOfSimulationObservableOutputs = new double[0][];
-        }
-        // reset simulation 
-        private void ResetSimulationStatistics()
-        {
-            int numOfSimulationIterations = _set.NumOfSimulationIterations;
-
-            // reset statistics
-            _obsTotalCost.Reset();
-            _obsTotalDALY.Reset();
-            _obsTotalNMB.Reset();
-            _obsTotalNHB.Reset();
-            _obsNumOfSwitchesBtwDecisions.Reset();
-            _obsTimeUsedToSimulateATrajectory.Reset();
-            _actualTimeUsedToSimulateAllTrajectories = 0;
-
-            // set up cost and QALY arrays
-            _arrSimItrs = new int[numOfSimulationIterations];
-            _arrRNGSeeds = new int[numOfSimulationIterations];
-            _sampledParameterValues = new double[numOfSimulationIterations][];
-            _arrSimulationQALY = new double[numOfSimulationIterations];
-            _arrSimulationCost = new double[numOfSimulationIterations];
-            _arrSimulationAnnualCost = new double[numOfSimulationIterations];
-            _arrNHB= new double[numOfSimulationIterations];
-            _arrNMB = new double[numOfSimulationIterations];
-
-            // reset simulation statistics
-            foreach (ObservationBasedStatistics thisObsStat in _incidenceStats)
-                thisObsStat.Reset();
-            foreach (ObservationBasedStatistics thisObsStat in _prevalenceStats)
-                thisObsStat.Reset();
-            foreach (ObservationBasedStatistics thisObsStat in _ratioStatistics)
-                thisObsStat.Reset();
-            foreach (ObservationBasedStatistics thisObsStat in _computationStatistics)
-                thisObsStat.Reset();
-        }
-        // collect information available after model is built
-        //private void CollectInformationAvailableAfterModelIsBuilt(Epidemic thisEpidemic)
-        //{
-        //    _numOfInterventions = thisEpidemic.DecisionMaker.NumOfInterventions;
-        //    _numOfInterventionsAffectingContactPattern = thisEpidemic.NumOfInterventionsAffectingContactPattern;
-        //    //_numOfInterventionsControlledDynamically = thisEpidemic.NumOfInterventionsControlledDynamically;
-        //    _storeEpidemicTrajectories = thisEpidemic.StoreEpidemicTrajectories;
-        //    _numOfPrevalenceOutputsToReport = thisEpidemic.SumTrajectories.Where(s=>s.DisplayInSimOutput).Count();
-        //    _numOfIncidenceOutputsToReport = thisEpidemic.EpidemicHistory.NumOfIncidenceOutputsToReport;
-        //    _numOfResourcesToReport = thisEpidemic.NumOfResourcesToReport;
-        //    _numOfParametersToCalibrate = thisEpidemic.NumOfParametersToCalibrate;
-        //    _numOfMonitoredSimulationOutputs = 0;// thisEpidemic.NumOfMonitoredSimulationOutputs;
-        //    // calibration information            
-        //    _numOfCalibratoinTargets= thisEpidemic.NumOfCalibratoinTargets;
-        //    // decision names
-        //    _interventionNames = new string[_numOfInterventions];
-        //    _namesOfDefaultInterventionsAndThoseSpecifiedByDynamicRule = new string[0];
-        //    foreach (Intervention thisIntervention in thisEpidemic.DecisionMaker.Interventions)
-        //    {
-        //        _interventionNames[thisIntervention.Index] = thisIntervention.Name;
-        //        if (thisIntervention.DecisionRule is DecionRule_Dynamic
-        //            || thisIntervention.Type == EnumInterventionType.Default)
-        //            SupportFunctions.AddToEndOfArray(ref _namesOfDefaultInterventionsAndThoseSpecifiedByDynamicRule, thisIntervention.Name);
-        //    }
-        //}
-        // find the names of parameters
-        private void FindNamesOfParameters()
-        {
-            // find the names of the parameters
-            int i = 0;
-            _namesOfParameters = new string[_parentEpidemic.Parameters.Count];
-            foreach (Parameter thisParameter in _parentEpidemic.Parameters)
-                _namesOfParameters[i++] = thisParameter.Name;
-        }
-        // find the names of parameters to calibrate
-        private void FindNamesOfParametersToCalibrate()
-        {
-            // find the names of the parameters
-            string[] namesOfParameters;
-
-            int i = 0;
-            namesOfParameters = new string[_parentEpidemic.Parameters.Where(p => p.IncludedInCalibration).Count()];
-            foreach (Parameter thisParameter in _parentEpidemic.Parameters.Where(p => p.IncludedInCalibration))
-                namesOfParameters[i++] = thisParameter.Name;
-
-            _calibration.NamesOfParameters = (string[])namesOfParameters.Clone();
-        }
-        // get classes
-        private List<Class> GetClasses()
-        {
-            return _parentEpidemic.Classes;
-        }
+               
         
         // toggle modeller to different operation
         public void ToggleModellerTo(EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool reportEpidemicTrajectories)
@@ -1458,26 +852,268 @@ namespace APACElib
             }
         }
 
+        #endregion
+    }
+
+    public class SimSummary
+    {
+        private ModelSettings _set;
+        private int _nSim;   // number of simulated epidemics 
+        public int[] SimItrs;
+        public int[] RNDSeeds;
+        public double[][] ParamValues;
+        public int[][] InterventionsCombinations;
+        public double[][] SimIncidenceOutputs;
+        public double[][] SimPrevalenceOutputs;
+
+        // simulation statistics collection
+        public List<ObservationBasedStatistics> IncidenceStats { get; private set; } = new List<ObservationBasedStatistics>();
+        public List<ObservationBasedStatistics> PrevalenceStats { get; private set; } = new List<ObservationBasedStatistics>();
+        public List<ObservationBasedStatistics> RatioStats { get; private set; } = new List<ObservationBasedStatistics>();
+        public List<ObservationBasedStatistics> ComputationStats { get; private set; } = new List<ObservationBasedStatistics>();
+
+        public double[] Costs;
+        public double[] AnnualCosts;
+        public double[] DALYs;
+        public double[] NMBs;
+        public double[] NHBs;
+        public ObservationBasedStatistics CostStat { get; private set; } = new ObservationBasedStatistics("Total cost");
+        public ObservationBasedStatistics AnnualCostStat { get; private set; } = new ObservationBasedStatistics("Annual cost");
+        public ObservationBasedStatistics DALYStat { get; private set; } = new ObservationBasedStatistics("Total DALY");
+        public ObservationBasedStatistics NMBStat { get; private set; } = new ObservationBasedStatistics("Total NMB");
+        public ObservationBasedStatistics NHBStat { get; private set; } = new ObservationBasedStatistics("Total NHB");
+        public ObservationBasedStatistics TimeStat { get; private set; } = new ObservationBasedStatistics("Time used to simulate a trajectory");
+        
+        public SimSummary(ref ModelSettings settings, ref Epidemic parentEpidemic)
+        {
+            _set = settings;
+            _nSim = settings.NumOfSimItrs;   // number of simulated epidemics
+            IncidenceStats.Clear();
+            PrevalenceStats.Clear();
+            RatioStats.Clear();
+            ComputationStats.Clear();
+
+            foreach (Class thisClass in parentEpidemic.Classes.Where(c=>c.ShowStatisticsInSimulationResults))
+            {
+                IncidenceStats.Add(new ObservationBasedStatistics("Total New: " + thisClass.Name, _nSim));
+                if (thisClass is Class_Normal)
+                    PrevalenceStats.Add(new ObservationBasedStatistics("Average Size: " + thisClass.Name, _nSim));
+            }
+            foreach (SumTrajectory thisSumTraj in parentEpidemic.SumTrajectories)
+            {
+                // incidence stats
+                if (thisSumTraj.Type == SumTrajectory.EnumType.Incidence || thisSumTraj.Type == SumTrajectory.EnumType.AccumulatingIncident)
+                    IncidenceStats.Add(new ObservationBasedStatistics("Total: " + thisSumTraj.Name, _nSim));
+                // prevalence stats
+                else if (thisSumTraj.Type == SumTrajectory.EnumType.Prevalence)
+                    PrevalenceStats.Add(new ObservationBasedStatistics("Averge size: " + thisSumTraj.Name, _nSim));
+            }
+            foreach (RatioTrajectory thisRatioTaj in parentEpidemic.RatioTrajectories)
+                RatioStats.Add(new ObservationBasedStatistics("Average ratio: " + thisRatioTaj.Name, _nSim));
+
+            // reset the jagged array containing trajectories
+            InterventionsCombinations = new int[0][];
+            SimIncidenceOutputs = new double[0][];
+            SimPrevalenceOutputs = new double[0][];
+        }
+
+        public void Add(Epidemic simulatedEpi)
+        {
+            // store trajectories
+            if (_set.IfShowSimulatedTrajectories)
+            {
+                InterventionsCombinations = SupportFunctions.ConcatJaggedArray(
+                    InterventionsCombinations, simulatedEpi.TrajsForSimOutput.InterventionCombinations);
+                SimPrevalenceOutputs = SupportFunctions.ConcatJaggedArray(
+                    SimPrevalenceOutputs, simulatedEpi.TrajsForSimOutput.SimPrevalenceOutputs);
+                SimIncidenceOutputs = SupportFunctions.ConcatJaggedArray(
+                    SimIncidenceOutputs, simulatedEpi.TrajsForSimOutput.SimIncidenceOutputs);
+            }
+
+            // store sampled parameter values
+            ParamValues[simulatedEpi.ID] = simulatedEpi.ParamManager.ParameterValues;
+
+            // if the outcomes should be recorded
+            if (!(simulatedEpi.ModelUse == EnumModelUse.Simulation))
+                return;
+
+            // summary statistics
+            DALYStat.Record(simulatedEpi.EpidemicCostHealth.TotalDiscountedDALY);
+            CostStat.Record(simulatedEpi.EpidemicCostHealth.TotalDisountedCost);
+            AnnualCostStat.Record(simulatedEpi.EpidemicCostHealth.GetEquivalentAnnualCost(
+                _set.AnnualDiscountRate,
+                (int)(_set.WarmUpPeriodTimeIndex * _set.DeltaT),
+                (int)(_set.TimeIndexToStop * _set.DeltaT)));
+            NHBStat.Record(simulatedEpi.EpidemicCostHealth.GetDiscountedNHB(_set.WTPForHealth));
+            NMBStat.Record(simulatedEpi.EpidemicCostHealth.GetDiscountedNMB(_set.WTPForHealth));
+            TimeStat.Record(simulatedEpi.Timer.TimePassed);
+
+            // incidence and prevalence statistics
+            int incidentStatIndex = 0, prevalenceStatIndex = 0, ratioStatIndex = 0;
+            foreach (Class thisClass in simulatedEpi.Classes.Where(c => c.ShowStatisticsInSimulationResults))
+            {
+                IncidenceStats[incidentStatIndex++].Record(thisClass.ClassStat.AccumulatedIncidenceAfterWarmUp, simulatedEpi.ID);
+                if (thisClass is Class_Normal)
+                    PrevalenceStats[prevalenceStatIndex++].Record(thisClass.ClassStat.AveragePrevalenceStat.Mean, simulatedEpi.ID);
+            }
+            foreach (SumTrajectory sumTraj in simulatedEpi.SumTrajectories)
+            {
+                if (sumTraj.Type == SumTrajectory.EnumType.Incidence || sumTraj.Type == SumTrajectory.EnumType.AccumulatingIncident)
+                    IncidenceStats[incidentStatIndex++].Record(sumTraj.AccumulatedIncidenceAfterWarmUp, simulatedEpi.ID);
+                if (sumTraj.Type == SumTrajectory.EnumType.Prevalence)
+                    PrevalenceStats[prevalenceStatIndex++].Record(sumTraj.AveragePrevalenceStat.Mean, simulatedEpi.ID);
+            }
+            foreach (RatioTrajectory ratioTraj in simulatedEpi.RatioTrajectories)
+            {
+                switch (ratioTraj.Type)
+                {
+                    case RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
+                        RatioStats[ratioStatIndex].Record(ratioTraj.TimeSeries.GetLastObs(), simulatedEpi.ID);
+                        break;
+                    case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
+                        RatioStats[ratioStatIndex].Record(ratioTraj.AveragePrevalenceStat.Mean, simulatedEpi.ID);
+                        break;
+                    case RatioTrajectory.EnumType.IncidenceOverIncidence:
+                        RatioStats[ratioStatIndex].Record(ratioTraj.TimeSeries.ObsList.Average(), simulatedEpi.ID);
+                        break;
+                }
+                ++ratioStatIndex;
+            }
+
+            // statistics on individual simulation
+            SimItrs[simulatedEpi.ID] = simulatedEpi.ID;
+            RNDSeeds[simulatedEpi.ID] = simulatedEpi.SeedProducedAcceptibleTraj;
+            NHBs[simulatedEpi.ID] = simulatedEpi.EpidemicCostHealth.GetDiscountedNHB(_set.WTPForHealth);
+            NMBs[simulatedEpi.ID] = simulatedEpi.EpidemicCostHealth.GetDiscountedNMB(_set.WTPForHealth);
+            DALYs[simulatedEpi.ID] = simulatedEpi.EpidemicCostHealth.TotalDiscountedDALY;
+            Costs[simulatedEpi.ID] = simulatedEpi.EpidemicCostHealth.TotalDisountedCost;
+            AnnualCosts[simulatedEpi.ID] = simulatedEpi.EpidemicCostHealth.GetEquivalentAnnualCost(
+                _set.AnnualDiscountRate,
+                (int)(_set.WarmUpPeriodTimeIndex * _set.DeltaT),
+                (int)(_set.TimeIndexToStop * _set.DeltaT));
+        }
+
+        public void Reset()
+        {
+            SimItrs = new int[_nSim];
+            RNDSeeds = new int[_nSim];
+            ParamValues = new double[_nSim][];
+            InterventionsCombinations = new int[_nSim][];
+            SimIncidenceOutputs = new double[_nSim][];
+            SimPrevalenceOutputs = new double[_nSim][];
+
+            // reset simulation statistics
+            foreach (ObservationBasedStatistics thisObsStat in IncidenceStats)
+                thisObsStat.Reset();
+            foreach (ObservationBasedStatistics thisObsStat in PrevalenceStats)
+                thisObsStat.Reset();
+            foreach (ObservationBasedStatistics thisObsStat in RatioStats)
+                thisObsStat.Reset();
+            foreach (ObservationBasedStatistics thisObsStat in ComputationStats)
+                thisObsStat.Reset();
+
+            Costs = new double[_nSim];
+            AnnualCosts = new double[_nSim];
+            DALYs = new double[_nSim];
+            NMBs = new double[_nSim];
+            NHBs = new double[_nSim];
+            
+            CostStat.Reset();
+            AnnualCostStat.Reset();
+            DALYStat.Reset();
+            NMBStat.Reset();
+            NHBStat.Reset();
+            TimeStat.Reset();
+            TimeToSimulateAllEpidemics = 0;
+        }
+               
+    }
+
+    public class ModelInfo
+    {
+        private Epidemic _epi;
+        public string[] NamesOfParams { get; private set; }
+        public string[] NamesOfParamsInCalib { get; private set; }
+        public int NumOfFeatures { get; private set; }
+
+        public ModelInfo(ref Epidemic epidemic)
+        {
+            _epi = epidemic;
+            FindNamesOfParams();
+            FindNamesOfParamsInCalib();
+
+        }
+
+        // find the names of parameters
+        private void FindNamesOfParams()
+        {
+            // find the names of the parameters
+            int i = 0;
+            NamesOfParams = new string[_epi.ParamManager.Parameters.Count];
+            foreach (Parameter thisParameter in _epi.ParamManager.Parameters)
+                NamesOfParams[i++] = thisParameter.Name;
+        }
+        // find the names of parameters to calibrate
+        private void FindNamesOfParamsInCalib()
+        {
+            NamesOfParamsInCalib = new string[_epi.ParamManager.Parameters.Where(p => p.IncludedInCalibration).Count()];
+            int i = 0;
+            foreach (Parameter thisParameter in _epi.ParamManager.Parameters.Where(p => p.IncludedInCalibration))
+                NamesOfParamsInCalib[i++] = thisParameter.Name;
+        }
+    }
+
+    public class RNDSeedGenerator
+    {
+        ModelSettings _modelSet;
+        Discrete _discreteDist;
+        private int[] _sampledSeeds;
+
+        public RNDSeedGenerator(ref ModelSettings modelSet, ref RNG rng)
+        {
+            _modelSet = modelSet;
+
+            // reset the rnd object            
+            if (_modelSet.SimRNDSeedsSource == EnumSimRNDSeedsSource.Weighted)
+            {
+                // read weights of rnd seeds
+                int n = _modelSet.RndSeeds.Length;
+                double[] arrProb = new double[n];
+                for (int i = 0; i < n; i++)
+                    arrProb[i] = _modelSet.RndSeedsGoodnessOfFit[i];
+
+                // normalize the weights 
+                double sum = arrProb.Sum();
+                for (int i = 0; i < n; i++)
+                    arrProb[i] = arrProb[i] / sum;
+
+                // define the sampling object
+                _discreteDist = new Discrete("Discrete distribution over RND seeds", arrProb);
+
+                // re-sample seeds
+                _sampledSeeds = new int[_modelSet.NumOfSimItrs];
+                for (int i = 0; i < _modelSet.NumOfSimItrs; i++)
+                    _sampledSeeds[i] =  _modelSet.RndSeeds[_discreteDist.SampleDiscrete(rng)];
+            }
+        }
+
         // find the RND seed for this iteration
-        private int FindRNDSeed(int simItr)
+        public int FindRNDSeed(int simItr)
         {
             int r = 0;
-            switch (_set.SimulationRNDSeedsSource)
+            switch (_modelSet.SimRNDSeedsSource)
             {
-                case EnumSimulationRNDSeedsSource.StartFrom0:
-                    r = _set.DistanceBtwRNGSeeds* simItr + _set.FirstRNGSeed;
+                case EnumSimRNDSeedsSource.StartFrom0:
+                    r = _modelSet.DistanceBtwRNGSeeds * simItr + _modelSet.FirstRNGSeed;
                     break;
-                case EnumSimulationRNDSeedsSource.PrespecifiedSquence:
-                    r = _set.RndSeeds[simItr];
+                case EnumSimRNDSeedsSource.Prespecified:
+                    r = _modelSet.RndSeeds[simItr];
                     break;
-                case EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence:
-                    r = _sampledRNDSeeds[simItr];
+                case EnumSimRNDSeedsSource.Weighted:
+                    r = _sampledSeeds[simItr];
                     break;
             }
             return r;
         }
-
-    #endregion
-
-}
+    }
 }

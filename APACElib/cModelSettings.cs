@@ -17,7 +17,7 @@ namespace APACElib
         private int _maxDegreeOfParallelism;
         private int _firstRNGSeed;
         private int _distanceBtwRNGSeeds;
-        private EnumSimulationRNDSeedsSource _simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.StartFrom0;
+        private EnumSimRNDSeedsSource _simulationRNDSeedsSource = EnumSimRNDSeedsSource.StartFrom0;
         private int[] _rndSeeds;
         private double[] _rndSeedsGoodnessOfFit;
         private int _numOfSimulationIterations;
@@ -85,7 +85,7 @@ namespace APACElib
         public int TimeIndexToStop { get; set; }
         public int EpidemicConditionTimeIndex { get; set; }
         public EnumEpiDecisions DecisionRule { get; set; }
-        public bool IfToShowSimulationTrajectories { get; set; }        
+        public bool IfShowSimulatedTrajectories { get; set; }        
         public double AnnualDiscountRate { get; set; }
         public double DeltaTDiscountRate { get; set; }
         public double WTPForHealth { get; set; }
@@ -95,10 +95,10 @@ namespace APACElib
         public int MaxDegreeOfParallelism { get => _maxDegreeOfParallelism; set => _maxDegreeOfParallelism = value; }
         public int FirstRNGSeed { get => _firstRNGSeed; set => _firstRNGSeed = value; }
         public int DistanceBtwRNGSeeds { get => _distanceBtwRNGSeeds; set => _distanceBtwRNGSeeds = value; }
-        public EnumSimulationRNDSeedsSource SimulationRNDSeedsSource { get => _simulationRNDSeedsSource; set => _simulationRNDSeedsSource = value; }
+        public EnumSimRNDSeedsSource SimRNDSeedsSource { get => _simulationRNDSeedsSource; set => _simulationRNDSeedsSource = value; }
         public int[] RndSeeds { get => _rndSeeds; set => _rndSeeds = value; }
         public double[] RndSeedsGoodnessOfFit { get => _rndSeedsGoodnessOfFit; set => _rndSeedsGoodnessOfFit = value; }
-        public int NumOfSimulationIterations { get => _numOfSimulationIterations; set => _numOfSimulationIterations = value; }
+        public int NumOfSimItrs { get => _numOfSimulationIterations; set => _numOfSimulationIterations = value; }
         public EnumQFunctionApproximationMethod QFunApxMethod { get => _qFunApxMethod; set => _qFunApxMethod = value; }
         public bool IfEpidemicTimeIsUsedAsFeature { get => _ifEpidemicTimeIsUsedAsFeature; set => _ifEpidemicTimeIsUsedAsFeature = value; }
         public int PastDecisionPeriodWithDecisionAsFeature { get => _pastDecisionPeriodWithDecisionAsFeature; set => _pastDecisionPeriodWithDecisionAsFeature = value; }
@@ -192,7 +192,7 @@ namespace APACElib
             TimeIndexToStop = (int)(excelInterface.GetTimeToStop() / DeltaT);
             EpidemicConditionTimeIndex = (int)(excelInterface.GetEpidemicConditionTime() / DeltaT);
             DecisionRule = excelInterface.GetDecisionRule();
-            IfToShowSimulationTrajectories = excelInterface.GetIfToShowSimulationTrajectories();
+            IfShowSimulatedTrajectories = excelInterface.GetIfToShowSimulationTrajectories();
             
             AnnualDiscountRate = excelInterface.GetAnnualInterestRate();
             DeltaTDiscountRate = AnnualDiscountRate / DeltaT;
@@ -203,12 +203,12 @@ namespace APACElib
             {
                 switch (_simulationRNDSeedsSource)
                 {
-                    case EnumSimulationRNDSeedsSource.StartFrom0:
+                    case EnumSimRNDSeedsSource.StartFrom0:
                         break;
-                    case EnumSimulationRNDSeedsSource.PrespecifiedSquence:
+                    case EnumSimRNDSeedsSource.Prespecified:
                         _rndSeeds = excelInterface.GetRNDSeeds(_numOfSimulationIterations);
                         break;
-                    case EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence:
+                    case EnumSimRNDSeedsSource.Weighted:
                         {
                             _rndSeeds = excelInterface.GetRNDSeeds(_numOfSimulationIterations);
                             _rndSeedsGoodnessOfFit = excelInterface.GetGoodnessOfFitForRNDSeeds(_numOfSimulationIterations);

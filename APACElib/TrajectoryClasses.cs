@@ -410,7 +410,7 @@ namespace APACElib
         }
     }
 
-    public class SimulationTrajectories
+    public class TrajsForSimOutput
     {
         private int _simReplication;
         private double _deltaT;
@@ -424,11 +424,11 @@ namespace APACElib
         public int NumOfPrevalenceOutputsToReport { get; set; }
         public int NumOfIncidenceOutputsToReport { get; set; }
 
-        private int[][] _interventionCombinations;
-        private double[][] _simPrevalenceOutputs;
-        private double[][] _simIncidenceOutputs;
+        public int[][] InterventionCombinations { get; private set; }
+        public double[][] SimPrevalenceOutputs { get; private set; }
+        public double[][] SimIncidenceOutputs { get; private set; }
 
-        public SimulationTrajectories(
+        public TrajsForSimOutput(
             int simReplication, 
             double deltaT,
             int nDeltaTInSimOutputInterval,
@@ -507,10 +507,10 @@ namespace APACElib
             }
 
             // concatenate this row 
-            _simPrevalenceOutputs = SupportFunctions.ConcatJaggedArray(_simPrevalenceOutputs, thisPrevalenceOutputs);
-            _simIncidenceOutputs = SupportFunctions.ConcatJaggedArray(_simIncidenceOutputs, thisIncidenceOutputs);
+            SimPrevalenceOutputs = SupportFunctions.ConcatJaggedArray(SimPrevalenceOutputs, thisPrevalenceOutputs);
+            SimIncidenceOutputs = SupportFunctions.ConcatJaggedArray(SimIncidenceOutputs, thisIncidenceOutputs);
             // record the action combination
-            _interventionCombinations = SupportFunctions.ConcatJaggedArray(_interventionCombinations, thisActionCombination);
+            InterventionCombinations = SupportFunctions.ConcatJaggedArray(InterventionCombinations, thisActionCombination);
         }
 
 

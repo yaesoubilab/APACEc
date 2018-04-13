@@ -17,34 +17,34 @@ namespace APACElib
         public int ID { get; set; }
         public EnumModelUse ModelUse { get; set; } = EnumModelUse.Simulation;
         public bool StoreEpidemicTrajectories { get; set; } = true;
-        // model entities
+        // private model entities        
         private DecisionMaker _decisionMaker;
-        public DecisionMaker DecisionMaker { get => _decisionMaker; }
         private ParameterManager _paramManager;
-        private ForceOfInfectionModeller _FOIModel;
         private MonitorOfInterventionsInEffect _monitorOfInterventionsInEffect;
-        private List<Class> _classes = new List<Class>();
+        // public model entities
+        public DecisionMaker DecisionMaker { get => _decisionMaker; }
+        public ParameterManager ParamManager { get => _paramManager; } 
+        public ForceOfInfectionModeller FOIModel { get; set; }
         public List<Class> Classes { get => _classes; }
+        private List<Class> _classes = new List<Class>();
         private List<Event> _events = new List<Event>();
         public List<SumTrajectory> _sumTrajectories = new List<SumTrajectory>();
-        public List<SumTrajectory> SumTrajectories { get => _sumTrajectories; set => _sumTrajectories = value; }
         public List<RatioTrajectory> _ratioTrajectories = new List<RatioTrajectory>();
+        public List<SumTrajectory> SumTrajectories { get => _sumTrajectories; set => _sumTrajectories = value; }
         public List<RatioTrajectory> RatioTrajectories { get => _ratioTrajectories; set => _ratioTrajectories = value; } 
-        public SimulationTrajectories EpidemicHistory { get; private set; }
+        public TrajsForSimOutput TrajsForSimOutput { get; private set; }
         public EpidemicCostHealth EpidemicCostHealth { get; set; }
         public Timer Timer { get; private set; } = new Timer();
         public Calibration Calibration { get; private set; } = new Calibration();
-        private int[] _pathogenIDs;
-
+        
         RNG _rng;
+        private int[] _pathogenIDs;
         private int _numOfClasses;        
-        private int _numOfPathogens;
         private int _simTimeIndex;  // simulation time index
         private int _epiTimeIndex;  // time indeces since the detection of epidemic
-        private int[] _arrNumOfMembersInEachClass;
         private bool _firstObservationObtained;
         public int TimeIndexOfTheFirstObservation { get; private set; }
-        private bool _areClassesWithEradicationCondition = false;
+        private bool _areThereClassesWithEradicationCondition = false;
         public bool StoppedDueToEradication { get; private set; }
         public int SeedProducedAcceptibleTraj { get; private set; }
 
@@ -63,7 +63,7 @@ namespace APACElib
             _events = new List<Event>();
             SumTrajectories = new List<SumTrajectory>();
             RatioTrajectories = new List<RatioTrajectory>();
-            _FOIModel.Clean();            
+            FOIModel.Clean();            
     }
         
         // Simulate one trajectory (parameters will be sampled)
@@ -96,7 +96,7 @@ namespace APACElib
         public void SimulateOneTrajectory(int seed, int simReplication, int timeIndexToStop)
         {
             Timer.Start();       // reset the timer     
-            SeedProducedAcceptibleTraj = -1;
+            SeedProducedAcceptibleTraj = -1;    // reset the seed
             
             // reset for another simulation
             ResetForAnotherSimulation(seed);
@@ -106,8 +106,6 @@ namespace APACElib
 
             Timer.Stop(); // stop timer
         }                
-        
-        #region private subs to run the simulation model
         
         // simulate the trajectory assuming that parameter values are already assigned
         private bool Simulate(int simReplication, int timeIndexToStop)
@@ -123,10 +121,10 @@ namespace APACElib
                 _monitorOfInterventionsInEffect.Update(_epiTimeIndex, false, ref _classes);
 
                 // update the effect of chance in time dependent parameter value
-                UpdateTheEffectOfChangeInTimeDependentParameterValues(_simTimeIndex * _set.DeltaT);
+                _paramManager.UpdateTimeDepParams(ref _rng, _simTimeIndex * _set.DeltaT, ref _classes);
 
                 // update recorded trajectories 
-                EpidemicHistory.Record(_simTimeIndex);
+                TrajsForSimOutput.Record(_simTimeIndex);
 
                 // check if this is has been a feasible trajectory for calibration
                 if (ModelUse == EnumModelUse.Calibration && !ifThisIsAFeasibleCalibrationTrajectory)
@@ -136,7 +134,7 @@ namespace APACElib
                 }
 
                 // update transmission rates
-                UpdateTransmissionRates();
+                FOIModel.UpdateTransmissionRates(_simTimeIndex, _monitorOfInterventionsInEffect.InterventionsInEffect, ref _classes);
 
                 // send transfer class members                    
                 TransferClassMembers();
@@ -153,7 +151,7 @@ namespace APACElib
                 {
                     toStop = true;
                     // update recorded trajectories 
-                    EpidemicHistory.Record(_simTimeIndex);
+                    TrajsForSimOutput.Record(_simTimeIndex);
 
                     // find if it is an acceptable trajectory
                     acceptableTrajectory = true;
@@ -206,9 +204,6 @@ namespace APACElib
                     }
             } // end of while (membersWaitingToBeTransferred)
 
-            foreach (Class thisClass in Classes)
-                _arrNumOfMembersInEachClass[thisClass.ID] = thisClass.ClassStat.Prevalence;
-
             // update class statistics                      
             foreach (Class thisClass in Classes)
             {
@@ -227,7 +222,7 @@ namespace APACElib
                 thisSumTaj.Add(_simTimeIndex, ref _classes, ref _events);
 
             // update the aggregated trajectories
-            EpidemicHistory.Record(_simTimeIndex);
+            TrajsForSimOutput.Record(_simTimeIndex);
             
             // reset number of members out of active events for all classes
             foreach (Class thisClass in Classes)
@@ -262,7 +257,7 @@ namespace APACElib
         {
             // check if any class has eradication condition
             bool eradicated = true;
-            if (_areClassesWithEradicationCondition)
+            if (_areThereClassesWithEradicationCondition)
                 eradicated = false;
             else
             {
@@ -279,12 +274,9 @@ namespace APACElib
             StoppedDueToEradication = eradicated;
             return eradicated;
         }
+        
         // reset for another simulation
         private void ResetForAnotherSimulation(int seed)
-        {
-            ResetForAnotherSimulation(seed, true, new double[0]);
-        }        
-        private void ResetForAnotherSimulation(int seed, bool sampleParameters, double[] parameterValues)
         {
             // reset the rnd object
             _rng = new RNG(seed);
@@ -299,22 +291,18 @@ namespace APACElib
             _paramManager.SampleAllParameters(ref _rng, 0);
 
             // reset force of infection manager 
-            _FOIModel.Reset();
+            FOIModel.Reset();
             
             // update intervention information            
             foreach (Intervention thisIntervention in DecisionMaker.Interventions)
                 thisIntervention.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn = (int)(_paramManager.ParameterValues[thisIntervention.ParIDDelayToGoIntoEffectOnceTurnedOn] / _set.DeltaT);
 
             // reset the number of people in each compartment
-            _arrNumOfMembersInEachClass = new int[_numOfClasses];
             foreach (Class thisClass in Classes)
-            {
                 thisClass.UpdateInitialNumberOfMembers((int)Math.Round(_paramManager.ParameterValues[thisClass.InitialMemebersParID]));
-                _arrNumOfMembersInEachClass[thisClass.ID] = thisClass.ClassStat.Prevalence;
-            }
 
             // reset epidemic history 
-            EpidemicHistory.Reset();
+            TrajsForSimOutput.Reset();
 
             // health and cost outcomes
             EpidemicCostHealth = new EpidemicCostHealth(_set.DeltaTDiscountRate, _set.WarmUpPeriodTimeIndex);
@@ -327,10 +315,7 @@ namespace APACElib
             _monitorOfInterventionsInEffect.Update(0, true, ref _classes);
 
             // calculate contact matrices
-            _FOIModel.CalculateContactMatrices();
-
-            // update susceptibility and infectivity of classes
-            UpdateSusceptilityAndInfectivityOfClasses(true, true);
+            FOIModel.CalculateContactMatrices();
 
             // update rates associated with each class and their initial size
             foreach (Class thisClass in Classes)
@@ -339,138 +324,7 @@ namespace APACElib
                 thisClass.UpdateProbOfSuccess(_paramManager.ParameterValues);
                 thisClass.Reset();
             }
-        }               
-
-        // update the effect of change in time dependent parameters
-        private void UpdateTheEffectOfChangeInTimeDependentParameterValues(double time)
-        {
-            if (_thereAreTimeDependentParameters)
-            {
-                // sample parameters
-                SampleFromParameters(time, true);
-                // update time dependent parameters in the model
-                UpdateTimeDepedentParametersInTheModel();
-            }
-
-            //if (_thereAreTimeDependentParameters)
-            //{
-            //    bool parameterFound = false;
-            //    // update time dependent parameter values
-            //    foreach (Parameter thisParameter in _parameters)
-            //    {
-            //        parameterFound = false;
-            //        TimeDependetLinear thisTimeDepedentLinearPar = thisParameter as TimeDependetLinear;
-            //        if (thisTimeDepedentLinearPar != null)
-            //        {
-            //            parameterFound = true;
-            //            double intercept = _arrSampledParameterValues[thisTimeDepedentLinearPar.InterceptParID];
-            //            double slope = _arrSampledParameterValues[thisTimeDepedentLinearPar.SlopeParID];
-            //            double timeOn = thisTimeDepedentLinearPar.TimeOn;
-            //            double timeOff = thisTimeDepedentLinearPar.TimeOff;
-
-            //            _arrSampledParameterValues[thisParameter.ID] = thisTimeDepedentLinearPar.Sample(time, intercept, slope, timeOn, timeOff);
-            //        }
-
-            //        if (!parameterFound)
-            //        {
-            //            TimeDependetOscillating thisTimeDepedentOscillatingPar = thisParameter as TimeDependetOscillating;
-            //            if (thisTimeDepedentOscillatingPar != null)
-            //            {
-            //                double a0 = _arrSampledParameterValues[thisTimeDepedentOscillatingPar.a0ParID];
-            //                double a1 = _arrSampledParameterValues[thisTimeDepedentOscillatingPar.a1ParID];
-            //                double a2 = _arrSampledParameterValues[thisTimeDepedentOscillatingPar.a2ParID];
-            //                double a3 = _arrSampledParameterValues[thisTimeDepedentOscillatingPar.a3ParID];
-
-            //                _arrSampledParameterValues[thisParameter.ID] = thisTimeDepedentOscillatingPar.Sample(time, a0, a1, a2, a3);
-            //            }
-            //        }
-            //    }
-            //    // update dependent parameters
-            //    UpdateDependentParameterValues();
-            //    // update time dependent parameters in the model
-            //    UpdateTimeDepedentParametersInTheModel();
-            //}
-        }
-        
-        
-        // update susceptibility and infectivity of classes
-        private void UpdateSusceptilityAndInfectivityOfClasses(bool updateSusceptibility, bool updateInfectivity)
-        {
-            if (updateSusceptibility && updateInfectivity)
-            {
-                foreach (Class thisClass in Classes)
-                {
-                    // susceptibility
-                    if (thisClass.IsEpiDependentEventActive)
-                        thisClass.UpdateSusceptibilityParameterValues(arrSampledParameterValues);
-                    // infectivity
-                    thisClass.UpdateInfectivityParameterValues(arrSampledParameterValues);
-                }
-            }
-            else if (updateSusceptibility)
-            {
-                // only susceptibility
-                foreach (Class thisClass in Classes.Where(c => c.IsEpiDependentEventActive))
-                    thisClass.UpdateSusceptibilityParameterValues(arrSampledParameterValues);
-            }
-            else if (updateInfectivity)
-            {
-                // only infectivity
-                foreach (Class thisClass in Classes)
-                    thisClass.UpdateInfectivityParameterValues(arrSampledParameterValues);
-            }
-        }
-        // update transmission rates
-        private void UpdateTransmissionRates()
-        {
-            // update susceptibility and infectivity of classes
-            UpdateSusceptilityAndInfectivityOfClasses(_thereAreTimeDependentParameters_affectingSusceptibilities, _thereAreTimeDependentParameters_affectingInfectivities);
-
-            // find the population size of each mixing group
-            int[] populationSizeOfMixingGroups = new int[_baseContactMatrices[0].GetLength(0)];
-            foreach (Class thisClass in Classes)
-            {
-                //_arrNumOfMembersInEachClass[thisClass.ID] = thisClass.ClassStat.Prevalence;
-                populationSizeOfMixingGroups[thisClass.RowIndexInContactMatrix] += thisClass.ClassStat.Prevalence;
-            }
-
-            // find the index of current action in the contact matrices
-            int indexOfIntCombInContactMatrices = FindIndexOfInterventionCombimbinationInTransmissionMatrix(_monitorOfInterventionsInEffect.InterventionsInEffect);
-
-            // calculate the transmission rates for each class
-            double susContactInf = 0, rate = 0, infectivity = 0;
-            double[] arrTransmissionRatesByPathogen = new double[_numOfPathogens];
-            foreach (Class thisRecievingClass in Classes.Where(c => c.IsEpiDependentEventActive && c.ClassStat.Prevalence > 0))
-            {
-                // calculate the transmission rate for each pathogen
-                for (int pathogenID = 0; pathogenID < _numOfPathogens; pathogenID++)
-                {
-                    rate = 0;
-                    for (int j = 0; j < _numOfClasses; j++)
-                    {
-                        // find the infectivity of infection-causing class
-                        if (Classes[j] is Class_Normal) 
-                        {
-                            infectivity = Classes[j].InfectivityValues[pathogenID];
-                            if (infectivity > 0)
-                            {
-                                susContactInf = thisRecievingClass.SusceptibilityValues[pathogenID]
-                                                * _contactMatrices[indexOfIntCombInContactMatrices][pathogenID][thisRecievingClass.RowIndexInContactMatrix, Classes[j].RowIndexInContactMatrix]
-                                                * infectivity;
-
-                                rate += susContactInf * _arrNumOfMembersInEachClass[j] / populationSizeOfMixingGroups[Classes[j].RowIndexInContactMatrix];
-                            }
-                        }
-                    }
-
-                    arrTransmissionRatesByPathogen[pathogenID] = rate;
-                }
-
-                // update the transition rates of this class for all pathogens
-                thisRecievingClass.UpdateTransmissionRates(arrTransmissionRatesByPathogen);
-            }
-        }
-        
+        }         
 
         // update current epidemic time
         private void UpdateEpiTimeIndex()
@@ -494,46 +348,17 @@ namespace APACElib
             }            
         }
         
-        #endregion
-        
-        // setup always on/off and interval-based static policy settings
-        public void SetupAlwaysOnOffAndIntervalBasedStaticPolicySettings(int[] interventionsOnOffSwitchStatus, double[] startTimes, int[] numOfDecisionPeriodsToUse)
-        {
-            //_POMDP_ADP.SetInitialActionCombination(interventionsOnOffSwitchStatus);
-
-            //foreach (Intervention thisIntervention in _POMDP_ADP.Actions)
-            //{
-            //    int i = thisIntervention.ID;
-            //    if (thisIntervention.StaticPolicyType ==  enumStaticPolicyType.IntervalBased)
-            //        thisIntervention.AddIntervalBaseEmploymentSetting(
-            //            (int)(startTimes[i] / _set.DeltaT), (int)((startTimes[i] + numOfDecisionPeriodsToUse[i] * _decisionIntervalLength) / _set.DeltaT));
-            //}
-        }
-        // setup threshold-based static policy settings
-        public void SetupThresholdBasedStaticPolicySettings(int[] interventionIDs, int[] specialStatisticsIDs, double[] thresholds, int[] numOfDecisionPeriodsToUseInterventions)
-        {
-            //for (int i = 0; i < interventionIDs.Length; ++i)
-            //    ((Intervention)_POMDP_ADP.Actions[interventionIDs[i]]).SetupThresholdBasedEmployment                
-            //        (specialStatisticsIDs[i], thresholds[i], numOfDecisionPeriodsToUseInterventions[i] * _numOfDeltaTsInADecisionInterval);
-        }
-        public void SetupThresholdBasedStaticPolicySettings(int[] interventionIDs, double[] thresholds, int[] numOfDecisionPeriodsToUseInterventions)
-        {
-            //for (int i = 0; i < interventionIDs.Length; ++i)
-            //    ((Intervention)_POMDP_ADP.Actions[interventionIDs[i]]).SetupThresholdBasedEmployment   
-            //        (thresholds[i], numOfDecisionPeriodsToUseInterventions[i] * _numOfDeltaTsInADecisionInterval);
-        }
-
         // subs to create model
         #region subs to create model  
         // create the model
         public void BuildModel(ref ModelSettings modelSettings)
         {
+            // model settings
             _set = modelSettings;
-
+            // decision maker
             _decisionMaker = new DecisionMaker(
                 _set.EpidemicTimeIndexToStartDecisionMaking,
                 _set.NumOfDeltaT_inDecisionInterval);
-
             // add parameters
             AddParameters(modelSettings.ParametersSheet);
             // add pathogens
@@ -553,20 +378,24 @@ namespace APACElib
             // add connections
             AddConnections(modelSettings.ConnectionsMatrix);
             // update contact matrices
-            _FOIModel = new ForceOfInfectionModeller(
+            FOIModel = new ForceOfInfectionModeller(
+                _pathogenIDs.Length,
                 ref _paramManager,
                 _set.GetBaseContactMatrices(),
                 _set.GetPercentChangeInContactMatricesParIDs());
             // monitor of interventions in effect
             _monitorOfInterventionsInEffect = new MonitorOfInterventionsInEffect(ref _decisionMaker);
             // epidemic history
-            EpidemicHistory = new SimulationTrajectories(0, _set.DeltaT, _set.NumOfDeltaT_inSimulationOutputInterval, ref _decisionMaker, ref Classes, ref _sumTrajectories, ref _ratioTrajectories);
+            TrajsForSimOutput = new TrajsForSimOutput(0, _set.DeltaT, _set.NumOfDeltaT_inSimulationOutputInterval, ref _decisionMaker, ref _classes, ref _sumTrajectories, ref _ratioTrajectories);
 
-            _areClassesWithEradicationCondition = Classes.Where(s => s.EmptyToEradicate).Count() == 0;
+            _areThereClassesWithEradicationCondition = Classes.Where(s => s.EmptyToEradicate).Count() == 0;
         }
         // read parameters
         private void AddParameters(Array parametersSheet)
         {
+            // parameter manager
+            _paramManager = new ParameterManager();
+
             int lastRowIndex = parametersSheet.GetLength(0);
             for (int rowIndex = 1; rowIndex <= lastRowIndex; ++rowIndex)
             {
@@ -640,13 +469,11 @@ namespace APACElib
                     case (EnumRandomVariates.TimeDependetLinear):
                         {
                             thisParameter = new TimeDependetLinear(parameterID, name, (int)par1, (int)par2, par3, par4);
-                            _thereAreTimeDependentParameters = true;
                         }
                         break;
                     case (EnumRandomVariates.TimeDependetOscillating):
                         {
                             thisParameter = new TimeDependetOscillating(parameterID, name, (int)par1, (int)par2, (int)par3, (int)par4);
-                            _thereAreTimeDependentParameters = true;
                         }
                         break;
                     default:
@@ -657,11 +484,8 @@ namespace APACElib
                 thisParameter.ShouldBeUpdatedByTime = updateAtEachTimeStep;
                 thisParameter.IncludedInCalibration = includedInCalibration;
                 
-                //if (includedInCalibration)
-                //    ++_numOfParametersToCalibrate;
-
-                // add the parameter to the list
-                Parameters.Add(thisParameter);
+                // add the parameter
+                _paramManager.Add(thisParameter);
             }
         }
         // add pathogens
@@ -672,7 +496,6 @@ namespace APACElib
             {
                 _pathogenIDs[rowIndex - 1] = Convert.ToInt32(pathogenSheet.GetValue(rowIndex, 1));
             }
-            _numOfPathogens = _pathogenIDs.Length;
         }
         // add classes
         private void AddClasses(Array classesSheet)
@@ -732,19 +555,19 @@ namespace APACElib
                             Classes.Add(thisNormalClass);
 
                             // check if infectivity and susceptibility parameters are time dependent
-                            if (_thereAreTimeDependentParameters)
+                            if (_paramManager.ThereAreTimeDepParms)
                             {
                                 for (int i = 0; i < thisNormalClass.InfectivityParIDs.Length; i++)
-                                    if (Parameters[thisNormalClass.InfectivityParIDs[i]].ShouldBeUpdatedByTime)
+                                    if (_paramManager.Parameters[thisNormalClass.InfectivityParIDs[i]].ShouldBeUpdatedByTime)
                                     {
-                                        _thereAreTimeDependentParameters_affectingTranmissionDynamics = true;
-                                        _thereAreTimeDependentParameters_affectingInfectivities = true;
+                                        _paramManager.ThereAreTimeDepParms_infectivities = true;
+                                        _paramManager.ThereAreTimeDepParms_tranmission = true;
                                     }
                                 for (int i = 0; i < thisNormalClass.SusceptibilityParIDs.Length; i++)
-                                    if (Parameters[thisNormalClass.SusceptibilityParIDs[i]].ShouldBeUpdatedByTime)
+                                    if (_paramManager.Parameters[thisNormalClass.SusceptibilityParIDs[i]].ShouldBeUpdatedByTime)
                                     {
-                                        _thereAreTimeDependentParameters_affectingTranmissionDynamics = true;
-                                        _thereAreTimeDependentParameters_affectingSusceptibilities = true;
+                                        _paramManager.ThereAreTimeDepParms_susceptibilities = true;
+                                        _paramManager.ThereAreTimeDepParms_tranmission = true;
                                     }
                             }
                         }
@@ -773,8 +596,8 @@ namespace APACElib
                             Classes.Add(thisSplittingClass);
 
                             // check if the rate parameter is time dependent
-                            if (_thereAreTimeDependentParameters && Parameters[parIDForProbOfSuccess].ShouldBeUpdatedByTime)
-                                _thereAreTimeDependentParameters_affectingSplittingClasses = true;
+                            if (_paramManager.ThereAreTimeDepParms && _paramManager.Parameters[parIDForProbOfSuccess].ShouldBeUpdatedByTime)
+                                _paramManager.ThereAreTimeDepParms_splittingClasses = true;
                         }
                         break;
                     case "Class: Resource Monitor":
@@ -868,11 +691,9 @@ namespace APACElib
                     delayParID = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.DelayParID));
                     resourceID = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ResourceID));
 
+                    // if this intervention is affecting contacts
                     if (affectingContactPattern)
-                    {
-                        ++NumOfInterventionsAffectingContactPattern;
-                        SupportFunctions.AddToEndOfArray(ref _indecesOfInterventionsAffectingContactPattern, rowIndex - 1);
-                    }
+                        FOIModel.AddIntrvnAffectingContacts(rowIndex - 1);
 
                     // switch value for the pre-determined employment
                     switchStatus = SupportProcedures.ConvertToSwitchValue(
@@ -991,12 +812,6 @@ namespace APACElib
 
                 // if its availability should be reported
                 thisResource.ShowAvailability = SupportFunctions.ConvertYesNoToBool(Convert.ToString(resourcesSheet.GetValue(rowIndex, (int)ExcelInterface.enumResourceColumns.ShowAvailableUnits)));
-                // add the resource
-                Resources.Add(thisResource);
-
-                // if a feature should be associated to this
-                if (SupportFunctions.ConvertYesNoToBool(Convert.ToString(resourcesSheet.GetValue(rowIndex, (int)ExcelInterface.enumResourceColumns.SelectAsFeature))))
-                    Features.Add(new Feature_DefinedOnResources(name, _numOfFeatures++, ID));
             } 
         }
         // add events
@@ -1031,8 +846,8 @@ namespace APACElib
                             _events.Add(thisEvent_EpidemicIndependent);
 
                             // check if the rate parameter is time dependent
-                            if (_thereAreTimeDependentParameters && Parameters[IDOfRateParameter].ShouldBeUpdatedByTime)
-                                    _thereAreTimeDependentParameters_affectingNaturalHistoryRates = true;
+                            if (_paramManager.ThereAreTimeDepParms && _paramManager.Parameters[IDOfRateParameter].ShouldBeUpdatedByTime)
+                                _paramManager.ThereAreTimeDepParms_diseaseProgression = true;
                         }
                         break;
                     case "Event: Epidemic-Dependent":

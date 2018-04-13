@@ -704,16 +704,16 @@ namespace APACElib
             return whenToCalibrate;               
         }
         // get random seeds
-        public EnumSimulationRNDSeedsSource GetSourceOfRNGSeedsForRealTimeDecisionMaking()
+        public EnumSimRNDSeedsSource GetSourceOfRNGSeedsForRealTimeDecisionMaking()
         {
-            EnumSimulationRNDSeedsSource simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.StartFrom0;
+            EnumSimRNDSeedsSource simulationRNDSeedsSource = EnumSimRNDSeedsSource.StartFrom0;
             switch (GetCellValue("General Settings", "sourceOfRNGSeedsForRealTimeDecisionMaking").ToString())
             {
                 case "Start from 0":
-                    simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.StartFrom0;
+                    simulationRNDSeedsSource = EnumSimRNDSeedsSource.StartFrom0;
                     break;
                 case "Prespecified Sequence":
-                    simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.PrespecifiedSquence;
+                    simulationRNDSeedsSource = EnumSimRNDSeedsSource.Prespecified;
                     break;
             }
             return simulationRNDSeedsSource;
@@ -791,19 +791,19 @@ namespace APACElib
             return thisDecisionRule;
         }
         // get random seeds
-        public EnumSimulationRNDSeedsSource GetSimulationRNDSeedsSource()
+        public EnumSimRNDSeedsSource GetSimulationRNDSeedsSource()
         {
-            EnumSimulationRNDSeedsSource simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.StartFrom0;
+            EnumSimRNDSeedsSource simulationRNDSeedsSource = EnumSimRNDSeedsSource.StartFrom0;
             switch (GetCellValue("General Settings", "sourceOfRNGSeeds").ToString())
             {
                 case "Start from 0":
-                    simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.StartFrom0;
+                    simulationRNDSeedsSource = EnumSimRNDSeedsSource.StartFrom0;
                     break;
                 case "Prespecified Sequence":
-                    simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.PrespecifiedSquence;
+                    simulationRNDSeedsSource = EnumSimRNDSeedsSource.Prespecified;
                     break;
                 case "Weighted Prespecified Sequence":
-                    simulationRNDSeedsSource = EnumSimulationRNDSeedsSource.WeightedPrespecifiedSquence;
+                    simulationRNDSeedsSource = EnumSimRNDSeedsSource.Weighted;
                     break;
             }
             return simulationRNDSeedsSource;

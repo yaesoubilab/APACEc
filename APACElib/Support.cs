@@ -11,11 +11,11 @@ namespace APACElib
         TimeZero = 1,
         TimeOfFirstObservation = 2,
     }
-    public enum EnumSimulationRNDSeedsSource : int
+    public enum EnumSimRNDSeedsSource : int
     {
         StartFrom0 = 1,
-        PrespecifiedSquence = 2,
-        WeightedPrespecifiedSquence = 3,
+        Prespecified = 2,
+        Weighted = 3,
     }
     public enum enumFeatureCombinations
     {

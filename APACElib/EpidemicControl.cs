@@ -306,11 +306,11 @@ namespace APACElib
     public class ADP
     {
         // ADP stuff
-        double[] _arrSimulationObjectiveFunction;
-        private double[] _arrCurrentValuesOfFeatures = null;
-        private int _adpSimItr; // the index of simulation runs that should be done before doing back-propagation
-        private int[] _adpRndSeeds;
-        Discrete _discreteDistOverSeeds;
+        //double[] _arrSimulationObjectiveFunction;
+        //private double[] _arrCurrentValuesOfFeatures = null;
+        //private int _adpSimItr; // the index of simulation runs that should be done before doing back-propagation
+        //private int[] _adpRndSeeds;
+        //Discrete _discreteDistOverSeeds;
         private bool _storeADPIterationResults;
         private double[][] _arrADPIterationResults;
         public ArrayList Features { get; private set; } = new ArrayList();
@@ -465,8 +465,8 @@ namespace APACElib
             UseEpidemicTimeAsFeature = useEpidemicTimeAsFeature;
             if (UseEpidemicTimeAsFeature)
             {
-                Features.Add(new Feature_EpidemicTime("Epidemic Time", _numOfFeatures));
-                ++_numOfFeatures;
+                Features.Add(new Feature_EpidemicTime("Epidemic Time", 0));
+                //++_numOfFeatures;
             }
 
             //_pastDecisionPeriodWithDecisionAsFeature = Math.Max(1, pastDecisionPeriodWithDecisionAsFeature);
