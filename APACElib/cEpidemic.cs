@@ -18,9 +18,10 @@ namespace APACElib
         public EnumModelUse ModelUse { get; set; } = EnumModelUse.Simulation;
         public bool StoreEpidemicTrajectories { get; set; } = true;
         // model entities
-        public DecisionMaker DecisionMaker { get; private set; }
+        private DecisionMaker _decisionMaker;
+        public DecisionMaker DecisionMaker { get => _decisionMaker; }
         private ParameterManager _paramManager;
-        private ForceOfInfectionModeller _FOI;
+        private ForceOfInfectionModeller _FOIModel;
         private MonitorOfInterventionsInEffect _monitorOfInterventionsInEffect;
         private List<Class> _classes = new List<Class>();
         public List<Class> Classes { get => _classes; }
@@ -62,7 +63,7 @@ namespace APACElib
             _events = new List<Event>();
             SumTrajectories = new List<SumTrajectory>();
             RatioTrajectories = new List<RatioTrajectory>();
-            _FOI.Clean();            
+            _FOIModel.Clean();            
     }
         
         // Simulate one trajectory (parameters will be sampled)
@@ -145,7 +146,7 @@ namespace APACElib
 
                 // advance time  
                 _simTimeIndex += 1;
-                UpdateCurrentEpidemicTimeIndex();
+                UpdateEpiTimeIndex();
 
                 // check if stopping rules are satisfied 
                 if (_epiTimeIndex >= timeIndexToStop || StoppedDueToEradication == true)
@@ -292,23 +293,23 @@ namespace APACElib
             _simTimeIndex = 0;
             TimeIndexOfTheFirstObservation = 0;
             _firstObservationObtained = false;
-            UpdateCurrentEpidemicTimeIndex();
+            UpdateEpiTimeIndex();
 
             // resample parameters 
-            _paramManager.Resample(_rng);
+            _paramManager.SampleAllParameters(ref _rng, 0);
 
             // reset force of infection manager 
-            _FOI.Reset();
+            _FOIModel.Reset();
             
             // update intervention information            
             foreach (Intervention thisIntervention in DecisionMaker.Interventions)
-                thisIntervention.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn = (int)(_paramManager.ParValues[thisIntervention.ParIDDelayToGoIntoEffectOnceTurnedOn] / _set.DeltaT);
+                thisIntervention.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn = (int)(_paramManager.ParameterValues[thisIntervention.ParIDDelayToGoIntoEffectOnceTurnedOn] / _set.DeltaT);
 
             // reset the number of people in each compartment
             _arrNumOfMembersInEachClass = new int[_numOfClasses];
             foreach (Class thisClass in Classes)
             {
-                thisClass.UpdateInitialNumberOfMembers((int)Math.Round(_paramManager.ParValues[thisClass.InitialMemebersParID]));
+                thisClass.UpdateInitialNumberOfMembers((int)Math.Round(_paramManager.ParameterValues[thisClass.InitialMemebersParID]));
                 _arrNumOfMembersInEachClass[thisClass.ID] = thisClass.ClassStat.Prevalence;
             }
 
@@ -326,7 +327,7 @@ namespace APACElib
             _monitorOfInterventionsInEffect.Update(0, true, ref _classes);
 
             // calculate contact matrices
-            CalculateContactMatrices();
+            _FOIModel.CalculateContactMatrices();
 
             // update susceptibility and infectivity of classes
             UpdateSusceptilityAndInfectivityOfClasses(true, true);
@@ -334,13 +335,11 @@ namespace APACElib
             // update rates associated with each class and their initial size
             foreach (Class thisClass in Classes)
             {
-                thisClass.UpdateRatesOfBirthAndEpiIndpEvents(_paramManager.ParValues);
-                thisClass.UpdateProbOfSuccess(_paramManager.ParValues);
+                thisClass.UpdateRatesOfBirthAndEpiIndpEvents(_paramManager.ParameterValues);
+                thisClass.UpdateProbOfSuccess(_paramManager.ParameterValues);
                 thisClass.Reset();
             }
-        }
-
-               
+        }               
 
         // update the effect of change in time dependent parameters
         private void UpdateTheEffectOfChangeInTimeDependentParameterValues(double time)
@@ -392,68 +391,8 @@ namespace APACElib
             //    UpdateTimeDepedentParametersInTheModel();
             //}
         }
-        // update time dependent parameters in the model
-        private void UpdateTimeDepedentParametersInTheModel()
-        {
-            // update transmission dynamic matrix if necessary
-            if (_thereAreTimeDependentParameters_affectingTranmissionDynamics)// || _thereAreTimeDependentParameters)
-            {
-                //CalculateTransmissionMatrix();
-                // update transmission rates
-                //UpdateTransmissionRates();
-            }
-
-            // update event rates if necessary
-            if (_thereAreTimeDependentParameters_affectingNaturalHistoryRates)
-            {
-                // update rates associated with each class and their initial size
-                foreach (Class thisClass in Classes)
-                    thisClass.UpdateRatesOfBirthAndEpiIndpEvents(arrSampledParameterValues);
-            }
-
-            // update value of splitting class parameters
-            if (_thereAreTimeDependentParameters_affectingSplittingClasses)
-            {
-                // update the probability of success
-                foreach (Class thisClass in Classes)
-                    thisClass.UpdateProbOfSuccess(arrSampledParameterValues);
-            }
-        }
-        // calculate contract matrices
-        private void CalculateContactMatrices() //[intervention ID][pathogen ID][group i, group j]
-        {
-            int contactMatrixSize = _baseContactMatrices[0].GetLength(0);
-            int numOfCombinationsOfInterventionsAffectingContactPattern = (int)Math.Pow(2, NumOfInterventionsAffectingContactPattern);
-            _contactMatrices = new double[numOfCombinationsOfInterventionsAffectingContactPattern][][,];
-
-            // build the contact matrices
-            for (int intCombIndex = 0; intCombIndex < numOfCombinationsOfInterventionsAffectingContactPattern; ++intCombIndex)
-            {
-                if (intCombIndex == 0)
-                    _contactMatrices[intCombIndex] = _baseContactMatrices;
-                else
-                {
-                    int[] onOfStatusOfInterventionsAffectingContactPattern = SupportFunctions.ConvertToBase2FromBase10(intCombIndex, NumOfInterventionsAffectingContactPattern);
-                    for (int interventionIndex = 0; interventionIndex < NumOfInterventionsAffectingContactPattern; ++interventionIndex)
-                    {
-                        // initialize contact matrices
-                        _contactMatrices[intCombIndex] = new double[_numOfPathogens][,];
-
-                        if (onOfStatusOfInterventionsAffectingContactPattern[interventionIndex] == 1)
-                        {
-                            for (int pathogenID = 0; pathogenID < _numOfPathogens; pathogenID++)
-                            {
-                                _contactMatrices[intCombIndex][pathogenID] = new double[contactMatrixSize, contactMatrixSize];
-                                for (int i = 0; i < contactMatrixSize; ++i)
-                                    for (int j = 0; j < contactMatrixSize; ++j)
-                                        _contactMatrices[intCombIndex][pathogenID][i, j] = _baseContactMatrices[pathogenID][i, j] +
-                                            _baseContactMatrices[pathogenID][i, j] * arrSampledParameterValues[_percentChangeInContactMatricesParIDs[interventionIndex][pathogenID][i, j]];
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        
+        
         // update susceptibility and infectivity of classes
         private void UpdateSusceptilityAndInfectivityOfClasses(bool updateSusceptibility, bool updateInfectivity)
         {
@@ -531,97 +470,10 @@ namespace APACElib
                 thisRecievingClass.UpdateTransmissionRates(arrTransmissionRatesByPathogen);
             }
         }
-        // calculate transmission matrix
-        private void CalculateTransmissionMatrix()//(int[] nextPeriodActionCombinationInEffect)
-        {
-            int contactMatrixSize = _baseContactMatrices[0].GetLength(0);
-            int numOfCombinationsOfInterventionsAffectingContactPattern = (int)Math.Pow(2, NumOfInterventionsAffectingContactPattern);
+        
 
-            double[][] arrInfectivity = new double[_numOfClasses][];            
-            double[][] arrSusceptibility = new double[_numOfClasses][];
-            int[] arrRowInContactMatrix = new int[_numOfClasses];
-            double[][][,] contactMatrices = new double[numOfCombinationsOfInterventionsAffectingContactPattern][][,];
-            _tranmissionMatrices = new double[numOfCombinationsOfInterventionsAffectingContactPattern][][][];
-
-            // build the contact matrices
-            // for all possible intervention combinations
-            for (int intCombIndex = 0; intCombIndex < numOfCombinationsOfInterventionsAffectingContactPattern; ++intCombIndex)
-            {
-                if (intCombIndex == 0)
-                    contactMatrices[intCombIndex] = _baseContactMatrices;
-                else
-                {
-                    int[] onOfStatusOfInterventionsAffectingContactPattern = SupportFunctions.ConvertToBase2FromBase10(intCombIndex, NumOfInterventionsAffectingContactPattern);
-                    for (int interventionIndex = 0; interventionIndex < NumOfInterventionsAffectingContactPattern; ++interventionIndex)
-                    {
-                        // initialize contact matrices
-                        contactMatrices[intCombIndex] = new double[_numOfPathogens][,];
-
-                        if (onOfStatusOfInterventionsAffectingContactPattern[interventionIndex] == 1)
-                        {
-                            for (int pathogenID = 0; pathogenID < _numOfPathogens; pathogenID++)
-                            {
-                                contactMatrices[intCombIndex][pathogenID] = new double[contactMatrixSize, contactMatrixSize];
-                                for (int i = 0; i < contactMatrixSize; ++i)
-                                    for (int j = 0; j < contactMatrixSize; ++j)
-                                        contactMatrices[intCombIndex][pathogenID][i, j] = _baseContactMatrices[pathogenID][i,j]+
-                                            _baseContactMatrices[pathogenID][i, j] * arrSampledParameterValues[_percentChangeInContactMatricesParIDs[interventionIndex][pathogenID][i, j]];
-                            }
-                        }
-                    }
-                }
-            }
-
-            // get the sample of infectivity and susceptibility of classes                    
-            int classID = 0;
-            foreach (Class thisClass in Classes)
-            {
-                // update the susceptibility and infectivity parameters based on the sampled parameter values
-                //thisClass.UpdateSusceptibilityAndInfectivityParameterValues(_arrSampledParameterValues);
-
-                arrInfectivity[classID] = thisClass.InfectivityValues;
-                arrSusceptibility[classID] = thisClass.SusceptibilityValues;
-                arrRowInContactMatrix[classID] = thisClass.RowIndexInContactMatrix;
-                ++classID;
-            }
-
-            // populate the transmission matrix
-            for (int intCombIndex = 0; intCombIndex < numOfCombinationsOfInterventionsAffectingContactPattern; ++intCombIndex)
-            {
-                _tranmissionMatrices[intCombIndex] = new double[_numOfPathogens][][];
-                for (int pathogenID = 0; pathogenID < _numOfPathogens; pathogenID++)
-                {
-                    _tranmissionMatrices[intCombIndex][pathogenID] = new double[_numOfClasses][];
-                    for (int i = 0; i < _numOfClasses; ++i)
-                    {
-                        if (arrSusceptibility[i].Count() != 0)
-                        {
-                            _tranmissionMatrices[intCombIndex][pathogenID][i] = new double[_numOfClasses];
-                            for (int j = 0; j < _numOfClasses; ++j)
-                            {
-                                if (arrInfectivity[j].Count() != 0)
-                                {
-                                    _tranmissionMatrices[intCombIndex][pathogenID][i][j]
-                                        = arrSusceptibility[i][pathogenID]
-                                            * contactMatrices[intCombIndex][pathogenID][arrRowInContactMatrix[i], arrRowInContactMatrix[j]]
-                                            * arrInfectivity[j][pathogenID];
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        // get ready for another ADP iteration
-        private void GetReadyForAnotherADPIteration(int itr)
-        {
-            // update the epsilon greedy
-            //_decisionMaker.UpdateEpsilonGreedy(itr);
-            // clear ADP state-decision collection      
-            //_POMDP_ADP.ResetForAnotherSimulationRun(_totalCost);
-        }
         // update current epidemic time
-        private void UpdateCurrentEpidemicTimeIndex()
+        private void UpdateEpiTimeIndex()
         {
             switch (_set.MarkOfEpidemicStartTime)
             {
@@ -643,72 +495,7 @@ namespace APACElib
         }
         
         #endregion
-
-        // ********* public subs to set up the model *************
-        #region public subs to set up the model
-        // create the model
-        public void BuildModel(ref ModelSettings modelSettings)
-        {
-            _set = modelSettings;
-
-            DecisionMaker = new DecisionMaker(
-                _set.EpidemicTimeIndexToStartDecisionMaking,
-                _set.NumOfDeltaT_inDecisionInterval);            
-
-            // reset the epidemic
-            Reset();
-            // add parameters
-            AddParameters(modelSettings.ParametersSheet);
-            // add pathogens
-            AddPathogens(modelSettings.PathogenSheet);
-            // add classes
-            AddClasses(modelSettings.ClassesSheet);
-            // add interventions
-            AddInterventions(modelSettings.InterventionSheet);
-            // add resources
-            AddResources(modelSettings.ResourcesSheet);
-            // add events
-            AddEvents(modelSettings.EventSheet);            
-            // add summation statistics
-            AddSummationStatistics(modelSettings.SummationStatisticsSheet);
-            // add ratio statistics
-            AddRatioStatistics(modelSettings.RatioStatisticsSheet);
-            // add connections
-            AddConnections(modelSettings.ConnectionsMatrix);
-            // update contact matrices
-            UpdateContactMatrices();
-            // monitor of interventions in effect
-            _monitorOfInterventionsInEffect = new MonitorOfInterventionsInEffect(ref DecisionMaker);
-            // epidemic history
-            EpidemicHistory = new SimulationTrajectories(0, _set.DeltaT, _set.NumOfDeltaT_inSimulationOutputInterval, ref DecisionMaker, ref Classes, ref _sumTrajectories, ref _ratioTrajectories);
-
-            _areClassesWithEradicationCondition = Classes.Where(s => s.EmptyToEradicate).Count() == 0;
-        }
-        public void UpdateContactMatrices()
-        {
-            _baseContactMatrices = _set.GetBaseContactMatrices();
-            _percentChangeInContactMatricesParIDs = _set.GetPercentChangeInContactMatricesParIDs();
-        }
-
-        // setup dynamic policy related settings
-        public void SetupDynamicPolicySettings
-            (ComputationLib.EnumQFunctionApproximationMethod qFunctionApproximationMethod, bool useEpidemicTimeAsFeature, int degreeOfPolynomialQFunction, double L2RegularizationPenalty)
-        {
-            UseEpidemicTimeAsFeature = useEpidemicTimeAsFeature;
-            if (UseEpidemicTimeAsFeature)
-            {
-                Features.Add(new Feature_EpidemicTime("Epidemic Time", _numOfFeatures));
-                ++_numOfFeatures;
-            }            
-
-            //_pastDecisionPeriodWithDecisionAsFeature = Math.Max(1, pastDecisionPeriodWithDecisionAsFeature);
-            //_decisionsOverPastAndCurrentDecisionPeriods = new int[_pastDecisionPeriodWithDecisionAsFeature + 1];
-            // setup Q-functions
-            SetupPolynomialQFunctions(qFunctionApproximationMethod, degreeOfPolynomialQFunction);
-            // add L2 regularization
-            if (L2RegularizationPenalty > 0) 
-                AddL2Regularization(L2RegularizationPenalty);
-        }
+        
         // setup always on/off and interval-based static policy settings
         public void SetupAlwaysOnOffAndIntervalBasedStaticPolicySettings(int[] interventionsOnOffSwitchStatus, double[] startTimes, int[] numOfDecisionPeriodsToUse)
         {
@@ -735,56 +522,48 @@ namespace APACElib
             //    ((Intervention)_POMDP_ADP.Actions[interventionIDs[i]]).SetupThresholdBasedEmployment   
             //        (thresholds[i], numOfDecisionPeriodsToUseInterventions[i] * _numOfDeltaTsInADecisionInterval);
         }
-        // setup Q-functions with polynomial functions
-        public void SetupPolynomialQFunctions(EnumQFunctionApproximationMethod qFunctionApproximationMethod, int degreeOfPolynomialQFunction)
+
+        // subs to create model
+        #region subs to create model  
+        // create the model
+        public void BuildModel(ref ModelSettings modelSettings)
         {
-            int numOfFeatures = Features.Count;
-            //_decisionMaker.SetUpQFunctionApproximationModel(
-            //    qFunctionApproximationMethod, SimulationLib.enumResponseTransformation.None, 
-            //    numOfFeatures, degreeOfPolynomialQFunction, 2);
+            _set = modelSettings;
+
+            _decisionMaker = new DecisionMaker(
+                _set.EpidemicTimeIndexToStartDecisionMaking,
+                _set.NumOfDeltaT_inDecisionInterval);
+
+            // add parameters
+            AddParameters(modelSettings.ParametersSheet);
+            // add pathogens
+            AddPathogens(modelSettings.PathogenSheet);
+            // add classes
+            AddClasses(modelSettings.ClassesSheet);
+            // add interventions
+            AddInterventions(modelSettings.InterventionSheet);
+            // add resources
+            AddResources(modelSettings.ResourcesSheet);
+            // add events
+            AddEvents(modelSettings.EventSheet);
+            // add summation statistics
+            AddSummationStatistics(modelSettings.SummationStatisticsSheet);
+            // add ratio statistics
+            AddRatioStatistics(modelSettings.RatioStatisticsSheet);
+            // add connections
+            AddConnections(modelSettings.ConnectionsMatrix);
+            // update contact matrices
+            _FOIModel = new ForceOfInfectionModeller(
+                ref _paramManager,
+                _set.GetBaseContactMatrices(),
+                _set.GetPercentChangeInContactMatricesParIDs());
+            // monitor of interventions in effect
+            _monitorOfInterventionsInEffect = new MonitorOfInterventionsInEffect(ref _decisionMaker);
+            // epidemic history
+            EpidemicHistory = new SimulationTrajectories(0, _set.DeltaT, _set.NumOfDeltaT_inSimulationOutputInterval, ref _decisionMaker, ref Classes, ref _sumTrajectories, ref _ratioTrajectories);
+
+            _areClassesWithEradicationCondition = Classes.Where(s => s.EmptyToEradicate).Count() == 0;
         }
-        // add L2 regularization
-        public void AddL2Regularization(double penaltyParameter)
-        {
-            //_decisionMaker.AddL2Regularization(penaltyParameter);
-        }
-        /// <summary>
-        /// update Q-function coefficients 
-        /// </summary>
-        /// <param name="qFunctionCoefficients"> [decisionID][coefficientIndex]</param>
-        public void UpdateQFunctionCoefficients(double[][] qFunctionCoefficients)
-        {
-            double[] arrCoefficients = new double[qFunctionCoefficients.Length * qFunctionCoefficients[0].Length] ;
-
-            // concatenate initial estimates
-            int k= 0;
-            for (int i = 0; i < qFunctionCoefficients.Length; i++)
-                for (int j = 0; j < qFunctionCoefficients[i].Length; j++)
-                    arrCoefficients[k++] = qFunctionCoefficients[i][j];
-
-            //_decisionMaker.UpdateQFunctionCoefficients(arrCoefficients);                  
-        }
-        public void UpdateQFunctionCoefficients(double[] qFunctionCoefficients)
-        {
-            //_decisionMaker.UpdateQFunctionCoefficients(qFunctionCoefficients);
-        }     
-                       
-        // get which interventions are affecting contact pattern
-        public bool[] IfInterventionsAreAffectingContactPattern()
-        {
-            bool[] result = new bool[DecisionMaker.NumOfInterventions];
-
-            foreach (Intervention thisIntervention in DecisionMaker.Interventions)
-                if (thisIntervention.IfAffectingContactPattern)
-                    result[thisIntervention.Index] = true;
-            return result;
-        }
-
-        #endregion
-
-        // private subs to create model
-        #region private subs to create model
-        
         // read parameters
         private void AddParameters(Array parametersSheet)
         {
@@ -1178,7 +957,6 @@ namespace APACElib
             DecisionMaker.UpdateAfterAllInterventionsAdded();
 
         }
-        
         // add resources
         private void AddResources(Array resourcesSheet)
         {
@@ -1276,7 +1054,7 @@ namespace APACElib
             if (resourceRulesSheet == null) return;
 
             // return if there is no resource
-            if (Resources.Count == 0) return;
+            //if (Resources.Count == 0) return;
 
             for (int rowIndex = 1; rowIndex <= resourceRulesSheet.GetLength(0); ++rowIndex)
             {

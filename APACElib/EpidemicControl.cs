@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using RandomVariateLib;
 using ComputationLib;
-using 
 
 namespace APACElib
 {
@@ -459,6 +458,26 @@ namespace APACElib
             //    _rndSeeds = _rndSeeds.Reverse().ToArray();
         }
 
+        // setup dynamic policy related settings
+        public void SetupDynamicPolicySettings
+            (ComputationLib.EnumQFunctionApproximationMethod qFunctionApproximationMethod, bool useEpidemicTimeAsFeature, int degreeOfPolynomialQFunction, double L2RegularizationPenalty)
+        {
+            UseEpidemicTimeAsFeature = useEpidemicTimeAsFeature;
+            if (UseEpidemicTimeAsFeature)
+            {
+                Features.Add(new Feature_EpidemicTime("Epidemic Time", _numOfFeatures));
+                ++_numOfFeatures;
+            }
+
+            //_pastDecisionPeriodWithDecisionAsFeature = Math.Max(1, pastDecisionPeriodWithDecisionAsFeature);
+            //_decisionsOverPastAndCurrentDecisionPeriods = new int[_pastDecisionPeriodWithDecisionAsFeature + 1];
+            // setup Q-functions
+            SetupPolynomialQFunctions(qFunctionApproximationMethod, degreeOfPolynomialQFunction);
+            // add L2 regularization
+            if (L2RegularizationPenalty > 0)
+                AddL2Regularization(L2RegularizationPenalty);
+        }
+
         // get dynamic policy // only one dimensional
         public void GetOptimalDynamicPolicy(ref string featureName, ref double[] headers, ref int[] optimalDecisions,
             int numOfIntervalsToDescretizeFeatures)
@@ -551,6 +570,36 @@ namespace APACElib
                     //    _simDecisionMaker.FindTheOptimalDynamicallyControlledActionCombination(arrFeatureValues));
                 }
             }
+        }
+
+        // setup Q-functions with polynomial functions
+        public void SetupPolynomialQFunctions(EnumQFunctionApproximationMethod qFunctionApproximationMethod, int degreeOfPolynomialQFunction)
+        {
+            // int numOfFeatures = Features.Count;
+            //_decisionMaker.SetUpQFunctionApproximationModel(
+            //    qFunctionApproximationMethod, SimulationLib.enumResponseTransformation.None, 
+            //    numOfFeatures, degreeOfPolynomialQFunction, 2);
+        }
+        // add L2 regularization
+        public void AddL2Regularization(double penaltyParameter)
+        {
+            //_decisionMaker.AddL2Regularization(penaltyParameter);
+        }
+        public void UpdateQFunctionCoefficients(double[][] qFunctionCoefficients)
+        {
+            double[] arrCoefficients = new double[qFunctionCoefficients.Length * qFunctionCoefficients[0].Length];
+
+            // concatenate initial estimates
+            int k = 0;
+            for (int i = 0; i < qFunctionCoefficients.Length; i++)
+                for (int j = 0; j < qFunctionCoefficients[i].Length; j++)
+                    arrCoefficients[k++] = qFunctionCoefficients[i][j];
+
+            //_decisionMaker.UpdateQFunctionCoefficients(arrCoefficients);                  
+        }
+        public void UpdateQFunctionCoefficients(double[] qFunctionCoefficients)
+        {
+            //_decisionMaker.UpdateQFunctionCoefficients(qFunctionCoefficients);
         }
 
         public void Reset()
