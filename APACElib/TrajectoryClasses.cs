@@ -98,7 +98,7 @@ namespace APACElib
         public PrevalenceTimeSeries PrevalenceTimeSeries { get; set; }
         public PrevalenceTimeSeries AccumIncidenceTimeSeries { get; set; }
         // average prevalence
-        public ObservationBasedStatistics AveragePrevalenceStat { get; set; }
+        public ObsBasedStat AveragePrevalenceStat { get; set; }
 
         public GeneralTrajectory(int id, string name, int warmUpSimIndex)
         {
@@ -112,7 +112,7 @@ namespace APACElib
             IfCollectAccumulatedIncidence = collectAccumulatedIncidence;
             IfCalculateAvePrevalence = calculateAvePrevalence;
             if (IfCalculateAvePrevalence)
-                AveragePrevalenceStat = new ObservationBasedStatistics("Average prevalence");
+                AveragePrevalenceStat = new ObsBasedStat("Average prevalence");
         }
 
         public void AddTimeSeries(bool collectIncidence, bool collectPrevalence, bool collectAccumIncidence, int nDeltaTInAPeriod)
@@ -346,7 +346,7 @@ namespace APACElib
         public string Name { get; set; }
         public Boolean DisplayInSimOutput { get; set; }
         public PrevalenceTimeSeries TimeSeries { get; set; }
-        public ObservationBasedStatistics AveragePrevalenceStat { get; set; }
+        public ObsBasedStat AveragePrevalenceStat { get; set; }
 
         public EnumType Type { get; set; }
         int _nominatorSpecialStatID;
@@ -374,7 +374,7 @@ namespace APACElib
             TimeSeries = new PrevalenceTimeSeries(nDeltaTInAPeriod);
             
             if (Type == EnumType.PrevalenceOverPrevalence)
-                AveragePrevalenceStat = new ObservationBasedStatistics("Average prevalence");
+                AveragePrevalenceStat = new ObsBasedStat("Average prevalence");
         }
 
         public void Add(int simIndex, ref List<SumTrajectory> sumTrajectories)

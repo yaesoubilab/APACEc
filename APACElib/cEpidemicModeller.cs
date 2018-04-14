@@ -15,7 +15,7 @@ namespace APACElib
     {
         // Variable Definition 
         public int ID { get; private set; }
-        private ModelSettings _set;
+        private ModelSettings _modelSet;
         private RNDSeedGenerator _seedGenerator;
         private Epidemic _parentEpidemic;
         private List<Epidemic> _epidemics = new List<Epidemic>();
@@ -23,41 +23,38 @@ namespace APACElib
         public ModelInfo ModelInfo { get; private set; }
         public SimSummary SimSummary { get; private set; }
         public Timer Timer { get; private set; }
-
+        public Calibration Calibration { get; set; }
         // simulation setting
         RNG _rng = new RNG(0);
-
-        // calibration
-        public CalibrationOld Calibration { get; set; }
 
         // Instantiation
         public EpidemicModeller(int ID, ref ExcelInterface excelInterface, ref ModelSettings modelSettings)
         {
             this.ID = ID;
-            _set = modelSettings;
+            _modelSet = modelSettings;
 
             // build a parent epidemic model 
             _parentEpidemic = new Epidemic(0);
-            _parentEpidemic.BuildModel(ref _set);
+            _parentEpidemic.BuildModel(ref _modelSet);
 
             // read contact matrices
-            _set.ReadContactMatrices(ref excelInterface, _parentEpidemic.FOIModel.NumOfIntrvnAffectingContacts);
+            _modelSet.ReadContactMatrices(ref excelInterface, _parentEpidemic.FOIModel.NumOfIntrvnAffectingContacts);
 
             // extract model information 
             ModelInfo = new ModelInfo(ref _parentEpidemic);
 
             // if use parallel computing, create a collection of epidemics
-            if (_set.UseParallelComputing)
+            if (_modelSet.UseParallelComputing)
             {
                 // find how many epi model to create
                 int numOfEpis = 0;
-                switch (_set.ModelUse)
+                switch (_modelSet.ModelUse)
                 {
                     case EnumModelUse.Simulation:
-                        numOfEpis = _set.NumOfSimItrs;
+                        numOfEpis = _modelSet.NumOfSimItrs;
                         break;
                     case EnumModelUse.Calibration:
-                        numOfEpis = _set.NumOfSimulationsRunInParallelForCalibration;
+                        numOfEpis = _modelSet.NumOfSimulationsRunInParallelForCalibration;
                         break;
                 }
 
@@ -86,19 +83,19 @@ namespace APACElib
         public void SimulateEpidemics()
         {
             // create a rnd seed generator 
-            _seedGenerator = new RNDSeedGenerator(ref _set, ref _rng);
+            _seedGenerator = new RNDSeedGenerator(ref _modelSet, ref _rng);
             // simulatoin summary
-            SimSummary = new SimSummary(ref _set, ref _parentEpidemic);
+            SimSummary = new SimSummary(ref _modelSet, ref _parentEpidemic);
             SimSummary.Reset();
 
             // simulation time
             Timer.Start();
 
             // use parallel computing? 
-            if (!_set.UseParallelComputing)
+            if (!_modelSet.UseParallelComputing)
             {
                 int seed = 0;
-                for (int simItr = 0; simItr < _set.NumOfSimItrs; ++simItr)
+                for (int simItr = 0; simItr < _modelSet.NumOfSimItrs; ++simItr)
                 {
                     // find the RND seed for this iteration
                     seed = _seedGenerator.FindRNDSeed(simItr);
@@ -106,9 +103,9 @@ namespace APACElib
                     // simulate one epidemic trajectory
                     _parentEpidemic.SimulateTrajectoriesUntilOneAcceptibleFound(
                         seed,
-                        seed + Math.Max(_set.DistanceBtwRNGSeeds, 1),
+                        seed + Math.Max(_modelSet.DistanceBtwRNGSeeds, 1),
                         simItr,
-                        _set.TimeIndexToStop);
+                        _modelSet.TimeIndexToStop);
 
                     // store epidemic trajectories and outcomes
                     SimSummary.Add(_parentEpidemic);
@@ -120,7 +117,7 @@ namespace APACElib
                 Parallel.ForEach(_epidemics, thisEpidemic =>
                 {
                     // build the parent epidemic model
-                    thisEpidemic.BuildModel(ref _set);
+                    thisEpidemic.BuildModel(ref _modelSet);
 
                     // find the RND seed for this iteration
                     seed = _seedGenerator.FindRNDSeed(thisEpidemic.ID);
@@ -128,9 +125,9 @@ namespace APACElib
                     // simulate
                     thisEpidemic.SimulateTrajectoriesUntilOneAcceptibleFound(
                         seed,
-                        seed + Math.Max(_set.DistanceBtwRNGSeeds, 1),
+                        seed + Math.Max(_modelSet.DistanceBtwRNGSeeds, 1),
                         ((Epidemic)thisEpidemic).ID,
-                        _set.TimeIndexToStop);
+                        _modelSet.TimeIndexToStop);
                 });
 
                 // store epidemic trajectories and outcomes
@@ -139,12 +136,13 @@ namespace APACElib
             }
             // simulation run time
             Timer.Stop();
+            SimSummary.TimeToSimulateAllEpidemics = Timer.TimePassed;
         }
         // calibrate
         public void Calibrate(int numOfInitialSimulationRuns, int numOfFittestRunsToReturn)
         {   
-            int calibrationTimeHorizonIndex = _set.TimeIndexToStop;
-            int numOfSimulationsRunInParallelForCalibration = _set.NumOfSimulationsRunInParallelForCalibration;
+            int calibrationTimeHorizonIndex = _modelSet.TimeIndexToStop;
+            int numOfSimulationsRunInParallelForCalibration = _modelSet.NumOfSimulationsRunInParallelForCalibration;
 
             // reset calibration
             Calibration.Reset();
@@ -157,18 +155,15 @@ namespace APACElib
             int parallelLoopIndex = 0;
 
             // computation time
-            int startTime, endTime;
-            startTime = Environment.TickCount;
-            _totalSimulationTimeUsedByCalibration = 0;
-            _numOfTrajectoriesDiscardedByCalibration = 0;
+            Timer.Start();
 
             // build the epidemic models if using parallel computing
-            if (_set.UseParallelComputing)
+            if (_modelSet.UseParallelComputing)
             {
                 Parallel.ForEach(_epidemics, thisEpidemic =>
                 {
                     // build the parent epidemic model
-                    thisEpidemic.BuildModel(ref _set);
+                    thisEpidemic.BuildModel(ref _modelSet);
                 });
             }
 
@@ -176,7 +171,7 @@ namespace APACElib
                 //|| !_calibration.IfAcceptedSimulationRunsAreSymmetricAroundObservations)
             {
                 // use parallel computing? 
-                if (_set.UseParallelComputing == false)
+                if (_modelSet.UseParallelComputing == false)
                 {
                     #region Use sequential computing
                     // increment the simulation iteration
@@ -188,12 +183,11 @@ namespace APACElib
                     //_parentEpidemic.SimulateTrajectoriesUntilOneAcceptibleFound(rndSeedToGetAnAcceptibleEpidemic, int.MaxValue, simItr, calibrationTimeHorizonIndex);
                     _parentEpidemic.SimulateOneTrajectory(rndSeedToGetAnAcceptibleEpidemic, simItr, calibrationTimeHorizonIndex);
 
-                    // calibration time
-                    _totalSimulationTimeUsedByCalibration += _parentEpidemic.Timer.TimePassed;
+                    Calibration.TimeUsed += _parentEpidemic.Timer.TimePassed;
 
                     // find the number of discarded trajectories    
                     if (_parentEpidemic.SeedProducedAcceptibleTraj == -1)
-                        _numOfTrajectoriesDiscardedByCalibration += 1;
+                        ++Calibration.NumOfDiscardedTrajs;
                     else
                     {
                         // add this simulation observations
@@ -201,10 +195,10 @@ namespace APACElib
                         //SupportFunctions.ConvertFromJaggedArrayToRegularArray(_parentEpidemic.CalibrationObservation, _parentEpidemic.NumOfCalibratoinTargets));
                         double[,] mOfObs = SupportFunctions.ConvertFromJaggedArrayToRegularArray(new double[0][], 1);//_parentEpidemic.NumOfCalibratoinTargets);
                         double[] par = new double[0];
-                        Calibration.AddResultOfASimulationRun(simItr, _parentEpidemic.SeedProducedAcceptibleTraj, ref par, ref mOfObs);
+                        //Calibration.AddResultOfASimulationRun(simItr, _parentEpidemic.SeedProducedAcceptibleTraj, ref par, ref mOfObs);
 
                         // find the fit of the stored simulation results
-                        Calibration.FindTheFitOfRecordedSimulationResults(_set.UseParallelComputing);
+                        //Calibration.FindTheFitOfRecordedSimulationResults(_set.UseParallelComputing);
                     }
                     #endregion
                 }
@@ -240,14 +234,14 @@ namespace APACElib
                     {
                         ++ simItrParallel;
                         // simulation time
-                        _totalSimulationTimeUsedByCalibration += thisEpidemic.Timer.TimePassed;
+                        Calibration.TimeUsed += thisEpidemic.Timer.TimePassed;
                         // sim itr
                         simItr = numOfSimulationsRunInParallelForCalibration * parallelLoopIndex + thisEpidemic.ID;
 
                         // find the number of discarded trajectories    
                         //_numOfTrajectoriesDiscardedByCalibration += thisEpidemic.NumOfDiscardedTrajectoriesAmongCalibrationRuns;
                         if (thisEpidemic.SeedProducedAcceptibleTraj == -1)
-                            _numOfTrajectoriesDiscardedByCalibration += 1;
+                            Calibration.NumOfDiscardedTrajs += 1;
                         else
                         {
                             double[,] mOfObs = SupportFunctions.ConvertFromJaggedArrayToRegularArray(new double[0][], 1);// thisEpidemic.NumOfCalibratoinTargets);
@@ -258,7 +252,7 @@ namespace APACElib
                     }
                     
                     // find the fit of the stored simulation results
-                    Calibration.FindTheFitOfRecordedSimulationResults(_set.UseParallelComputing);
+                    //Calibration.FindTheFitOfRecordedSimulationResults(_set.UseParallelComputing);
 
                     // increment the loop id
                     ++parallelLoopIndex;
@@ -268,11 +262,10 @@ namespace APACElib
             }
 
             // find the fittest runs
-            Calibration.FindTheFittestSimulationRuns(numOfFittestRunsToReturn);
+            //Calibration.FindTheFittestSimulationRuns(numOfFittestRunsToReturn);
 
             // computation time
-            endTime = Environment.TickCount;
-            _actualTimeUsedByCalibration = (double)(endTime - startTime) / 1000;
+            Timer.Stop();
 
         }
 
@@ -288,8 +281,7 @@ namespace APACElib
         // change the status of storing epidemic trajectories
         public void ShouldStoreEpidemicTrajectories(bool yesOrNo)
         {
-            _storeEpidemicTrajectories = yesOrNo;
-            if (_set.UseParallelComputing)
+            if (_modelSet.UseParallelComputing)
             {
                 foreach (Epidemic thisEpidemic in _epidemics)
                     thisEpidemic.StoreEpidemicTrajectories = yesOrNo;
@@ -360,7 +352,7 @@ namespace APACElib
         
         public void UpdateQFunctionCoefficients(double[] qFunctionCoefficients)
         {
-            if (_set.UseParallelComputing)
+            if (_modelSet.UseParallelComputing)
             {
                 Parallel.ForEach(_epidemics.Cast<object>(), thisEpidemic =>
                 {
@@ -377,11 +369,11 @@ namespace APACElib
         // set up calibration
         public void SetUpCalibration()
         {
-            Calibration = new CalibrationOld(0);
-            _storeEpidemicTrajectories = false;                        
+            Calibration = new Calibration();
+            ShouldStoreEpidemicTrajectories(false);
 
             // add observations
-            AddObservationsToSetUpCalibration(ref _parentEpidemic, _set.MatrixOfObservationsAndWeights);
+            AddObservationsToSetUpCalibration(ref _parentEpidemic, _modelSet.MatrixOfObservationsAndWeights);
         }
    
         // add observations to set up calibration
@@ -470,8 +462,6 @@ namespace APACElib
             //}
         }
 
-        // ******** Subs to return some information about the model *******
-        #region Subs to return some information about the model
         // get name of special statistics included in calibratoin 
         public string[] GetNamesOfSpecialStatisticsIncludedInCalibratoin()
         {
@@ -488,335 +478,12 @@ namespace APACElib
 
             return names;
         }
-        // get q-function polynomial terms
-        public int[,] GetQFunctionPolynomialTerms()
-        {
-            return new int[0, 0];// _parentEpidemic.SimDecisionMaker.GetQFunctionPolynomialTerms();
-        }
-        #endregion
 
-        // ******** Simulation result subs **********
-        #region Simulation result subs
-        // get simulation iteration outcomes
-        public void GetSimulationIterationOutcomes(ref string[] strIterationOutcomes, ref double[][] arrIterationOutcomes)
-        {
-            // header
-            strIterationOutcomes = new string[4];
-            strIterationOutcomes[0] = "RNG Seed";
-            strIterationOutcomes[1] = "Health Measure";
-            strIterationOutcomes[2] = "Total Cost";
-            strIterationOutcomes[3] = "Annual Cost";
-
-            foreach (ObservationBasedStatistics thisObs in _incidenceStats)
-                SupportFunctions.AddToEndOfArray(ref strIterationOutcomes, thisObs.Name);
-
-            foreach (ObservationBasedStatistics thisObs in _prevalenceStats)
-                SupportFunctions.AddToEndOfArray(ref strIterationOutcomes, thisObs.Name);
-
-            foreach (ObservationBasedStatistics thisObs in _ratioStatistics)
-                SupportFunctions.AddToEndOfArray(ref strIterationOutcomes, thisObs.Name);
-
-            //// headers
-            //for (int j = 0; j < strClassAndSumStatistics.Length; j++)
-            //    strIterationOutcomes[4 + j] = strClassAndSumStatistics[j];
-            //for (int j = 0; j < strRatioStatistics.Length; j++)
-            //    strIterationOutcomes[4 + strClassAndSumStatistics.Length + j] = strRatioStatistics[j];
-
-            // observations
-            arrIterationOutcomes = new double[_arrSimulationQALY.Length][];
-            for (int i = 0; i < _arrSimulationQALY.Length; i++)
-            {
-                arrIterationOutcomes[i] = new double[strIterationOutcomes.Length];
-                arrIterationOutcomes[i][0] = _arrRNGSeeds[i];
-                arrIterationOutcomes[i][1] = _arrSimulationQALY[i];
-                arrIterationOutcomes[i][2] = _arrSimulationCost[i];
-                arrIterationOutcomes[i][3] = _arrSimulationAnnualCost[i];
-            }
-            int colIndex = 0;
-            foreach (ObservationBasedStatistics thisObs in _incidenceStats)
-            {
-                for (int i = 0; i < _arrSimulationQALY.Length; i++)
-                    arrIterationOutcomes[i][4 + colIndex] = thisObs.Observations[i];
-                ++colIndex;
-            }
-            foreach (ObservationBasedStatistics thisObs in _prevalenceStats)
-            {
-                for (int i = 0; i < _arrSimulationQALY.Length; i++)
-                    arrIterationOutcomes[i][4 + colIndex] = thisObs.Observations[i];
-                ++colIndex;
-            }
-            foreach (ObservationBasedStatistics thisObs in _ratioStatistics)
-            {
-                for (int i = 0; i < _arrSimulationQALY.Length; i++)
-                    arrIterationOutcomes[i][4 + colIndex] = thisObs.Observations[i];
-                ++colIndex;
-            }
-        }
-        // get simulation statistics
-        public void GetSimulationStatistics(
-            ref string[] strSummaryStatistics, ref  string[] strClassAndSumStatistics, 
-            ref string[] strRatioStatistics, ref string[] strComputationStatistics, ref string[] strIterationOutcomes,
-            ref double[,] arrSummaryStatistics, ref double[][] arrClassAndSumStatistics, 
-            ref double[][] arrRatioStatistics, ref double[,] arrComputationStatistics, ref double[][] arrIterationOutcomes)
-        {
-            strSummaryStatistics = new string[6];
-            strClassAndSumStatistics = new string[0];
-            strRatioStatistics = new string[0];
-            strComputationStatistics = new string[2];
-
-            arrSummaryStatistics = new double[6, 3];
-            arrClassAndSumStatistics = new double[0][];
-            arrRatioStatistics = new double[0][];
-            arrComputationStatistics = new double[2, 3];
-
-            #region summary statistics
-            strSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.TotalQALY - 1] = "Total discounted health measure";
-            strSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.TotalCost - 1] = "Total discounted cost";
-            strSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.AnnualCost - 1] = "Total annual cost";
-            strSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.NHB - 1] = "Total discounted net health benefit";
-            strSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.NMB - 1] = "Total discounted net monetary benefit";
-            strSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.NumOfSwitches - 1] = "Number of switches between decisions";
-            // Total QALY
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.TotalQALY - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.Mean - 2] = _obsTotalDALY.Mean;
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.TotalQALY - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.StDev - 2] = _obsTotalDALY.StDev;
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.TotalQALY - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.StError - 2] = _obsTotalDALY.StErr;
-            // Total cost
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.TotalCost - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.Mean - 2] = _obsTotalCost.Mean;
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.TotalCost - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.StDev - 2] = _obsTotalCost.StDev;
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.TotalCost - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.StError - 2] = _obsTotalCost.StErr;
-            // Annual cost
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.AnnualCost - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.Mean - 2] = _obsAnnualCost.Mean;
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.AnnualCost - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.StDev - 2] = _obsAnnualCost.StDev;
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.AnnualCost - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.StError - 2] = _obsAnnualCost.StErr;
-            // NHB
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.NHB - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.Mean - 2] = _obsTotalNHB.Mean;
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.NHB - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.StDev - 2] = _obsTotalNHB.StDev;
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.NHB - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.StError - 2] = _obsTotalNHB.StErr;
-            // NMB
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.NMB - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.Mean - 2] = _obsTotalNMB.Mean;
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.NMB - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.StDev - 2] = _obsTotalNMB.StDev;
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.NMB - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.StError - 2] = _obsTotalNMB.StErr;
-            // Number of switches
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.NumOfSwitches - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.Mean - 2] = _obsNumOfSwitchesBtwDecisions.Mean;
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.NumOfSwitches - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.StDev - 2] = _obsNumOfSwitchesBtwDecisions.StDev;
-            arrSummaryStatistics[(int)ExcelInterface.enumSimulationStatisticsRows.NumOfSwitches - 1,
-                (int)ExcelInterface.enumSimulationStatisticsColumns.StError - 2] = _obsNumOfSwitchesBtwDecisions.StErr;
-            #endregion
-
-            #region class and summation statistics
-            foreach (ObservationBasedStatistics thisObs in _incidenceStats)
-            {                
-                // name of this statistics
-                SupportFunctions.AddToEndOfArray(ref strClassAndSumStatistics, thisObs.Name);
-                double[][] thisStatValues = new double[1][];
-                thisStatValues[0] = new double[3];
-                // values of this statistics
-                thisStatValues[0][0] = thisObs.Mean;
-                thisStatValues[0][1] = thisObs.StDev;
-                thisStatValues[0][2] = thisObs.StErr;
-                // concatinate 
-                arrClassAndSumStatistics = SupportFunctions.ConcatJaggedArray(arrClassAndSumStatistics, thisStatValues);
-            }
-
-            foreach (ObservationBasedStatistics thisObs in _prevalenceStats)
-            {
-                // name of this statistics
-                SupportFunctions.AddToEndOfArray(ref strClassAndSumStatistics, thisObs.Name);
-                double[][] thisStatValues = new double[1][];
-                thisStatValues[0] = new double[3];
-                // values of this statistics
-                thisStatValues[0][0] = thisObs.Mean;
-                thisStatValues[0][1] = thisObs.StDev;
-                thisStatValues[0][2] = thisObs.StErr;
-                // concatinate 
-                arrClassAndSumStatistics = SupportFunctions.ConcatJaggedArray(arrClassAndSumStatistics, thisStatValues);
-            }
-            #endregion
-
-            #region ratio statistics
-            foreach (ObservationBasedStatistics thisObs in _ratioStatistics)
-            {
-                // name of this statistics
-                SupportFunctions.AddToEndOfArray(ref strRatioStatistics, thisObs.Name);
-                double[][] thisStatValues = new double[1][];
-                thisStatValues[0] = new double[3];
-                // values of this statistics
-                thisStatValues[0][0] = thisObs.Mean;
-                thisStatValues[0][1] = thisObs.StDev;
-                thisStatValues[0][2] = thisObs.StErr;
-                // concatinate 
-                arrRatioStatistics = SupportFunctions.ConcatJaggedArray(arrRatioStatistics, thisStatValues);
-            }
-            #endregion
-
-            #region simulation iteration outcomes
-            GetSimulationIterationOutcomes(ref strIterationOutcomes, ref arrIterationOutcomes);
-            #endregion
-
-            #region computation statistics
-            strComputationStatistics[0] = "Total simulation time (seconds)";
-            strComputationStatistics[1] = "Simulation time of one trajectory (seconds)";
-            arrComputationStatistics[0, 0] = _actualTimeUsedToSimulateAllTrajectories;
-            arrComputationStatistics[1, 0] = _obsTimeUsedToSimulateATrajectory.Mean;
-            arrComputationStatistics[1, 1] = _obsTimeUsedToSimulateATrajectory.StDev;
-            arrComputationStatistics[1, 2] = _obsTimeUsedToSimulateATrajectory.StErr;
-
-            #endregion            
-        }
-        // get objective function mean
-        public double GetObjectiveFunction_Mean(EnumObjectiveFunction objectiveFunction)
-        {
-            double mean = 0;
-            switch (objectiveFunction)
-            {
-                case EnumObjectiveFunction.MaximizeNHB:
-                    mean = _obsTotalNHB.Mean;
-                    break;
-                case EnumObjectiveFunction.MaximizeNMB:
-                    mean = _obsTotalNMB.Mean;
-                    break;
-            }
-            return mean;
-        }
-        public double GetObjectiveFunction_Mean(EnumObjectiveFunction objectiveFunction, double wtpForHealth)
-        {
-            double mean = 0;
-            switch (objectiveFunction)
-            {
-                case EnumObjectiveFunction.MaximizeNHB:
-                    mean = _obsTotalDALY.Mean - _obsTotalCost.Mean / wtpForHealth;
-                    break;
-                case EnumObjectiveFunction.MaximizeNMB:
-                    mean = wtpForHealth * _obsTotalDALY.Mean - _obsTotalCost.Mean;
-                    break;
-            }
-            return mean;
-        }
-        // get objective function StDev
-        public double GetObjectiveFunction_StDev(EnumObjectiveFunction objectiveFunction)
-        {
-            double mean = 0;
-            switch (objectiveFunction)
-            {
-                case EnumObjectiveFunction.MaximizeNHB:
-                    mean = _obsTotalNHB.StDev;
-                    break;
-                case EnumObjectiveFunction.MaximizeNMB:
-                    mean = _obsTotalNMB.StDev;
-                    break;
-            }
-            return mean;
-        }
-        public double GetObjectiveFunction_StDev(EnumObjectiveFunction objectiveFunction, double wtpForHealth)
-        {
-            double mean = 0;
-            switch (objectiveFunction)
-            {
-                case EnumObjectiveFunction.MaximizeNHB:
-                    mean = _obsTotalDALY.StDev + _obsTotalCost.StDev / wtpForHealth;
-                    break;
-                case EnumObjectiveFunction.MaximizeNMB:
-                    mean = wtpForHealth * _obsTotalDALY.StDev + _obsTotalCost.StDev;
-                    break;
-            }
-            return mean;
-        }
-        // get lower bound of objective function
-        public double GetObjectiveFunction_LowerBound(EnumObjectiveFunction objectiveFunction, double significanceLevel)
-        {
-            double lowerBound = 0;
-            switch (objectiveFunction)
-            {
-                case EnumObjectiveFunction.MaximizeNHB:
-                    lowerBound = _obsTotalNHB.LBoundConfidenceInterval(significanceLevel);
-                    break;
-                case EnumObjectiveFunction.MaximizeNMB:
-                    lowerBound = _obsTotalNMB.LBoundConfidenceInterval(significanceLevel);
-                    break;
-            }
-            return lowerBound;
-        }
-        public double GetObjectiveFunction_LowerBound(EnumObjectiveFunction objectiveFunction, double wtpForHealth, double significanceLevel)
-        {
-            double lowerBound = 0;
-            switch (objectiveFunction)
-            {
-                case EnumObjectiveFunction.MaximizeNHB:
-                    lowerBound = _obsTotalDALY.Mean - _obsTotalCost.Mean / wtpForHealth
-                        - (_obsTotalDALY.HalfWidth(significanceLevel) + _obsTotalCost.HalfWidth(significanceLevel) / wtpForHealth);
-                    break;
-                case EnumObjectiveFunction.MaximizeNMB:
-                    lowerBound = wtpForHealth*_obsTotalDALY.Mean - _obsTotalCost.Mean
-                        - (wtpForHealth * _obsTotalDALY.HalfWidth(significanceLevel) + _obsTotalCost.HalfWidth(significanceLevel));
-                    break;
-            }
-            return lowerBound;
-        }
-        // get upper bound of objective function
-        public double GetObjectiveFunction_UpperBound(EnumObjectiveFunction objectiveFunction, double significanceLevel)
-        {
-            double upperBound = 0;
-            switch (objectiveFunction)
-            {
-                case EnumObjectiveFunction.MaximizeNHB:
-                    upperBound = _obsTotalNHB.UBoundConfidenceInterval(significanceLevel);
-                    break;
-                case EnumObjectiveFunction.MaximizeNMB:
-                    upperBound = _obsTotalNMB.UBoundConfidenceInterval(significanceLevel);
-                    break;
-            }
-            return upperBound;
-        }
-        public double GetObjectiveFunction_UpperBound(EnumObjectiveFunction objectiveFunction, double wtpForHealth, double significanceLevel)
-        {
-            double upperBound = 0;
-            switch (objectiveFunction)
-            {
-                case EnumObjectiveFunction.MaximizeNHB:
-                    upperBound = _obsTotalDALY.Mean - _obsTotalCost.Mean / wtpForHealth
-                        + (_obsTotalDALY.HalfWidth(significanceLevel) + _obsTotalCost.HalfWidth(significanceLevel) / wtpForHealth);
-                    break;
-                case EnumObjectiveFunction.MaximizeNMB:
-                    upperBound = wtpForHealth * _obsTotalDALY.Mean - _obsTotalCost.Mean
-                        + (wtpForHealth * _obsTotalDALY.HalfWidth(significanceLevel) + _obsTotalCost.HalfWidth(significanceLevel));
-                    break;
-            }
-            return upperBound;
-        }
-        #endregion
-
-         // ********  Private Subs ******** 
-        #region Private Subs
-        // initialize simulation
-        private void InitializeSimulation()
-        {    
-                      
-        }
-               
-        
         // toggle modeller to different operation
         public void ToggleModellerTo(EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool reportEpidemicTrajectories)
         {
-            _storeEpidemicTrajectories = reportEpidemicTrajectories;            
             // toggle each epidemic
-            if (_set.UseParallelComputing)
+            if (_modelSet.UseParallelComputing)
                 foreach (Epidemic thisEpidemic in _epidemics)
                     ToggleAnEpidemicTo(thisEpidemic, modelUse, decisionRule, reportEpidemicTrajectories);
             else
@@ -834,13 +501,13 @@ namespace APACElib
                 case EnumModelUse.Simulation:
                     {                        
                         if (decisionRule == EnumEpiDecisions.PredeterminedSequence)
-                            thisEpidemic.DecisionMaker.AddPrespecifiedDecisionsOverDecisionsPeriods(_set.PrespecifiedSequenceOfInterventions);
+                            thisEpidemic.DecisionMaker.AddPrespecifiedDecisionsOverDecisionsPeriods(_modelSet.PrespecifiedSequenceOfInterventions);
                     }
                     break;
                 case EnumModelUse.Calibration:
                     #region Calibration
                     {
-                        thisEpidemic.DecisionMaker.AddPrespecifiedDecisionsOverDecisionsPeriods(_set.PrespecifiedSequenceOfInterventions);
+                        thisEpidemic.DecisionMaker.AddPrespecifiedDecisionsOverDecisionsPeriods(_modelSet.PrespecifiedSequenceOfInterventions);
                     }
                     break;
                     #endregion
@@ -851,8 +518,6 @@ namespace APACElib
                     break;
             }
         }
-
-        #endregion
     }
 
     public class SimSummary
@@ -867,23 +532,26 @@ namespace APACElib
         public double[][] SimPrevalenceOutputs;
 
         // simulation statistics collection
-        public List<ObservationBasedStatistics> IncidenceStats { get; private set; } = new List<ObservationBasedStatistics>();
-        public List<ObservationBasedStatistics> PrevalenceStats { get; private set; } = new List<ObservationBasedStatistics>();
-        public List<ObservationBasedStatistics> RatioStats { get; private set; } = new List<ObservationBasedStatistics>();
-        public List<ObservationBasedStatistics> ComputationStats { get; private set; } = new List<ObservationBasedStatistics>();
+        public List<ObsBasedStat> IncidenceStats { get; private set; } = new List<ObsBasedStat>();
+        public List<ObsBasedStat> PrevalenceStats { get; private set; } = new List<ObsBasedStat>();
+        public List<ObsBasedStat> RatioStats { get; private set; } = new List<ObsBasedStat>();
+        public List<ObsBasedStat> ComputationStats { get; private set; } = new List<ObsBasedStat>();
 
         public double[] Costs;
         public double[] AnnualCosts;
         public double[] DALYs;
         public double[] NMBs;
         public double[] NHBs;
-        public ObservationBasedStatistics CostStat { get; private set; } = new ObservationBasedStatistics("Total cost");
-        public ObservationBasedStatistics AnnualCostStat { get; private set; } = new ObservationBasedStatistics("Annual cost");
-        public ObservationBasedStatistics DALYStat { get; private set; } = new ObservationBasedStatistics("Total DALY");
-        public ObservationBasedStatistics NMBStat { get; private set; } = new ObservationBasedStatistics("Total NMB");
-        public ObservationBasedStatistics NHBStat { get; private set; } = new ObservationBasedStatistics("Total NHB");
-        public ObservationBasedStatistics TimeStat { get; private set; } = new ObservationBasedStatistics("Time used to simulate a trajectory");
-        
+        public ObsBasedStat CostStat { get; private set; } = new ObsBasedStat("Total cost");
+        public ObsBasedStat AnnualCostStat { get; private set; } = new ObsBasedStat("Annual cost");
+        public ObsBasedStat DALYStat { get; private set; } = new ObsBasedStat("Total DALY");
+        public ObsBasedStat NMBStat { get; private set; } = new ObsBasedStat("Total NMB");
+        public ObsBasedStat NHBStat { get; private set; } = new ObsBasedStat("Total NHB");
+        public ObsBasedStat NumSwitchesStat { get; private set; } = new ObsBasedStat("Number of decision switched");
+        public ObsBasedStat TimeStat { get; private set; } = new ObsBasedStat("Time used to simulate a trajectory");
+        public double TimeToSimulateAllEpidemics { get; set; } = 0;
+
+
         public SimSummary(ref ModelSettings settings, ref Epidemic parentEpidemic)
         {
             _set = settings;
@@ -895,21 +563,21 @@ namespace APACElib
 
             foreach (Class thisClass in parentEpidemic.Classes.Where(c=>c.ShowStatisticsInSimulationResults))
             {
-                IncidenceStats.Add(new ObservationBasedStatistics("Total New: " + thisClass.Name, _nSim));
+                IncidenceStats.Add(new ObsBasedStat("Total New: " + thisClass.Name, _nSim));
                 if (thisClass is Class_Normal)
-                    PrevalenceStats.Add(new ObservationBasedStatistics("Average Size: " + thisClass.Name, _nSim));
+                    PrevalenceStats.Add(new ObsBasedStat("Average Size: " + thisClass.Name, _nSim));
             }
             foreach (SumTrajectory thisSumTraj in parentEpidemic.SumTrajectories)
             {
                 // incidence stats
                 if (thisSumTraj.Type == SumTrajectory.EnumType.Incidence || thisSumTraj.Type == SumTrajectory.EnumType.AccumulatingIncident)
-                    IncidenceStats.Add(new ObservationBasedStatistics("Total: " + thisSumTraj.Name, _nSim));
+                    IncidenceStats.Add(new ObsBasedStat("Total: " + thisSumTraj.Name, _nSim));
                 // prevalence stats
                 else if (thisSumTraj.Type == SumTrajectory.EnumType.Prevalence)
-                    PrevalenceStats.Add(new ObservationBasedStatistics("Averge size: " + thisSumTraj.Name, _nSim));
+                    PrevalenceStats.Add(new ObsBasedStat("Averge size: " + thisSumTraj.Name, _nSim));
             }
             foreach (RatioTrajectory thisRatioTaj in parentEpidemic.RatioTrajectories)
-                RatioStats.Add(new ObservationBasedStatistics("Average ratio: " + thisRatioTaj.Name, _nSim));
+                RatioStats.Add(new ObsBasedStat("Average ratio: " + thisRatioTaj.Name, _nSim));
 
             // reset the jagged array containing trajectories
             InterventionsCombinations = new int[0][];
@@ -993,6 +661,136 @@ namespace APACElib
                 (int)(_set.TimeIndexToStop * _set.DeltaT));
         }
 
+        // get simulation iteration outcomes
+        public void GetIndvEpidemicOutcomes(ref string[] strIterationOutcomes, ref double[][] arrIterationOutcomes)
+        {
+            // header
+            strIterationOutcomes = new string[4];
+            strIterationOutcomes[0] = "RNG Seed";
+            strIterationOutcomes[1] = "DALY";
+            strIterationOutcomes[2] = "Total Cost";
+            strIterationOutcomes[3] = "Annual Cost";
+
+            foreach (ObsBasedStat thisObs in IncidenceStats)
+                SupportFunctions.AddToEndOfArray(ref strIterationOutcomes, thisObs.Name);
+
+            foreach (ObsBasedStat thisObs in PrevalenceStats)
+                SupportFunctions.AddToEndOfArray(ref strIterationOutcomes, thisObs.Name);
+
+            foreach (ObsBasedStat thisObs in RatioStats)
+                SupportFunctions.AddToEndOfArray(ref strIterationOutcomes, thisObs.Name);
+
+            // individual observations 
+            arrIterationOutcomes = new double[_nSim][];
+            for (int i = 0; i < _nSim; i++)
+            {
+                arrIterationOutcomes[i] = new double[strIterationOutcomes.Length];
+                arrIterationOutcomes[i][0] = RNDSeeds[i];
+                arrIterationOutcomes[i][1] = DALYs[i];
+                arrIterationOutcomes[i][2] = Costs[i];
+                arrIterationOutcomes[i][3] = AnnualCosts[i];
+            }
+            int colIndex = 0;
+            foreach (ObsBasedStat thisObs in IncidenceStats)
+            {
+                for (int i = 0; i < _nSim; i++)
+                    arrIterationOutcomes[i][4 + colIndex] = thisObs.Observations[i];
+                ++colIndex;
+            }
+            foreach (ObsBasedStat thisObs in PrevalenceStats)
+            {
+                for (int i = 0; i < _nSim; i++)
+                    arrIterationOutcomes[i][4 + colIndex] = thisObs.Observations[i];
+                ++colIndex;
+            }
+            foreach (ObsBasedStat thisObs in RatioStats)
+            {
+                for (int i = 0; i < _nSim; i++)
+                    arrIterationOutcomes[i][4 + colIndex] = thisObs.Observations[i];
+                ++colIndex;
+            }
+        }
+
+        // get summary outcomes
+        public void GetSummaryOutcomes(
+            ref string[] strSummaryStatistics, 
+            ref string[] strClassAndSumStatistics,
+            ref string[] strRatioStatistics, 
+            ref string[] strComputationStatistics, 
+            ref string[] strIterationOutcomes,
+            ref double[][] arrSummaryStatistics, 
+            ref double[][] arrClassAndSumStatistics,
+            ref double[][] arrRatioStatistics, 
+            ref double[,] arrComputationStatistics, 
+            ref double[][] arrIterationOutcomes)
+        {
+            strSummaryStatistics = new string[6];
+            strClassAndSumStatistics = new string[0];
+            strRatioStatistics = new string[0];
+            strComputationStatistics = new string[2];
+
+            arrSummaryStatistics = new double[5][];
+            arrClassAndSumStatistics = new double[0][];
+            arrRatioStatistics = new double[0][];
+            arrComputationStatistics = new double[2, 3];
+
+            #region summary statistics
+            strSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.TotalDALY - 1] = "Total discounted health measure";
+            strSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.TotalCost - 1] = "Total discounted cost";
+            strSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.AnnualCost - 1] = "Total annual cost";
+            strSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.NHB - 1] = "Total discounted net health benefit";
+            strSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.NMB - 1] = "Total discounted net monetary benefit";
+            strSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.NumOfSwitches - 1] = "Number of switches between decisions";
+            // Total DALY
+            arrSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.TotalDALY - 1] = DALYStat.GetMeanStDevStErr();
+            // Total cost
+            arrSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.TotalCost - 1] = CostStat.GetMeanStDevStErr();
+            arrSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.AnnualCost - 1] = AnnualCostStat.GetMeanStDevStErr();
+            // NHB and NMB
+            arrSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.NHB - 1] = NHBStat.GetMeanStDevStErr();
+            arrSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.NMB - 1] = NMBStat.GetMeanStDevStErr();
+            // Number of switches
+            arrSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.NumOfSwitches - 1] = NumSwitchesStat.GetMeanStDevStErr();
+            #endregion
+
+            foreach (ObsBasedStat thisObs in IncidenceStats)
+            {
+                // name of this statistics
+                SupportFunctions.AddToEndOfArray(ref strClassAndSumStatistics, thisObs.Name);
+                double[][] thisStatValues = new double[1][];
+                thisStatValues[0] = thisObs.GetMeanStDevStErr();
+                // concatinate 
+                arrClassAndSumStatistics = SupportFunctions.ConcatJaggedArray(arrClassAndSumStatistics, thisStatValues);
+            }
+            foreach (ObsBasedStat thisObs in PrevalenceStats)
+            {
+                // name of this statistics
+                SupportFunctions.AddToEndOfArray(ref strClassAndSumStatistics, thisObs.Name);
+                double[][] thisStatValues = new double[1][];
+                thisStatValues[0] = thisObs.GetMeanStDevStErr();
+                // concatinate 
+                arrClassAndSumStatistics = SupportFunctions.ConcatJaggedArray(arrClassAndSumStatistics, thisStatValues);
+            }
+            foreach (ObsBasedStat thisObs in RatioStats)
+            {
+                // name of this statistics
+                SupportFunctions.AddToEndOfArray(ref strRatioStatistics, thisObs.Name);
+                double[][] thisStatValues = new double[1][];
+                thisStatValues[0] = thisObs.GetMeanStDevStErr();
+                // concatinate 
+                arrRatioStatistics = SupportFunctions.ConcatJaggedArray(arrRatioStatistics, thisStatValues);
+            }
+
+            GetIndvEpidemicOutcomes(ref strIterationOutcomes, ref arrIterationOutcomes);
+
+            strComputationStatistics[0] = "Total simulation time (seconds)";
+            strComputationStatistics[1] = "Simulation time of one trajectory (seconds)";
+            arrComputationStatistics[0, 0] = TimeToSimulateAllEpidemics;
+            arrComputationStatistics[1, 0] = TimeStat.Mean;
+            arrComputationStatistics[1, 1] = TimeStat.StDev;
+            arrComputationStatistics[1, 2] = TimeStat.StErr;
+        }
+
         public void Reset()
         {
             SimItrs = new int[_nSim];
@@ -1003,13 +801,13 @@ namespace APACElib
             SimPrevalenceOutputs = new double[_nSim][];
 
             // reset simulation statistics
-            foreach (ObservationBasedStatistics thisObsStat in IncidenceStats)
+            foreach (ObsBasedStat thisObsStat in IncidenceStats)
                 thisObsStat.Reset();
-            foreach (ObservationBasedStatistics thisObsStat in PrevalenceStats)
+            foreach (ObsBasedStat thisObsStat in PrevalenceStats)
                 thisObsStat.Reset();
-            foreach (ObservationBasedStatistics thisObsStat in RatioStats)
+            foreach (ObsBasedStat thisObsStat in RatioStats)
                 thisObsStat.Reset();
-            foreach (ObservationBasedStatistics thisObsStat in ComputationStats)
+            foreach (ObsBasedStat thisObsStat in ComputationStats)
                 thisObsStat.Reset();
 
             Costs = new double[_nSim];

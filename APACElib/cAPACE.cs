@@ -26,21 +26,21 @@ namespace APACElib
 
         // computation time
         private double _actualTimeUsedToFindAllDynamicPolicies; // considering several ADP parameter designs
-        private ObservationBasedStatistics _obsTotalSimulationTimeToEvaluateOneStaticPolicy = new ObservationBasedStatistics("");
-        private ObservationBasedStatistics _obsTimeUsedToFindOneStaticPolicy = new ObservationBasedStatistics("");
-        private ObservationBasedStatistics _obsRatioOfTimeUsedToFindOneStaticPolicyToTotalSimulationTimeToEvaluateOneStaticPolicy = new ObservationBasedStatistics("");
-        private ObservationBasedStatistics _obsTotalSimulationTimeToFindOneDynamicPolicy = new ObservationBasedStatistics("");
-        private ObservationBasedStatistics _obsTimeUsedToFindOneDynamicPolicy = new ObservationBasedStatistics("");
-        private ObservationBasedStatistics _obsRatioOfTimeUsedToFindOneDynamicPolicyToTotalSimulationTimeToFindOneDynamicPolicy = new ObservationBasedStatistics("");
+        private ObsBasedStat _obsTotalSimulationTimeToEvaluateOneStaticPolicy = new ObsBasedStat("");
+        private ObsBasedStat _obsTimeUsedToFindOneStaticPolicy = new ObsBasedStat("");
+        private ObsBasedStat _obsRatioOfTimeUsedToFindOneStaticPolicyToTotalSimulationTimeToEvaluateOneStaticPolicy = new ObsBasedStat("");
+        private ObsBasedStat _obsTotalSimulationTimeToFindOneDynamicPolicy = new ObsBasedStat("");
+        private ObsBasedStat _obsTimeUsedToFindOneDynamicPolicy = new ObsBasedStat("");
+        private ObsBasedStat _obsRatioOfTimeUsedToFindOneDynamicPolicyToTotalSimulationTimeToFindOneDynamicPolicy = new ObsBasedStat("");
 
-        private ObservationBasedStatistics _obsRealTimeSimulation_staticOptimization_totalCalibrationTime = new ObservationBasedStatistics("");
-        private ObservationBasedStatistics _obsRealTimeSimulation_staticOptimization_totalOptimizationTime = new ObservationBasedStatistics("");
-        private ObservationBasedStatistics _obsRealTimeSimulation_staticOptimization_totalCalibrationTimeOverAverageSimulationTime = new ObservationBasedStatistics("");
-        private ObservationBasedStatistics _obsRealTimeSimulation_staticOptimization_totalOptimizationTimeOverAverageSimulationTime = new ObservationBasedStatistics("");        
-        private ObservationBasedStatistics _obsRealTimeSimulation_dynamicOptimization_totalCalibrationTime = new ObservationBasedStatistics("");
-        private ObservationBasedStatistics _obsRealTimeSimulation_dynamicOptimization_totalOptimizationTime = new ObservationBasedStatistics("");
-        private ObservationBasedStatistics _obsRealTimeSimulation_dynamicOptimization_totalCalibrationTimeOverAverageSimulationTime = new ObservationBasedStatistics("");
-        private ObservationBasedStatistics _obsRealTimeSimulation_dynamicOptimization_totalOptimizationTimeOverAverageSimulationTime = new ObservationBasedStatistics("");
+        private ObsBasedStat _obsRealTimeSimulation_staticOptimization_totalCalibrationTime = new ObsBasedStat("");
+        private ObsBasedStat _obsRealTimeSimulation_staticOptimization_totalOptimizationTime = new ObsBasedStat("");
+        private ObsBasedStat _obsRealTimeSimulation_staticOptimization_totalCalibrationTimeOverAverageSimulationTime = new ObsBasedStat("");
+        private ObsBasedStat _obsRealTimeSimulation_staticOptimization_totalOptimizationTimeOverAverageSimulationTime = new ObsBasedStat("");        
+        private ObsBasedStat _obsRealTimeSimulation_dynamicOptimization_totalCalibrationTime = new ObsBasedStat("");
+        private ObsBasedStat _obsRealTimeSimulation_dynamicOptimization_totalOptimizationTime = new ObsBasedStat("");
+        private ObsBasedStat _obsRealTimeSimulation_dynamicOptimization_totalCalibrationTimeOverAverageSimulationTime = new ObsBasedStat("");
+        private ObsBasedStat _obsRealTimeSimulation_dynamicOptimization_totalOptimizationTimeOverAverageSimulationTime = new ObsBasedStat("");
         #endregion
 
         const int NumOfNelderMeanSearchIterations = 200;

@@ -186,9 +186,9 @@ namespace APACElib
             StDev = 3,
             StError = 4,
         }
-        public enum enumSimulationStatisticsRows : int
+        public enum EnumSimStatsRows : int
         {
-            TotalQALY = 1,
+            TotalDALY = 1,
             TotalCost = 2,
             AnnualCost = 3,
             NHB = 4,
@@ -1148,22 +1148,22 @@ namespace APACElib
                 rowIndex + strSummaryStatistics.Length, (int)enumSimulationStatisticsColumns.StError + 1, 
                 enumAlignment.Center);
             base.FormatNumber(
-                rowIndex + (int)enumSimulationStatisticsRows.TotalQALY - 1, (int)enumSimulationStatisticsColumns.Mean, ExcelInteractor.enumRangeDirection.RightEnd, 
+                rowIndex + (int)EnumSimStatsRows.TotalDALY - 1, (int)enumSimulationStatisticsColumns.Mean, ExcelInteractor.enumRangeDirection.RightEnd, 
                 "#,##0");
             base.FormatNumber(
-                rowIndex + (int)enumSimulationStatisticsRows.TotalCost - 1, (int)enumSimulationStatisticsColumns.Mean, ExcelInteractor.enumRangeDirection.RightEnd, 
+                rowIndex + (int)EnumSimStatsRows.TotalCost - 1, (int)enumSimulationStatisticsColumns.Mean, ExcelInteractor.enumRangeDirection.RightEnd, 
                 "$#,##0");
             base.FormatNumber(
-                rowIndex + (int)enumSimulationStatisticsRows.AnnualCost - 1, (int)enumSimulationStatisticsColumns.Mean, ExcelInteractor.enumRangeDirection.RightEnd, 
+                rowIndex + (int)EnumSimStatsRows.AnnualCost - 1, (int)enumSimulationStatisticsColumns.Mean, ExcelInteractor.enumRangeDirection.RightEnd, 
                 "$#,##0");
             base.FormatNumber(
-                rowIndex + (int)enumSimulationStatisticsRows.NHB - 1, (int)enumSimulationStatisticsColumns.Mean, ExcelInteractor.enumRangeDirection.RightEnd, 
+                rowIndex + (int)EnumSimStatsRows.NHB - 1, (int)enumSimulationStatisticsColumns.Mean, ExcelInteractor.enumRangeDirection.RightEnd, 
                 "#,##0");
             base.FormatNumber(
-                rowIndex + (int)enumSimulationStatisticsRows.NMB - 1, (int)enumSimulationStatisticsColumns.Mean, ExcelInteractor.enumRangeDirection.RightEnd, 
+                rowIndex + (int)EnumSimStatsRows.NMB - 1, (int)enumSimulationStatisticsColumns.Mean, ExcelInteractor.enumRangeDirection.RightEnd, 
                 "$#,##0");
             base.FormatNumber(
-                rowIndex + (int)enumSimulationStatisticsRows.NumOfSwitches - 1, (int)enumSimulationStatisticsColumns.Mean, ExcelInteractor.enumRangeDirection.RightEnd, 
+                rowIndex + (int)EnumSimStatsRows.NumOfSwitches - 1, (int)enumSimulationStatisticsColumns.Mean, ExcelInteractor.enumRangeDirection.RightEnd, 
                 "#,##0.0");
 
             // report class and summation statistics
