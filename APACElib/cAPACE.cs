@@ -955,16 +955,18 @@ namespace APACElib
 
                     if (_modelSettings.ObjectiveFunction == EnumObjectiveFunction.MaximizeNHB)
                         thisSimulationIterations[simItr][(int)ExcelInterface.enumStaticPolicyOptimizationSimulationIterationsOffsets.objectiveFunction]
-                            = thisEpiModeller.SimulationIterations_QALY[simItr] - thisEpiModeller.SimulationIterations_Cost[simItr] / Math.Max(thisWTPForHealth, SupportProcedures.minimumWTPforHealth);
+                            = -thisEpiModeller.SimSummary.DALYs[simItr] 
+                            - thisEpiModeller.SimSummary.Costs[simItr] / Math.Max(thisWTPForHealth, SupportProcedures.minimumWTPforHealth);
                     else
                         thisSimulationIterations[simItr][(int)ExcelInterface.enumStaticPolicyOptimizationSimulationIterationsOffsets.objectiveFunction]
-                            = thisWTPForHealth * thisEpiModeller.SimulationIterations_QALY[simItr] - thisEpiModeller.SimulationIterations_Cost[simItr];
+                            = -thisWTPForHealth * thisEpiModeller.SimSummary.DALYs[simItr] 
+                            - thisEpiModeller.SimSummary.Costs[simItr];
                     thisSimulationIterations[simItr][(int)ExcelInterface.enumStaticPolicyOptimizationSimulationIterationsOffsets.health]
-                        = thisEpiModeller.SimulationIterations_QALY[simItr];
+                        = thisEpiModeller.SimSummary.DALYs[simItr];
                     thisSimulationIterations[simItr][(int)ExcelInterface.enumStaticPolicyOptimizationSimulationIterationsOffsets.cost]
-                        = thisEpiModeller.SimulationIterations_Cost[simItr];
+                        = thisEpiModeller.SimSummary.Costs[simItr];
                     thisSimulationIterations[simItr][(int)ExcelInterface.enumStaticPolicyOptimizationSimulationIterationsOffsets.annualCost]
-                        = thisEpiModeller.SimulationIterations_AnnualCost[simItr];
+                        = thisEpiModeller.SimSummary.AnnualCosts[simItr];
                 }
                 // concatenate
                 simulationIterations = SupportFunctions.ConcatJaggedArray(simulationIterations, thisSimulationIterations);
