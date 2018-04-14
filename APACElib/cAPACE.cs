@@ -16,8 +16,6 @@ namespace APACElib
         // Variable Definition 
         #region Variable Definition
 
-        //private Epidemic _excelEpidemic; // only to store basic simulation settings
-
         public ExcelInterface _excelInterface;
         public ExcelInterface ExcelInterface { get => _excelInterface; set => _excelInterface = value; }
         private ModelSettings _modelSettings = new ModelSettings();
@@ -42,8 +40,6 @@ namespace APACElib
         private ObsBasedStat _obsRealTimeSimulation_dynamicOptimization_totalCalibrationTimeOverAverageSimulationTime = new ObsBasedStat("");
         private ObsBasedStat _obsRealTimeSimulation_dynamicOptimization_totalOptimizationTimeOverAverageSimulationTime = new ObsBasedStat("");
         #endregion
-
-        const int NumOfNelderMeanSearchIterations = 200;
 
         // connect to the excel interface
         public void ConnectToExcelInteface()
@@ -117,7 +113,6 @@ namespace APACElib
             }
             // make a noise!
             System.Media.SystemSounds.Beep.Play();
-
         }
 
         // simulate a policy
@@ -133,8 +128,7 @@ namespace APACElib
             _epidemicModeller.SimulateEpidemics();
 
             // report simulation results
-            ReportTrajectoriesAndSimulationStatistics(_epidemicModeller);
-
+            ReportTrajsAndSimStats(_epidemicModeller);
         }
 
         // calibrate
@@ -175,7 +169,7 @@ namespace APACElib
                 // report optimization result
                 ReportADPResultsForThisEpidemic(optimalEpidemicModeller, harmonicStep_a, epsilonGreedy_beta);
                 // report simulation result
-                ReportTrajectoriesAndSimulationStatistics(optimalEpidemicModeller);
+                ReportTrajsAndSimStats(optimalEpidemicModeller);
             }
             else
             {
@@ -266,37 +260,52 @@ namespace APACElib
                     // objective function
                     if (_modelSettings.ObjectiveFunction == EnumObjectiveFunction.MaximizeNHB)
                         thisSimulationIterations_objFunction[simItr][numOfVars + 0]
-                            = thisEpidemicModeller.SimulationIterations_QALY[simItr] - thisEpidemicModeller.SimulationIterations_Cost[simItr] 
+                            = -thisEpidemicModeller.SimSummary.DALYs[simItr] - thisEpidemicModeller.SimSummary.Costs[simItr] 
                             / Math.Max(_modelSettings.WTPForHealth, SupportProcedures.minimumWTPforHealth);
                     else
                         thisSimulationIterations_objFunction[simItr][numOfVars + 0]
-                            = _modelSettings.WTPForHealth* thisEpidemicModeller.SimulationIterations_QALY[simItr] - thisEpidemicModeller.SimulationIterations_Cost[simItr];
+                            = -_modelSettings.WTPForHealth* thisEpidemicModeller.SimSummary.DALYs[simItr] 
+                            - thisEpidemicModeller.SimSummary.Costs[simItr];
 
                 }
                 // then read the other outcomes samples
                 double[][] thisSimulationItreration_otherOutcomes = new double[0][];
-                thisEpidemicModeller.GetSimulationIterationOutcomes(ref simulationIterations_lables, ref thisSimulationItreration_otherOutcomes);
+                thisEpidemicModeller.SimSummary.GetIndvEpidemicOutcomes(
+                    ref simulationIterations_lables, 
+                    ref thisSimulationItreration_otherOutcomes);
 
                 // concatenate
-                simulationIterations_objFunction = SupportFunctions.ConcatJaggedArray(simulationIterations_objFunction, thisSimulationIterations_objFunction);
-                simulationIterations_otherOutcomes = SupportFunctions.ConcatJaggedArray(simulationIterations_otherOutcomes, thisSimulationItreration_otherOutcomes);
+                simulationIterations_objFunction = SupportFunctions.ConcatJaggedArray(
+                    simulationIterations_objFunction, 
+                    thisSimulationIterations_objFunction
+                    );
+                simulationIterations_otherOutcomes = SupportFunctions.ConcatJaggedArray(
+                    simulationIterations_otherOutcomes, 
+                    thisSimulationItreration_otherOutcomes);
 
                 ++epidemicModelIndex;
-
             }
-            
 
-            #region report results
             // report summary statistics
-            ExcelInterface.ReportSimulationOutcomes("Experimental Designs", "baseExperimentalDesignsResults",
-                SupportFunctions.ConvertFromJaggedArrayToRegularArray(simulationSummaryOutcomes, 6), _modelSettings.ObjectiveFunction);
+            ExcelInterface.ReportSimulationOutcomes(
+                "Experimental Designs", "baseExperimentalDesignsResults",
+                SupportFunctions.ConvertFromJaggedArrayToRegularArray(
+                    simulationSummaryOutcomes, 6), 
+                _modelSettings.ObjectiveFunction
+                );
 
             // report outcomes for each run for each design
-            ExcelInterface.ReportExperimentalDesignSimulationOutcomes(numOfVars,
-                SupportFunctions.ConvertFromJaggedArrayToRegularArray(simulationIterations_objFunction, numOfVars + 1), _modelSettings.ObjectiveFunction,
-                simulationIterations_lables, SupportFunctions.ConvertFromJaggedArrayToRegularArray(simulationIterations_otherOutcomes, simulationIterations_otherOutcomes[0].Length));
-            #endregion
-
+            ExcelInterface.ReportExperimentalDesignSimulationOutcomes(
+                numOfVars,
+                SupportFunctions.ConvertFromJaggedArrayToRegularArray(
+                    simulationIterations_objFunction, 
+                    numOfVars + 1), 
+                _modelSettings.ObjectiveFunction,
+                simulationIterations_lables, 
+                SupportFunctions.ConvertFromJaggedArrayToRegularArray(
+                    simulationIterations_otherOutcomes, 
+                    simulationIterations_otherOutcomes[0].Length)
+                    );
         }
 
         // dynamic policy optimization for several epidemics 
@@ -689,51 +698,76 @@ namespace APACElib
             ExcelInterface.SetupSimulationOutputSheet(prevalenceOutputs, incidenceOutputs, observableOutputs, resourceOutputs);                             
         }
         // report simulation statistics
-        private void ReportTrajectoriesAndSimulationStatistics(EpidemicModeller thisEpidemicModeller)
+        private void ReportTrajsAndSimStats(EpidemicModeller epiModeller)
         {
             // first find the strings of past action combinations
             string[] strActionCombinations = null;
-            foreach (int[] thisActionCombination in thisEpidemicModeller.PastActionCombinations)
-                SupportFunctions.AddToEndOfArray(ref strActionCombinations, SupportFunctions.ConvertArrayToString(thisActionCombination,","));
+            foreach (int[] thisActionCombination in epiModeller.SimSummary.IntrvCombinations)
+                SupportFunctions.AddToEndOfArray(
+                    ref strActionCombinations, 
+                    SupportFunctions.ConvertArrayToString(thisActionCombination,",")
+                    );
 
             // report trajectories
-            if (thisEpidemicModeller.StoreEpidemicTrajectories)
-                ExcelInterface.ReportAnEpidemicTrajectory
-                    (thisEpidemicModeller.SimulationTimeBasedOutputs, strActionCombinations, thisEpidemicModeller.SimulationIntervalBasedOutputs,
-                    thisEpidemicModeller.TimeOfSimulationObservableOutputs, thisEpidemicModeller.SimulationMonitoredOutputs, thisEpidemicModeller.SimulationResourcesOutputs);
+            if (epiModeller.ModelSettings.IfShowSimulatedTrajs)
+                ExcelInterface.ReportEpidemicTrajectories(
+                    SupportFunctions.ConvertFromJaggedArrayToRegularArray(
+                        epiModeller.SimSummary.PrevalenceTrajs, 
+                        epiModeller.SimSummary.NumOfSimPrevalenceInTraj), 
+                    strActionCombinations,
+                    SupportFunctions.ConvertFromJaggedArrayToRegularArray(
+                        epiModeller.SimSummary.IncidenceTrajs,
+                        epiModeller.SimSummary.NumOfSimIncidenceInTraj),
+                    new double[0,0], 
+                    new double[0,0],
+                    new double[0,0]
+                    );
 
             string[] strSummaryStatistics = null;
             string[] strClassAndSumStatistics = null;
             string[] strRatioStatistics = null;
             string[] strComputationStatistics = null;
             string[] strIterationOutcomes = null;
-            double[,] arrSummaryStatistics = null;
+            double[][] arrSummaryStatistics = null;
             double[][] arrClassAndSumStatistics = null;
             double[][] arrRatioStatistics = null;
             double[,] arrComputationStatistics = null;
             double[][] arrIterationOutcomes = null;
 
             // get these statistics
-            thisEpidemicModeller.GetSimulationStatistics(
-                ref strSummaryStatistics, ref strClassAndSumStatistics, ref strRatioStatistics, ref strComputationStatistics, ref strIterationOutcomes,
-                ref arrSummaryStatistics, ref arrClassAndSumStatistics, ref arrRatioStatistics, ref arrComputationStatistics, ref arrIterationOutcomes);
+            epiModeller.SimSummary.GetSummaryOutcomes(
+                ref strSummaryStatistics, 
+                ref strClassAndSumStatistics, 
+                ref strRatioStatistics, 
+                ref strComputationStatistics, 
+                ref strIterationOutcomes,
+                ref arrSummaryStatistics, 
+                ref arrClassAndSumStatistics, 
+                ref arrRatioStatistics, 
+                ref arrComputationStatistics, 
+                ref arrIterationOutcomes);
 
             // report
             ExcelInterface.ReportSimulationStatistics(
-                strSummaryStatistics, arrSummaryStatistics,
+                strSummaryStatistics, SupportFunctions.ConvertFromJaggedArrayToRegularArray(arrSummaryStatistics, 3),
                 strClassAndSumStatistics, SupportFunctions.ConvertFromJaggedArrayToRegularArray(arrClassAndSumStatistics, 3),
                 strRatioStatistics, SupportFunctions.ConvertFromJaggedArrayToRegularArray(arrRatioStatistics, 3), 
                 strComputationStatistics, arrComputationStatistics,
                 strIterationOutcomes, SupportFunctions.ConvertFromJaggedArrayToRegularArray(arrIterationOutcomes,arrIterationOutcomes[0].Length));
 
             // report sampled parameter values
-            ExcelInterface.ReportSampledParameterValues(thisEpidemicModeller.ModelInfo.NamesOfParams, thisEpidemicModeller.SimulationIterations_itrs ,thisEpidemicModeller.SimulationIterations_RNGSeeds,
-                SupportFunctions.ConvertFromJaggedArrayToRegularArray(thisEpidemicModeller.SimulationIterations_ParameterValues, thisEpidemicModeller.ModelInfo.NamesOfParams.Length));
+            ExcelInterface.ReportSampledParameterValues(
+                epiModeller.ModelInfo.NamesOfParams, 
+                epiModeller.SimSummary.SimItrs,
+                epiModeller.SimSummary.RNDSeeds,
+                SupportFunctions.ConvertFromJaggedArrayToRegularArray(
+                    epiModeller.SimSummary.ParamValues, epiModeller.ModelInfo.NamesOfParams.Length)
+                    );
         }
         // report calibration result
         private void ReportCalibrationResult()
         {
-            int numOfParametersToCalibrate = _epidemicModeller.Calibration.NamesOfParameters.Length;
+            int numOfParametersToCalibrate = _epidemicModeller.ModelInfo.NamesOfParamsInCalib.Length;
             // report
             ExcelInterface.ReportCalibrationResults(
                 _epidemicModeller.ActualTimeUsedByCalibration / 60,
@@ -829,16 +863,16 @@ namespace APACElib
 
                     if (_modelSettings.ObjectiveFunction == EnumObjectiveFunction.MaximizeNHB)
                         thisSimulationIterations[simItr][(int)ExcelInterface.enumADPSASimulationIterationsOffsets.objectiveFunction]
-                            = thisEpiModeller.SimulationIterations_NHB[simItr];
+                            = thisEpiModeller.SimSummary.NHBs[simItr];
                     else
                         thisSimulationIterations[simItr][(int)ExcelInterface.enumADPSASimulationIterationsOffsets.objectiveFunction]
-                            = thisEpiModeller.SimulationIterations_NMB[simItr];
+                            = thisEpiModeller.SimSummary.NMBs[simItr];
                     thisSimulationIterations[simItr][(int)ExcelInterface.enumADPSASimulationIterationsOffsets.health]
-                        = thisEpiModeller.SimulationIterations_QALY[simItr];
+                        = thisEpiModeller.SimSummary.DALYs[simItr];
                     thisSimulationIterations[simItr][(int)ExcelInterface.enumADPSASimulationIterationsOffsets.cost]
-                        = thisEpiModeller.SimulationIterations_Cost[simItr];
+                        = thisEpiModeller.SimSummary.Costs[simItr];
                     thisSimulationIterations[simItr][(int)ExcelInterface.enumADPSASimulationIterationsOffsets.annualCost]
-                        = thisEpiModeller.SimulationIterations_AnnualCost[simItr];
+                        = thisEpiModeller.SimSummary.AnnualCosts[simItr];
                 }
                 // concatenate
                 adpSASimulationIterations = SupportFunctions.ConcatJaggedArray(adpSASimulationIterations, thisSimulationIterations);

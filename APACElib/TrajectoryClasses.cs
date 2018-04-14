@@ -503,7 +503,7 @@ namespace APACElib
             // ratio statistics
             foreach (RatioTrajectory thisRatioTraj in _ratioTrajectories.Where(s => s.DisplayInSimOutput))
             {
-                thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = thisRatioTraj.TimeSeries.GetLastObs();
+                thisPrevalenceOutputs[0][colIndexIncidenceOutputs++] = thisRatioTraj.TimeSeries.GetLastObs();
             }
 
             // concatenate this row 

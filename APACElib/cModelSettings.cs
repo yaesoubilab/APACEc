@@ -85,7 +85,7 @@ namespace APACElib
         public int TimeIndexToStop { get; set; }
         public int EpidemicConditionTimeIndex { get; set; }
         public EnumEpiDecisions DecisionRule { get; set; }
-        public bool IfShowSimulatedTrajectories { get; set; }        
+        public bool IfShowSimulatedTrajs { get; set; }        
         public double AnnualDiscountRate { get; set; }
         public double DeltaTDiscountRate { get; set; }
         public double WTPForHealth { get; set; }
@@ -192,7 +192,7 @@ namespace APACElib
             TimeIndexToStop = (int)(excelInterface.GetTimeToStop() / DeltaT);
             EpidemicConditionTimeIndex = (int)(excelInterface.GetEpidemicConditionTime() / DeltaT);
             DecisionRule = excelInterface.GetDecisionRule();
-            IfShowSimulatedTrajectories = excelInterface.GetIfToShowSimulationTrajectories();
+            IfShowSimulatedTrajs = excelInterface.GetIfToShowSimulationTrajectories();
             
             AnnualDiscountRate = excelInterface.GetAnnualInterestRate();
             DeltaTDiscountRate = AnnualDiscountRate / DeltaT;

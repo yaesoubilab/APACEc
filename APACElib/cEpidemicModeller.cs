@@ -16,6 +16,7 @@ namespace APACElib
         // Variable Definition 
         public int ID { get; private set; }
         private ModelSettings _modelSet;
+        public ModelSettings ModelSettings { get => _modelSet; }
         private RNDSeedGenerator _seedGenerator;
         private Epidemic _parentEpidemic;
         private List<Epidemic> _epidemics = new List<Epidemic>();
@@ -266,7 +267,6 @@ namespace APACElib
 
             // computation time
             Timer.Stop();
-
         }
 
         // simulate the optimal dynamic policy
@@ -290,16 +290,6 @@ namespace APACElib
                 _parentEpidemic.StoreEpidemicTrajectories = yesOrNo;
         }
         
-        // get possible intervention combinations for on/off static policies
-        public ArrayList GetIntervalBasedStaticPoliciesDesigns()
-        {
-            //if (_set.UseParallelComputing)
-            //    return ((Epidemic)_epidemics[0]).GetIntervalBasedStaticPoliciesDesigns();
-            //else
-            //    return _parentEpidemic.GetIntervalBasedStaticPoliciesDesigns();
-            return null;
-        }        
-
         // add policy related settings
         public void AddDynamicPolicySettings(ref ExcelInterface excelInterface)
         {
@@ -366,6 +356,7 @@ namespace APACElib
                 //_parentEpidemic.UpdateQFunctionCoefficients(qFunctionCoefficients);
             }
         }   
+        
         // set up calibration
         public void SetUpCalibration()
         {
@@ -524,12 +515,14 @@ namespace APACElib
     {
         private ModelSettings _set;
         private int _nSim;   // number of simulated epidemics 
-        public int[] SimItrs;
-        public int[] RNDSeeds;
-        public double[][] ParamValues;
-        public int[][] InterventionsCombinations;
-        public double[][] SimIncidenceOutputs;
-        public double[][] SimPrevalenceOutputs;
+        public int[] SimItrs { get; private set; }
+        public int[] RNDSeeds { get; private set; }
+        public double[][] ParamValues { get; private set; }
+        public int[][] IntrvCombinations { get; private set; }
+        public double[][] IncidenceTrajs { get; private set; }
+        public double[][] PrevalenceTrajs { get; private set; }
+        public int NumOfSimIncidenceInTraj { get { return IncidenceTrajs[0].Length; } }
+        public int NumOfSimPrevalenceInTraj { get { return PrevalenceTrajs[0].Length; } }
 
         // simulation statistics collection
         public List<ObsBasedStat> IncidenceStats { get; private set; } = new List<ObsBasedStat>();
@@ -556,46 +549,46 @@ namespace APACElib
         {
             _set = settings;
             _nSim = settings.NumOfSimItrs;   // number of simulated epidemics
-            IncidenceStats.Clear();
-            PrevalenceStats.Clear();
-            RatioStats.Clear();
-            ComputationStats.Clear();
 
+            // summary statistics on classes
             foreach (Class thisClass in parentEpidemic.Classes.Where(c=>c.ShowStatisticsInSimulationResults))
             {
                 IncidenceStats.Add(new ObsBasedStat("Total New: " + thisClass.Name, _nSim));
                 if (thisClass is Class_Normal)
                     PrevalenceStats.Add(new ObsBasedStat("Average Size: " + thisClass.Name, _nSim));
             }
+            // summary statistics on summation
             foreach (SumTrajectory thisSumTraj in parentEpidemic.SumTrajectories)
             {
                 // incidence stats
-                if (thisSumTraj.Type == SumTrajectory.EnumType.Incidence || thisSumTraj.Type == SumTrajectory.EnumType.AccumulatingIncident)
+                if (thisSumTraj.Type == SumTrajectory.EnumType.Incidence
+                    || thisSumTraj.Type == SumTrajectory.EnumType.AccumulatingIncident)
                     IncidenceStats.Add(new ObsBasedStat("Total: " + thisSumTraj.Name, _nSim));
                 // prevalence stats
                 else if (thisSumTraj.Type == SumTrajectory.EnumType.Prevalence)
                     PrevalenceStats.Add(new ObsBasedStat("Averge size: " + thisSumTraj.Name, _nSim));
             }
+            // summary statistics on ratio 
             foreach (RatioTrajectory thisRatioTaj in parentEpidemic.RatioTrajectories)
                 RatioStats.Add(new ObsBasedStat("Average ratio: " + thisRatioTaj.Name, _nSim));
 
             // reset the jagged array containing trajectories
-            InterventionsCombinations = new int[0][];
-            SimIncidenceOutputs = new double[0][];
-            SimPrevalenceOutputs = new double[0][];
+            IntrvCombinations = new int[0][];
+            IncidenceTrajs = new double[0][];
+            PrevalenceTrajs = new double[0][];
         }
 
         public void Add(Epidemic simulatedEpi)
         {
             // store trajectories
-            if (_set.IfShowSimulatedTrajectories)
+            if (_set.IfShowSimulatedTrajs)
             {
-                InterventionsCombinations = SupportFunctions.ConcatJaggedArray(
-                    InterventionsCombinations, simulatedEpi.TrajsForSimOutput.InterventionCombinations);
-                SimPrevalenceOutputs = SupportFunctions.ConcatJaggedArray(
-                    SimPrevalenceOutputs, simulatedEpi.TrajsForSimOutput.SimPrevalenceOutputs);
-                SimIncidenceOutputs = SupportFunctions.ConcatJaggedArray(
-                    SimIncidenceOutputs, simulatedEpi.TrajsForSimOutput.SimIncidenceOutputs);
+                IntrvCombinations = SupportFunctions.ConcatJaggedArray(
+                    IntrvCombinations, simulatedEpi.TrajsForSimOutput.InterventionCombinations);
+                PrevalenceTrajs = SupportFunctions.ConcatJaggedArray(
+                    PrevalenceTrajs, simulatedEpi.TrajsForSimOutput.SimPrevalenceOutputs);
+                IncidenceTrajs = SupportFunctions.ConcatJaggedArray(
+                    IncidenceTrajs, simulatedEpi.TrajsForSimOutput.SimIncidenceOutputs);
             }
 
             // store sampled parameter values
@@ -796,9 +789,9 @@ namespace APACElib
             SimItrs = new int[_nSim];
             RNDSeeds = new int[_nSim];
             ParamValues = new double[_nSim][];
-            InterventionsCombinations = new int[_nSim][];
-            SimIncidenceOutputs = new double[_nSim][];
-            SimPrevalenceOutputs = new double[_nSim][];
+            IntrvCombinations = new int[_nSim][];
+            IncidenceTrajs = new double[_nSim][];
+            PrevalenceTrajs = new double[_nSim][];
 
             // reset simulation statistics
             foreach (ObsBasedStat thisObsStat in IncidenceStats)
