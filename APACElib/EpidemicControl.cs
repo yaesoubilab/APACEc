@@ -319,7 +319,7 @@ namespace APACElib
 
         public double[,] ArrADPIterationResults
         {
-            get { return SupportFunctions.ConvertFromJaggedArrayToRegularArray(_arrADPIterationResults, 5); }
+            get { return SupportFunctions.ConvertJaggedArrayToRegularArray(_arrADPIterationResults, 5); }
 
         }
 

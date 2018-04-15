@@ -13,6 +13,7 @@ namespace APACElib
     {
         public List<Parameter> Parameters { get; set; } = new List<Parameter>();
         public double[] ParameterValues { get; private set; }
+        public int NumParamsInCalibration { get; private set; } = 0;
         public bool ThereAreTimeDepParms { get; private set; } = false;
         public bool ThereAreTimeDepParms_susceptibilities { get; set; } = false;
         public bool ThereAreTimeDepParms_infectivities { get; set; } = false;
@@ -31,6 +32,8 @@ namespace APACElib
 
             if (thisParam.ShouldBeUpdatedByTime)
                 ThereAreTimeDepParms = true;
+            if (thisParam.IncludedInCalibration)
+                ++NumParamsInCalibration;
         }
 
         // get the value of parameters to calibrate
@@ -144,7 +147,7 @@ namespace APACElib
                 case Parameter.EnumType.LinearCombination:
                     {
                         LinearCombination thisLinearCombinationPar = thisPar as LinearCombination;
-                        int[] arrParIDs = thisLinearCombinationPar.arrParIDs;
+                        int[] arrParIDs = thisLinearCombinationPar.ParIDs;
                         double[] arrValueOfParameters = new double[arrParIDs.Length];
 
                         for (int i = 0; i < arrParIDs.Length; i++)
@@ -155,10 +158,10 @@ namespace APACElib
                     break;
 
                 // multiple combination parameter
-                case Parameter.EnumType.MultipleCombination:
+                case Parameter.EnumType.Product:
                     {
-                        MultipleCombination thisMultipleCombinationPar = thisPar as MultipleCombination;
-                        int[] arrParIDs = thisMultipleCombinationPar.arrParIDs;
+                        ProductParameter thisMultipleCombinationPar = thisPar as ProductParameter;
+                        int[] arrParIDs = thisMultipleCombinationPar.ParIDs;
                         double[] arrValueOfParameters = new double[arrParIDs.Length];
                         for (int i = 0; i < arrParIDs.Length; i++)
                             arrValueOfParameters[i] = ParameterValues[arrParIDs[i]];

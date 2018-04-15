@@ -23,7 +23,7 @@ namespace APACElib
             RunExperiments = 5,
             SimulateDecisionMakingDuringEpidemics = 6,
         }        
-        public enum enumParameterColumns : int
+        public enum EnumParamsColumns : int
         {
             ID = 1,
             Name = 2,
@@ -282,7 +282,7 @@ namespace APACElib
         // get table of sheets
         public Array GetTableOfParameters()
         {
-            return GetTableOfCells("Parameters", "randomParameterBase", (int)enumParameterColumns.IncludedInCalibration);
+            return GetTableOfCells("Parameters", "randomParameterBase", (int)EnumParamsColumns.IncludedInCalibration);
         }
         public Array GetTableOfPathogens()
         {

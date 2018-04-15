@@ -191,7 +191,7 @@ namespace APACElib
             EpidemicModeller tempEpidemicModeller = new EpidemicModeller(0, ref _excelInterface, ref _modelSettings);
 
             // get interval-based static policy designs
-            staticPolicyDesigns = tempEpidemicModeller.GetIntervalBasedStaticPoliciesDesigns();
+            //staticPolicyDesigns = tempEpidemicModeller.GetIntervalBasedStaticPoliciesDesigns();
 
             // evaluate the defined interval-based static policies
             //BuildAndSimulateEpidemicModellersToEvaluateIntervalBasedStaticPolicies
@@ -289,7 +289,7 @@ namespace APACElib
             // report summary statistics
             ExcelInterface.ReportSimulationOutcomes(
                 "Experimental Designs", "baseExperimentalDesignsResults",
-                SupportFunctions.ConvertFromJaggedArrayToRegularArray(
+                SupportFunctions.ConvertJaggedArrayToRegularArray(
                     simulationSummaryOutcomes, 6), 
                 _modelSettings.ObjectiveFunction
                 );
@@ -297,12 +297,12 @@ namespace APACElib
             // report outcomes for each run for each design
             ExcelInterface.ReportExperimentalDesignSimulationOutcomes(
                 numOfVars,
-                SupportFunctions.ConvertFromJaggedArrayToRegularArray(
+                SupportFunctions.ConvertJaggedArrayToRegularArray(
                     simulationIterations_objFunction, 
                     numOfVars + 1), 
                 _modelSettings.ObjectiveFunction,
                 simulationIterations_lables, 
-                SupportFunctions.ConvertFromJaggedArrayToRegularArray(
+                SupportFunctions.ConvertJaggedArrayToRegularArray(
                     simulationIterations_otherOutcomes, 
                     simulationIterations_otherOutcomes[0].Length)
                     );
@@ -396,16 +396,13 @@ namespace APACElib
             _actualTimeUsedToFindAllDynamicPolicies = (optEndTime - optStartTime) / 1000;
         }        
         
-               
-        
-        
         // find the epidemic modeler with optimal adaptive policy
         private EpidemicModeller FindOptimalEpiModeller_DynamicPolicy(double forThisWTPforHealth, ref double optHarmonicStep_a, ref double optEpsilonGreedy_beta)
         {
-            double maxMean = double.MinValue;
-            double maxLowerBound = double.MinValue;
-            double maxUpperBound = double.MinValue;
-            double mean, lowerBound, upperBound;
+            //double maxMean = double.MinValue;
+            //double maxLowerBound = double.MinValue;
+            //double maxUpperBound = double.MinValue;
+            //double mean, lowerBound, upperBound;
 
             int IDOfOptimalEpiModeller = 0;
             int position = 0, positionOfOptimalEpiModeller = 0;
@@ -415,18 +412,18 @@ namespace APACElib
                 if (Math.Abs(_modelSettings.AdpParameterDesigns[thisEpiModeller.ID][(int)enumADPParameter.WTPForHealth] - forThisWTPforHealth) 
                     < SupportProcedures.minimumWTPforHealth)
                 {
-                    mean = thisEpiModeller.GetObjectiveFunction_Mean(_modelSettings.ObjectiveFunction);
-                    lowerBound = thisEpiModeller.GetObjectiveFunction_LowerBound(_modelSettings.ObjectiveFunction, 0.05);
-                    upperBound = thisEpiModeller.GetObjectiveFunction_UpperBound(_modelSettings.ObjectiveFunction, 0.05);
-                    if ((mean >= maxMean && lowerBound >= maxLowerBound)
-                        || (mean < maxMean && upperBound > maxMean && lowerBound > maxLowerBound))
-                    {
-                        maxMean = mean;
-                        maxLowerBound = lowerBound;
-                        maxUpperBound = upperBound;
-                        IDOfOptimalEpiModeller = thisEpiModeller.ID;
-                        positionOfOptimalEpiModeller = position;                        
-                    }                    
+                    //mean = thisEpiModeller.GetObjectiveFunction_Mean(_modelSettings.ObjectiveFunction);
+                    //lowerBound = thisEpiModeller.GetObjectiveFunction_LowerBound(_modelSettings.ObjectiveFunction, 0.05);
+                    //upperBound = thisEpiModeller.GetObjectiveFunction_UpperBound(_modelSettings.ObjectiveFunction, 0.05);
+                    //if ((mean >= maxMean && lowerBound >= maxLowerBound)
+                    //    || (mean < maxMean && upperBound > maxMean && lowerBound > maxLowerBound))
+                    //{
+                    //    maxMean = mean;
+                    //    maxLowerBound = lowerBound;
+                    //    maxUpperBound = upperBound;
+                    //    IDOfOptimalEpiModeller = thisEpiModeller.ID;
+                    //    positionOfOptimalEpiModeller = position;                        
+                    //}                    
                 }
                 ++position;
             }
@@ -441,10 +438,10 @@ namespace APACElib
             (ArrayList staticPolicyParameterDesigns, double forThisWTPforHealth,
             ref int interventionCombinationBode, ref double[] optimalStartTimes, ref int[] optimalNumOfDecisionPeriodsToUse)
         {
-            double maxMean = double.MinValue;
-            double maxLowerBound = double.MinValue;
-            double maxUpperBound = double.MinValue;
-            double mean, lowerBound, upperBound;
+            //double maxMean = double.MinValue;
+            //double maxLowerBound = double.MinValue;
+            //double maxUpperBound = double.MinValue;
+            //double mean, lowerBound, upperBound;
 
             forThisWTPforHealth = Math.Max(forThisWTPforHealth, SupportProcedures.minimumWTPforHealth);
             
@@ -453,18 +450,18 @@ namespace APACElib
             int position = 0, positionOfOptimalEpiModeller = 0;
             foreach (EpidemicModeller thisEpiModeller in _epidemicModellers)
             {
-                mean = thisEpiModeller.GetObjectiveFunction_Mean(_modelSettings.ObjectiveFunction, forThisWTPforHealth);
-                lowerBound = thisEpiModeller.GetObjectiveFunction_LowerBound(_modelSettings.ObjectiveFunction, forThisWTPforHealth, 0.05);
-                upperBound = thisEpiModeller.GetObjectiveFunction_UpperBound(_modelSettings.ObjectiveFunction, forThisWTPforHealth, 0.05);
-                if ((mean >= maxMean && lowerBound >= maxLowerBound)
-                    || (mean < maxMean && upperBound > maxMean && lowerBound > maxLowerBound))
-                {
-                    maxMean = mean;
-                    maxLowerBound = lowerBound;
-                    maxUpperBound = upperBound;
-                    IDOfOptimalEpiModeller = thisEpiModeller.ID;
-                    positionOfOptimalEpiModeller = position;
-                }
+                //mean = thisEpiModeller.GetObjectiveFunction_Mean(_modelSettings.ObjectiveFunction, forThisWTPforHealth);
+                //lowerBound = thisEpiModeller.GetObjectiveFunction_LowerBound(_modelSettings.ObjectiveFunction, forThisWTPforHealth, 0.05);
+                //upperBound = thisEpiModeller.GetObjectiveFunction_UpperBound(_modelSettings.ObjectiveFunction, forThisWTPforHealth, 0.05);
+                //if ((mean >= maxMean && lowerBound >= maxLowerBound)
+                //    || (mean < maxMean && upperBound > maxMean && lowerBound > maxLowerBound))
+                //{
+                //    maxMean = mean;
+                //    maxLowerBound = lowerBound;
+                //    maxUpperBound = upperBound;
+                //    IDOfOptimalEpiModeller = thisEpiModeller.ID;
+                //    positionOfOptimalEpiModeller = position;
+                //}
                 ++position;
             }
             // find the optimal policy (assuming that only interval-based policies are considered) 
@@ -505,16 +502,16 @@ namespace APACElib
             if (ExcelInterface.GetIfToUseCurrentQFunctionApproximationSettings() == false)
             {                
                 // decision names
-                string[] strDecisionNames = _epidemicModeller.NamesOfDefaultInterventionsAndThoseSpecifiedByDynamicRule;
+                //string[] strDecisionNames = _epidemicModeller.NamesOfDefaultInterventionsAndThoseSpecifiedByDynamicRule;
                 // feature names
-                string[] strFeatureNames = _epidemicModeller.FeatureNames;
+                //string[] strFeatureNames = _epidemicModeller.FeatureNames;
                 string[] strAbbreviatedFeatureNames = new string[_epidemicModeller.ModelInfo.NumOfFeatures];
                 //foreach (Feature thisFeature in _epidemicModeller.Features)
                 //    strAbbreviatedFeatureNames[thisFeature.Index] = "F" + thisFeature.Index;
                 
                 // setup the feature worksheet
-                ExcelInterface.SetUpQFunctionWorksheet(
-                    strDecisionNames, strFeatureNames, strAbbreviatedFeatureNames, _epidemicModeller.GetQFunctionPolynomialTerms());
+                //ExcelInterface.SetUpQFunctionWorksheet(
+                //    strDecisionNames, strFeatureNames, strAbbreviatedFeatureNames, _epidemicModeller.GetQFunctionPolynomialTerms());
             }
 
             // read initial q-function coefficients
@@ -602,42 +599,29 @@ namespace APACElib
             // simulation outcomes
             if (_modelSettings.ObjectiveFunction == EnumObjectiveFunction.MaximizeNHB)
             {
-                thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.E_ObjectiveFunction] = epidemicModeller.obsTotalNHB.Mean;
-                thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.stDev_ObjectiveFunction] = epidemicModeller.obsTotalNHB.StDev;
+                thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.E_ObjectiveFunction] 
+                    = epidemicModeller.SimSummary.NHBStat.Mean;
+                thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.stDev_ObjectiveFunction] 
+                    = epidemicModeller.SimSummary.NHBStat.StDev;
             }
             else
             {
-                thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.E_ObjectiveFunction] = epidemicModeller.obsTotalNMB.Mean;
-                thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.stDev_ObjectiveFunction] = epidemicModeller.obsTotalNMB.StDev;
+                thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.E_ObjectiveFunction] 
+                    = epidemicModeller.SimSummary.NMBStat.Mean;
+                thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.stDev_ObjectiveFunction] 
+                    = epidemicModeller.SimSummary.NMBStat.StDev;
             }
-            thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.E_health] = epidemicModeller.obsTotalQALY.Mean;
-            thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.stDev_health] = epidemicModeller.obsTotalQALY.StDev;
-            thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.E_cost] = epidemicModeller.obsTotalCost.Mean;
-            thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.stDev_cost] = epidemicModeller.obsTotalCost.StDev;
+            thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.E_health] 
+                = epidemicModeller.SimSummary.DALYStat.Mean;
+            thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.stDev_health] 
+                = epidemicModeller.SimSummary.DALYStat.StDev;
+            thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.E_cost] 
+                = epidemicModeller.SimSummary.CostStat.Mean;
+            thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.stDev_cost] 
+                = epidemicModeller.SimSummary.CostStat.StDev;
 
             return thisSimulationOutcomes;
         }
-        private double[][] ExtractSimulationOutcomes(EpidemicModeller epidemicModeller, double wtpForHealth)
-        {
-            wtpForHealth = Math.Max(wtpForHealth, SupportProcedures.minimumWTPforHealth);
-
-            double[][] thisSimulationOutcomes = new double[1][];
-            thisSimulationOutcomes[0] = new double[6];
-
-            // simulation outcomes
-            thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.E_ObjectiveFunction] 
-                = epidemicModeller.GetObjectiveFunction_Mean(_modelSettings.ObjectiveFunction, wtpForHealth);
-            thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.stDev_ObjectiveFunction] 
-                = epidemicModeller.GetObjectiveFunction_StDev(_modelSettings.ObjectiveFunction, wtpForHealth);
-            
-            thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.E_health] = epidemicModeller.obsTotalQALY.Mean;
-            thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.stDev_health] = epidemicModeller.obsTotalQALY.StDev;
-            thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.E_cost] = epidemicModeller.obsTotalCost.Mean;
-            thisSimulationOutcomes[0][(int)ExcelInterface.enumSimulationOutcomesOffsets.stDev_cost] = epidemicModeller.obsTotalCost.StDev;
-
-            return thisSimulationOutcomes;
-        }
- 
 
         // ******* model construction subs ***********
         #region Model construction subs
@@ -711,11 +695,11 @@ namespace APACElib
             // report trajectories
             if (epiModeller.ModelSettings.IfShowSimulatedTrajs)
                 ExcelInterface.ReportEpidemicTrajectories(
-                    SupportFunctions.ConvertFromJaggedArrayToRegularArray(
+                    SupportFunctions.ConvertJaggedArrayToRegularArray(
                         epiModeller.SimSummary.PrevalenceTrajs, 
                         epiModeller.SimSummary.NumOfSimPrevalenceInTraj), 
                     strActionCombinations,
-                    SupportFunctions.ConvertFromJaggedArrayToRegularArray(
+                    SupportFunctions.ConvertJaggedArrayToRegularArray(
                         epiModeller.SimSummary.IncidenceTrajs,
                         epiModeller.SimSummary.NumOfSimIncidenceInTraj),
                     new double[0,0], 
@@ -749,18 +733,18 @@ namespace APACElib
 
             // report
             ExcelInterface.ReportSimulationStatistics(
-                strSummaryStatistics, SupportFunctions.ConvertFromJaggedArrayToRegularArray(arrSummaryStatistics, 3),
-                strClassAndSumStatistics, SupportFunctions.ConvertFromJaggedArrayToRegularArray(arrClassAndSumStatistics, 3),
-                strRatioStatistics, SupportFunctions.ConvertFromJaggedArrayToRegularArray(arrRatioStatistics, 3), 
+                strSummaryStatistics, SupportFunctions.ConvertJaggedArrayToRegularArray(arrSummaryStatistics, 3),
+                strClassAndSumStatistics, SupportFunctions.ConvertJaggedArrayToRegularArray(arrClassAndSumStatistics, 3),
+                strRatioStatistics, SupportFunctions.ConvertJaggedArrayToRegularArray(arrRatioStatistics, 3), 
                 strComputationStatistics, arrComputationStatistics,
-                strIterationOutcomes, SupportFunctions.ConvertFromJaggedArrayToRegularArray(arrIterationOutcomes,arrIterationOutcomes[0].Length));
+                strIterationOutcomes, SupportFunctions.ConvertJaggedArrayToRegularArray(arrIterationOutcomes,arrIterationOutcomes[0].Length));
 
             // report sampled parameter values
             ExcelInterface.ReportSampledParameterValues(
                 epiModeller.ModelInfo.NamesOfParams, 
                 epiModeller.SimSummary.SimItrs,
                 epiModeller.SimSummary.RNDSeeds,
-                SupportFunctions.ConvertFromJaggedArrayToRegularArray(
+                SupportFunctions.ConvertJaggedArrayToRegularArray(
                     epiModeller.SimSummary.ParamValues, epiModeller.ModelInfo.NamesOfParams.Length)
                     );
         }
@@ -769,17 +753,17 @@ namespace APACElib
         {
             int numOfParametersToCalibrate = _epidemicModeller.ModelInfo.NamesOfParamsInCalib.Length;
             // report
-            ExcelInterface.ReportCalibrationResults(
-                _epidemicModeller.ActualTimeUsedByCalibration / 60,
-                _epidemicModeller.NumOfTrajectoriesDiscardedByCalibration,
-                _epidemicModeller.GetNamesOfSpecialStatisticsIncludedInCalibratoin(),
-                //_epidemicModeller.Calibration.NamesOfParameters,
-                _epidemicModeller.Calibration.NamesOfSimOutsWithNonZeroWeights,                
-                _epidemicModeller.Calibration.SelectedSimulationItrs,
-                _epidemicModeller.Calibration.SelectedSimulationRNDSeeds,
-                //_epidemicModeller.Calibration.SelectedGoodnessOfFit,
-                //_epidemicModeller.Calibration.SelectedParameterValues,
-                _epidemicModeller.Calibration.SelectedSimObservations);
+            //ExcelInterface.ReportCalibrationResults(
+            //    _epidemicModeller.ActualTimeUsedByCalibration / 60,
+            //    _epidemicModeller.NumOfTrajectoriesDiscardedByCalibration,
+            //    _epidemicModeller.GetNamesOfSpecialStatisticsIncludedInCalibratoin(),
+            //    //_epidemicModeller.Calibration.NamesOfParameters,
+            //    _epidemicModeller.Calibration.NamesOfSimOutsWithNonZeroWeights,                
+            //    _epidemicModeller.Calibration.SelectedSimulationItrs,
+            //    _epidemicModeller.Calibration.SelectedSimulationRNDSeeds,
+            //    //_epidemicModeller.Calibration.SelectedGoodnessOfFit,
+            //    //_epidemicModeller.Calibration.SelectedParameterValues,
+            //    _epidemicModeller.Calibration.SelectedSimObservations);
         }
         // report dynamic policy optimization result
         private void ReportADPResultsForThisEpidemic(EpidemicModeller thisEpidemicModeller, double harmonicStep_a, double epsilonGreedy_beta)
@@ -883,9 +867,9 @@ namespace APACElib
 
             // report
             ExcelInterface.ReportADPResultsForAllEpidemic(
-                SupportFunctions.ConvertFromJaggedArrayToRegularArray(adpOptParameterDesigns, 3),
-                SupportFunctions.ConvertFromJaggedArrayToRegularArray(adpSASimulationOutcomes, 6),
-                SupportFunctions.ConvertFromJaggedArrayToRegularArray(adpSASimulationIterations, 7), 
+                SupportFunctions.ConvertJaggedArrayToRegularArray(adpOptParameterDesigns, 3),
+                SupportFunctions.ConvertJaggedArrayToRegularArray(adpSASimulationOutcomes, 6),
+                SupportFunctions.ConvertJaggedArrayToRegularArray(adpSASimulationIterations, 7), 
                 _modelSettings.ObjectiveFunction);
         }
         // report the ADP algorithm computation times
@@ -944,7 +928,7 @@ namespace APACElib
                 staticPolicies = SupportFunctions.ConcatJaggedArray(staticPolicies, thisStaticPolicy);
 
                 // concatenate simulation outcomes
-                simulationOutcomes = SupportFunctions.ConcatJaggedArray(simulationOutcomes, ExtractSimulationOutcomes(thisEpiModeller, thisWTPForHealth));
+                //simulationOutcomes = SupportFunctions.ConcatJaggedArray(simulationOutcomes, ExtractSimulationOutcomes(thisEpiModeller, thisWTPForHealth));
 
                 // simulation iterations
                 double[][] thisSimulationIterations = new double[_modelSettings.NumOfSimItrs][];
@@ -977,9 +961,9 @@ namespace APACElib
 
             // report
             ExcelInterface.ReportStaticPolicyOptimization( wtp, 
-                SupportFunctions.ConvertFromJaggedArrayToRegularArray(staticPolicies, 3),
-                SupportFunctions.ConvertFromJaggedArrayToRegularArray(simulationOutcomes, 6),
-                SupportFunctions.ConvertFromJaggedArrayToRegularArray(simulationIterations, 5),
+                SupportFunctions.ConvertJaggedArrayToRegularArray(staticPolicies, 3),
+                SupportFunctions.ConvertJaggedArrayToRegularArray(simulationOutcomes, 6),
+                SupportFunctions.ConvertJaggedArrayToRegularArray(simulationIterations, 5),
                 _modelSettings.ObjectiveFunction);
 
         }

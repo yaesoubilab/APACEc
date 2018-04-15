@@ -193,8 +193,8 @@ namespace APACElib
                     {
                         // add this simulation observations
                         //_calibration.AddResultOfASimulationRun(simItr, _parentEpidemic.RNDSeedResultedInAnAcceptibleTrajectory, _parentEpidemic.GetValuesOfParametersToCalibrate(),
-                        //SupportFunctions.ConvertFromJaggedArrayToRegularArray(_parentEpidemic.CalibrationObservation, _parentEpidemic.NumOfCalibratoinTargets));
-                        double[,] mOfObs = SupportFunctions.ConvertFromJaggedArrayToRegularArray(new double[0][], 1);//_parentEpidemic.NumOfCalibratoinTargets);
+                        //SupportFunctions.ConvertJaggedArrayToRegularArray(_parentEpidemic.CalibrationObservation, _parentEpidemic.NumOfCalibratoinTargets));
+                        double[,] mOfObs = SupportFunctions.ConvertJaggedArrayToRegularArray(new double[0][], 1);//_parentEpidemic.NumOfCalibratoinTargets);
                         double[] par = new double[0];
                         //Calibration.AddResultOfASimulationRun(simItr, _parentEpidemic.SeedProducedAcceptibleTraj, ref par, ref mOfObs);
 
@@ -245,10 +245,10 @@ namespace APACElib
                             Calibration.NumOfDiscardedTrajs += 1;
                         else
                         {
-                            double[,] mOfObs = SupportFunctions.ConvertFromJaggedArrayToRegularArray(new double[0][], 1);// thisEpidemic.NumOfCalibratoinTargets);
+                            double[,] mOfObs = SupportFunctions.ConvertJaggedArrayToRegularArray(new double[0][], 1);// thisEpidemic.NumOfCalibratoinTargets);
                             double[] par = new double[0];
                             // add this simulation observations
-                            Calibration.AddResultOfASimulationRun(simItr, thisEpidemic.SeedProducedAcceptibleTraj, ref par, ref mOfObs);
+                            //Calibration.AddResultOfASimulationRun(simItr, thisEpidemic.SeedProducedAcceptibleTraj, ref par, ref mOfObs);
                         }
                     }
                     
