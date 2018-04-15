@@ -17,7 +17,7 @@ namespace APACElib
         protected int _IDOfActivatingIntervention;
         protected int _IDOfDestinationClass;
         protected int _IDOfRateParameter = - 1;  // -1 for transmission rate and >=0 for birth and epidemic indepedent events
-        public int IDOfRateParameter { get=> _IDOfRateParameter; };   
+        public int IDOfRateParameter { get=> _IDOfRateParameter; }  
         protected double _rate;
 
         public int MembersOutOverPastDeltaT { get; set; }
