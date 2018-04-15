@@ -171,33 +171,33 @@ namespace APACElib
 
             // do the transfer on all members
             foreach (Class thisClass in Classes.Where(c => c.ClassStat.Prevalence>0))
-                thisClass.IfNeedsToBeProcessed = true;
+                thisClass.ShouldBeProcessed = true;
 
             bool thereAreClassesToBeProcessed= true;
             while (thereAreClassesToBeProcessed)
             {
                 // if members are waiting
-                foreach (Class thisClass in Classes.Where(c => c.IfNeedsToBeProcessed))
+                foreach (Class thisClass in Classes.Where(c => c.ShouldBeProcessed))
                 {                    
                     // calculate the number of members to be sent out from each class
                     thisClass.SendOutMembers(_set.DeltaT, _rng);
                     // all departing members are processed
-                    thisClass.IfNeedsToBeProcessed = false;
+                    thisClass.ShouldBeProcessed = false;
                 }
 
                 // receive members
-                foreach (Class thisSendingOutClass in Classes.Where(c => c.IfMembersWaitingToSendOutBeforeNextDeltaT))
+                foreach (Class thisSendingOutClass in Classes.Where(c => c.MembersWaitingToDepart))
                 {
-                    for (int j = 0; j < thisSendingOutClass.ArrDestinationClasseIDs.Length; j++)
-                        Classes[thisSendingOutClass.ArrDestinationClasseIDs[j]].AddNewMembers(thisSendingOutClass.ArrNumOfMembersSendingToEachDestinationClasses[j]);
+                    for (int j = 0; j < thisSendingOutClass.DestinationClasseIDs.Length; j++)
+                        Classes[thisSendingOutClass.DestinationClasseIDs[j]].AddNewMembers(thisSendingOutClass.NumOfMembersToDestClasses[j]);
                     // reset number of members sending out to each destination class
-                    thisSendingOutClass.ResetNumOfMembersSendingToEachDestinationClasses();
+                    thisSendingOutClass.ResetNumOfMembersToDestClasses();
                 }
 
                 // check if there are members waiting to be sent out
                 thereAreClassesToBeProcessed = false;
                 for (int i = _numOfClasses - 1; i >= 0; i--)
-                    if (Classes[i].IfNeedsToBeProcessed)
+                    if (Classes[i].ShouldBeProcessed)
                     {
                         thereAreClassesToBeProcessed = true;
                         break;
@@ -226,7 +226,7 @@ namespace APACElib
             
             // reset number of members out of active events for all classes
             foreach (Class thisClass in Classes)
-                thisClass.ResetNumOfMembersOutOfEventsOverPastDeltaT();
+                thisClass.ResetNumOfMembersOutOfEvents();
 
             // update decision costs
             if (ModelUse != EnumModelUse.Calibration)
@@ -299,7 +299,7 @@ namespace APACElib
 
             // reset the number of people in each compartment
             foreach (Class thisClass in Classes)
-                thisClass.UpdateInitialNumberOfMembers((int)Math.Round(_paramManager.ParameterValues[thisClass.InitialMemebersParID]));
+                thisClass.UpdateInitialNumOfMembers((int)Math.Round(_paramManager.ParameterValues[thisClass.InitialMemebersParID]));
 
             // reset epidemic history 
             TrajsForSimOutput.Reset();
@@ -630,7 +630,7 @@ namespace APACElib
                     DALYPerNewMember, costPerNewMember, healthQualityPerUnitOfTime * _set.DeltaT, costPerUnitOfTime * _set.DeltaT);
 
                 // set up which statistics to show
-                Classes.Last().ShowStatisticsInSimulationResults = showStatisticsInSimulationResults;
+                Classes.Last().ShowStatsInSimResults = showStatisticsInSimulationResults;
                 Classes.Last().ShowIncidence = showIncidence;
                 Classes.Last().ShowPrevalence = showPrevalence;
                 Classes.Last().ShowAccumIncidence = showAccumIncidence;

@@ -16,12 +16,13 @@ namespace APACElib
         protected int _ID;
         protected int _IDOfActivatingIntervention;
         protected int _IDOfDestinationClass;
-        protected int _IDOfRateParameter;   // for birth and epidemic indepedent events
+        protected int _IDOfRateParameter = - 1;  // -1 for transmission rate and >=0 for birth and epidemic indepedent events
+        public int IDOfRateParameter { get=> _IDOfRateParameter; };   
         protected double _rate;
 
         public int MembersOutOverPastDeltaT { get; set; }
 
-        public enum enumType
+        public enum EumType
         {
             Birth = 1,
             EpidemicDepedent = 2,
@@ -57,9 +58,10 @@ namespace APACElib
         public virtual int IDOfPathogenToGenerate
         { get { return 0; } }
 
-        // update transmission rate
-        public virtual void UpdateTransmissionRate(double value)
+        // update birth, transmission or other  rates
+        public void UpdateRate(double value)
         {
+            _rate = value;
         }
                
     }
@@ -67,20 +69,10 @@ namespace APACElib
     public class Event_Birth : Event
     {
         // Instantiation
-        public Event_Birth(string name, int ID, int IDOfActivatingIntervention, int IDOfRateParameter, int IDOfDestinationClass)
+        public Event_Birth(string name, int ID, int IDOfActivatingIntervention, int idOfRateParameter, int IDOfDestinationClass)
             : base(name, ID, IDOfActivatingIntervention,IDOfDestinationClass)
         {
-            _IDOfRateParameter = IDOfRateParameter;
-        }
-
-        // Properties
-        public int IDOfRateParameter
-        { get { return _IDOfRateParameter; } }
-
-        // update the birth rate
-        public void UpdateBirthRate(double value)
-        {
-            _rate = value;
+            _IDOfRateParameter = idOfRateParameter;
         }
     }
 
@@ -100,12 +92,6 @@ namespace APACElib
         public override int IDOfPathogenToGenerate
         { get { return _IDOfPathogenToGenerate; } }
 
-        // update transmission rate
-        public override void UpdateTransmissionRate(double value)
-        {
-            _rate = value;
-        }
-              
     } // end of Process_EpidemicDependent class
 
     public class Event_EpidemicIndependent : Event
@@ -115,15 +101,6 @@ namespace APACElib
             : base(name, ID, IDOfActivatingIntervention, IDOfDestinationClass)
         {
             _IDOfRateParameter = IDOfRateParameter;
-        }
-
-        // Properties
-        public int IDOfRateParameter
-        { get { return _IDOfRateParameter; } }
-        // update rate
-        public void UpdateRate(double value)
-        {
-            _rate = value;
         }
 
     } // end of Process_EpidemicIndependent class        

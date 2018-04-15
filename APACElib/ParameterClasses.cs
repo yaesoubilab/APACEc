@@ -93,13 +93,13 @@ namespace APACElib
             {
                 // only susceptibility
                 foreach (Class thisClass in classes.Where(c => c.IsEpiDependentEventActive))
-                    thisClass.UpdateSusceptibilityParameterValues(ParameterValues);
+                    thisClass.UpdateSusceptibilityParams(ParameterValues);
             }
             if (ThereAreTimeDepParms_infectivities)
             {
                 // only infectivity
                 foreach (Class thisClass in classes)
-                    thisClass.UpdateInfectivityParameterValues(ParameterValues);
+                    thisClass.UpdateInfectivityParams(ParameterValues);
             }
         }
 

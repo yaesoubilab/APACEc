@@ -15,42 +15,42 @@ namespace APACElib
         protected int _ID;
         protected string _name;
         protected int _rowIndexInContactMatrix;
-        protected int[] _arrDestinationClasseIDs;
-        protected int[] _arrNumOfMembersSendingToEachDestinationClasses;        
-        public bool IfNeedsToBeProcessed { get; set; }
-        public bool IfMembersWaitingToSendOutBeforeNextDeltaT { get; set; }
-        // statistics
+        protected int[] _destinationClasseIDs;
+        protected int[] _numOfMembersToDestClasses;     // number of members to be sent to other classes        
+        public bool ShouldBeProcessed { get; set; }     // if it should be decided how many members to send to other classes 
+        public bool MembersWaitingToDepart { get; set; } // if there are members waiting to be sent to other classes 
         public GeneralTrajectory ClassStat { get; set; }
 
         // show in simulation output 
         public bool ShowIncidence { get; set; }
         public bool ShowPrevalence { get; set; }
         public bool ShowAccumIncidence { get; set; }
-        public bool ShowStatisticsInSimulationResults { get; set; }
+        public bool ShowStatsInSimResults { get; set; } // show this class statistics in the simulation results
 
-        // Instantiation
         public Class(int ID, string name)
         {
             _ID = ID;
             _name = name;
-            IfNeedsToBeProcessed = true;
-            IfMembersWaitingToSendOutBeforeNextDeltaT = false;
+            ShouldBeProcessed = true;
+            MembersWaitingToDepart = false;
         }
 
         // Properties
         public int ID
         {
-            get{return _ID;}
-        }
+            get { return _ID; } }
         public string Name
         {
             get {return _name;}
         }
-
-        public virtual int[] ArrDestinationClasseIDs
-        { get { return new int[0]; } }
-        public virtual int[] ArrNumOfMembersSendingToEachDestinationClasses
-        { get { return new int[0]; } }
+        public virtual int[] DestinationClasseIDs
+        {
+            get { return new int[0]; }
+        }
+        public virtual int[] NumOfMembersToDestClasses
+        {
+            get { return new int[0]; }
+        }
         public virtual bool EmptyToEradicate
         {
             get { return false; }
@@ -60,7 +60,9 @@ namespace APACElib
             get { return 0; }
         }
         public virtual int RowIndexInContactMatrix
-        { get { return 0; } }
+        {
+            get { return 0; }
+        }
         public virtual double[] SusceptibilityValues
         {
             get { return new double[0]; }
@@ -69,7 +71,7 @@ namespace APACElib
         {
             get { return new double[0]; }
         }
-        public virtual int[] ArrResourcesConsumed
+        public virtual int[] ResourcesConsumed
         {
             get { return new int[0]; }
         }
@@ -103,50 +105,29 @@ namespace APACElib
         //  add new member
         public virtual void AddNewMembers(int numOfNewMembers) { }
         // update the initial number of members
-        public virtual void UpdateInitialNumberOfMembers(int sampledValue)
-        {         
-        }
+        public virtual void UpdateInitialNumOfMembers(int sampledValue) { }
         // update rates of epidemic independent processes associated to this class
-        public virtual void UpdateRatesOfBirthAndEpiIndpEvents(double[] updatedParameterValues)
-        {
-        }
+        public virtual void UpdateRatesOfBirthAndEpiIndpEvents(double[] updatedParameterValues) { }
         // update susceptibility values
-        public virtual void UpdateSusceptibilityParameterValues(double[] arrSampledParameterValues)
-        {
-        }
+        public virtual void UpdateSusceptibilityParams(double[] arrSampledParameterValues) { }
         // update infectivity values
-        public virtual void UpdateInfectivityParameterValues(double[] arrSampledParameterValues)
-        {
-        }
+        public virtual void UpdateInfectivityParams(double[] arrSampledParameterValues) { }
         // update the probability of success
-        public virtual void UpdateProbOfSuccess(double[] arrSampledParameters)
-        {
-        }
+        public virtual void UpdateProbOfSuccess(double[] arrSampledParameters) { }
         // select this intervention combination 
-        public virtual void SelectThisInterventionCombination(int[] interventionCombination)
-        {
-        }
+        public virtual void UpdateIntrvnCombination(int[] interventionCombination) {}
         // update transmission rates affecting this class
-        public virtual void UpdateTransmissionRates(double[] arrTransmissionRatesByPathogens)
-        {
-        }
+        public virtual void UpdateTransmissionRates(double[] transmissionRatesByPathogens) { }
         // send out members
-        public virtual void SendOutMembers(double deltaT, RNG rng)
-        {
-        }
+        public virtual void SendOutMembers(double deltaT, RNG rng) { }
         // reset number of members sending to each destination class
-        public virtual void ResetNumOfMembersSendingToEachDestinationClasses()
-        { }
+        public virtual void ResetNumOfMembersToDestClasses() { }
         // find the members out of active processes
-        public virtual void ResetNumOfMembersOutOfEventsOverPastDeltaT()//(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
-        { }
-
+        public virtual void ResetNumOfMembersOutOfEvents() { } //(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
         // reset for another simulation run
-        public virtual void Reset()
-        {} 
+        public virtual void Reset() { } 
         // update available resources
-        public virtual void UpdateAvailableResources(int[] arrResourceAvailability)
-        { }
+        public virtual void UpdateAvailableResources(int[] resourceAvailability) { }
 
     }
 
@@ -157,8 +138,6 @@ namespace APACElib
         private int _initialMembersParID;
         private int InitialMembers { get; set; }
 
-        private int[] _susceptibilityParIDs;
-        private int[] _infectivityParIDs;
         private double[] _susceptibilityValues;
         private double[] _infectivityValues;
 
@@ -183,14 +162,8 @@ namespace APACElib
             get { return _emptyToEradicate; }
         }
         // transmission 
-        public int[] SusceptibilityParIDs
-        {
-            get { return _susceptibilityParIDs; }
-        }
-        public int[] InfectivityParIDs
-        {
-            get { return _infectivityParIDs; }
-        }
+        public int[] SusceptibilityParIDs { get; private set; }
+        public int[] InfectivityParIDs { get; private set; }
         public override double[] SusceptibilityValues
         {
             get { return _susceptibilityValues; }
@@ -207,10 +180,14 @@ namespace APACElib
         {
             get{return _isEpiDependentEventActive;}
         }
-        public override int[] ArrDestinationClasseIDs
-        { get { return _arrDestinationClasseIDs; } }
-        public override int[] ArrNumOfMembersSendingToEachDestinationClasses
-        { get { return _arrNumOfMembersSendingToEachDestinationClasses; } }
+        public override int[] DestinationClasseIDs
+        {
+            get { return _destinationClasseIDs; }
+        }
+        public override int[] NumOfMembersToDestClasses
+        {
+            get { return _numOfMembersToDestClasses; }
+        }
 
         // add an event
         public void AddAnEvent(Event e)
@@ -218,77 +195,74 @@ namespace APACElib
             _events.Add(e);
         }
         // setup the initial number parID
-        public void SetupInitialAndStoppingConditions(int initialMembersParID, bool ifShouldBeEmptyForEradication)
+        public void SetupInitialAndStoppingConditions(
+            int initialMembersParID, 
+            bool ifShouldBeEmptyForEradication)
         {
             _initialMembersParID = initialMembersParID;
             _emptyToEradicate = ifShouldBeEmptyForEradication;
         }
         // set up transmission dynamics properties
-        public void SetupTransmissionDynamicsProperties(string susceptibilityParameterIDs, string infectivityParameterIDs, int rowIndexInContactMatrix)
+        public void SetupTransmissionDynamicsProperties(
+            string susceptibilityParamIDs, 
+            string infectivityParamIDs, int 
+            rowIndexInContactMatrix)
         {
             // remove brackets
-            susceptibilityParameterIDs = susceptibilityParameterIDs.Replace(" ", "");
-            susceptibilityParameterIDs = susceptibilityParameterIDs.Replace("{", "");
-            susceptibilityParameterIDs = susceptibilityParameterIDs.Replace("}", "");
-            infectivityParameterIDs = infectivityParameterIDs.Replace(" ", "");
-            infectivityParameterIDs = infectivityParameterIDs.Replace("{", "");
-            infectivityParameterIDs = infectivityParameterIDs.Replace("}", "");
+            susceptibilityParamIDs = susceptibilityParamIDs.Replace(" ", "");
+            susceptibilityParamIDs = susceptibilityParamIDs.Replace("{", "");
+            susceptibilityParamIDs = susceptibilityParamIDs.Replace("}", "");
+            infectivityParamIDs = infectivityParamIDs.Replace(" ", "");
+            infectivityParamIDs = infectivityParamIDs.Replace("{", "");
+            infectivityParamIDs = infectivityParamIDs.Replace("}", "");
             // convert to array
-            string[] strSusceptibilityParameterIDs = susceptibilityParameterIDs.Split(',');
-            _susceptibilityParIDs = Array.ConvertAll<string, int>(strSusceptibilityParameterIDs, Convert.ToInt32);
-            _susceptibilityValues = new double[_susceptibilityParIDs.Length];
+            SusceptibilityParIDs = Array.ConvertAll(susceptibilityParamIDs.Split(','), Convert.ToInt32);
+            _susceptibilityValues = new double[SusceptibilityParIDs.Length];
 
-            string[] strInfectivityParameterIDs = infectivityParameterIDs.Split(',');
-            _infectivityParIDs = Array.ConvertAll<string, int>(strInfectivityParameterIDs, Convert.ToInt32);
-            _infectivityValues = new double[_infectivityParIDs.Length];
+            InfectivityParIDs = Array.ConvertAll(infectivityParamIDs.Split(','), Convert.ToInt32);
+            _infectivityValues = new double[InfectivityParIDs.Length];
 
             _rowIndexInContactMatrix = rowIndexInContactMatrix;
         }
         // update the initial number of members
-        public override void UpdateInitialNumberOfMembers(int sampledValue)
+        public override void UpdateInitialNumOfMembers(int value)
         {
-            InitialMembers = sampledValue;
-            ClassStat.Prevalence= sampledValue;
+            InitialMembers = value;
+            ClassStat.Prevalence= value;
         }
         // update susceptibility and infectivity values
-        public override void UpdateSusceptibilityParameterValues(double[] arrSampledParameterValues)
+        public override void UpdateSusceptibilityParams(double[] values)
         {
-            for (int i = 0; i < _susceptibilityParIDs.Length; i++)
-                _susceptibilityValues[i] = Math.Max(0, arrSampledParameterValues[_susceptibilityParIDs[i]]);
+            for (int i = 0; i < SusceptibilityParIDs.Length; i++)
+                _susceptibilityValues[i] = Math.Max(0, values[SusceptibilityParIDs[i]]);
         }
         // update infectivity values
-        public override void UpdateInfectivityParameterValues(double[] arrSampledParameterValues)
+        public override void UpdateInfectivityParams(double[] values)
         {
-            for (int i = 0; i < _infectivityParIDs.Length; i++)
-                _infectivityValues[i] = Math.Max(0, arrSampledParameterValues[_infectivityParIDs[i]]);
+            for (int i = 0; i < InfectivityParIDs.Length; i++)
+                _infectivityValues[i] = Math.Max(0, values[InfectivityParIDs[i]]);
         }
         // update rates of epidemic independent processes associated to this class
-        public override void UpdateRatesOfBirthAndEpiIndpEvents(double[] updatedParameterValues)
+        public override void UpdateRatesOfBirthAndEpiIndpEvents(double[] values)
         {
             foreach (Event thisProcess in _activeEvents)
             {
-                // update the epidemic independent rate
-                Event_EpidemicIndependent thisEpiIndpEvent = thisProcess as Event_EpidemicIndependent;
-                if (thisEpiIndpEvent != null)
-                    thisEpiIndpEvent.UpdateRate(updatedParameterValues[thisEpiIndpEvent.IDOfRateParameter]);
-
-                // update the birth rate
-                Event_Birth thisBirthEvent = thisProcess as Event_Birth;
-                if (thisBirthEvent!= null)
-                    thisBirthEvent.UpdateBirthRate(updatedParameterValues[thisBirthEvent.IDOfRateParameter]);
+                // update the epidemic independent or birth rate
+                if (thisProcess.IDOfDestinationClass>0)
+                    thisProcess.UpdateRate(values[thisProcess.IDOfRateParameter]);
             }
         }        
 
         // update transmission rates affecting this class
-        public override void UpdateTransmissionRates(double[] arrTransmissionRatesByPathogens)
+        public override void UpdateTransmissionRates(double[] TransmissionRatesByPathogens)
         {
             // update the transmission rates
             foreach (Event thisEvent in _activeEvents)
-                thisEvent.UpdateTransmissionRate(arrTransmissionRatesByPathogens[thisEvent.IDOfPathogenToGenerate]);
+                thisEvent.UpdateRate(TransmissionRatesByPathogens[thisEvent.IDOfPathogenToGenerate]);
         }
 
         // select an intervention combination
-        public override void SelectThisInterventionCombination(int[] interventionCombination)
+        public override void UpdateIntrvnCombination(int[] interventionCombination)
         {
             // check if active processes should be updated
             if (_currentInterventionCombination != null && _currentInterventionCombination.SequenceEqual(interventionCombination))
@@ -315,11 +289,11 @@ namespace APACElib
                 }
             }
             // store the id of the destination classes
-            _arrNumOfMembersSendingToEachDestinationClasses = new int[_activeEvents.Count];
-            _arrDestinationClasseIDs = new int[_activeEvents.Count];
+            _numOfMembersToDestClasses = new int[_activeEvents.Count];
+            _destinationClasseIDs = new int[_activeEvents.Count];
             int i = 0;
             foreach (Event thisProcess in _activeEvents)
-                _arrDestinationClasseIDs[i++] = thisProcess.IDOfDestinationClass;
+                _destinationClasseIDs[i++] = thisProcess.IDOfDestinationClass;
         }
         // send members of this class out
         public override void SendOutMembers(double deltaT, RNG rng)
@@ -385,7 +359,7 @@ namespace APACElib
                     // record the number of members out of this process
                     thisProcess.MembersOutOverPastDeltaT = numOfBirths;
                     // find the number of members to the destination class
-                    _arrNumOfMembersSendingToEachDestinationClasses[eIndex] += numOfBirths;
+                    _numOfMembersToDestClasses[eIndex] += numOfBirths;
                 }
                 // if this is not a birth process
                 else
@@ -395,21 +369,21 @@ namespace APACElib
                     // record the number of members out of this process
                     thisProcess.MembersOutOverPastDeltaT = arrSampledDepartures[eIndex + 1];
                     // find the number of members to the destination class
-                    _arrNumOfMembersSendingToEachDestinationClasses[eIndex] += arrSampledDepartures[eIndex + 1];
+                    _numOfMembersToDestClasses[eIndex] += arrSampledDepartures[eIndex + 1];
                 }
                 ++eIndex;
             }
 
-            IfMembersWaitingToSendOutBeforeNextDeltaT = true;
+            MembersWaitingToDepart = true;
         }
         // reset number of members sending to each destination class
-        public override void ResetNumOfMembersSendingToEachDestinationClasses()
+        public override void ResetNumOfMembersToDestClasses()
         {
-            _arrNumOfMembersSendingToEachDestinationClasses = new int[_activeEvents.Count];
-            IfMembersWaitingToSendOutBeforeNextDeltaT = false;
+            _numOfMembersToDestClasses = new int[_activeEvents.Count];
+            MembersWaitingToDepart = false;
         }
         // find the members out of active processes
-        public override void ResetNumOfMembersOutOfEventsOverPastDeltaT()//(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
+        public override void ResetNumOfMembersOutOfEvents()//(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
         {
             foreach (Event activeProcess in _activeEvents)
             {
@@ -426,7 +400,7 @@ namespace APACElib
         // Reset statistics for another simulation run
         public override void Reset()
         {
-            IfNeedsToBeProcessed = true;
+            ShouldBeProcessed = true;
             ClassStat.Reset();
             ClassStat.Prevalence = InitialMembers;  
         }
@@ -442,7 +416,7 @@ namespace APACElib
         // Reset statistics for another simulation run
         public override void Reset()
         {
-            IfNeedsToBeProcessed = true;
+            ShouldBeProcessed = true;
             ClassStat.Reset();
         }
         // add new members
@@ -460,10 +434,10 @@ namespace APACElib
         private double _probOfSuccess;
         
         // Properties
-        public override int[] ArrDestinationClasseIDs
-        { get { return _arrDestinationClasseIDs; } }
-        public override int[] ArrNumOfMembersSendingToEachDestinationClasses
-        { get { return _arrNumOfMembersSendingToEachDestinationClasses; } }
+        public override int[] DestinationClasseIDs
+        { get { return _destinationClasseIDs; } }
+        public override int[] NumOfMembersToDestClasses
+        { get { return _numOfMembersToDestClasses; } }
 
         public Class_Splitting(int ID, string name)
             : base(ID, name)
@@ -482,10 +456,10 @@ namespace APACElib
             _parIDOfProbOfSuccess = parIDOfProbOfSuccess;
             
             // store the id of the destination classes
-            _arrNumOfMembersSendingToEachDestinationClasses = new int[2];
-            _arrDestinationClasseIDs = new int[2];
-            _arrDestinationClasseIDs[0] = destinationClassIDGivenSuccess;
-            _arrDestinationClasseIDs[1] = destinationClassIDGivenFailure;
+            _numOfMembersToDestClasses = new int[2];
+            _destinationClasseIDs = new int[2];
+            _destinationClasseIDs[0] = destinationClassIDGivenSuccess;
+            _destinationClasseIDs[1] = destinationClassIDGivenFailure;
         }        
         // update the probability of success
         public override void UpdateProbOfSuccess(double[] arrSampledParameters)
@@ -505,13 +479,13 @@ namespace APACElib
             // find the number of members sending to each class
             if (_probOfSuccess == 0)
             {
-                _arrNumOfMembersSendingToEachDestinationClasses[0] += 0;
-                _arrNumOfMembersSendingToEachDestinationClasses[1] += ClassStat.Prevalence;
+                _numOfMembersToDestClasses[0] += 0;
+                _numOfMembersToDestClasses[1] += ClassStat.Prevalence;
             }
             else if (_probOfSuccess == 1)
             {
-                _arrNumOfMembersSendingToEachDestinationClasses[0] += ClassStat.Prevalence;
-                _arrNumOfMembersSendingToEachDestinationClasses[1] += 0;
+                _numOfMembersToDestClasses[0] += ClassStat.Prevalence;
+                _numOfMembersToDestClasses[1] += 0;
             }
             else
             {
@@ -520,26 +494,26 @@ namespace APACElib
                 // sample
                 int sampledNumOfSuccesses = numOfSuccesses.SampleDiscrete(rng);
 
-                _arrNumOfMembersSendingToEachDestinationClasses[0] += sampledNumOfSuccesses;
-                _arrNumOfMembersSendingToEachDestinationClasses[1] += ClassStat.Prevalence - sampledNumOfSuccesses;
+                _numOfMembersToDestClasses[0] += sampledNumOfSuccesses;
+                _numOfMembersToDestClasses[1] += ClassStat.Prevalence - sampledNumOfSuccesses;
 
             }
             // current number of members should be zero now            
             ClassStat.Prevalence = 0;
 
-            IfMembersWaitingToSendOutBeforeNextDeltaT = true;
+            MembersWaitingToDepart = true;
         }
         // reset number of members sending to each destination class
-        public override void ResetNumOfMembersSendingToEachDestinationClasses()
+        public override void ResetNumOfMembersToDestClasses()
         {
-            _arrNumOfMembersSendingToEachDestinationClasses = new int[2];
+            _numOfMembersToDestClasses = new int[2];
             ClassStat.Prevalence = 0;
-            IfMembersWaitingToSendOutBeforeNextDeltaT = false;
+            MembersWaitingToDepart = false;
         }
         // Reset statistics for another simulation run
         public override void Reset()
         {
-            IfNeedsToBeProcessed = true;
+            ShouldBeProcessed = true;
             ClassStat.Reset();
         }
 
@@ -547,7 +521,7 @@ namespace APACElib
         public override void AddNewMembers(int numOfNewMembers)
         {
             ClassStat.Add(numOfNewMembers);
-            IfNeedsToBeProcessed = true;
+            ShouldBeProcessed = true;
         }
     }   
 
@@ -560,10 +534,10 @@ namespace APACElib
         int[] _arrResourcesConsumed;
 
         // Properties
-        public override int[] ArrDestinationClasseIDs
-        { get { return _arrDestinationClasseIDs; } }
-        public override int[] ArrNumOfMembersSendingToEachDestinationClasses
-        { get { return _arrNumOfMembersSendingToEachDestinationClasses; } }
+        public override int[] DestinationClasseIDs
+        { get { return _destinationClasseIDs; } }
+        public override int[] NumOfMembersToDestClasses
+        { get { return _numOfMembersToDestClasses; } }
         
         public Class_ResourceMonitor(int ID, string name)
             : base(ID, name)
@@ -571,7 +545,7 @@ namespace APACElib
         }
 
         // Properties        
-        public override int[] ArrResourcesConsumed
+        public override int[] ResourcesConsumed
         {
             get { return _arrResourcesConsumed; }
         }
@@ -583,10 +557,10 @@ namespace APACElib
             _resourceUnitsConsumedPerArrival = resourceUnitsConsumedPerArrival;
 
             // store the id of the destination classes
-            _arrNumOfMembersSendingToEachDestinationClasses = new int[2];
-            _arrDestinationClasseIDs = new int[2];
-            _arrDestinationClasseIDs[0] = destinationClassIDGivenSuccess;
-            _arrDestinationClasseIDs[1] = destinationClassIDGivenFailure;
+            _numOfMembersToDestClasses = new int[2];
+            _destinationClasseIDs = new int[2];
+            _destinationClasseIDs[0] = destinationClassIDGivenSuccess;
+            _destinationClasseIDs[1] = destinationClassIDGivenFailure;
         }
         // update available resources
         public override void UpdateAvailableResources(int[] arrResourceAvailability)
@@ -610,24 +584,24 @@ namespace APACElib
             _arrResourcesConsumed[_resourceIDToCheckAvailability] = (int)(membersServed * _resourceUnitsConsumedPerArrival);
 
             // find the number of members sent to each class from this class
-            _arrNumOfMembersSendingToEachDestinationClasses[0] = membersServed;
-            _arrNumOfMembersSendingToEachDestinationClasses[0] = ClassStat.Prevalence - membersServed;            
+            _numOfMembersToDestClasses[0] = membersServed;
+            _numOfMembersToDestClasses[0] = ClassStat.Prevalence - membersServed;            
             // update the current number of members
             ClassStat.Prevalence =0;
 
-            IfMembersWaitingToSendOutBeforeNextDeltaT = true;
+            MembersWaitingToDepart = true;
         }
         // reset number of members sending to each destination class
-        public override void ResetNumOfMembersSendingToEachDestinationClasses()
+        public override void ResetNumOfMembersToDestClasses()
         {
-            _arrNumOfMembersSendingToEachDestinationClasses = new int[2];
-            IfMembersWaitingToSendOutBeforeNextDeltaT = false;
+            _numOfMembersToDestClasses = new int[2];
+            MembersWaitingToDepart = false;
         }
 
         // Reset for another simulation run
         public override void Reset()
         {
-            IfNeedsToBeProcessed = true;
+            ShouldBeProcessed = true;
             ClassStat.Reset();
         }
 
@@ -635,7 +609,7 @@ namespace APACElib
         public override void AddNewMembers(int numOfNewMembers)
         {
             ClassStat.Add(numOfNewMembers);
-            IfNeedsToBeProcessed = true;
+            ShouldBeProcessed = true;
         }
     }
 }

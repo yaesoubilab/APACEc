@@ -296,7 +296,7 @@ namespace APACElib
 
                 // update interventions that are in effect for each class
                 foreach (Class thisClass in classes)
-                    thisClass.SelectThisInterventionCombination(InterventionsInEffect);
+                    thisClass.UpdateIntrvnCombination(InterventionsInEffect);
             }
 
         }        

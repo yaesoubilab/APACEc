@@ -551,7 +551,7 @@ namespace APACElib
             _nSim = settings.NumOfSimItrs;   // number of simulated epidemics
 
             // summary statistics on classes
-            foreach (Class thisClass in parentEpidemic.Classes.Where(c=>c.ShowStatisticsInSimulationResults))
+            foreach (Class thisClass in parentEpidemic.Classes.Where(c=>c.ShowStatsInSimResults))
             {
                 IncidenceStats.Add(new ObsBasedStat("Total New: " + thisClass.Name, _nSim));
                 if (thisClass is Class_Normal)
@@ -611,7 +611,7 @@ namespace APACElib
 
             // incidence and prevalence statistics
             int incidentStatIndex = 0, prevalenceStatIndex = 0, ratioStatIndex = 0;
-            foreach (Class thisClass in simulatedEpi.Classes.Where(c => c.ShowStatisticsInSimulationResults))
+            foreach (Class thisClass in simulatedEpi.Classes.Where(c => c.ShowStatsInSimResults))
             {
                 IncidenceStats[incidentStatIndex++].Record(thisClass.ClassStat.AccumulatedIncidenceAfterWarmUp, simulatedEpi.ID);
                 if (thisClass is Class_Normal)
