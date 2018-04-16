@@ -56,7 +56,7 @@ namespace APACElib
             get { return _rate; }
         }
         public virtual int IDOfPathogenToGenerate
-        { get { return 0; } }
+        { get { return -1; } }
 
         // update birth, transmission or other  rates
         public void UpdateRate(double value)
@@ -69,20 +69,28 @@ namespace APACElib
     public class Event_Birth : Event
     {
         // Instantiation
-        public Event_Birth(string name, int ID, int IDOfActivatingIntervention, int idOfRateParameter, int IDOfDestinationClass)
+        public Event_Birth(
+            string name, 
+            int ID, 
+            int IDOfActivatingIntervention, 
+            int IDOfRateParameter, 
+            int IDOfDestinationClass)
             : base(name, ID, IDOfActivatingIntervention,IDOfDestinationClass)
         {
-            _IDOfRateParameter = idOfRateParameter;
+            _IDOfRateParameter = IDOfRateParameter;
         }
     }
 
     public class Event_EpidemicDependent : Event
     {
-        // Fields
         private int _IDOfPathogenToGenerate;
 
-        // Instantiation
-        public Event_EpidemicDependent(string name, int ID, int IDOfActivatingIntervention, int IDOfPathogenToGenerate, int IDOfDestinationClass)
+        public Event_EpidemicDependent(
+            string name, 
+            int ID, int 
+            IDOfActivatingIntervention, 
+            int IDOfPathogenToGenerate, int 
+            IDOfDestinationClass)
             : base(name, ID, IDOfActivatingIntervention, IDOfDestinationClass)
         {
             _IDOfPathogenToGenerate = IDOfPathogenToGenerate;
@@ -92,17 +100,22 @@ namespace APACElib
         public override int IDOfPathogenToGenerate
         { get { return _IDOfPathogenToGenerate; } }
 
-    } // end of Process_EpidemicDependent class
+    } 
 
     public class Event_EpidemicIndependent : Event
     {
         // Instantiation
-        public Event_EpidemicIndependent(string name, int ID, int IDOfActivatingIntervention, int IDOfRateParameter, int IDOfDestinationClass)
+        public Event_EpidemicIndependent(
+            string name, 
+            int ID, 
+            int IDOfActivatingIntervention, 
+            int IDOfRateParameter, 
+            int IDOfDestinationClass)
             : base(name, ID, IDOfActivatingIntervention, IDOfDestinationClass)
         {
             _IDOfRateParameter = IDOfRateParameter;
         }
 
-    } // end of Process_EpidemicIndependent class        
+    }        
    
 }

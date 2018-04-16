@@ -43,13 +43,13 @@ namespace APACElib
         {
             get {return _name;}
         }
-        public virtual int[] DestinationClasseIDs
+        public int[] DestinationClasseIDs
         {
-            get { return new int[0]; }
+            get { return _destinationClasseIDs; }
         }
-        public virtual int[] NumOfMembersToDestClasses
+        public int[] NumOfMembersToDestClasses
         {
-            get { return new int[0]; }
+            get { return _numOfMembersToDestClasses; }
         }
         public virtual bool EmptyToEradicate
         {
@@ -180,14 +180,6 @@ namespace APACElib
         {
             get{return _isEpiDependentEventActive;}
         }
-        public override int[] DestinationClasseIDs
-        {
-            get { return _destinationClasseIDs; }
-        }
-        public override int[] NumOfMembersToDestClasses
-        {
-            get { return _numOfMembersToDestClasses; }
-        }
 
         // add an event
         public void AddAnEvent(Event e)
@@ -236,6 +228,7 @@ namespace APACElib
             for (int i = 0; i < SusceptibilityParIDs.Length; i++)
                 _susceptibilityValues[i] = Math.Max(0, values[SusceptibilityParIDs[i]]);
         }
+
         // update infectivity values
         public override void UpdateInfectivityParams(double[] values)
         {
@@ -245,20 +238,16 @@ namespace APACElib
         // update rates of epidemic independent processes associated to this class
         public override void UpdateRatesOfBirthAndEpiIndpEvents(double[] values)
         {
-            foreach (Event thisProcess in _activeEvents)
-            {
-                // update the epidemic independent or birth rate
-                if (thisProcess.IDOfDestinationClass>0)
-                    thisProcess.UpdateRate(values[thisProcess.IDOfRateParameter]);
-            }
+            foreach (Event thisEvent in _activeEvents.Where(e => e.IDOfRateParameter > 0))
+                thisEvent.UpdateRate(values[thisEvent.IDOfRateParameter]);
         }        
 
         // update transmission rates affecting this class
-        public override void UpdateTransmissionRates(double[] TransmissionRatesByPathogens)
+        public override void UpdateTransmissionRates(double[] transmissionRatesByPathogen)
         {
             // update the transmission rates
-            foreach (Event thisEvent in _activeEvents)
-                thisEvent.UpdateRate(TransmissionRatesByPathogens[thisEvent.IDOfPathogenToGenerate]);
+            foreach (Event thisEvent in _activeEvents.Where(e => e is Event_EpidemicDependent))
+                thisEvent.UpdateRate(transmissionRatesByPathogen[thisEvent.IDOfPathogenToGenerate]);
         }
 
         // select an intervention combination
@@ -267,7 +256,7 @@ namespace APACElib
             // check if active processes should be updated
             if (_currentInterventionCombination != null && _currentInterventionCombination.SequenceEqual(interventionCombination))
                 return;
-            // if no process is attached, return
+            // if no event is attached, return
             if (_events.Count == 0)
                 return;
 
@@ -280,7 +269,7 @@ namespace APACElib
             _isEpiDependentEventActive = false;
             foreach (Event e in _events)
             {
-                // always add the processes that are activated                
+                // add the events that are activated                
                 if (interventionCombination[e.IDOfActivatingIntervention] == 1)
                 {
                     if ( e is Event_EpidemicDependent)
@@ -304,21 +293,21 @@ namespace APACElib
 
             int eIndex = 0;
             int numOfActiveEvents = _activeEvents.Count;
-            double[] arrEventRates = new double[numOfActiveEvents];
-            double[] arrEventProbs = new double[numOfActiveEvents + 1]; // note index 0 denotes not leaving the class
+            double[] eventRates = new double[numOfActiveEvents];
+            double[] eventProbs = new double[numOfActiveEvents + 1]; // note index 0 denotes not leaving the class
 
-            // then calculate the rates of events
+            // calculate the rates of events
             eIndex = 0;
             double sumOfRates = 0;
             foreach (Event thisEvent in _activeEvents)
             {
                 // birth event does not affect the way members are leaving this class
                 if (thisEvent is Event_Birth)
-                    arrEventRates[eIndex] = 0;
+                    eventRates[eIndex] = 0;
                 else
                 {
-                    arrEventRates[eIndex] = thisEvent.Rate * deltaT;
-                    sumOfRates += arrEventRates[eIndex];
+                    eventRates[eIndex] = thisEvent.Rate * deltaT;
+                    sumOfRates += eventRates[eIndex];
                 }
                 ++ eIndex;
             }
@@ -328,16 +317,14 @@ namespace APACElib
 
             // find the probabilities of each process   
             // calculate the probability of not leaving the class
-            arrEventProbs[0] = Math.Exp(-sumOfRates);
+            eventProbs[0] = Math.Exp(-sumOfRates);
             // calculate the probability of other processes 
-            double coeff = (1 - arrEventProbs[0]) / sumOfRates;
+            double coeff = (1 - eventProbs[0]) / sumOfRates;
             for (int probIndex = 1; probIndex <= numOfActiveEvents; ++probIndex)
-                arrEventProbs[probIndex] = coeff * arrEventRates[probIndex-1];
+                eventProbs[probIndex] = coeff * eventRates[probIndex-1];
 
             // define a multinomial distribution for the number of members out of each process (process 0 denotes not leaving the class)
-            Multinomial numOutOfProcessDistribution = new Multinomial("temp", ClassStat.Prevalence, arrEventProbs);
-            // get a sample
-            int[] arrSampledDepartures = numOutOfProcessDistribution.ArrSampleDiscrete(rng);
+            int[] arrSampledDepartures = new Multinomial("temp", ClassStat.Prevalence, eventProbs).ArrSampleDiscrete(rng);
 
            // find the number of members out of each process to other classes            
             eIndex = 0; // NOTE: process with index 0 denotes not leaving the class
@@ -351,10 +338,8 @@ namespace APACElib
                         numOfBirths = 0;
                     else
                     {
-                        // define a Poisson distribution
-                        Poisson numOfBirthsDistribution = new Poisson("Birth", ClassStat.Prevalence * thisProcess.Rate * deltaT);
                         // get a sample on the number of births
-                        numOfBirths = numOfBirthsDistribution.SampleDiscrete(rng);
+                        numOfBirths = new Poisson("Birth", ClassStat.Prevalence * thisProcess.Rate * deltaT).SampleDiscrete(rng);
                     }
                     // record the number of members out of this process
                     thisProcess.MembersOutOverPastDeltaT = numOfBirths;
@@ -386,10 +371,7 @@ namespace APACElib
         public override void ResetNumOfMembersOutOfEvents()//(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
         {
             foreach (Event activeProcess in _activeEvents)
-            {
-                //arrNumOfMembersOutOfProcessesOverPastDeltaT[activeProcess.ID] += activeProcess.MembersOutOverPastDeltaT;
                 activeProcess.MembersOutOverPastDeltaT = 0;
-            }
         }
 
         // add new members
@@ -401,6 +383,7 @@ namespace APACElib
         public override void Reset()
         {
             ShouldBeProcessed = true;
+            MembersWaitingToDepart = false;
             ClassStat.Reset();
             ClassStat.Prevalence = InitialMembers;  
         }
@@ -429,31 +412,22 @@ namespace APACElib
 
     // Class_Splitting
     public class Class_Splitting: Class
-    {           
-        private int _parIDOfProbOfSuccess;
+    {
         private double _probOfSuccess;
         
         // Properties
-        public override int[] DestinationClasseIDs
-        { get { return _destinationClasseIDs; } }
-        public override int[] NumOfMembersToDestClasses
-        { get { return _numOfMembersToDestClasses; } }
-
         public Class_Splitting(int ID, string name)
             : base(ID, name)
         {
         }
 
         // Properties
-        public int ParIDOfProbOfSuccess
-        {
-            get{return _parIDOfProbOfSuccess;}
-        }
+        public int ParIDOfProbOfSuccess { get; private set; }
 
         // add the parameter ID for the probability of success
         public void SetUp(int parIDOfProbOfSuccess, int destinationClassIDGivenSuccess, int destinationClassIDGivenFailure)
         {
-            _parIDOfProbOfSuccess = parIDOfProbOfSuccess;
+            ParIDOfProbOfSuccess = parIDOfProbOfSuccess;
             
             // store the id of the destination classes
             _numOfMembersToDestClasses = new int[2];
@@ -464,7 +438,7 @@ namespace APACElib
         // update the probability of success
         public override void UpdateProbOfSuccess(double[] arrSampledParameters)
         {
-            _probOfSuccess = arrSampledParameters[_parIDOfProbOfSuccess];
+            _probOfSuccess = arrSampledParameters[ParIDOfProbOfSuccess];
         }
         
         // send members of this class out
@@ -490,9 +464,7 @@ namespace APACElib
             else
             {
                 // define a binomial distribution for the number of successes
-                Bionomial numOfSuccesses = new Bionomial("temp", ClassStat.Prevalence, _probOfSuccess);
-                // sample
-                int sampledNumOfSuccesses = numOfSuccesses.SampleDiscrete(rng);
+                int sampledNumOfSuccesses = new Bionomial("temp", ClassStat.Prevalence, _probOfSuccess).SampleDiscrete(rng);
 
                 _numOfMembersToDestClasses[0] += sampledNumOfSuccesses;
                 _numOfMembersToDestClasses[1] += ClassStat.Prevalence - sampledNumOfSuccesses;
@@ -534,11 +506,6 @@ namespace APACElib
         int[] _arrResourcesConsumed;
 
         // Properties
-        public override int[] DestinationClasseIDs
-        { get { return _destinationClasseIDs; } }
-        public override int[] NumOfMembersToDestClasses
-        { get { return _numOfMembersToDestClasses; } }
-        
         public Class_ResourceMonitor(int ID, string name)
             : base(ID, name)
         {
