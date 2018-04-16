@@ -59,14 +59,12 @@ namespace APACElib
             CostPerUnitOfTime = 20,
             ResourceUnitsConsumedPerArrival = 21,
 
-            CollectIncidenceTimeSeries = 23,
-            CollectPrevalenceTimeSeries = 24,
-            CollectAccumIncidenceTimeSeries = 25,
+            CollectAccumIncidenceStats = 23,
+            CollectPrevalenceStats = 24,
 
-            ShowInSimulationSummaryReport = 27,  
-            ShowIncidence = 28,
-            ShowPrevalence = 29,
-            ShowAccumIncidence = 30,
+            ShowIncidence = 26,
+            ShowPrevalence = 27,
+            ShowAccumIncidence = 28,
         }
         public enum enumEventColumns : int
         {

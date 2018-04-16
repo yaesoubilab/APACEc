@@ -57,6 +57,13 @@ namespace APACElib
             }
         }
 
+        // update parameters
+        public void UpdateParameters(ParameterManager parManager, double deltaT)
+        {
+            foreach (Intervention intv in Interventions)
+                intv.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn = (int)(parManager.ParameterValues[intv.ParIDDelayToGoIntoEffectOnceTurnedOn] / deltaT);
+        }
+
         // add prespecified decisions
         public void AddPrespecifiedDecisionsOverDecisionsPeriods(int[][] prespecifiedDecisionsOverDecisionsPeriods)
         {
@@ -107,7 +114,7 @@ namespace APACElib
             CostOverThisDecisionPeriod = 0; // reset cost over the next decision period
 
             // if there is a change in decisoin
-            if (ifThereIsAChange)
+            if (ifThereIsAChange || epiTimeIndex ==0)
             {
                 int i = 0;
                 foreach (Intervention a in Interventions)
@@ -163,7 +170,7 @@ namespace APACElib
                 }
 
                 // find the epidemic time index to change the interventions that are in effect
-                EpiTimeIndexToChangeIntervetionsInEffect = FindNextEpiTimeIndexToChangeInterventionsInEffect();
+                //EpiTimeIndexToChangeIntervetionsInEffect = FindNextEpiTimeIndexToChangeInterventionsInEffect();
             }
 
             // update cost of this period
@@ -175,6 +182,11 @@ namespace APACElib
                     ++a.NumOfDecisionPeriodsOverWhichThisInterventionWasUsed;
                 }
             }
+        }
+
+        public void UpdateNextEpiTimeIndexToChangeInterventionsInEffect()
+        {
+            EpiTimeIndexToChangeIntervetionsInEffect = FindNextEpiTimeIndexToChangeInterventionsInEffect();
         }
 
         public void Reset()
@@ -293,6 +305,8 @@ namespace APACElib
                         }
                     }
                 }
+
+                _decisionMaker.UpdateNextEpiTimeIndexToChangeInterventionsInEffect();
 
                 // update interventions that are in effect for each class
                 foreach (Class thisClass in classes)

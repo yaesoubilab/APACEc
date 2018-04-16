@@ -13,18 +13,15 @@ namespace APACElib
 {
     public class Epidemic
     {
-        ModelSettings _set;
+        ModelSettings _modelSets;
         public int ID { get; set; }
         public EnumModelUse ModelUse { get; set; } = EnumModelUse.Simulation;
         public bool StoreEpidemicTrajectories { get; set; } = true;
-        // private model entities        
-        private DecisionMaker _decisionMaker;
-        private ParameterManager _paramManager;
-        private MonitorOfInterventionsInEffect _monitorOfInterventionsInEffect;
+        
         // public model entities
         public DecisionMaker DecisionMaker { get => _decisionMaker; }
         public ParameterManager ParamManager { get => _paramManager; } 
-        public ForceOfInfectionModeller FOIModel { get; set; }
+        public ForceOfInfectionModel FOIModel { get; set; }
         public List<Class> Classes { get => _classes; }
         private List<Class> _classes = new List<Class>();
         private List<Event> _events = new List<Event>();
@@ -38,13 +35,16 @@ namespace APACElib
         public Calibration Calibration { get; private set; } = new Calibration();
         
         RNG _rng;
+        private DecisionMaker _decisionMaker;
+        private ParameterManager _paramManager;
+        private MonitorOfInterventionsInEffect _monitorOfIntrvsInEffect;
         private int[] _pathogenIDs;
         private int _numOfClasses;        
         private int _simTimeIndex;  // simulation time index
         private int _epiTimeIndex;  // time indeces since the detection of epidemic
         private bool _firstObservationObtained;
-        public int TimeIndexOfTheFirstObservation { get; private set; }
-        private bool _areThereClassesWithEradicationCondition = false;
+        public int SimTimeIndexOfFirstObs { get; private set; }
+        private bool _thereAreClassesWithEradicationCondition = false;
         public bool StoppedDueToEradication { get; private set; }
         public int SeedProducedAcceptibleTraj { get; private set; }
 
@@ -57,7 +57,7 @@ namespace APACElib
         // clean except the results
         public void CleanExceptResults()
         {
-            _set = null;
+            _modelSets = null;
             _paramManager = new ParameterManager();
             _classes = new List<Class>();
             _events = new List<Event>();
@@ -67,33 +67,33 @@ namespace APACElib
     }
         
         // Simulate one trajectory (parameters will be sampled)
-        public int SimulateTrajectoriesUntilOneAcceptibleFound(int beginSeed, int stopSeed, int simReplication, int timeIndexToStop)
+        public int SimulateTrajectoriesUntilOneAcceptibleFound(int beginSeed, int stopSeed, int imRepIndex, int timeIndexToStop)
         {
-            bool acceptableTrajectoryFound = false;
+            bool acceptableTrajFound = false;
             int nTrajDiscarded = 0;
 
-            while (!acceptableTrajectoryFound && beginSeed <= stopSeed)
+            while (!acceptableTrajFound && beginSeed <= stopSeed)
             {
                 // reset for another simulation
                 ResetForAnotherSimulation(beginSeed);
                 // simulate
-                if (Simulate(simReplication, timeIndexToStop) == true)
+                if (Simulate(imRepIndex, timeIndexToStop))
                 {
-                    acceptableTrajectoryFound = true;
+                    acceptableTrajFound = true;
                     SeedProducedAcceptibleTraj = beginSeed;
                 }
                 else
                 {
                     ++beginSeed;
                     // if the model is used for calibration, record the number of discarded trajectories due to violating the feasible ranges
-                    if (_set.ModelUse == EnumModelUse.Calibration)
+                    if (_modelSets.ModelUse == EnumModelUse.Calibration)
                         ++nTrajDiscarded;
                 }
             }
             return nTrajDiscarded;
         }
         // Simulate one trajectory (parameters will be sampled)
-        public void SimulateOneTrajectory(int seed, int simReplication, int timeIndexToStop)
+        public void SimulateOneTrajectory(int seed, int simRepIndex, int timeIndexToStop)
         {
             Timer.Start();       // reset the timer     
             SeedProducedAcceptibleTraj = -1;    // reset the seed
@@ -101,12 +101,29 @@ namespace APACElib
             // reset for another simulation
             ResetForAnotherSimulation(seed);
             // simulate
-            if (Simulate(simReplication, timeIndexToStop) == true)
+            if (Simulate(simRepIndex, timeIndexToStop))
+                // if this is an acceptable trajectory
                 SeedProducedAcceptibleTraj = seed;
 
             Timer.Stop(); // stop timer
-        }                
-        
+        }
+
+        // return accumulated net benfit (health or monetary) 
+        public double NetBenefit(EnumObjectiveFunction enumObjFunc, double wtp)
+        {
+            double reward = 0;
+            switch (enumObjFunc)
+            {
+                case EnumObjectiveFunction.MaximizeNMB:
+                    reward = EpidemicCostHealth.GetDiscountedNMB(wtp);
+                    break;
+                case EnumObjectiveFunction.MaximizeNHB:
+                    reward = EpidemicCostHealth.GetDiscountedNHB(wtp);
+                    break;
+            }
+            return reward;
+        }
+
         // simulate the trajectory assuming that parameter values are already assigned
         private bool Simulate(int simReplication, int timeIndexToStop)
         {
@@ -118,10 +135,10 @@ namespace APACElib
             while (!toStop)
             {
                 // make decisions if decision is not predetermined and announce the new decisions (may not necessarily go into effect)
-                _monitorOfInterventionsInEffect.Update(_epiTimeIndex, false, ref _classes);
+                _monitorOfIntrvsInEffect.Update(_epiTimeIndex, false, ref _classes);
 
                 // update the effect of chance in time dependent parameter value
-                _paramManager.UpdateTimeDepParams(ref _rng, _simTimeIndex * _set.DeltaT, ref _classes);
+                _paramManager.UpdateTimeDepParams(ref _rng, _simTimeIndex * _modelSets.DeltaT, ref _classes);
 
                 // update recorded trajectories 
                 TrajsForSimOutput.Record(_simTimeIndex);
@@ -134,7 +151,7 @@ namespace APACElib
                 }
 
                 // update transmission rates
-                FOIModel.UpdateTransmissionRates(_simTimeIndex, _monitorOfInterventionsInEffect.InterventionsInEffect, ref _classes);
+                FOIModel.UpdateTransmissionRates(_simTimeIndex, _monitorOfIntrvsInEffect.InterventionsInEffect, ref _classes);
 
                 // send transfer class members                    
                 TransferClassMembers();
@@ -155,7 +172,7 @@ namespace APACElib
 
                     // find if it is an acceptable trajectory
                     acceptableTrajectory = true;
-                    if (_epiTimeIndex < _set.EpidemicConditionTimeIndex)
+                    if (_epiTimeIndex < _modelSets.EpidemicConditionTimeIndex)
                         acceptableTrajectory = false;
                 }
             } 
@@ -180,7 +197,7 @@ namespace APACElib
                 foreach (Class thisClass in Classes.Where(c => c.ShouldBeProcessed))
                 {                    
                     // calculate the number of members to be sent out from each class
-                    thisClass.SendOutMembers(_set.DeltaT, _rng);
+                    thisClass.SendOutMembers(_modelSets.DeltaT, _rng);
                     // all departing members are processed
                     thisClass.ShouldBeProcessed = false;
                 }
@@ -220,10 +237,10 @@ namespace APACElib
             // update summation statistics
             foreach (SumTrajectory thisSumTaj in SumTrajectories)
                 thisSumTaj.Add(_simTimeIndex, ref _classes, ref _events);
+            // update ratio statistics
+            foreach (RatioTrajectory ratioTraj in RatioTrajectories)
+                ratioTraj.Add(_simTimeIndex, ref _sumTrajectories);
 
-            // update the aggregated trajectories
-            TrajsForSimOutput.Record(_simTimeIndex);
-            
             // reset number of members out of active events for all classes
             foreach (Class thisClass in Classes)
                 thisClass.ResetNumOfMembersOutOfEvents();
@@ -235,32 +252,13 @@ namespace APACElib
                 DecisionMaker.CostOverThisDecisionPeriod = 0;
             }
         }
-
-        // return accumulated reward
-        private double AccumulatedReward()
-        {
-            double reward = 0;
-            switch (_set.ObjectiveFunction)
-            {
-                case EnumObjectiveFunction.MaximizeNMB:
-                    reward = EpidemicCostHealth.GetDiscountedNMB(_set.WTPForHealth);
-                    break;
-                case EnumObjectiveFunction.MaximizeNHB:
-                    reward = EpidemicCostHealth.GetDiscountedNHB(_set.WTPForHealth);
-                    break;
-            }
-            return reward;
-        }
         
         // check if stopping condition is satisfied
         private bool CheckIfEradicated()
         {
             // check if any class has eradication condition
             bool eradicated = true;
-            if (_areThereClassesWithEradicationCondition)
-                eradicated = false;
-            else
-            {
+            if (_thereAreClassesWithEradicationCondition)
                 foreach (Class thisClass in Classes)
                 {
                     // if a class should be empty while it is not then return false
@@ -269,7 +267,10 @@ namespace APACElib
                         eradicated = false;
                         break;
                     }
-                }
+                }            
+            else
+            {
+                eradicated = false;
             }
             StoppedDueToEradication = eradicated;
             return eradicated;
@@ -283,19 +284,23 @@ namespace APACElib
 
             // reset time
             _simTimeIndex = 0;
-            TimeIndexOfTheFirstObservation = 0;
+            SimTimeIndexOfFirstObs = 0;
             _firstObservationObtained = false;
             UpdateEpiTimeIndex();
 
             // resample parameters 
             _paramManager.SampleAllParameters(ref _rng, 0);
 
+            // update contact matrices
+            FOIModel.AddContactInfo(
+                _modelSets.GetBaseContactMatrices(),
+                _modelSets.GetPercentChangeInContactMatricesParIDs()
+                );
             // reset force of infection manager 
             FOIModel.Reset();
-            
-            // update intervention information            
-            foreach (Intervention thisIntervention in DecisionMaker.Interventions)
-                thisIntervention.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn = (int)(_paramManager.ParameterValues[thisIntervention.ParIDDelayToGoIntoEffectOnceTurnedOn] / _set.DeltaT);
+
+            // update intervention information 
+            DecisionMaker.UpdateParameters(_paramManager, _modelSets.DeltaT);
 
             // reset the number of people in each compartment
             foreach (Class thisClass in Classes)
@@ -305,14 +310,14 @@ namespace APACElib
             TrajsForSimOutput.Reset();
 
             // health and cost outcomes
-            EpidemicCostHealth = new EpidemicCostHealth(_set.DeltaTDiscountRate, _set.WarmUpPeriodTimeIndex);
+            EpidemicCostHealth = new EpidemicCostHealth(_modelSets.DeltaTDiscountRate, _modelSets.WarmUpPeriodTimeIndex);
             EpidemicCostHealth.Reset();
 
             // reset decisions
-            DecisionMaker.Reset();//(ref _totalCost);
+            DecisionMaker.Reset();
 
             // update decisions
-            _monitorOfInterventionsInEffect.Update(0, true, ref _classes);
+            _monitorOfIntrvsInEffect.Update(0, true, ref _classes);
 
             // calculate contact matrices
             FOIModel.CalculateContactMatrices();
@@ -324,12 +329,25 @@ namespace APACElib
                 thisClass.UpdateProbOfSuccess(_paramManager.ParameterValues);
                 thisClass.Reset();
             }
+
+            // update summation statistics
+            foreach (SumTrajectory sumTraj in SumTrajectories)
+            {
+                sumTraj.Reset();
+                sumTraj.Add(_simTimeIndex, ref _classes, ref _events);
+            }
+            // update ratio statistics
+            foreach (RatioTrajectory ratioTraj in RatioTrajectories)
+            {
+                ratioTraj.Reset();
+                ratioTraj.Add(_simTimeIndex, ref _sumTrajectories);
+            }
         }         
 
         // update current epidemic time
         private void UpdateEpiTimeIndex()
         {
-            switch (_set.MarkOfEpidemicStartTime)
+            switch (_modelSets.MarkOfEpidemicStartTime)
             {
                 case EnumMarkOfEpidemicStartTime.TimeZero:
                     {
@@ -340,31 +358,35 @@ namespace APACElib
                 case EnumMarkOfEpidemicStartTime.TimeOfFirstObservation:
                     {
                         if (_firstObservationObtained)
-                            _epiTimeIndex = _simTimeIndex - TimeIndexOfTheFirstObservation + _set.NumOfDeltaT_inObservationPeriod;
+                            _epiTimeIndex = _simTimeIndex - SimTimeIndexOfFirstObs + _modelSets.NumOfDeltaT_inObservationPeriod;
                         else
                             _epiTimeIndex = int.MinValue;
                     }
                     break;
             }            
         }
-        
+
         // subs to create model
         #region subs to create model  
         // create the model
-        public void BuildModel(ref ModelSettings modelSettings)
+        public void BuildModel(ref ModelSettings modelSettings, bool extractOutputHeaders = false)
         {
             // model settings
-            _set = modelSettings;
+            _modelSets = modelSettings;
             // decision maker
             _decisionMaker = new DecisionMaker(
-                _set.EpidemicTimeIndexToStartDecisionMaking,
-                _set.NumOfDeltaT_inDecisionInterval);
+                _modelSets.EpidemicTimeIndexToStartDecisionMaking,
+                _modelSets.NumOfDeltaT_inDecisionInterval);
             // add parameters
             AddParameters(modelSettings.ParametersSheet);
             // add pathogens
             AddPathogens(modelSettings.PathogenSheet);
             // add classes
             AddClasses(modelSettings.ClassesSheet);
+            // force of infection model
+            FOIModel = new ForceOfInfectionModel(
+                _pathogenIDs.Length,
+                ref _paramManager);
             // add interventions
             AddInterventions(modelSettings.InterventionSheet);
             // add resources
@@ -377,18 +399,20 @@ namespace APACElib
             AddRatioStatistics(modelSettings.RatioStatisticsSheet);
             // add connections
             AddConnections(modelSettings.ConnectionsMatrix);
-            // update contact matrices
-            FOIModel = new ForceOfInfectionModeller(
-                _pathogenIDs.Length,
-                ref _paramManager,
-                _set.GetBaseContactMatrices(),
-                _set.GetPercentChangeInContactMatricesParIDs());
             // monitor of interventions in effect
-            _monitorOfInterventionsInEffect = new MonitorOfInterventionsInEffect(ref _decisionMaker);
+            _monitorOfIntrvsInEffect = new MonitorOfInterventionsInEffect(ref _decisionMaker);
             // epidemic history
-            TrajsForSimOutput = new TrajsForSimOutput(0, _set.DeltaT, _set.NumOfDeltaT_inSimulationOutputInterval, ref _decisionMaker, ref _classes, ref _sumTrajectories, ref _ratioTrajectories);
+            TrajsForSimOutput = new TrajsForSimOutput(
+                ID, 
+                _modelSets.DeltaT, 
+                _modelSets.NumOfDeltaT_inSimulationOutputInterval, 
+                ref _decisionMaker, 
+                ref _classes, 
+                ref _sumTrajectories, 
+                ref _ratioTrajectories,
+                extractOutputHeaders);
 
-            _areThereClassesWithEradicationCondition = Classes.Where(s => s.EmptyToEradicate).Count() == 0;
+            _thereAreClassesWithEradicationCondition = Classes.Where(s => s.EmptyToEradicate).Count() > 0;
         }
         // read parameters
         private void AddParameters(Array parametersSheet)
@@ -513,14 +537,12 @@ namespace APACElib
                 double costPerNewMember = Convert.ToDouble(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CostPerNewMember));
                 double healthQualityPerUnitOfTime = Convert.ToDouble(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.DisabilityWeightPerUnitOfTime));
                 double costPerUnitOfTime = Convert.ToDouble(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CostPerUnitOfTime));
-                
+
                 // statistics                
-                bool collectIncidenceTimeSeries = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CollectIncidenceTimeSeries)));
-                bool collectPrevalenceTimeSeries = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CollectPrevalenceTimeSeries)));
-                bool collectAccumIncidenceTimeSeries = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CollectAccumIncidenceTimeSeries)));
+                bool collectPrevalenceStats = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CollectPrevalenceStats)));
+                bool collectAccumIncidenceStats = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CollectAccumIncidenceStats)));
 
                 // simulation output
-                bool showStatisticsInSimulationResults = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ShowInSimulationSummaryReport)));
                 bool showIncidence = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ShowIncidence)));
                 bool showPrevalence = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ShowPrevalence)));
                 bool showAccumIncidence = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ShowAccumIncidence)));
@@ -620,17 +642,24 @@ namespace APACElib
                 #endregion
 
                 // class statistics 
-                Classes.Last().ClassStat = new GeneralTrajectory(classID, name, _set.WarmUpPeriodTimeIndex);
-                Classes.Last().ClassStat.SetupAvePrevalenceAndAccumIncidence(showAccumIncidence, false);
+                Classes.Last().ClassStat = new GeneralTrajectory(classID, name, _modelSets.WarmUpPeriodTimeIndex);
+                Classes.Last().ClassStat.SetupStatisticsCollectors(
+                    collectAccumIncidenceStats,
+                    collectPrevalenceStats
+                    );
                 // adding time series
                 Classes.Last().ClassStat.AddTimeSeries(
-                    collectIncidenceTimeSeries, collectPrevalenceTimeSeries, collectAccumIncidenceTimeSeries, _set.NumOfDeltaT_inSimulationOutputInterval);
+                    collectIncidence: showIncidence,
+                    collectPrevalence: false,
+                    collectAccumIncidence: false,
+                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimulationOutputInterval
+                    );
+                
                 // adding cost and health outcomes
                 Classes.Last().ClassStat.AddCostHealthOutcomes(
-                    DALYPerNewMember, costPerNewMember, healthQualityPerUnitOfTime * _set.DeltaT, costPerUnitOfTime * _set.DeltaT);
+                    DALYPerNewMember, costPerNewMember, healthQualityPerUnitOfTime * _modelSets.DeltaT, costPerUnitOfTime * _modelSets.DeltaT);
 
                 // set up which statistics to show
-                Classes.Last().ShowStatsInSimResults = showStatisticsInSimulationResults;
                 Classes.Last().ShowIncidence = showIncidence;
                 Classes.Last().ShowPrevalence = showPrevalence;
                 Classes.Last().ShowAccumIncidence = showAccumIncidence;
@@ -765,7 +794,7 @@ namespace APACElib
 
                 // create the intervention
                 thisIntervention = new Intervention(ID, name, type, affectingContactPattern,
-                    (int)(timeBecomeAvailable / _set.DeltaT), (int)(timeBecomeUnavailable / _set.DeltaT), delayParID, ref simDecisionRule);
+                    (int)(timeBecomeAvailable / _modelSets.DeltaT), (int)(timeBecomeUnavailable / _modelSets.DeltaT), delayParID, ref simDecisionRule);
 
                 // set up cost
                 thisIntervention.SetUpCost(fixedCost, costPerUnitOfTime, penaltyForSwitchingFromOnToOff);
@@ -932,8 +961,8 @@ namespace APACElib
                 // if display
                 bool ifDispay = SupportFunctions.ConvertYesNoToBool(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfDisplay).ToString());
 
-                // QALY loss and cost outcomes
-                double QALYLossPerNewMember = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.DALYPerNewMember));
+                // DALY and cost outcomes
+                double DALYPerNewMember = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.DALYPerNewMember));
                 double costPerNewMember = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.CostPerNewMember));
                 // real-time monitoring
                 bool surveillanceDataAvailable = SupportFunctions.ConvertYesNoToBool(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.SurveillanceDataAvailable).ToString());
@@ -988,16 +1017,32 @@ namespace APACElib
                 // build and add the summation statistics
                 if (definedOn == SumTrajectory.EnumDefinedOn.Classes)
                 {
-                    SumClassesTrajectory thisSumClassTraj = new SumClassesTrajectory(statID, name, type, sumFormula, ifDispay, _set.WarmUpPeriodTimeIndex, _set.NumOfDeltaT_inSimulationOutputInterval);
+                    SumClassesTrajectory thisSumClassTraj = new SumClassesTrajectory(statID, name, type, sumFormula, ifDispay, _modelSets.WarmUpPeriodTimeIndex, _modelSets.NumOfDeltaT_inSimulationOutputInterval);
                     // add the summation statistics
                     SumTrajectories.Add(thisSumClassTraj);
+                    // update class time-series
+                    foreach (int i in thisSumClassTraj.ClassIDs)
+                    {
+                        if (thisSumClassTraj.Type == SumTrajectory.EnumType.Incidence)
+                            _classes[i].ClassStat.AddTimeSeries(
+                                collectIncidence: true,
+                                collectAccumIncidence: false,
+                                collectPrevalence: false, 
+                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimulationOutputInterval
+                                );
+                        if (thisSumClassTraj.Type == SumTrajectory.EnumType.AccumulatingIncident)
+                            _classes[i].ClassStat.CollectAccumIncidenceStats = true;
+                    }
                 }
                 else // if defined on events
                 {
-                    SumEventTrajectory thisSumEventTraj = new SumEventTrajectory(statID, name, type, sumFormula, ifDispay, _set.WarmUpPeriodTimeIndex, _set.NumOfDeltaT_inSimulationOutputInterval);
+                    SumEventTrajectory thisSumEventTraj = new SumEventTrajectory(statID, name, type, sumFormula, ifDispay, _modelSets.WarmUpPeriodTimeIndex, _modelSets.NumOfDeltaT_inSimulationOutputInterval);
                     // add the summation statistics
                     SumTrajectories.Add(thisSumEventTraj);
                 }
+
+                // adding cost and health outcomes
+                SumTrajectories.Last().AddCostHealthOutcomes(DALYPerNewMember, costPerNewMember, 0, 0);
 
                 // update calibraton infor
                 SumTrajectories.Last().CalibInfo = new TrajectoryCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
@@ -1093,7 +1138,14 @@ namespace APACElib
                 }
 
                 // build a ratio stat
-                RatioTrajectory thisRatioTraj = new RatioTrajectory(statID, name, type, ratioFormula, ifDispay, _set.WarmUpPeriodTimeIndex, _set.NumOfDeltaT_inSimulationOutputInterval);
+                RatioTrajectory thisRatioTraj = new RatioTrajectory(
+                    statID, 
+                    name, 
+                    type, 
+                    ratioFormula, 
+                    ifDispay, 
+                    _modelSets.WarmUpPeriodTimeIndex, 
+                    _modelSets.NumOfDeltaT_inSimulationOutputInterval);
 
                 // set up calibration
                 thisRatioTraj.CalibInfo = new TrajectoryCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);

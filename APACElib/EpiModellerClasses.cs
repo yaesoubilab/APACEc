@@ -36,7 +36,7 @@ namespace APACElib
 
             // build a parent epidemic model 
             _parentEpidemic = new Epidemic(0);
-            _parentEpidemic.BuildModel(ref _modelSet);
+            _parentEpidemic.BuildModel(ref _modelSet, true);
 
             // read contact matrices
             _modelSet.ReadContactMatrices(ref excelInterface, _parentEpidemic.FOIModel.NumOfIntrvnAffectingContacts);
@@ -48,21 +48,21 @@ namespace APACElib
             if (_modelSet.UseParallelComputing)
             {
                 // find how many epi model to create
-                int numOfEpis = 0;
+                int numOfEpidemics = 0;
                 switch (_modelSet.ModelUse)
                 {
                     case EnumModelUse.Simulation:
-                        numOfEpis = _modelSet.NumOfSimItrs;
+                        numOfEpidemics = _modelSet.NumOfSimItrs;
                         break;
                     case EnumModelUse.Calibration:
-                        numOfEpis = _modelSet.NumOfSimulationsRunInParallelForCalibration;
+                        numOfEpidemics = _modelSet.NumOfSimulationsRunInParallelForCalibration;
                         break;
                 }
 
                 // create the epi models
                 _epidemics.Clear();
                 Object thisLock = new Object();
-                Parallel.For(0, numOfEpis, simItr =>
+                Parallel.For(0, numOfEpidemics, simItr =>
                 {
                     // create an epidemic
                     Epidemic thisEpidemic = new Epidemic(simItr);
@@ -72,6 +72,14 @@ namespace APACElib
                             _epidemics.Add(thisEpidemic);
                         }
                 });
+            }
+            else
+            {
+                // create the epi models
+                _epidemics.Clear();
+                for (int simItr = 0; simItr < _modelSet.NumOfSimItrs; simItr++)
+                    // create an epidemic
+                    _epidemics.Add(new Epidemic(simItr));
             }
 
             //// read prespecified interventions
@@ -90,50 +98,70 @@ namespace APACElib
             SimSummary.Reset();
 
             // simulation time
+            Timer = new Timer();
             Timer.Start();
 
             // use parallel computing? 
             if (!_modelSet.UseParallelComputing)
             {
                 int seed = 0;
-                for (int simItr = 0; simItr < _modelSet.NumOfSimItrs; ++simItr)
+                foreach (Epidemic epi in _epidemics)
                 {
-                    // find the RND seed for this iteration
-                    seed = _seedGenerator.FindRNDSeed(simItr);
+                    // build the parent epidemic model
+                    epi.BuildModel(ref _modelSet);
 
-                    // simulate one epidemic trajectory
-                    _parentEpidemic.SimulateTrajectoriesUntilOneAcceptibleFound(
+                    // find the RND seed for this iteration
+                    seed = _seedGenerator.FindRNDSeed(epi.ID);
+
+                    // simulate
+                    epi.SimulateTrajectoriesUntilOneAcceptibleFound(
                         seed,
                         seed + Math.Max(_modelSet.DistanceBtwRNGSeeds, 1),
-                        simItr,
+                        epi.ID,
                         _modelSet.TimeIndexToStop);
 
                     // store epidemic trajectories and outcomes
-                    SimSummary.Add(_parentEpidemic);
+                    SimSummary.Add(epi, epi.ID);
                 }
+
+                //for (int simItr = 0; simItr < _modelSet.NumOfSimItrs; ++simItr)
+                //{
+                //    // find the RND seed for this iteration
+                //    seed = _seedGenerator.FindRNDSeed(simItr);
+
+                //    // simulate one epidemic trajectory
+                //    _parentEpidemic.SimulateTrajectoriesUntilOneAcceptibleFound(
+                //        seed,
+                //        seed + Math.Max(_modelSet.DistanceBtwRNGSeeds, 1),
+                //        simItr,
+                //        _modelSet.TimeIndexToStop);
+
+                //    // store epidemic trajectories and outcomes
+                //    SimSummary.Add(_parentEpidemic, simItr);
+                //}
             }
             else // (_modelSettings.UseParallelComputing == true)
             {
                 int seed = 0;
-                Parallel.ForEach(_epidemics, thisEpidemic =>
+                Parallel.ForEach(_epidemics, epi =>
                 {
                     // build the parent epidemic model
-                    thisEpidemic.BuildModel(ref _modelSet);
+                    epi.BuildModel(ref _modelSet);
 
                     // find the RND seed for this iteration
-                    seed = _seedGenerator.FindRNDSeed(thisEpidemic.ID);
+                    seed = _seedGenerator.FindRNDSeed(epi.ID);
 
                     // simulate
-                    thisEpidemic.SimulateTrajectoriesUntilOneAcceptibleFound(
+                    epi.SimulateTrajectoriesUntilOneAcceptibleFound(
                         seed,
                         seed + Math.Max(_modelSet.DistanceBtwRNGSeeds, 1),
-                        ((Epidemic)thisEpidemic).ID,
+                        ((Epidemic)epi).ID,
                         _modelSet.TimeIndexToStop);
                 });
 
                 // store epidemic trajectories and outcomes
                 foreach (Epidemic thisEpidemic in _epidemics)
-                    SimSummary.Add(thisEpidemic);
+                    SimSummary.Add(thisEpidemic, thisEpidemic.ID);
             }
             // simulation run time
             Timer.Stop();
@@ -551,10 +579,11 @@ namespace APACElib
             _nSim = settings.NumOfSimItrs;   // number of simulated epidemics
 
             // summary statistics on classes
-            foreach (Class thisClass in parentEpidemic.Classes.Where(c=>c.ShowStatsInSimResults))
+            foreach (Class thisClass in parentEpidemic.Classes)
             {
-                IncidenceStats.Add(new ObsBasedStat("Total New: " + thisClass.Name, _nSim));
-                if (thisClass is Class_Normal)
+                if (thisClass.ClassStat.CollectAccumIncidenceStats)
+                    IncidenceStats.Add(new ObsBasedStat("Total New: " + thisClass.Name, _nSim));
+                if (thisClass.ClassStat.CollectPrevalenceStats)
                     PrevalenceStats.Add(new ObsBasedStat("Average Size: " + thisClass.Name, _nSim));
             }
             // summary statistics on summation
@@ -578,7 +607,7 @@ namespace APACElib
             PrevalenceTrajs = new double[0][];
         }
 
-        public void Add(Epidemic simulatedEpi)
+        public void Add(Epidemic simulatedEpi, int simItr)
         {
             // store trajectories
             if (_set.IfShowSimulatedTrajs)
@@ -592,7 +621,7 @@ namespace APACElib
             }
 
             // store sampled parameter values
-            ParamValues[simulatedEpi.ID] = simulatedEpi.ParamManager.ParameterValues;
+            ParamValues[simItr] = simulatedEpi.ParamManager.ParameterValues;
 
             // if the outcomes should be recorded
             if (!(simulatedEpi.ModelUse == EnumModelUse.Simulation))
@@ -611,44 +640,45 @@ namespace APACElib
 
             // incidence and prevalence statistics
             int incidentStatIndex = 0, prevalenceStatIndex = 0, ratioStatIndex = 0;
-            foreach (Class thisClass in simulatedEpi.Classes.Where(c => c.ShowStatsInSimResults))
+            foreach (Class thisClass in simulatedEpi.Classes)
             {
-                IncidenceStats[incidentStatIndex++].Record(thisClass.ClassStat.AccumulatedIncidenceAfterWarmUp, simulatedEpi.ID);
-                if (thisClass is Class_Normal)
-                    PrevalenceStats[prevalenceStatIndex++].Record(thisClass.ClassStat.AveragePrevalenceStat.Mean, simulatedEpi.ID);
+                if (thisClass.ClassStat.CollectAccumIncidenceStats)
+                    IncidenceStats[incidentStatIndex++].Record(thisClass.ClassStat.AccumulatedIncidenceAfterWarmUp, simItr);
+                if (thisClass.ClassStat.CollectPrevalenceStats)
+                    PrevalenceStats[prevalenceStatIndex++].Record(thisClass.ClassStat.AveragePrevalenceStat.Mean, simItr);
             }
             foreach (SumTrajectory sumTraj in simulatedEpi.SumTrajectories)
             {
                 if (sumTraj.Type == SumTrajectory.EnumType.Incidence || sumTraj.Type == SumTrajectory.EnumType.AccumulatingIncident)
-                    IncidenceStats[incidentStatIndex++].Record(sumTraj.AccumulatedIncidenceAfterWarmUp, simulatedEpi.ID);
+                    IncidenceStats[incidentStatIndex++].Record(sumTraj.AccumulatedIncidenceAfterWarmUp, simItr);
                 if (sumTraj.Type == SumTrajectory.EnumType.Prevalence)
-                    PrevalenceStats[prevalenceStatIndex++].Record(sumTraj.AveragePrevalenceStat.Mean, simulatedEpi.ID);
+                    PrevalenceStats[prevalenceStatIndex++].Record(sumTraj.AveragePrevalenceStat.Mean, simItr);
             }
             foreach (RatioTrajectory ratioTraj in simulatedEpi.RatioTrajectories)
             {
                 switch (ratioTraj.Type)
                 {
                     case RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
-                        RatioStats[ratioStatIndex].Record(ratioTraj.TimeSeries.GetLastObs(), simulatedEpi.ID);
+                        RatioStats[ratioStatIndex].Record(ratioTraj.TimeSeries.GetLastObs(), simItr);
                         break;
                     case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
-                        RatioStats[ratioStatIndex].Record(ratioTraj.AveragePrevalenceStat.Mean, simulatedEpi.ID);
+                        RatioStats[ratioStatIndex].Record(ratioTraj.AveragePrevalenceStat.Mean, simItr);
                         break;
                     case RatioTrajectory.EnumType.IncidenceOverIncidence:
-                        RatioStats[ratioStatIndex].Record(ratioTraj.TimeSeries.ObsList.Average(), simulatedEpi.ID);
+                        RatioStats[ratioStatIndex].Record(ratioTraj.TimeSeries.ObsList.Average(), simItr);
                         break;
                 }
                 ++ratioStatIndex;
             }
 
             // statistics on individual simulation
-            SimItrs[simulatedEpi.ID] = simulatedEpi.ID;
-            RNDSeeds[simulatedEpi.ID] = simulatedEpi.SeedProducedAcceptibleTraj;
-            NHBs[simulatedEpi.ID] = simulatedEpi.EpidemicCostHealth.GetDiscountedNHB(_set.WTPForHealth);
-            NMBs[simulatedEpi.ID] = simulatedEpi.EpidemicCostHealth.GetDiscountedNMB(_set.WTPForHealth);
-            DALYs[simulatedEpi.ID] = simulatedEpi.EpidemicCostHealth.TotalDiscountedDALY;
-            Costs[simulatedEpi.ID] = simulatedEpi.EpidemicCostHealth.TotalDisountedCost;
-            AnnualCosts[simulatedEpi.ID] = simulatedEpi.EpidemicCostHealth.GetEquivalentAnnualCost(
+            SimItrs[simItr] = simItr;
+            RNDSeeds[simItr] = simulatedEpi.SeedProducedAcceptibleTraj;
+            NHBs[simItr] = simulatedEpi.EpidemicCostHealth.GetDiscountedNHB(_set.WTPForHealth);
+            NMBs[simItr] = simulatedEpi.EpidemicCostHealth.GetDiscountedNMB(_set.WTPForHealth);
+            DALYs[simItr] = simulatedEpi.EpidemicCostHealth.TotalDiscountedDALY;
+            Costs[simItr] = simulatedEpi.EpidemicCostHealth.TotalDisountedCost;
+            AnnualCosts[simItr] = simulatedEpi.EpidemicCostHealth.GetEquivalentAnnualCost(
                 _set.AnnualDiscountRate,
                 (int)(_set.WarmUpPeriodTimeIndex * _set.DeltaT),
                 (int)(_set.TimeIndexToStop * _set.DeltaT));
@@ -743,7 +773,7 @@ namespace APACElib
             arrSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.NHB - 1] = NHBStat.GetMeanStDevStErr();
             arrSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.NMB - 1] = NMBStat.GetMeanStDevStErr();
             // Number of switches
-            arrSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.NumOfSwitches - 1] = NumSwitchesStat.GetMeanStDevStErr();
+            //arrSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.NumOfSwitches - 1] = NumSwitchesStat.GetMeanStDevStErr();
             #endregion
 
             foreach (ObsBasedStat thisObs in IncidenceStats)
@@ -789,9 +819,9 @@ namespace APACElib
             SimItrs = new int[_nSim];
             RNDSeeds = new int[_nSim];
             ParamValues = new double[_nSim][];
-            IntrvCombinations = new int[_nSim][];
-            IncidenceTrajs = new double[_nSim][];
-            PrevalenceTrajs = new double[_nSim][];
+            IntrvCombinations = new int[0][];
+            IncidenceTrajs = new double[0][];
+            PrevalenceTrajs = new double[0][];
 
             // reset simulation statistics
             foreach (ObsBasedStat thisObsStat in IncidenceStats)

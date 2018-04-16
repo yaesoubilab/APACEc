@@ -89,13 +89,13 @@ namespace APACElib
             if (!(simTimeIndex == 0 || ThereAreTimeDepParms_susceptibilities || ThereAreTimeDepParms_infectivities))
                 return;
 
-            if (ThereAreTimeDepParms_susceptibilities)
+            if (ThereAreTimeDepParms_susceptibilities || simTimeIndex == 0)
             {
                 // only susceptibility
                 foreach (Class thisClass in classes.Where(c => c.IsEpiDependentEventActive))
                     thisClass.UpdateSusceptibilityParams(ParameterValues);
             }
-            if (ThereAreTimeDepParms_infectivities)
+            if (ThereAreTimeDepParms_infectivities || simTimeIndex == 0)
             {
                 // only infectivity
                 foreach (Class thisClass in classes)
@@ -200,7 +200,7 @@ namespace APACElib
        
     }
 
-    public class ForceOfInfectionModeller
+    public class ForceOfInfectionModel
     {
         private ParameterManager _paramManager;
         private int _nOfPathogens;
@@ -211,18 +211,22 @@ namespace APACElib
         private int[] _iOfIntrvsAffectingContacts;              // indeces of interventions affecting contacts
         private int[] _onOffStatusOfIntrvsAffectingContacts;    // 0 and 1 array
         
-        public ForceOfInfectionModeller(
+        public ForceOfInfectionModel(
             int nOfPathogens,
-            ref ParameterManager paramManager, 
-            double[][,] baseContactMatrices,
-            int[][][,] parID_percentageChangeInContactMatrices)
+            ref ParameterManager paramManager
+           )
         {
             _nOfPathogens = nOfPathogens;
             _paramManager = paramManager;
+        }
+
+        public void AddContactInfo(
+            double[][,] baseContactMatrices,
+            int[][][,] parID_percentageChangeInContactMatrices)
+        {
             _baseContactMatrices = baseContactMatrices;
             _parID_percentageChangeInContactMatrices = parID_percentageChangeInContactMatrices;
         }
-
 
         public void AddIntrvnAffectingContacts(int interventionIndex)
         {

@@ -25,7 +25,6 @@ namespace APACElib
         public bool ShowIncidence { get; set; }
         public bool ShowPrevalence { get; set; }
         public bool ShowAccumIncidence { get; set; }
-        public bool ShowStatsInSimResults { get; set; } // show this class statistics in the simulation results
 
         public Class(int ID, string name)
         {
@@ -51,6 +50,7 @@ namespace APACElib
         {
             get { return _numOfMembersToDestClasses; }
         }
+
         public virtual bool EmptyToEradicate
         {
             get { return false; }
@@ -368,7 +368,7 @@ namespace APACElib
             MembersWaitingToDepart = false;
         }
         // find the members out of active processes
-        public override void ResetNumOfMembersOutOfEvents()//(ref int[] arrNumOfMembersOutOfProcessesOverPastDeltaT)
+        public override void ResetNumOfMembersOutOfEvents()
         {
             foreach (Event activeProcess in _activeEvents)
                 activeProcess.MembersOutOverPastDeltaT = 0;
@@ -425,16 +425,20 @@ namespace APACElib
         public int ParIDOfProbOfSuccess { get; private set; }
 
         // add the parameter ID for the probability of success
-        public void SetUp(int parIDOfProbOfSuccess, int destinationClassIDGivenSuccess, int destinationClassIDGivenFailure)
+        public void SetUp(
+            int parIDOfProbOfSuccess, 
+            int destinationClassIDIfSuccess, 
+            int destinationClassIDIfFailure)
         {
             ParIDOfProbOfSuccess = parIDOfProbOfSuccess;
             
             // store the id of the destination classes
             _numOfMembersToDestClasses = new int[2];
             _destinationClasseIDs = new int[2];
-            _destinationClasseIDs[0] = destinationClassIDGivenSuccess;
-            _destinationClasseIDs[1] = destinationClassIDGivenFailure;
+            _destinationClasseIDs[0] = destinationClassIDIfSuccess;
+            _destinationClasseIDs[1] = destinationClassIDIfFailure;
         }        
+        
         // update the probability of success
         public override void UpdateProbOfSuccess(double[] arrSampledParameters)
         {
@@ -444,9 +448,6 @@ namespace APACElib
         // send members of this class out
         public override void SendOutMembers(double deltaT, RNG rng)
         {
-            // departing members will be processed
-            //_ifMembersWaitingToSendOutBeforeNextDeltaT = false;
-
             // if number of members is zero, no member is departing
             if (ClassStat.Prevalence <= 0) return;
 
@@ -475,6 +476,7 @@ namespace APACElib
 
             MembersWaitingToDepart = true;
         }
+        
         // reset number of members sending to each destination class
         public override void ResetNumOfMembersToDestClasses()
         {
@@ -482,6 +484,7 @@ namespace APACElib
             ClassStat.Prevalence = 0;
             MembersWaitingToDepart = false;
         }
+        
         // Reset statistics for another simulation run
         public override void Reset()
         {

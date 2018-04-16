@@ -90,6 +90,9 @@ namespace APACElib
         public double DeltaTDiscountRate { get; set; }
         public double WTPForHealth { get; set; }
 
+        public int NumOfPrevalenceOutputsToReport { get; set; }
+        public int NumOfIncidenceOutputsToReport { get; set; }
+
         public EnumModelUse ModelUse { get => _modelUse; set => _modelUse = value; }
         public bool UseParallelComputing { get => _useParallelComputing; set => _useParallelComputing = value; }
         public int MaxDegreeOfParallelism { get => _maxDegreeOfParallelism; set => _maxDegreeOfParallelism = value; }

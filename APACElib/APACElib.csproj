@@ -63,7 +63,7 @@
     <Compile Include="ParameterClasses.cs" />
     <Compile Include="TrajectoryClasses.cs" />
     <Compile Include="cEpidemic.cs" />
-    <Compile Include="cEpidemicModeller.cs" />
+    <Compile Include="EpiModellerClasses.cs" />
     <Compile Include="cEvent.cs" />
     <Compile Include="cExcelInterface.cs" />
     <Compile Include="cFeature.cs" />

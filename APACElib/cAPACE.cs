@@ -676,10 +676,12 @@ namespace APACElib
             string[] observableOutputs = new string[0]; 
             string[] resourceOutputs = new string[0];
 
-            _epidemicModeller.ParentEpidemic.TrajsForSimOutput.CreateOutputHeaders(ref prevalenceOutputs, ref incidenceOutputs);
-
             // write header
-            ExcelInterface.SetupSimulationOutputSheet(prevalenceOutputs, incidenceOutputs, observableOutputs, resourceOutputs);                             
+            ExcelInterface.SetupSimulationOutputSheet(
+                _epidemicModeller.ParentEpidemic.TrajsForSimOutput.PrevalenceOutputsHeader,
+                _epidemicModeller.ParentEpidemic.TrajsForSimOutput.IncidenceOutputsHeader,
+                observableOutputs, 
+                resourceOutputs);                             
         }
         // report simulation statistics
         private void ReportTrajsAndSimStats(EpidemicModeller epiModeller)
