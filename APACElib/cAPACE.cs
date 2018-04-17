@@ -678,9 +678,9 @@ namespace APACElib
 
             // write header
             ExcelInterface.SetupSimulationOutputSheet(
-                _epidemicModeller.ParentEpidemic.TrajsForSimOutput.PrevalenceOutputsHeader,
                 _epidemicModeller.ParentEpidemic.TrajsForSimOutput.IncidenceOutputsHeader,
-                observableOutputs, 
+                observableOutputs,
+                _epidemicModeller.ParentEpidemic.TrajsForSimOutput.PrevalenceOutputsHeader,                
                 resourceOutputs);                             
         }
         // report simulation statistics

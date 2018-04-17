@@ -1066,14 +1066,22 @@ namespace APACElib
                 return;
             }
             // report and format the heading
-            colIndex2 = incidenceOutputs.Length +  observableOutputs.Length + prevalenceOutputs.Length;
-            base.WriteToRow(incidenceOutputs, "simulationOutput", 0, 0);
+            int offRep = 0;
+            int offIncidence = offRep + 1;
+            int offObs = offIncidence + incidenceOutputs.Length;
+            int offPrevalence = offObs + observableOutputs.Length;
+            int OffIntrvn = offPrevalence + prevalenceOutputs.Length;
+
+            base.WriteToCell("Replication", "simulationOutput", 0, offRep); 
+            base.WriteToRow(incidenceOutputs, "simulationOutput", 0, offIncidence);
             base.AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
-            base.WriteToRow(observableOutputs, "simulationOutput", 0, incidenceOutputs.Length);
+            base.WriteToRow(observableOutputs, "simulationOutput", 0, offObs);
             base.AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
-            base.WriteToRow(prevalenceOutputs, "simulationOutput", 0, incidenceOutputs.Length + observableOutputs.Length);
+            base.WriteToRow(prevalenceOutputs, "simulationOutput", 0, offPrevalence);
             base.AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
-            base.WriteToCell(resouceOutputs, "simulationOutput", 0, incidenceOutputs.Length + observableOutputs.Length + prevalenceOutputs.Length);
+            base.WriteToCell("Action Code", "simulationOutput", 0, OffIntrvn);
+
+            colIndex2 = incidenceOutputs.Length + observableOutputs.Length + prevalenceOutputs.Length;
             base.AddABorder(rowIndex1, colIndex1, rowIndex1, colIndex2, ExcelInteractor.enumBorder.Bottom);
             base.Align(rowIndex1, colIndex1, rowIndex1, colIndex2, ExcelInteractor.enumAlignment.Center);
             base.WrapText(rowIndex1, colIndex1, rowIndex1, colIndex2);

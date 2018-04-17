@@ -496,14 +496,15 @@ namespace APACElib
         }
 
         // store selected outputs while simulating
-        public void Record(int simTimeIndex)
+        public void Record(int simTimeIndex, bool endOfSim)
         {
             // check if it is time to store output
-            if (simTimeIndex < _nextSimTimeIndexToStore)
+            if (simTimeIndex < _nextSimTimeIndexToStore && !endOfSim)
                 return;
 
             // define the jagged array to store current observation
             int[][] thisSimRepIndeces = new int[1][];
+            thisSimRepIndeces[0] = new int[1];
             double[][] thisIncidenceOutputs = new double[1][];
             double[][] thisPrevalenceOutputs = new double[1][];
             int[][] thisActionCombination = new int[1][];

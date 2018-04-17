@@ -141,7 +141,7 @@ namespace APACElib
                 _paramManager.UpdateTimeDepParams(ref _rng, _simTimeIndex * _modelSets.DeltaT, ref _classes);
 
                 // update recorded trajectories 
-                TrajsForSimOutput.Record(_simTimeIndex);
+                TrajsForSimOutput.Record(_simTimeIndex, false);
 
                 // check if this is has been a feasible trajectory for calibration
                 if (ModelUse == EnumModelUse.Calibration && !ifThisIsAFeasibleCalibrationTrajectory)
@@ -168,7 +168,7 @@ namespace APACElib
                 {
                     toStop = true;
                     // update recorded trajectories 
-                    TrajsForSimOutput.Record(_simTimeIndex);
+                    TrajsForSimOutput.Record(_simTimeIndex, true);
 
                     // find if it is an acceptable trajectory
                     acceptableTrajectory = true;
