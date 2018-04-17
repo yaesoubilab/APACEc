@@ -671,9 +671,9 @@ namespace APACElib
         // setup simulation output sheet
         private void SetupSimulationOutputSheet()
         {
-            string[] prevalenceOutputs = new string[0];
             string[] incidenceOutputs = new string[0];
-            string[] observableOutputs = new string[0]; 
+            string[] observableOutputs = new string[0];
+            string[] prevalenceOutputs = new string[0];
             string[] resourceOutputs = new string[0];
 
             // write header
@@ -688,7 +688,7 @@ namespace APACElib
         {
             // first find the strings of past action combinations
             string[] strActionCombinations = null;
-            foreach (int[] thisActionCombination in epiModeller.SimSummary.IntrvCombinations)
+            foreach (int[] thisActionCombination in epiModeller.SimSummary.TrajsIntrvCombinations)
                 SupportFunctions.AddToEndOfArray(
                     ref strActionCombinations, 
                     SupportFunctions.ConvertArrayToString(thisActionCombination,",")
@@ -697,16 +697,16 @@ namespace APACElib
             // report trajectories
             if (epiModeller.ModelSettings.IfShowSimulatedTrajs)
                 ExcelInterface.ReportEpidemicTrajectories(
-                    SupportFunctions.ConvertJaggedArrayToRegularArray(
-                        epiModeller.SimSummary.PrevalenceTrajs, 
-                        epiModeller.SimSummary.NumOfSimPrevalenceInTraj), 
-                    strActionCombinations,
-                    SupportFunctions.ConvertJaggedArrayToRegularArray(
-                        epiModeller.SimSummary.IncidenceTrajs,
-                        epiModeller.SimSummary.NumOfSimIncidenceInTraj),
-                    new double[0,0], 
-                    new double[0,0],
-                    new double[0,0]
+                    simRepIndeces: SupportFunctions.ConvertJaggedArrayToRegularArray(
+                        epiModeller.SimSummary.TrajsSimRepIndex,
+                        1),
+                    simIncidenceOutputs: SupportFunctions.ConvertJaggedArrayToRegularArray(
+                        epiModeller.SimSummary.TrajsIncidence,
+                        epiModeller.SimSummary.NumOfSimIncidenceInTraj), 
+                    simPrevalenceOutputs: SupportFunctions.ConvertJaggedArrayToRegularArray(
+                        epiModeller.SimSummary.TrajsPrevalence, 
+                        epiModeller.SimSummary.NumOfSimPrevalenceInTraj),
+                    intrvnCombinationCodes: strActionCombinations
                     );
 
             string[] strSummaryStatistics = null;

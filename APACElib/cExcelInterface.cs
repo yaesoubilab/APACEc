@@ -1041,7 +1041,11 @@ namespace APACElib
         #region Report results subs
 
         // setup simulation output sheet
-        public void SetupSimulationOutputSheet(string[] prevalenceOutputs, string[] incidenceOutputs, string[] observableOutputs, string[] resouceOutputs)
+        public void SetupSimulationOutputSheet(
+            string[] incidenceOutputs,
+            string[] observableOutputs,
+            string[] prevalenceOutputs,            
+            string[] resouceOutputs)
         {
             base.ActivateSheet("Simulation Output");
             int rowIndex1 = 2;
@@ -1062,54 +1066,42 @@ namespace APACElib
                 return;
             }
             // report and format the heading
-            colIndex2 = prevalenceOutputs.Length + incidenceOutputs.Length +  observableOutputs.Length;
-            base.WriteToRow(prevalenceOutputs, "simulationOutput", 0, 0);
+            colIndex2 = incidenceOutputs.Length +  observableOutputs.Length + prevalenceOutputs.Length;
+            base.WriteToRow(incidenceOutputs, "simulationOutput", 0, 0);
             base.AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
-            base.WriteToRow(incidenceOutputs, "simulationOutput", 0, prevalenceOutputs.Length);
+            base.WriteToRow(observableOutputs, "simulationOutput", 0, incidenceOutputs.Length);
             base.AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
-            base.WriteToRow(observableOutputs, "simulationOutput", 0, prevalenceOutputs.Length + incidenceOutputs.Length);
+            base.WriteToRow(prevalenceOutputs, "simulationOutput", 0, incidenceOutputs.Length + observableOutputs.Length);
             base.AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
-            base.WriteToCell(resouceOutputs, "simulationOutput", 0, prevalenceOutputs.Length + incidenceOutputs.Length + observableOutputs.Length);
+            base.WriteToCell(resouceOutputs, "simulationOutput", 0, incidenceOutputs.Length + observableOutputs.Length + prevalenceOutputs.Length);
             base.AddABorder(rowIndex1, colIndex1, rowIndex1, colIndex2, ExcelInteractor.enumBorder.Bottom);
             base.Align(rowIndex1, colIndex1, rowIndex1, colIndex2, ExcelInteractor.enumAlignment.Center);
             base.WrapText(rowIndex1, colIndex1, rowIndex1, colIndex2);
         }
         // report trajectories
         public void ReportEpidemicTrajectories(
-            double[,] arrSimPrevalenceOutputs, 
-            string[] arrIntrvnCombinationCodes, 
-            double[,] arrSimIncidenceOutputs,
-            double[,] arrTimeOfSimulationObservableOutputs, 
-            double[,] arrSimulationObservableOutputs, 
-            double[,] arrSimulationResourceAvailabilityOutput)
+            int[,] simRepIndeces,
+            double[,] simIncidenceOutputs,
+            double[,] simPrevalenceOutputs, 
+            string[] intrvnCombinationCodes)
+            //double[,] arrSimulationObservableOutputs, 
+            //double[,] arrSimulationResourceAvailabilityOutput)
         {
             base.ActivateSheet("Simulation Output");
             // find the final row
             int finalRow = base.LastRowWithDataInThisColumn(1);
-            int colOfSimulationTimeBaseOutputs = 1;
-            int colOfSimulationActionCombination = colOfSimulationTimeBaseOutputs + arrSimPrevalenceOutputs.GetLength(1);
-            int colOfSimulatoinIntervalBasedOutputs = colOfSimulationActionCombination + 1;
-            int colOfTimeOfSimulationObservableOutputs = colOfSimulatoinIntervalBasedOutputs + arrSimIncidenceOutputs.GetLength(1);
-            int colOfSimulationObservableOutputs = colOfTimeOfSimulationObservableOutputs + arrTimeOfSimulationObservableOutputs.GetLength(1);
-            int colOfSimulationResourceOutputs = colOfSimulationObservableOutputs + arrSimulationObservableOutputs.GetLength(1);
 
-            // report 
-            base.WriteToMatrix(arrSimPrevalenceOutputs, finalRow + 1, colOfSimulationTimeBaseOutputs);
-            base.AddABorder(finalRow + 1, colOfSimulationTimeBaseOutputs  + arrSimPrevalenceOutputs.GetLength(1), enumRangeDirection.DownEnd, enumBorder.Left);
+            int colOfSimRepIndeces = 1;
+            int colOfSimIncidenceOutputs = colOfSimRepIndeces + 1;
+            int colOfSimPrevalenceOutputs = colOfSimIncidenceOutputs + simIncidenceOutputs.GetLength(1);
+            int colOfIntrvnCombination = colOfSimPrevalenceOutputs + simPrevalenceOutputs.GetLength(1);
 
-            base.WriteToColumn(arrIntrvnCombinationCodes, finalRow + 1, colOfSimulationActionCombination);
-            base.AddABorder(finalRow + 1, colOfSimulationActionCombination + 1, enumRangeDirection.DownEnd, enumBorder.Left);
-
-            base.WriteToMatrix(arrSimIncidenceOutputs, finalRow + 1, colOfSimulatoinIntervalBasedOutputs);
-            base.AddABorder(finalRow + 1, colOfSimulatoinIntervalBasedOutputs + arrSimIncidenceOutputs.GetLength(1), enumRangeDirection.DownEnd, enumBorder.Left);
-
-            base.WriteToMatrix(arrTimeOfSimulationObservableOutputs, finalRow + 1, colOfTimeOfSimulationObservableOutputs);
-            base.AddABorder(finalRow + 1, colOfTimeOfSimulationObservableOutputs + arrTimeOfSimulationObservableOutputs.GetLength(1), enumRangeDirection.DownEnd, enumBorder.Left);
-
-            base.WriteToMatrix(arrSimulationObservableOutputs, finalRow + 1, colOfSimulationObservableOutputs);
-            base.AddABorder(finalRow + 1, colOfSimulationObservableOutputs + arrSimulationObservableOutputs.GetLength(1), enumRangeDirection.DownEnd, enumBorder.Left);
-
-            base.WriteToMatrix(arrSimulationResourceAvailabilityOutput, finalRow + 1, colOfSimulationResourceOutputs);            
+            base.WriteToMatrix(simRepIndeces, finalRow + 1, colOfSimRepIndeces);
+            base.WriteToMatrix(simIncidenceOutputs, finalRow + 1, colOfSimIncidenceOutputs);
+            base.WriteToMatrix(simPrevalenceOutputs, finalRow + 1, colOfSimPrevalenceOutputs);
+            base.WriteToColumn(intrvnCombinationCodes, finalRow + 1, colOfIntrvnCombination);
+            
+            //base.AddABorder(finalRow + 1, colOfSimIncidenceOutputs + simIncidenceOutputs.GetLength(1), enumRangeDirection.DownEnd, enumBorder.Left);
 
         }
         // report simulation statistics

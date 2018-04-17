@@ -334,7 +334,8 @@ namespace APACElib
             foreach (SumTrajectory sumTraj in SumTrajectories)
             {
                 sumTraj.Reset();
-                sumTraj.Add(_simTimeIndex, ref _classes, ref _events);
+                if (sumTraj.Type == SumTrajectory.EnumType.Prevalence)
+                    sumTraj.Add(_simTimeIndex, ref _classes, ref _events);
             }
             // update ratio statistics
             foreach (RatioTrajectory ratioTraj in RatioTrajectories)

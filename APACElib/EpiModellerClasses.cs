@@ -546,11 +546,12 @@ namespace APACElib
         public int[] SimItrs { get; private set; }
         public int[] RNDSeeds { get; private set; }
         public double[][] ParamValues { get; private set; }
-        public int[][] IntrvCombinations { get; private set; }
-        public double[][] IncidenceTrajs { get; private set; }
-        public double[][] PrevalenceTrajs { get; private set; }
-        public int NumOfSimIncidenceInTraj { get { return IncidenceTrajs[0].Length; } }
-        public int NumOfSimPrevalenceInTraj { get { return PrevalenceTrajs[0].Length; } }
+        public int[][] TrajsSimRepIndex { get; private set; }
+        public double[][] TrajsIncidence { get; private set; }
+        public double[][] TrajsPrevalence { get; private set; }
+        public int[][] TrajsIntrvCombinations { get; private set; }
+        public int NumOfSimIncidenceInTraj { get { return TrajsIncidence[0].Length; } }
+        public int NumOfSimPrevalenceInTraj { get { return TrajsPrevalence[0].Length; } }
 
         // simulation statistics collection
         public List<ObsBasedStat> IncidenceStats { get; private set; } = new List<ObsBasedStat>();
@@ -571,7 +572,6 @@ namespace APACElib
         public ObsBasedStat NumSwitchesStat { get; private set; } = new ObsBasedStat("Number of decision switched");
         public ObsBasedStat TimeStat { get; private set; } = new ObsBasedStat("Time used to simulate a trajectory");
         public double TimeToSimulateAllEpidemics { get; set; } = 0;
-
 
         public SimSummary(ref ModelSettings settings, ref Epidemic parentEpidemic)
         {
@@ -602,9 +602,10 @@ namespace APACElib
                 RatioStats.Add(new ObsBasedStat("Average ratio: " + thisRatioTaj.Name, _nSim));
 
             // reset the jagged array containing trajectories
-            IntrvCombinations = new int[0][];
-            IncidenceTrajs = new double[0][];
-            PrevalenceTrajs = new double[0][];
+            TrajsSimRepIndex = new int[0][];
+            TrajsIncidence = new double[0][];
+            TrajsPrevalence = new double[0][];
+            TrajsIntrvCombinations = new int[0][];
         }
 
         public void Add(Epidemic simulatedEpi, int simItr)
@@ -612,12 +613,14 @@ namespace APACElib
             // store trajectories
             if (_set.IfShowSimulatedTrajs)
             {
-                IntrvCombinations = SupportFunctions.ConcatJaggedArray(
-                    IntrvCombinations, simulatedEpi.TrajsForSimOutput.InterventionCombinations);
-                PrevalenceTrajs = SupportFunctions.ConcatJaggedArray(
-                    PrevalenceTrajs, simulatedEpi.TrajsForSimOutput.SimPrevalenceOutputs);
-                IncidenceTrajs = SupportFunctions.ConcatJaggedArray(
-                    IncidenceTrajs, simulatedEpi.TrajsForSimOutput.SimIncidenceOutputs);
+                TrajsSimRepIndex = SupportFunctions.ConcatJaggedArray(
+                   TrajsSimRepIndex, simulatedEpi.TrajsForSimOutput.SimRepIndeces);
+                TrajsIncidence = SupportFunctions.ConcatJaggedArray(
+                     TrajsIncidence, simulatedEpi.TrajsForSimOutput.SimIncidenceOutputs);
+                TrajsPrevalence = SupportFunctions.ConcatJaggedArray(
+                    TrajsPrevalence, simulatedEpi.TrajsForSimOutput.SimPrevalenceOutputs);                
+                TrajsIntrvCombinations = SupportFunctions.ConcatJaggedArray(
+                   TrajsIntrvCombinations, simulatedEpi.TrajsForSimOutput.InterventionCombinations);
             }
 
             // store sampled parameter values
@@ -819,9 +822,9 @@ namespace APACElib
             SimItrs = new int[_nSim];
             RNDSeeds = new int[_nSim];
             ParamValues = new double[_nSim][];
-            IntrvCombinations = new int[0][];
-            IncidenceTrajs = new double[0][];
-            PrevalenceTrajs = new double[0][];
+            TrajsIntrvCombinations = new int[0][];
+            TrajsIncidence = new double[0][];
+            TrajsPrevalence = new double[0][];
 
             // reset simulation statistics
             foreach (ObsBasedStat thisObsStat in IncidenceStats)

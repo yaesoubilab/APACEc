@@ -465,9 +465,10 @@ namespace APACElib
         public int NumOfPrevalenceOutputsToReport { get; set; }
         public int NumOfIncidenceOutputsToReport { get; set; }
 
-        public int[][] InterventionCombinations { get; private set; }
-        public double[][] SimPrevalenceOutputs { get; private set; }
+        public int[][] SimRepIndeces { get; private set; }
         public double[][] SimIncidenceOutputs { get; private set; }
+        public double[][] SimPrevalenceOutputs { get; private set; }
+        public int[][] InterventionCombinations { get; private set; }
 
         public TrajsForSimOutput(
             int simReplication, 
@@ -502,22 +503,20 @@ namespace APACElib
                 return;
 
             // define the jagged array to store current observation
-            int[][] thisActionCombination = new int[1][];
+            int[][] thisSimRepIndeces = new int[1][];
+            double[][] thisIncidenceOutputs = new double[1][];
             double[][] thisPrevalenceOutputs = new double[1][];
-            double[][] thisIncidenceOutputs = new double[1][];                        
+            int[][] thisActionCombination = new int[1][];
+
             int colIndexPrevalenceOutputs = 0;
-            int colIndexIncidenceOutputs = 0;
-            
+            int colIndexIncidenceOutputs = 0;            
             thisPrevalenceOutputs[0] = new double[NumOfPrevalenceOutputsToReport];
             thisIncidenceOutputs[0] = new double[NumOfIncidenceOutputsToReport];
 
             // store the current time and the current interval
-            thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = _simReplication;
-            thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = simTimeIndex * _deltaT;
+            thisSimRepIndeces[0][0] = _simReplication;
             thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = simTimeIndex / _nDeltaTInSimOutputInterval;
-
-            // action combination
-            thisActionCombination[0] = (int[])_decisionMaker.CurrentDecision.Clone();
+            thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = simTimeIndex * _deltaT;
 
             // classes
             foreach (Class thisClass in _classes)
@@ -552,10 +551,13 @@ namespace APACElib
                 thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = thisRatioTraj.TimeSeries.GetLastObs();
             }
 
+            // action combination
+            thisActionCombination[0] = (int[])_decisionMaker.CurrentDecision.Clone();
+
             // concatenate this row 
-            SimPrevalenceOutputs = SupportFunctions.ConcatJaggedArray(SimPrevalenceOutputs, thisPrevalenceOutputs);
+            SimRepIndeces = SupportFunctions.ConcatJaggedArray(SimRepIndeces, thisSimRepIndeces);
             SimIncidenceOutputs = SupportFunctions.ConcatJaggedArray(SimIncidenceOutputs, thisIncidenceOutputs);
-            // record the action combination
+            SimPrevalenceOutputs = SupportFunctions.ConcatJaggedArray(SimPrevalenceOutputs, thisPrevalenceOutputs);
             InterventionCombinations = SupportFunctions.ConcatJaggedArray(InterventionCombinations, thisActionCombination);
 
             // find next time index to store trajectories
@@ -570,12 +572,10 @@ namespace APACElib
             IncidenceOutputsHeader = new string[0];
 
             // create headers
-            NumOfPrevalenceOutputsToReport = 2;
-            if (storeHeaders) SupportFunctions.AddToEndOfArray(ref PrevalenceOutputsHeader, "Simulation Replication");
-            if (storeHeaders) SupportFunctions.AddToEndOfArray(ref PrevalenceOutputsHeader, "Simulation Time");
-            NumOfIncidenceOutputsToReport = 2;
-            if (storeHeaders) SupportFunctions.AddToEndOfArray(ref IncidenceOutputsHeader, "Decision Code");
+            NumOfIncidenceOutputsToReport = 1;
             if (storeHeaders) SupportFunctions.AddToEndOfArray(ref IncidenceOutputsHeader, "Simulation Period");
+            NumOfPrevalenceOutputsToReport = 1;
+            if (storeHeaders) SupportFunctions.AddToEndOfArray(ref PrevalenceOutputsHeader, "Simulation Time");
 
             // class headers
             foreach (Class thisClass in _classes)
@@ -621,41 +621,14 @@ namespace APACElib
             {
                 if (storeHeaders) SupportFunctions.AddToEndOfArray(ref PrevalenceOutputsHeader, thisRatioTaj.Name);
                 ++NumOfPrevalenceOutputsToReport;
-
-                // find the type of this ratio statistics
-                //switch (thisRatioTaj.Type)
-                //{
-                //    case RatioTrajectory.EnumType.IncidenceOverIncidence:
-                //        {
-                //            if (storeHeaders) SupportFunctions.AddToEndOfArray(ref IncidenceOutputsHeader, thisRatioTaj.Name);
-                //            ++NumOfIncidenceOutputsToReport;
-                //        }
-                //        break;
-                //    case RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
-                //        {
-                //            if (storeHeaders) SupportFunctions.AddToEndOfArray(ref PrevalenceOutputsHeader, thisRatioTaj.Name);
-                //            ++NumOfPrevalenceOutputsToReport;
-                //        }
-                //        break;
-                //    case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
-                //        {
-                //            if (storeHeaders) SupportFunctions.AddToEndOfArray(ref PrevalenceOutputsHeader, thisRatioTaj.Name);
-                //            ++NumOfPrevalenceOutputsToReport;
-                //        }
-                //        break;
-                //    case RatioTrajectory.EnumType.IncidenceOverPrevalence:
-                //        {
-                //            if (storeHeaders) SupportFunctions.AddToEndOfArray(ref IncidenceOutputsHeader, thisRatioTaj.Name);
-                //            ++NumOfIncidenceOutputsToReport;
-                //        }
-                //        break;
-                //}
             }
+
         }
 
         public void Reset()
         {            
             _nextSimTimeIndexToStore = 0;
+            SimRepIndeces = new int[0][];
             InterventionCombinations = new int[0][];
             SimPrevalenceOutputs = new double[0][];
             SimIncidenceOutputs = new double[0][];
