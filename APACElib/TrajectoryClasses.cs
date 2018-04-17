@@ -516,7 +516,8 @@ namespace APACElib
 
             // store the current time and the current interval
             thisSimRepIndeces[0][0] = _simReplication;
-            thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = simTimeIndex / _nDeltaTInSimOutputInterval;
+            thisIncidenceOutputs[0][colIndexIncidenceOutputs++] 
+                = Math.Floor((double)(simTimeIndex-1) / _nDeltaTInSimOutputInterval) + 1;
             thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = simTimeIndex * _deltaT;
 
             // classes
