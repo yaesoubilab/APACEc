@@ -491,7 +491,7 @@ namespace APACElib
             _nextSimTimeIndexToStore = 0;
 
             // find number of incidence and prevalence outputs to report 
-            FindNumOfOutputsAndHeaders(findHeader);
+            FindNumOfOutputsAndHeaders(findHeader); 
 
         }
 
