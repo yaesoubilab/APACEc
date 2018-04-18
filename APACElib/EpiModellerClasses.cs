@@ -402,7 +402,7 @@ namespace APACElib
             int numOfRows = matrixOfObservationsAndWeights.GetLength(0);
 
             // go over summation statistics
-            foreach (SumTrajectory sumStat in thisEpiModel.SumTrajectories.Where(s => s.CalibInfo.IfIncluded))
+            foreach (SumTrajectory sumStat in thisEpiModel.EpiHist.SumTrajectories.Where(s => s.CalibInfo.IfIncluded))
             {
                 double[] arrObservations = new double[numOfRows];
                 double[] arrWeights = new double[numOfRows];
@@ -429,7 +429,7 @@ namespace APACElib
             }
 
             // go over ratio statistics
-            foreach (RatioTrajectory ratioStat in thisEpiModel.RatioTrajectories.Where(r => r.CalibInfo.IfIncluded))
+            foreach (RatioTrajectory ratioStat in thisEpiModel.EpiHist.RatioTrajectories.Where(r => r.CalibInfo.IfIncluded))
             {
                 double[] arrObservations = new double[numOfRows];
                 double[] arrWeights = new double[numOfRows];
@@ -488,10 +488,10 @@ namespace APACElib
             string[] names = new string[0];
 
             // summation statistics
-            foreach (SumTrajectory thisSumTraj in _parentEpidemic.SumTrajectories.Where(s => s.CalibInfo.IfIncluded))
+            foreach (SumTrajectory thisSumTraj in _parentEpidemic.EpiHist.SumTrajectories.Where(s => s.CalibInfo.IfIncluded))
                 SupportFunctions.AddToEndOfArray(ref names, thisSumTraj.Name);
             // ratio statistics
-            foreach (RatioTrajectory thisRatioTraj in _parentEpidemic.RatioTrajectories.Where(s => s.CalibInfo.IfIncluded))
+            foreach (RatioTrajectory thisRatioTraj in _parentEpidemic.EpiHist.RatioTrajectories.Where(s => s.CalibInfo.IfIncluded))
                 SupportFunctions.AddToEndOfArray(ref names, thisRatioTraj.Name);
             //}
 
@@ -587,7 +587,7 @@ namespace APACElib
                     PrevalenceStats.Add(new ObsBasedStat("Average Size: " + thisClass.Name, _nSim));
             }
             // summary statistics on summation
-            foreach (SumTrajectory thisSumTraj in parentEpidemic.SumTrajectories)
+            foreach (SumTrajectory thisSumTraj in parentEpidemic.EpiHist.SumTrajectories)
             {
                 // incidence stats
                 if (thisSumTraj.Type == SumTrajectory.EnumType.Incidence
@@ -598,7 +598,7 @@ namespace APACElib
                     PrevalenceStats.Add(new ObsBasedStat("Averge size: " + thisSumTraj.Name, _nSim));
             }
             // summary statistics on ratio 
-            foreach (RatioTrajectory thisRatioTaj in parentEpidemic.RatioTrajectories)
+            foreach (RatioTrajectory thisRatioTaj in parentEpidemic.EpiHist.RatioTrajectories)
                 RatioStats.Add(new ObsBasedStat("Average ratio: " + thisRatioTaj.Name, _nSim));
 
             // reset the jagged array containing trajectories
@@ -614,13 +614,13 @@ namespace APACElib
             if (_set.IfShowSimulatedTrajs)
             {
                 TrajsSimRepIndex = SupportFunctions.ConcatJaggedArray(
-                   TrajsSimRepIndex, simulatedEpi.TrajsForSimOutput.SimRepIndeces);
+                   TrajsSimRepIndex, simulatedEpi.EpiHist.TrajsForSimOutput.SimRepIndeces);
                 TrajsIncidence = SupportFunctions.ConcatJaggedArray(
-                     TrajsIncidence, simulatedEpi.TrajsForSimOutput.SimIncidenceOutputs);
+                     TrajsIncidence, simulatedEpi.EpiHist.TrajsForSimOutput.SimIncidenceOutputs);
                 TrajsPrevalence = SupportFunctions.ConcatJaggedArray(
-                    TrajsPrevalence, simulatedEpi.TrajsForSimOutput.SimPrevalenceOutputs);                
+                    TrajsPrevalence, simulatedEpi.EpiHist.TrajsForSimOutput.SimPrevalenceOutputs);                
                 TrajsIntrvCombinations = SupportFunctions.ConcatJaggedArray(
-                   TrajsIntrvCombinations, simulatedEpi.TrajsForSimOutput.InterventionCombinations);
+                   TrajsIntrvCombinations, simulatedEpi.EpiHist.TrajsForSimOutput.InterventionCombinations);
             }
 
             // store sampled parameter values
@@ -650,14 +650,14 @@ namespace APACElib
                 if (thisClass.ClassStat.CollectPrevalenceStats)
                     PrevalenceStats[prevalenceStatIndex++].Record(thisClass.ClassStat.AveragePrevalenceStat.Mean, simItr);
             }
-            foreach (SumTrajectory sumTraj in simulatedEpi.SumTrajectories)
+            foreach (SumTrajectory sumTraj in simulatedEpi.EpiHist.SumTrajectories)
             {
                 if (sumTraj.Type == SumTrajectory.EnumType.Incidence || sumTraj.Type == SumTrajectory.EnumType.AccumulatingIncident)
                     IncidenceStats[incidentStatIndex++].Record(sumTraj.AccumulatedIncidenceAfterWarmUp, simItr);
                 if (sumTraj.Type == SumTrajectory.EnumType.Prevalence)
                     PrevalenceStats[prevalenceStatIndex++].Record(sumTraj.AveragePrevalenceStat.Mean, simItr);
             }
-            foreach (RatioTrajectory ratioTraj in simulatedEpi.RatioTrajectories)
+            foreach (RatioTrajectory ratioTraj in simulatedEpi.EpiHist.RatioTrajectories)
             {
                 switch (ratioTraj.Type)
                 {

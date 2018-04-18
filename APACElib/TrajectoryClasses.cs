@@ -85,7 +85,7 @@ namespace APACElib
         }
     }
 
-    public class GeneralTrajectory
+    public class OneDimTrajectory
     {
         protected int _warmUpSimIndex;
 
@@ -111,7 +111,7 @@ namespace APACElib
         // average incidence prevalence
         public ObsBasedStat AveragePrevalenceStat { get; set; }
 
-        public GeneralTrajectory(int id, string name, int warmUpSimIndex)
+        public OneDimTrajectory(int id, string name, int warmUpSimIndex)
         {
             ID = id;
             Name = name;
@@ -195,7 +195,7 @@ namespace APACElib
         
     }
 
-    public abstract class SumTrajectory : GeneralTrajectory
+    public abstract class SumTrajectory : OneDimTrajectory
     {
         public enum EnumType
         {
@@ -229,32 +229,40 @@ namespace APACElib
                 case EnumType.Incidence:
                     SetupStatisticsCollectors(
                         accumIncidence: true,
-                        prevalence: false);
+                        prevalence: false
+                        );
                     AddTimeSeries(
                         collectIncidence: true,
                         collectPrevalence: false,
                         collectAccumIncidence: false,
-                        nDeltaTInAPeriod: nDeltaTInAPeriod);
+                        nDeltaTInAPeriod: nDeltaTInAPeriod
+                        );
                     break;
+
                 case EnumType.AccumulatingIncident:
                     SetupStatisticsCollectors(
                         accumIncidence: true,
-                        prevalence: false);
+                        prevalence: false
+                        );
                     AddTimeSeries(
                         collectIncidence: false,
                         collectPrevalence: false,
-                        collectAccumIncidence: true,
-                        nDeltaTInAPeriod: nDeltaTInAPeriod);
+                        collectAccumIncidence: false,
+                        nDeltaTInAPeriod: nDeltaTInAPeriod
+                        );
                     break;
+
                 case EnumType.Prevalence:
                     SetupStatisticsCollectors(
                         accumIncidence: false,
-                        prevalence: true);
+                        prevalence: true
+                        );
                     AddTimeSeries(
                         collectIncidence: false,
-                        collectPrevalence: true,
+                        collectPrevalence: false,
                         collectAccumIncidence: false,
-                        nDeltaTInAPeriod: nDeltaTInAPeriod);
+                        nDeltaTInAPeriod: nDeltaTInAPeriod
+                        );
                     break;
             }
         }
@@ -448,7 +456,7 @@ namespace APACElib
         }
     }
 
-    public class TrajsForSimOutput
+    public class SimOutputTrajs
     {
         private int _simReplication;
         private double _deltaT;
@@ -470,7 +478,7 @@ namespace APACElib
         public double[][] SimPrevalenceOutputs { get; private set; }
         public int[][] InterventionCombinations { get; private set; }
 
-        public TrajsForSimOutput(
+        public SimOutputTrajs(
             int simReplication, 
             double deltaT,
             int nDeltaTInSimOutputInterval,
@@ -492,7 +500,6 @@ namespace APACElib
 
             // find number of incidence and prevalence outputs to report 
             FindNumOfOutputsAndHeaders(findHeader); 
-
         }
 
         // store selected outputs while simulating
@@ -637,6 +644,72 @@ namespace APACElib
         }
     }
 
+    public class EpidemicHistory
+    {
+        public List<SumTrajectory> _sumTrajectories = new List<SumTrajectory>();
+        public List<RatioTrajectory> _ratioTrajectories = new List<RatioTrajectory>();
+        public List<SumTrajectory> SumTrajectories { get => _sumTrajectories; set => _sumTrajectories = value; }
+        public List<RatioTrajectory> RatioTrajectories { get => _ratioTrajectories; set => _ratioTrajectories = value; }
+        public SimOutputTrajs TrajsForSimOutput { get; private set; }
+
+        public EpidemicHistory()
+        {
+        }
+
+        public void AddTrajsForSimOutput(
+            int ID,
+            double deltaT,
+            int numOfDeltaT_inSimOutputInterval,
+            ref DecisionMaker decisionMaker,
+            ref List<Class> classes,
+            bool extractOutputHeaders)
+        {
+            TrajsForSimOutput = new SimOutputTrajs(
+               ID,
+               deltaT,
+               numOfDeltaT_inSimOutputInterval,
+               ref decisionMaker,
+               ref classes,
+               ref _sumTrajectories,
+               ref _ratioTrajectories,
+               extractOutputHeaders);
+        }
+
+        public void UpdateSumAndRatioTrajs(int simTimeIndex, ref List<Class> classes, ref List<Event> events)
+        {
+            // update summation statistics
+            foreach (SumTrajectory thisSumTaj in SumTrajectories)
+                thisSumTaj.Add(simTimeIndex, ref classes, ref events);
+            // update ratio statistics
+            foreach (RatioTrajectory ratioTraj in RatioTrajectories)
+                ratioTraj.Add(simTimeIndex, ref _sumTrajectories);
+        }
+
+        public void Reset(int simTimeIndex, ref List<Class> classes, ref List<Event> events)
+        {
+            TrajsForSimOutput.Reset();
+
+            // update summation statistics
+            foreach (SumTrajectory sumTraj in SumTrajectories)
+            {
+                sumTraj.Reset();
+                if (sumTraj.Type == SumTrajectory.EnumType.Prevalence)
+                    sumTraj.Add(simTimeIndex, ref classes, ref events);
+            }
+            // update ratio statistics
+            foreach (RatioTrajectory ratioTraj in RatioTrajectories)
+            {
+                ratioTraj.Reset();
+                ratioTraj.Add(simTimeIndex, ref _sumTrajectories);
+            }
+        }
+
+        public void Clean()
+        {
+            SumTrajectories = new List<SumTrajectory>();
+            RatioTrajectories = new List<RatioTrajectory>();
+        }
+    }
 
     // Counter Statistics
     public class CounterStatistics

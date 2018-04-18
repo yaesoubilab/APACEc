@@ -75,7 +75,7 @@ namespace APACElib
         // delta t
         public double DeltaT { get; set; }
         // simulation, observation and decision periods
-        public int NumOfDeltaT_inSimulationOutputInterval { get; set; }
+        public int NumOfDeltaT_inSimOutputInterval { get; set; }
         public int NumOfDeltaT_inObservationPeriod { get; set; }
         public int NumOfDeltaT_inDecisionInterval { get; set; }
 
@@ -185,7 +185,7 @@ namespace APACElib
 
             DeltaT = excelInterface.GetTimeStep();
             NumOfDeltaT_inDecisionInterval = excelInterface.GetNumDeltaTDecisionInterval();
-            NumOfDeltaT_inSimulationOutputInterval = excelInterface.GetNumDeltaTSimulationOutputInterval();
+            NumOfDeltaT_inSimOutputInterval = excelInterface.GetNumDeltaTSimulationOutputInterval();
             NumOfDeltaT_inObservationPeriod = excelInterface.GetNumDeltaTObservationPeriod();
             
 

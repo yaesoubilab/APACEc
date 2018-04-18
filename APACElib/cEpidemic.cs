@@ -24,13 +24,10 @@ namespace APACElib
         public ForceOfInfectionModel FOIModel { get; set; }
         public List<Class> Classes { get => _classes; }
         private List<Class> _classes = new List<Class>();
-        private List<Event> _events = new List<Event>();
-        public List<SumTrajectory> _sumTrajectories = new List<SumTrajectory>();
-        public List<RatioTrajectory> _ratioTrajectories = new List<RatioTrajectory>();
-        public List<SumTrajectory> SumTrajectories { get => _sumTrajectories; set => _sumTrajectories = value; }
-        public List<RatioTrajectory> RatioTrajectories { get => _ratioTrajectories; set => _ratioTrajectories = value; } 
-        public TrajsForSimOutput TrajsForSimOutput { get; private set; }
+        private List<Event> _events = new List<Event>();    
+        public EpidemicHistory EpiHist { get; private set; }
         public EpidemicCostHealth EpidemicCostHealth { get; set; }
+
         public Timer Timer { get; private set; } = new Timer();
         public Calibration Calibration { get; private set; } = new Calibration();
         
@@ -61,8 +58,7 @@ namespace APACElib
             _paramManager = new ParameterManager();
             _classes = new List<Class>();
             _events = new List<Event>();
-            SumTrajectories = new List<SumTrajectory>();
-            RatioTrajectories = new List<RatioTrajectory>();
+            EpiHist.Clean();
             FOIModel.Clean();            
     }
         
@@ -141,7 +137,7 @@ namespace APACElib
                 _paramManager.UpdateTimeDepParams(ref _rng, _simTimeIndex * _modelSets.DeltaT, ref _classes);
 
                 // update recorded trajectories 
-                TrajsForSimOutput.Record(_simTimeIndex, false);
+                EpiHist.TrajsForSimOutput.Record(_simTimeIndex, false);
 
                 // check if this is has been a feasible trajectory for calibration
                 if (ModelUse == EnumModelUse.Calibration && !ifThisIsAFeasibleCalibrationTrajectory)
@@ -168,7 +164,7 @@ namespace APACElib
                 {
                     toStop = true;
                     // update recorded trajectories 
-                    TrajsForSimOutput.Record(_simTimeIndex, true);
+                    EpiHist.TrajsForSimOutput.Record(_simTimeIndex, true);
 
                     // find if it is an acceptable trajectory
                     acceptableTrajectory = true;
@@ -234,12 +230,8 @@ namespace APACElib
                 }
             }
 
-            // update summation statistics
-            foreach (SumTrajectory thisSumTaj in SumTrajectories)
-                thisSumTaj.Add(_simTimeIndex, ref _classes, ref _events);
-            // update ratio statistics
-            foreach (RatioTrajectory ratioTraj in RatioTrajectories)
-                ratioTraj.Add(_simTimeIndex, ref _sumTrajectories);
+            // update summation and ratio trajectories
+            EpiHist.UpdateSumAndRatioTrajs(_simTimeIndex, ref _classes, ref _events);
 
             // reset number of members out of active events for all classes
             foreach (Class thisClass in Classes)
@@ -306,9 +298,6 @@ namespace APACElib
             foreach (Class thisClass in Classes)
                 thisClass.UpdateInitialNumOfMembers((int)Math.Round(_paramManager.ParameterValues[thisClass.InitialMemebersParID]));
 
-            // reset epidemic history 
-            TrajsForSimOutput.Reset();
-
             // health and cost outcomes
             EpidemicCostHealth = new EpidemicCostHealth(_modelSets.DeltaTDiscountRate, _modelSets.WarmUpPeriodTimeIndex);
             EpidemicCostHealth.Reset();
@@ -330,19 +319,8 @@ namespace APACElib
                 thisClass.Reset();
             }
 
-            // update summation statistics
-            foreach (SumTrajectory sumTraj in SumTrajectories)
-            {
-                sumTraj.Reset();
-                if (sumTraj.Type == SumTrajectory.EnumType.Prevalence)
-                    sumTraj.Add(_simTimeIndex, ref _classes, ref _events);
-            }
-            // update ratio statistics
-            foreach (RatioTrajectory ratioTraj in RatioTrajectories)
-            {
-                ratioTraj.Reset();
-                ratioTraj.Add(_simTimeIndex, ref _sumTrajectories);
-            }
+            // reset epidemic history 
+            EpiHist.Reset(_simTimeIndex, ref _classes, ref _events);           
         }         
 
         // update current epidemic time
@@ -394,25 +372,26 @@ namespace APACElib
             AddResources(modelSettings.ResourcesSheet);
             // add events
             AddEvents(modelSettings.EventSheet);
+            // epidemic history
+            EpiHist = new EpidemicHistory();
             // add summation statistics
             AddSummationStatistics(modelSettings.SummationStatisticsSheet);
             // add ratio statistics
             AddRatioStatistics(modelSettings.RatioStatisticsSheet);
+            // add trajectories for simulation output
+            EpiHist.AddTrajsForSimOutput(
+                ID,
+                _modelSets.DeltaT,
+                _modelSets.NumOfDeltaT_inSimOutputInterval,
+                ref _decisionMaker,
+                ref _classes,
+                extractOutputHeaders);
             // add connections
             AddConnections(modelSettings.ConnectionsMatrix);
             // monitor of interventions in effect
             _monitorOfIntrvsInEffect = new MonitorOfInterventionsInEffect(ref _decisionMaker);
-            // epidemic history
-            TrajsForSimOutput = new TrajsForSimOutput(
-                ID, 
-                _modelSets.DeltaT, 
-                _modelSets.NumOfDeltaT_inSimulationOutputInterval, 
-                ref _decisionMaker, 
-                ref _classes, 
-                ref _sumTrajectories, 
-                ref _ratioTrajectories,
-                extractOutputHeaders);
-
+            
+            // find if there are classes with eradiation condition
             _thereAreClassesWithEradicationCondition = Classes.Where(s => s.EmptyToEradicate).Count() > 0;
         }
         // read parameters
@@ -643,7 +622,7 @@ namespace APACElib
                 #endregion
 
                 // class statistics 
-                Classes.Last().ClassStat = new GeneralTrajectory(classID, name, _modelSets.WarmUpPeriodTimeIndex);
+                Classes.Last().ClassStat = new OneDimTrajectory(classID, name, _modelSets.WarmUpPeriodTimeIndex);
                 Classes.Last().ClassStat.SetupStatisticsCollectors(
                     collectAccumIncidenceStats,
                     collectPrevalenceStats
@@ -653,7 +632,7 @@ namespace APACElib
                     collectIncidence: showIncidence,
                     collectPrevalence: false,
                     collectAccumIncidence: false,
-                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimulationOutputInterval
+                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval
                     );
                 
                 // adding cost and health outcomes
@@ -1018,9 +997,11 @@ namespace APACElib
                 // build and add the summation statistics
                 if (definedOn == SumTrajectory.EnumDefinedOn.Classes)
                 {
-                    SumClassesTrajectory thisSumClassTraj = new SumClassesTrajectory(statID, name, type, sumFormula, ifDispay, _modelSets.WarmUpPeriodTimeIndex, _modelSets.NumOfDeltaT_inSimulationOutputInterval);
+                    SumClassesTrajectory thisSumClassTraj = new SumClassesTrajectory
+                        (statID, name, type, sumFormula, ifDispay, _modelSets.WarmUpPeriodTimeIndex, _modelSets.NumOfDeltaT_inSimOutputInterval);
                     // add the summation statistics
-                    SumTrajectories.Add(thisSumClassTraj);
+                    EpiHist.SumTrajectories.Add(thisSumClassTraj);
+                    
                     // update class time-series
                     foreach (int i in thisSumClassTraj.ClassIDs)
                     {
@@ -1029,7 +1010,7 @@ namespace APACElib
                                 collectIncidence: true,
                                 collectAccumIncidence: false,
                                 collectPrevalence: false, 
-                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimulationOutputInterval
+                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval
                                 );
                         if (thisSumClassTraj.Type == SumTrajectory.EnumType.AccumulatingIncident)
                             _classes[i].ClassStat.CollectAccumIncidenceStats = true;
@@ -1037,16 +1018,17 @@ namespace APACElib
                 }
                 else // if defined on events
                 {
-                    SumEventTrajectory thisSumEventTraj = new SumEventTrajectory(statID, name, type, sumFormula, ifDispay, _modelSets.WarmUpPeriodTimeIndex, _modelSets.NumOfDeltaT_inSimulationOutputInterval);
+                    SumEventTrajectory thisSumEventTraj = new SumEventTrajectory
+                        (statID, name, type, sumFormula, ifDispay, _modelSets.WarmUpPeriodTimeIndex, _modelSets.NumOfDeltaT_inSimOutputInterval);
                     // add the summation statistics
-                    SumTrajectories.Add(thisSumEventTraj);
+                    EpiHist.SumTrajectories.Add(thisSumEventTraj);
                 }
 
                 // adding cost and health outcomes
-                SumTrajectories.Last().AddCostHealthOutcomes(DALYPerNewMember, costPerNewMember, 0, 0);
+                EpiHist.SumTrajectories.Last().AddCostHealthOutcomes(DALYPerNewMember, costPerNewMember, 0, 0);
 
                 // update calibraton infor
-                SumTrajectories.Last().CalibInfo = new TrajectoryCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
+                EpiHist.SumTrajectories.Last().CalibInfo = new TrajectoryCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
                 
             }
         }
@@ -1146,13 +1128,13 @@ namespace APACElib
                     ratioFormula, 
                     ifDispay, 
                     _modelSets.WarmUpPeriodTimeIndex, 
-                    _modelSets.NumOfDeltaT_inSimulationOutputInterval);
+                    _modelSets.NumOfDeltaT_inSimOutputInterval);
 
                 // set up calibration
                 thisRatioTraj.CalibInfo = new TrajectoryCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
 
                 // add the summation statistics
-                RatioTrajectories.Add(thisRatioTraj);
+                EpiHist.RatioTrajectories.Add(thisRatioTraj);
             }
         }
         // add connections

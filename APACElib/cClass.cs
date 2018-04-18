@@ -19,7 +19,7 @@ namespace APACElib
         protected int[] _numOfMembersToDestClasses;     // number of members to be sent to other classes        
         public bool ShouldBeProcessed { get; set; }     // if it should be decided how many members to send to other classes 
         public bool MembersWaitingToDepart { get; set; } // if there are members waiting to be sent to other classes 
-        public GeneralTrajectory ClassStat { get; set; }
+        public OneDimTrajectory ClassStat { get; set; }
 
         // show in simulation output 
         public bool ShowIncidence { get; set; }
