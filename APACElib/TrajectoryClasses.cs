@@ -486,6 +486,31 @@ namespace APACElib
         }
     }
     
+    public class SurveyedRatioTrajectory : RatioTrajectory
+    {
+        int _nObsPeriodsDelay;
+        bool _firstObsMarksStartOfEpidemic;
+
+        public SurveyedRatioTrajectory(
+            int ID,
+            string name,
+            EnumType type,
+            string ratioFormula,
+            bool displayInSimOutput,
+            int warmUpSimIndex,
+            int nDeltaTsObsPeriod,
+            int nDeltaTsDelayed) 
+            : base(ID, name, type, ratioFormula, displayInSimOutput, warmUpSimIndex, nDeltaTsObsPeriod)
+        {
+            _nObsPeriodsDelay = nDeltaTsDelayed / nDeltaTsObsPeriod;
+        }
+
+        public double GetLastObs()
+        {
+            return TimeSeries.GetLastObs(_nObsPeriodsDelay);
+        }
+    }
+
     public class SimOutputTrajs
     {
         private int _simReplication;
@@ -682,10 +707,10 @@ namespace APACElib
         public List<SumTrajectory> SumTrajs { get => _sumTrajs; set => _sumTrajs = value; }
         public List<RatioTrajectory> RatioTrajs { get => _ratioTraj; set => _ratioTraj = value; }
         // surveyed summation and ratio trajectories
-        public List<SumTrajectory> _surveyedSumTrajs = new List<SumTrajectory>();
-        public List<RatioTrajectory> _surveyedRatioTrajs = new List<RatioTrajectory>();
-        public List<SumTrajectory> SurveyedSumTrajs { get => _surveyedSumTrajs; set => _surveyedSumTrajs = value; }
-        public List<RatioTrajectory> SurveyedRatioTrajs { get => _surveyedRatioTrajs; set => _surveyedRatioTrajs = value; }
+        public List<SurveyedSumClassesTrajectory> _survSumClassTrajs = new List<SurveyedSumClassesTrajectory>();
+        public List<SurveyedRatioTrajectory> _survRatioTrajs = new List<SurveyedRatioTrajectory>();
+        public List<SurveyedSumClassesTrajectory> SurveyedSumTrajs { get => _survSumClassTrajs; set => _survSumClassTrajs = value; }
+        public List<SurveyedRatioTrajectory> SurveyedRatioTrajs { get => _survRatioTrajs; set => _survRatioTrajs = value; }
         // all trajectories prepared for simulation output 
         public SimOutputTrajs TrajsForSimOutput { get; private set; }
         public SimOutputTrajs SurveyedTrajsForSimOutput { get; private set; }
