@@ -25,6 +25,10 @@ namespace APACElib
         {
             return ObsList.Last();
         }
+        public double GetLastObs(int nPeriodDelay)
+        {
+            return ObsList[ObsList.Count - nPeriodDelay];
+        }
 
         public abstract void Reset();
     }
@@ -444,18 +448,44 @@ namespace APACElib
         }
     }
 
-    public class ObservedTrajectories
+    public class SurveyedSumClassesTrajectory : SumClassesTrajectory
     {
+        int _nObsPeriodsDelay;
+        bool _firstObsMarksStartOfEpidemic;
 
-        public void Record (int simTimeIndex)
+        public SurveyedSumClassesTrajectory(
+            int ID,
+            string name,
+            EnumType type,
+            string sumFormula,
+            bool displayInSimOutput,
+            int warmUpSimIndex,
+            int nDeltaTsObsPeriod,
+            int nDeltaTsDelayed)
+            :base(ID, name, type, sumFormula, displayInSimOutput, warmUpSimIndex, nDeltaTsObsPeriod)
         {
-            double[][] thisCalibrationObservation = new double[1][];
-            double[][] thisTimeOfObservableOutputs = new double[1][];
-            //int colIndexObservableOutputs = 0;
-            //int colIndexCalibrationObservation = 0;
+            _nObsPeriodsDelay = nDeltaTsDelayed / nDeltaTsObsPeriod;
+        }
+
+        public new int GetLastObs()
+        {
+            int obs = 0;
+            switch (Type)
+            {
+                case EnumType.Incidence:
+                    obs = (int)IncidenceTimeSeries.GetLastObs(_nObsPeriodsDelay);
+                    break;
+                case EnumType.AccumulatingIncident:
+                    obs = (int)AccumIncidenceTimeSeries.GetLastObs(_nObsPeriodsDelay);
+                    break;
+                case EnumType.Prevalence:
+                    obs = (int)PrevalenceTimeSeries.GetLastObs(_nObsPeriodsDelay);
+                    break;
+            }
+            return obs;
         }
     }
-
+    
     public class SimOutputTrajs
     {
         private int _simReplication;
@@ -646,17 +676,25 @@ namespace APACElib
 
     public class EpidemicHistory
     {
-        public List<SumTrajectory> _sumTrajectories = new List<SumTrajectory>();
-        public List<RatioTrajectory> _ratioTrajectories = new List<RatioTrajectory>();
-        public List<SumTrajectory> SumTrajectories { get => _sumTrajectories; set => _sumTrajectories = value; }
-        public List<RatioTrajectory> RatioTrajectories { get => _ratioTrajectories; set => _ratioTrajectories = value; }
+        // summation and ratio trajectories
+        public List<SumTrajectory> _sumTrajs = new List<SumTrajectory>();
+        public List<RatioTrajectory> _ratioTraj = new List<RatioTrajectory>();
+        public List<SumTrajectory> SumTrajs { get => _sumTrajs; set => _sumTrajs = value; }
+        public List<RatioTrajectory> RatioTrajs { get => _ratioTraj; set => _ratioTraj = value; }
+        // surveyed summation and ratio trajectories
+        public List<SumTrajectory> _surveyedSumTrajs = new List<SumTrajectory>();
+        public List<RatioTrajectory> _surveyedRatioTrajs = new List<RatioTrajectory>();
+        public List<SumTrajectory> SurveyedSumTrajs { get => _surveyedSumTrajs; set => _surveyedSumTrajs = value; }
+        public List<RatioTrajectory> SurveyedRatioTrajs { get => _surveyedRatioTrajs; set => _surveyedRatioTrajs = value; }
+        // all trajectories prepared for simulation output 
         public SimOutputTrajs TrajsForSimOutput { get; private set; }
+        public SimOutputTrajs SurveyedTrajsForSimOutput { get; private set; }
 
         public EpidemicHistory()
         {
         }
 
-        public void AddTrajsForSimOutput(
+        public void SetupTrajsForSimOutput(
             int ID,
             double deltaT,
             int numOfDeltaT_inSimOutputInterval,
@@ -670,19 +708,19 @@ namespace APACElib
                numOfDeltaT_inSimOutputInterval,
                ref decisionMaker,
                ref classes,
-               ref _sumTrajectories,
-               ref _ratioTrajectories,
+               ref _sumTrajs,
+               ref _ratioTraj,
                extractOutputHeaders);
         }
 
         public void UpdateSumAndRatioTrajs(int simTimeIndex, ref List<Class> classes, ref List<Event> events)
         {
             // update summation statistics
-            foreach (SumTrajectory thisSumTaj in SumTrajectories)
+            foreach (SumTrajectory thisSumTaj in SumTrajs)
                 thisSumTaj.Add(simTimeIndex, ref classes, ref events);
             // update ratio statistics
-            foreach (RatioTrajectory ratioTraj in RatioTrajectories)
-                ratioTraj.Add(simTimeIndex, ref _sumTrajectories);
+            foreach (RatioTrajectory ratioTraj in RatioTrajs)
+                ratioTraj.Add(simTimeIndex, ref _sumTrajs);
         }
 
         public void Reset(int simTimeIndex, ref List<Class> classes, ref List<Event> events)
@@ -690,24 +728,24 @@ namespace APACElib
             TrajsForSimOutput.Reset();
 
             // update summation statistics
-            foreach (SumTrajectory sumTraj in SumTrajectories)
+            foreach (SumTrajectory sumTraj in SumTrajs)
             {
                 sumTraj.Reset();
                 if (sumTraj.Type == SumTrajectory.EnumType.Prevalence)
                     sumTraj.Add(simTimeIndex, ref classes, ref events);
             }
             // update ratio statistics
-            foreach (RatioTrajectory ratioTraj in RatioTrajectories)
+            foreach (RatioTrajectory ratioTraj in RatioTrajs)
             {
                 ratioTraj.Reset();
-                ratioTraj.Add(simTimeIndex, ref _sumTrajectories);
+                ratioTraj.Add(simTimeIndex, ref _sumTrajs);
             }
         }
 
         public void Clean()
         {
-            SumTrajectories = new List<SumTrajectory>();
-            RatioTrajectories = new List<RatioTrajectory>();
+            SumTrajs = new List<SumTrajectory>();
+            RatioTrajs = new List<RatioTrajectory>();
         }
     }
 

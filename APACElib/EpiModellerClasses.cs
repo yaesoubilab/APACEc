@@ -402,7 +402,7 @@ namespace APACElib
             int numOfRows = matrixOfObservationsAndWeights.GetLength(0);
 
             // go over summation statistics
-            foreach (SumTrajectory sumStat in thisEpiModel.EpiHist.SumTrajectories.Where(s => s.CalibInfo.IfIncluded))
+            foreach (SumTrajectory sumStat in thisEpiModel.EpiHist.SumTrajs.Where(s => s.CalibInfo.IfIncluded))
             {
                 double[] arrObservations = new double[numOfRows];
                 double[] arrWeights = new double[numOfRows];
@@ -429,7 +429,7 @@ namespace APACElib
             }
 
             // go over ratio statistics
-            foreach (RatioTrajectory ratioStat in thisEpiModel.EpiHist.RatioTrajectories.Where(r => r.CalibInfo.IfIncluded))
+            foreach (RatioTrajectory ratioStat in thisEpiModel.EpiHist.RatioTrajs.Where(r => r.CalibInfo.IfIncluded))
             {
                 double[] arrObservations = new double[numOfRows];
                 double[] arrWeights = new double[numOfRows];
@@ -488,10 +488,10 @@ namespace APACElib
             string[] names = new string[0];
 
             // summation statistics
-            foreach (SumTrajectory thisSumTraj in _parentEpidemic.EpiHist.SumTrajectories.Where(s => s.CalibInfo.IfIncluded))
+            foreach (SumTrajectory thisSumTraj in _parentEpidemic.EpiHist.SumTrajs.Where(s => s.CalibInfo.IfIncluded))
                 SupportFunctions.AddToEndOfArray(ref names, thisSumTraj.Name);
             // ratio statistics
-            foreach (RatioTrajectory thisRatioTraj in _parentEpidemic.EpiHist.RatioTrajectories.Where(s => s.CalibInfo.IfIncluded))
+            foreach (RatioTrajectory thisRatioTraj in _parentEpidemic.EpiHist.RatioTrajs.Where(s => s.CalibInfo.IfIncluded))
                 SupportFunctions.AddToEndOfArray(ref names, thisRatioTraj.Name);
             //}
 
@@ -587,7 +587,7 @@ namespace APACElib
                     PrevalenceStats.Add(new ObsBasedStat("Average Size: " + thisClass.Name, _nSim));
             }
             // summary statistics on summation
-            foreach (SumTrajectory thisSumTraj in parentEpidemic.EpiHist.SumTrajectories)
+            foreach (SumTrajectory thisSumTraj in parentEpidemic.EpiHist.SumTrajs)
             {
                 // incidence stats
                 if (thisSumTraj.Type == SumTrajectory.EnumType.Incidence
@@ -598,7 +598,7 @@ namespace APACElib
                     PrevalenceStats.Add(new ObsBasedStat("Averge size: " + thisSumTraj.Name, _nSim));
             }
             // summary statistics on ratio 
-            foreach (RatioTrajectory thisRatioTaj in parentEpidemic.EpiHist.RatioTrajectories)
+            foreach (RatioTrajectory thisRatioTaj in parentEpidemic.EpiHist.RatioTrajs)
                 RatioStats.Add(new ObsBasedStat("Average ratio: " + thisRatioTaj.Name, _nSim));
 
             // reset the jagged array containing trajectories
@@ -650,14 +650,14 @@ namespace APACElib
                 if (thisClass.ClassStat.CollectPrevalenceStats)
                     PrevalenceStats[prevalenceStatIndex++].Record(thisClass.ClassStat.AveragePrevalenceStat.Mean, simItr);
             }
-            foreach (SumTrajectory sumTraj in simulatedEpi.EpiHist.SumTrajectories)
+            foreach (SumTrajectory sumTraj in simulatedEpi.EpiHist.SumTrajs)
             {
                 if (sumTraj.Type == SumTrajectory.EnumType.Incidence || sumTraj.Type == SumTrajectory.EnumType.AccumulatingIncident)
                     IncidenceStats[incidentStatIndex++].Record(sumTraj.AccumulatedIncidenceAfterWarmUp, simItr);
                 if (sumTraj.Type == SumTrajectory.EnumType.Prevalence)
                     PrevalenceStats[prevalenceStatIndex++].Record(sumTraj.AveragePrevalenceStat.Mean, simItr);
             }
-            foreach (RatioTrajectory ratioTraj in simulatedEpi.EpiHist.RatioTrajectories)
+            foreach (RatioTrajectory ratioTraj in simulatedEpi.EpiHist.RatioTrajs)
             {
                 switch (ratioTraj.Type)
                 {

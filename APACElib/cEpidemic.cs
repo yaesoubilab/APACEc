@@ -379,7 +379,7 @@ namespace APACElib
             // add ratio statistics
             AddRatioStatistics(modelSettings.RatioStatisticsSheet);
             // add trajectories for simulation output
-            EpiHist.AddTrajsForSimOutput(
+            EpiHist.SetupTrajsForSimOutput(
                 ID,
                 _modelSets.DeltaT,
                 _modelSets.NumOfDeltaT_inSimOutputInterval,
@@ -1000,7 +1000,7 @@ namespace APACElib
                     SumClassesTrajectory thisSumClassTraj = new SumClassesTrajectory
                         (statID, name, type, sumFormula, ifDispay, _modelSets.WarmUpPeriodTimeIndex, _modelSets.NumOfDeltaT_inSimOutputInterval);
                     // add the summation statistics
-                    EpiHist.SumTrajectories.Add(thisSumClassTraj);
+                    EpiHist.SumTrajs.Add(thisSumClassTraj);
                     
                     // update class time-series
                     foreach (int i in thisSumClassTraj.ClassIDs)
@@ -1021,14 +1021,14 @@ namespace APACElib
                     SumEventTrajectory thisSumEventTraj = new SumEventTrajectory
                         (statID, name, type, sumFormula, ifDispay, _modelSets.WarmUpPeriodTimeIndex, _modelSets.NumOfDeltaT_inSimOutputInterval);
                     // add the summation statistics
-                    EpiHist.SumTrajectories.Add(thisSumEventTraj);
+                    EpiHist.SumTrajs.Add(thisSumEventTraj);
                 }
 
                 // adding cost and health outcomes
-                EpiHist.SumTrajectories.Last().AddCostHealthOutcomes(DALYPerNewMember, costPerNewMember, 0, 0);
+                EpiHist.SumTrajs.Last().AddCostHealthOutcomes(DALYPerNewMember, costPerNewMember, 0, 0);
 
                 // update calibraton infor
-                EpiHist.SumTrajectories.Last().CalibInfo = new TrajectoryCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
+                EpiHist.SumTrajs.Last().CalibInfo = new TrajectoryCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
                 
             }
         }
@@ -1134,7 +1134,7 @@ namespace APACElib
                 thisRatioTraj.CalibInfo = new TrajectoryCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
 
                 // add the summation statistics
-                EpiHist.RatioTrajectories.Add(thisRatioTraj);
+                EpiHist.RatioTrajs.Add(thisRatioTraj);
             }
         }
         // add connections
