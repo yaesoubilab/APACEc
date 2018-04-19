@@ -448,41 +448,24 @@ namespace APACElib
         }
     }
 
-    public class SurveyedSumClassesTrajectory : SumClassesTrajectory
+    public class SurveyedIncidenceTrajectory
     {
         int _nObsPeriodsDelay;
-        bool _firstObsMarksStartOfEpidemic;
+        public bool FirstObsMarksStartOfEpidemic { get; private set; }
+        public IncidenceTimeSeries IncidenceTimeSeries { get; set; }
 
-        public SurveyedSumClassesTrajectory(
-            int ID,
+        public SurveyedIncidenceTrajectory(
+            int IDofSpecialStats,
             string name,
-            EnumType type,
-            string sumFormula,
-            bool displayInSimOutput,
-            int warmUpSimIndex,
             int nDeltaTsObsPeriod,
             int nDeltaTsDelayed)
-            :base(ID, name, type, sumFormula, displayInSimOutput, warmUpSimIndex, nDeltaTsObsPeriod)
         {
             _nObsPeriodsDelay = nDeltaTsDelayed / nDeltaTsObsPeriod;
         }
 
-        public new int GetLastObs()
+        public int GetLastObs()
         {
-            int obs = 0;
-            switch (Type)
-            {
-                case EnumType.Incidence:
-                    obs = (int)IncidenceTimeSeries.GetLastObs(_nObsPeriodsDelay);
-                    break;
-                case EnumType.AccumulatingIncident:
-                    obs = (int)AccumIncidenceTimeSeries.GetLastObs(_nObsPeriodsDelay);
-                    break;
-                case EnumType.Prevalence:
-                    obs = (int)PrevalenceTimeSeries.GetLastObs(_nObsPeriodsDelay);
-                    break;
-            }
-            return obs;
+            return (int)IncidenceTimeSeries.GetLastObs(_nObsPeriodsDelay);
         }
     }
     
@@ -707,9 +690,11 @@ namespace APACElib
         public List<SumTrajectory> SumTrajs { get => _sumTrajs; set => _sumTrajs = value; }
         public List<RatioTrajectory> RatioTrajs { get => _ratioTraj; set => _ratioTraj = value; }
         // surveyed summation and ratio trajectories
-        public List<SurveyedSumClassesTrajectory> _survSumClassTrajs = new List<SurveyedSumClassesTrajectory>();
+        public List<IncidenceTimeSeries> _survSumClassTimeSeries = new List<IncidenceTimeSeries>();
+
+        public List<SurveyedIncidenceTrajectory> _survSumClassTrajs = new List<SurveyedIncidenceTrajectory>();
         public List<SurveyedRatioTrajectory> _survRatioTrajs = new List<SurveyedRatioTrajectory>();
-        public List<SurveyedSumClassesTrajectory> SurveyedSumTrajs { get => _survSumClassTrajs; set => _survSumClassTrajs = value; }
+        public List<SurveyedIncidenceTrajectory> SurveyedSumTrajs { get => _survSumClassTrajs; set => _survSumClassTrajs = value; }
         public List<SurveyedRatioTrajectory> SurveyedRatioTrajs { get => _survRatioTrajs; set => _survRatioTrajs = value; }
         // all trajectories prepared for simulation output 
         public SimOutputTrajs TrajsForSimOutput { get; private set; }
