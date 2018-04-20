@@ -678,35 +678,55 @@ namespace APACElib
 
             // write header
             ExcelInterface.SetupSimulationOutputSheet(
-                _epidemicModeller.ParentEpidemic.EpiHist.TrajsForSimOutput.IncidenceOutputsHeader,
-                observableOutputs,
-                _epidemicModeller.ParentEpidemic.EpiHist.TrajsForSimOutput.PrevalenceOutputsHeader,                
-                resourceOutputs);                             
+                simIncidenceHeader: _epidemicModeller.ParentEpidemic.EpiHist.SimOutputTrajs.IncidenceOutputsHeader.ToArray(),
+                simPrevalenceHeader: _epidemicModeller.ParentEpidemic.EpiHist.SimOutputTrajs.PrevalenceOutputsHeader.ToArray(),                
+                obsIncidenceHeader: _epidemicModeller.ParentEpidemic.EpiHist.ObsTrajs.IncidenceOutputsHeader.ToArray(),
+                obsPrevalenceHeader: _epidemicModeller.ParentEpidemic.EpiHist.ObsTrajs.PrevalenceOutputsHeader.ToArray(),
+                resouceOutputs: resourceOutputs);                             
         }
         // report simulation statistics
         private void ReportTrajsAndSimStats(EpidemicModeller epiModeller)
         {
             // first find the strings of past action combinations
-            string[] strActionCombinations = null;
-            foreach (int[] thisActionCombination in epiModeller.SimSummary.TrajsIntrvCombinations)
+            string[] strSimActionCombinations = null;
+            foreach (int[] thisActionCombination in epiModeller.SimSummary.SimSummaryTrajs.TrajsSimIntrvCombinations)
                 SupportFunctions.AddToEndOfArray(
-                    ref strActionCombinations, 
+                    ref strSimActionCombinations, 
                     SupportFunctions.ConvertArrayToString(thisActionCombination,",")
+                    );
+            string[] strObsActionCombinations = null;
+            foreach (int[] thisActionCombination in epiModeller.SimSummary.SimSummaryTrajs.TrajsObsIntrvCombinations)
+                SupportFunctions.AddToEndOfArray(
+                    ref strObsActionCombinations,
+                    SupportFunctions.ConvertArrayToString(thisActionCombination, ",")
                     );
 
             // report trajectories
+            SimSummaryTrajs s = epiModeller.SimSummary.SimSummaryTrajs;
             if (epiModeller.ModelSettings.IfShowSimulatedTrajs)
                 ExcelInterface.ReportEpidemicTrajectories(
+                    // simulation trajectories 
                     simRepIndeces: SupportFunctions.ConvertJaggedArrayToRegularArray(
-                        epiModeller.SimSummary.TrajsSimRepIndex,
+                        s.TrajsSimRepIndex,
                         1),
                     simIncidenceOutputs: SupportFunctions.ConvertJaggedArrayToRegularArray(
-                        epiModeller.SimSummary.TrajsIncidence,
-                        epiModeller.SimSummary.NumOfSimIncidenceInTraj), 
+                        s.TrajsSimIncidence,
+                        s.NumOfSimIncidenceInTraj), 
                     simPrevalenceOutputs: SupportFunctions.ConvertJaggedArrayToRegularArray(
-                        epiModeller.SimSummary.TrajsPrevalence, 
-                        epiModeller.SimSummary.NumOfSimPrevalenceInTraj),
-                    intrvnCombinationCodes: strActionCombinations
+                        s.TrajsSimPrevalence,
+                        s.NumOfSimPrevalenceInTraj),
+                    simIntrvnCombinationCodes: strSimActionCombinations,
+                    // observable trajectories
+                    obsRepIndeces: SupportFunctions.ConvertJaggedArrayToRegularArray(
+                        s.TrajsObsRepIndex,
+                        1),
+                    obsIncidenceOutputs: SupportFunctions.ConvertJaggedArrayToRegularArray(
+                        s.TrajsObsIncidence,
+                        s.NumOfObsIncidenceInTraj),
+                    obsPrevalenceOutputs: SupportFunctions.ConvertJaggedArrayToRegularArray(
+                        s.TrajsObsPrevalence,
+                        s.NumOfObsPrevalenceInTraj),
+                    obsIntrvnCombinationCodes: strObsActionCombinations
                     );
 
             string[] strSummaryStatistics = null;

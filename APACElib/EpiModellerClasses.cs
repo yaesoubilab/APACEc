@@ -539,6 +539,74 @@ namespace APACElib
         }
     }
 
+    public class SimSummaryTrajs
+    {
+        public int[][] TrajsSimRepIndex { get; private set; }
+        public double[][] TrajsSimIncidence { get; private set; }
+        public double[][] TrajsSimPrevalence { get; private set; }
+        public int[][] TrajsSimIntrvCombinations { get; private set; }
+
+        public int NumOfSimIncidenceInTraj { get { return TrajsSimIncidence[0].Length; } }
+        public int NumOfSimPrevalenceInTraj { get { return TrajsSimPrevalence[0].Length; } }
+
+        public int[][] TrajsObsRepIndex { get; private set; }
+        public double[][] TrajsObsIncidence { get; private set; }
+        public double[][] TrajsObsPrevalence { get; private set; }
+        public int[][] TrajsObsIntrvCombinations { get; private set; }
+
+        public int NumOfObsIncidenceInTraj { get { return TrajsObsIncidence[0].Length; } }
+        public int NumOfObsPrevalenceInTraj { get { return TrajsObsPrevalence[0].Length; } }
+
+        public SimSummaryTrajs()
+        {
+            // reset the jagged array containing trajectories
+            TrajsSimRepIndex = new int[0][];
+            TrajsSimIncidence = new double[0][];
+            TrajsSimPrevalence = new double[0][];
+            TrajsSimIntrvCombinations = new int[0][];
+
+            TrajsObsRepIndex = new int[0][];
+            TrajsObsIncidence = new double[0][];
+            TrajsObsPrevalence = new double[0][];
+            TrajsObsIntrvCombinations = new int[0][];
+        }
+
+        public void Add(Epidemic simulatedEpi)
+        {
+            // store trajectories
+            TrajsSimRepIndex = SupportFunctions.ConcatJaggedArray(
+                TrajsSimRepIndex, simulatedEpi.EpiHist.SimOutputTrajs.SimRepIndeces);
+            TrajsSimIncidence = SupportFunctions.ConcatJaggedArray(
+                TrajsSimIncidence, simulatedEpi.EpiHist.SimOutputTrajs.SimIncidenceOutputs);
+            TrajsSimPrevalence = SupportFunctions.ConcatJaggedArray(
+                TrajsSimPrevalence, simulatedEpi.EpiHist.SimOutputTrajs.SimPrevalenceOutputs);
+            TrajsSimIntrvCombinations = SupportFunctions.ConcatJaggedArray(
+                TrajsSimIntrvCombinations, simulatedEpi.EpiHist.SimOutputTrajs.InterventionCombinations);
+
+            TrajsObsRepIndex = SupportFunctions.ConcatJaggedArray(
+                TrajsObsRepIndex, simulatedEpi.EpiHist.ObsTrajs.SimRepIndeces);
+            TrajsObsIncidence = SupportFunctions.ConcatJaggedArray(
+                TrajsObsIncidence, simulatedEpi.EpiHist.ObsTrajs.SimIncidenceOutputs);
+            TrajsObsPrevalence = SupportFunctions.ConcatJaggedArray(
+                TrajsObsPrevalence, simulatedEpi.EpiHist.ObsTrajs.SimPrevalenceOutputs);
+            TrajsObsIntrvCombinations = SupportFunctions.ConcatJaggedArray(
+                TrajsObsIntrvCombinations, simulatedEpi.EpiHist.ObsTrajs.InterventionCombinations);
+        }
+
+        public void Reset()
+        {
+            TrajsSimRepIndex = new int[0][];
+            TrajsSimIncidence = new double[0][];
+            TrajsSimPrevalence = new double[0][];
+            TrajsSimIntrvCombinations = new int[0][];
+
+            TrajsObsRepIndex = new int[0][];
+            TrajsObsIncidence = new double[0][];
+            TrajsObsPrevalence = new double[0][];
+            TrajsObsIntrvCombinations = new int[0][];
+        }
+    }
+
     public class SimSummary
     {
         private ModelSettings _set;
@@ -546,12 +614,8 @@ namespace APACElib
         public int[] SimItrs { get; private set; }
         public int[] RNDSeeds { get; private set; }
         public double[][] ParamValues { get; private set; }
-        public int[][] TrajsSimRepIndex { get; private set; }
-        public double[][] TrajsIncidence { get; private set; }
-        public double[][] TrajsPrevalence { get; private set; }
-        public int[][] TrajsIntrvCombinations { get; private set; }
-        public int NumOfSimIncidenceInTraj { get { return TrajsIncidence[0].Length; } }
-        public int NumOfSimPrevalenceInTraj { get { return TrajsPrevalence[0].Length; } }
+        
+        public SimSummaryTrajs SimSummaryTrajs { get; private set; }
 
         // simulation statistics collection
         public List<ObsBasedStat> IncidenceStats { get; private set; } = new List<ObsBasedStat>();
@@ -601,27 +665,16 @@ namespace APACElib
             foreach (RatioTrajectory thisRatioTaj in parentEpidemic.EpiHist.RatioTrajs)
                 RatioStats.Add(new ObsBasedStat("Average ratio: " + thisRatioTaj.Name, _nSim));
 
-            // reset the jagged array containing trajectories
-            TrajsSimRepIndex = new int[0][];
-            TrajsIncidence = new double[0][];
-            TrajsPrevalence = new double[0][];
-            TrajsIntrvCombinations = new int[0][];
+            // trajectories
+            SimSummaryTrajs = new SimSummaryTrajs();
+            
         }
 
         public void Add(Epidemic simulatedEpi, int simItr)
         {
             // store trajectories
             if (_set.IfShowSimulatedTrajs)
-            {
-                TrajsSimRepIndex = SupportFunctions.ConcatJaggedArray(
-                   TrajsSimRepIndex, simulatedEpi.EpiHist.TrajsForSimOutput.SimRepIndeces);
-                TrajsIncidence = SupportFunctions.ConcatJaggedArray(
-                     TrajsIncidence, simulatedEpi.EpiHist.TrajsForSimOutput.SimIncidenceOutputs);
-                TrajsPrevalence = SupportFunctions.ConcatJaggedArray(
-                    TrajsPrevalence, simulatedEpi.EpiHist.TrajsForSimOutput.SimPrevalenceOutputs);                
-                TrajsIntrvCombinations = SupportFunctions.ConcatJaggedArray(
-                   TrajsIntrvCombinations, simulatedEpi.EpiHist.TrajsForSimOutput.InterventionCombinations);
-            }
+                SimSummaryTrajs.Add(simulatedEpi);
 
             // store sampled parameter values
             ParamValues[simItr] = simulatedEpi.ParamManager.ParameterValues;
@@ -822,9 +875,8 @@ namespace APACElib
             SimItrs = new int[_nSim];
             RNDSeeds = new int[_nSim];
             ParamValues = new double[_nSim][];
-            TrajsIntrvCombinations = new int[0][];
-            TrajsIncidence = new double[0][];
-            TrajsPrevalence = new double[0][];
+
+            SimSummaryTrajs.Reset();
 
             // reset simulation statistics
             foreach (ObsBasedStat thisObsStat in IncidenceStats)

@@ -137,7 +137,8 @@ namespace APACElib
                 _paramManager.UpdateTimeDepParams(ref _rng, _simTimeIndex * _modelSets.DeltaT, ref _classes);
 
                 // update recorded trajectories 
-                EpiHist.TrajsForSimOutput.Record(_simTimeIndex, false);
+                EpiHist.SimOutputTrajs.Record(_simTimeIndex, false);
+                EpiHist.ObsTrajs.Record(_epiTimeIndex, false);
 
                 // check if this is has been a feasible trajectory for calibration
                 if (ModelUse == EnumModelUse.Calibration && !ifThisIsAFeasibleCalibrationTrajectory)
@@ -164,7 +165,7 @@ namespace APACElib
                 {
                     toStop = true;
                     // update recorded trajectories 
-                    EpiHist.TrajsForSimOutput.Record(_simTimeIndex, true);
+                    EpiHist.SimOutputTrajs.Record(_simTimeIndex, true);
 
                     // find if it is an acceptable trajectory
                     acceptableTrajectory = true;
@@ -320,7 +321,7 @@ namespace APACElib
             }
 
             // reset epidemic history 
-            EpiHist.Reset(_simTimeIndex, ref _classes, ref _events);           
+            EpiHist.Reset(_simTimeIndex, ref _classes, ref _events);       
         }         
 
         // update current epidemic time
@@ -379,10 +380,11 @@ namespace APACElib
             // add ratio statistics
             AddRatioStatistics(modelSettings.RatioStatisticsSheet);
             // add trajectories for simulation output
-            EpiHist.SetupTrajsForSimOutput(
+            EpiHist.SetupSimOutputTrajs(
                 ID,
                 _modelSets.DeltaT,
                 _modelSets.NumOfDeltaT_inSimOutputInterval,
+                _modelSets.NumOfDeltaT_inObservationPeriod,
                 ref _decisionMaker,
                 ref _classes,
                 extractOutputHeaders);
@@ -1011,6 +1013,7 @@ namespace APACElib
                                 EpiHist.SurveyedIncidenceTrajs.Add(
                                     new SurveyedIncidenceTrajectory(
                                         name,
+                                        ifDispay,
                                         firstObsMarksEpiStart,
                                         thisSumClassTraj,
                                         null,
@@ -1023,6 +1026,7 @@ namespace APACElib
                                 EpiHist.SurveyedPrevalenceTrajs.Add(
                                     new SurveyedPrevalenceTrajectory(
                                         name,
+                                        ifDispay,
                                         firstObsMarksEpiStart,
                                         thisSumClassTraj,
                                         null,
@@ -1064,6 +1068,7 @@ namespace APACElib
                                 EpiHist.SurveyedIncidenceTrajs.Add(
                                     new SurveyedIncidenceTrajectory(
                                         name,
+                                        ifDispay,
                                         firstObsMarksEpiStart,
                                         null,
                                         thisSumEventTraj,
@@ -1106,7 +1111,6 @@ namespace APACElib
                 bool surveillanceDataAvailable = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.SurveillanceDataAvailable).ToString());
                 int nDeltaTDelayed = Convert.ToInt32(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.NumOfDeltaTsDelayed));
                 bool firstObsMarksEpiStart = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FirstObservationMarksTheStartOfTheSpread).ToString());
-
 
                 // calibration
                 bool ifIncludedInCalibration = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfIncludedInCalibration).ToString());
@@ -1196,6 +1200,7 @@ namespace APACElib
                     EpiHist.SurveyedPrevalenceTrajs.Add(
                         new SurveyedPrevalenceTrajectory(
                             name,
+                            ifDispay,
                             firstObsMarksEpiStart,
                             null,
                             thisRatioTraj,

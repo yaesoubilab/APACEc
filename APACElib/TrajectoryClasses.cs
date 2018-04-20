@@ -27,7 +27,7 @@ namespace APACElib
         }
         public double GetLastObs(int nPeriodDelay)
         {
-            return ObsList[ObsList.Count - nPeriodDelay];
+            return ObsList[ObsList.Count - nPeriodDelay - 1];
         }
 
         public abstract void Reset();
@@ -454,22 +454,27 @@ namespace APACElib
     public abstract class SurveyedTrajectory
     {
         public string Name { get; private set; }
+        public bool DisplayInSimOut { get; private set; }
         protected int _nObsPeriodsDelay;
+        protected int _nDeltaTsObsPeriod;
         public bool FirstObsMarksStartOfEpidemic { get; private set; }
 
         public SurveyedTrajectory(
             string name,
+            bool displayInSimOutput,
             bool firstObsMarksStartOfEpidemic,
             int nDeltaTsObsPeriod,
             int nDeltaTsDelayed)
         {
             Name = name;
+            DisplayInSimOut = displayInSimOutput;
             FirstObsMarksStartOfEpidemic = firstObsMarksStartOfEpidemic;
+            _nDeltaTsObsPeriod = nDeltaTsObsPeriod;
             _nObsPeriodsDelay = nDeltaTsDelayed / nDeltaTsObsPeriod;
         }
 
         public abstract void Update();
-        public abstract double GetLastObs();
+        public abstract double GetLastObs(int epiTimeIndex);
 
     }
 
@@ -481,12 +486,13 @@ namespace APACElib
 
         public SurveyedIncidenceTrajectory(
             string name,
+            bool displayInSimOutput,
             bool firstObsMarksStartOfEpidemic,
             SumClassesTrajectory sumClassesTrajectory,
             SumEventTrajectory sumEventTrajectory,
             int nDeltaTsObsPeriod,
             int nDeltaTsDelayed) 
-            : base(name, firstObsMarksStartOfEpidemic, nDeltaTsObsPeriod, nDeltaTsDelayed)
+            : base(name, displayInSimOutput, firstObsMarksStartOfEpidemic, nDeltaTsObsPeriod, nDeltaTsDelayed)
         {
             _sumClassesTraj = sumClassesTrajectory;
             _sumEventsTraj = sumEventTrajectory;
@@ -503,9 +509,13 @@ namespace APACElib
 
             _timeSeries.Record(value);
         }
-        public override double GetLastObs()
+        public override double GetLastObs(int epiTimeIndex)
         {
-            return _timeSeries.GetLastObs(_nObsPeriodsDelay);
+            double value = 0;
+            if (epiTimeIndex > _nDeltaTsObsPeriod * _nObsPeriodsDelay)
+                value = _timeSeries.GetLastObs(_nObsPeriodsDelay);
+
+            return value;
         }
     }
 
@@ -517,12 +527,13 @@ namespace APACElib
 
         public SurveyedPrevalenceTrajectory(
             string name,
+            bool displayInSimOutput,
             bool firstObsMarksStartOfEpidemic,
             SumClassesTrajectory sumClassesTrajectory,
             RatioTrajectory ratioTrajectory,
             int nDeltaTsObsPeriod,
             int nDeltaTsDelayed)
-            : base(name, firstObsMarksStartOfEpidemic, nDeltaTsObsPeriod, nDeltaTsDelayed)
+            : base(name, displayInSimOutput, firstObsMarksStartOfEpidemic, nDeltaTsObsPeriod, nDeltaTsDelayed)
         {
             _sumClassesTraj = sumClassesTrajectory;
             _ratioTraj = ratioTrajectory;
@@ -539,68 +550,58 @@ namespace APACElib
 
             _timeSeries.Record(value);
         }
-        public override double GetLastObs()
+        public override double GetLastObs(int epiTimeIndex)
         {
-            return _timeSeries.GetLastObs(_nObsPeriodsDelay);
+            double value = 0;
+            if (epiTimeIndex > _nDeltaTsObsPeriod * _nObsPeriodsDelay)
+                value = _timeSeries.GetLastObs(_nObsPeriodsDelay);
+            return value;
         }
     }
 
     public abstract class OutputTrajs
     {
+        protected int _simReplication;
+        protected double _deltaT;
+        protected int _nextTimeIndexToStore;
+        protected DecisionMaker _decisionMaker;
 
-    }
+        public List<string> PrevalenceOutputsHeader { get; protected set; } = new List<string>();
+        public List<string> IncidenceOutputsHeader { get; protected set; } = new List<string>();
+        public int NumOfPrevalenceOutputsToReport { get; protected set; }
+        public int NumOfIncidenceOutputsToReport { get; protected set; }
 
-    public class SimOutputTrajs
-    {
-        private int _simReplication;
-        private double _deltaT;
-        private int _nDeltaTInSimOutputInterval;
-        private int _nextSimTimeIndexToStore; // for visualization
-        private DecisionMaker _decisionMaker;
-        private List<Class> _classes;
-        private List<SumTrajectory> _sumTrajectories;
-        private List<RatioTrajectory> _ratioTrajectories;
+        public int[][] SimRepIndeces { get; protected set; }
+        public double[][] SimIncidenceOutputs { get; protected set; }
+        public double[][] SimPrevalenceOutputs { get; protected set; }
+        public int[][] InterventionCombinations { get; protected set; }
 
-        public String[] PrevalenceOutputsHeader = new string[0];
-        public String[] IncidenceOutputsHeader = new string[0];
-
-        public int NumOfPrevalenceOutputsToReport { get; private set; }
-        public int NumOfIncidenceOutputsToReport { get; private set; }
-
-        public int[][] SimRepIndeces { get; private set; }
-        public double[][] SimIncidenceOutputs { get; private set; }
-        public double[][] SimPrevalenceOutputs { get; private set; }
-        public int[][] InterventionCombinations { get; private set; }
-
-        public SimOutputTrajs(
-            int simReplication, 
+        public OutputTrajs(
+            int simReplication,
             double deltaT,
-            int nDeltaTInSimOutputInterval,
             ref DecisionMaker decisionMaker,
-            ref List<Class> classes,
-            ref List<SumTrajectory> sumTrajectories,
-            ref List<RatioTrajectory> ratioTrajectories, 
             bool findHeader = false)
         {
             _simReplication = simReplication;
             _deltaT = deltaT;
-            _nDeltaTInSimOutputInterval = nDeltaTInSimOutputInterval;
             _decisionMaker = decisionMaker;
-            _classes = classes;
-            _sumTrajectories = sumTrajectories;
-            _ratioTrajectories = ratioTrajectories;        
+            _nextTimeIndexToStore = 0;
+        }
 
-            _nextSimTimeIndexToStore = 0;
-
-            // find number of incidence and prevalence outputs to report 
-            FindNumOfOutputsAndHeaders(findHeader); 
+        public void Reset()
+        {
+            _nextTimeIndexToStore = 0;
+            SimRepIndeces = new int[0][];
+            InterventionCombinations = new int[0][];
+            SimPrevalenceOutputs = new double[0][];
+            SimIncidenceOutputs = new double[0][];
         }
 
         // store selected outputs while simulating
-        public void Record(int simTimeIndex, bool endOfSim)
+        public void Record(int timeIndex, bool endOfSim)
         {
             // check if it is time to store output
-            if (simTimeIndex < _nextSimTimeIndexToStore && !endOfSim)
+            if (timeIndex < _nextTimeIndexToStore && !endOfSim)
                 return;
 
             // define the jagged array to store current observation
@@ -610,16 +611,61 @@ namespace APACElib
             double[][] thisPrevalenceOutputs = new double[1][];
             int[][] thisActionCombination = new int[1][];
 
+            // simulation replication index
+            thisSimRepIndeces[0][0] = _simReplication;
+            // action combination
+            thisActionCombination[0] = (int[])_decisionMaker.CurrentDecision.Clone();
+
+            // fill in the rest
+            FillIn(timeIndex, ref thisIncidenceOutputs, ref thisPrevalenceOutputs, ref thisActionCombination);
+
+            // concatenate this row 
+            SimRepIndeces = SupportFunctions.ConcatJaggedArray(SimRepIndeces, thisSimRepIndeces);
+            SimIncidenceOutputs = SupportFunctions.ConcatJaggedArray(SimIncidenceOutputs, thisIncidenceOutputs);
+            SimPrevalenceOutputs = SupportFunctions.ConcatJaggedArray(SimPrevalenceOutputs, thisPrevalenceOutputs);
+            InterventionCombinations = SupportFunctions.ConcatJaggedArray(InterventionCombinations, thisActionCombination);
+        }
+
+        protected abstract void FillIn(int timeIndex, ref double[][] thisIncidenceOutputs, ref double[][] thisPrevalenceOutputs, ref int[][] thisActionCombination);
+    }
+
+    public class SimOutputTrajs : OutputTrajs
+    {
+        private int _nDeltaTInSimOutputInterval;
+        private List<Class> _classes;
+        private List<SumTrajectory> _sumTrajectories;
+        private List<RatioTrajectory> _ratioTrajectories;
+
+        public SimOutputTrajs(
+            int simReplication, 
+            double deltaT,
+            int nDeltaTInSimOutputInterval,
+            ref DecisionMaker decisionMaker,
+            ref List<Class> classes,
+            ref List<SumTrajectory> sumTrajectories,
+            ref List<RatioTrajectory> ratioTrajectories, 
+            bool findHeader = false) : base(simReplication, deltaT, ref decisionMaker, findHeader)
+        {
+            _nDeltaTInSimOutputInterval = nDeltaTInSimOutputInterval;
+            
+            _classes = classes;
+            _sumTrajectories = sumTrajectories;
+            _ratioTrajectories = ratioTrajectories;
+
+            FindNumOfOutputsAndHeaders(findHeader);
+        }
+
+        protected override void FillIn(int timeIndex, ref double[][] thisIncidenceOutputs, ref double[][] thisPrevalenceOutputs, ref int[][] thisActionCombination)
+        {
             int colIndexPrevalenceOutputs = 0;
-            int colIndexIncidenceOutputs = 0;            
+            int colIndexIncidenceOutputs = 0;
             thisPrevalenceOutputs[0] = new double[NumOfPrevalenceOutputsToReport];
             thisIncidenceOutputs[0] = new double[NumOfIncidenceOutputsToReport];
 
-            // store the current time and the current interval
-            thisSimRepIndeces[0][0] = _simReplication;
-            thisIncidenceOutputs[0][colIndexIncidenceOutputs++] 
-                = Math.Floor((double)(simTimeIndex-1) / _nDeltaTInSimOutputInterval) + 1;
-            thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = simTimeIndex * _deltaT;
+            // store the current time and the current interval            
+            thisIncidenceOutputs[0][colIndexIncidenceOutputs++]
+                = Math.Floor((double)(timeIndex - 1) / _nDeltaTInSimOutputInterval) + 1;
+            thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = timeIndex * _deltaT;
 
             // classes
             foreach (Class thisClass in _classes)
@@ -654,48 +700,35 @@ namespace APACElib
                 thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = thisRatioTraj.TimeSeries.GetLastObs();
             }
 
-            // action combination
-            thisActionCombination[0] = (int[])_decisionMaker.CurrentDecision.Clone();
-
-            // concatenate this row 
-            SimRepIndeces = SupportFunctions.ConcatJaggedArray(SimRepIndeces, thisSimRepIndeces);
-            SimIncidenceOutputs = SupportFunctions.ConcatJaggedArray(SimIncidenceOutputs, thisIncidenceOutputs);
-            SimPrevalenceOutputs = SupportFunctions.ConcatJaggedArray(SimPrevalenceOutputs, thisPrevalenceOutputs);
-            InterventionCombinations = SupportFunctions.ConcatJaggedArray(InterventionCombinations, thisActionCombination);
-
             // find next time index to store trajectories
-            _nextSimTimeIndexToStore += _nDeltaTInSimOutputInterval;
+            _nextTimeIndexToStore += _nDeltaTInSimOutputInterval;
         }
 
         // get header
         private void FindNumOfOutputsAndHeaders(bool storeHeaders)
         {
-            // define the header
-            PrevalenceOutputsHeader = new string[0];
-            IncidenceOutputsHeader = new string[0];
-
             // create headers
             NumOfIncidenceOutputsToReport = 1;
-            if (storeHeaders) SupportFunctions.AddToEndOfArray(ref IncidenceOutputsHeader, "Simulation Period");
+            if (storeHeaders) IncidenceOutputsHeader.Add("Simulation Period");
             NumOfPrevalenceOutputsToReport = 1;
-            if (storeHeaders) SupportFunctions.AddToEndOfArray(ref PrevalenceOutputsHeader, "Simulation Time");
+            if (storeHeaders) PrevalenceOutputsHeader.Add("Simulation Time");
 
             // class headers
             foreach (Class thisClass in _classes)
             {
                 if (thisClass.ShowIncidence)
                 {
-                    if (storeHeaders) SupportFunctions.AddToEndOfArray(ref IncidenceOutputsHeader, "To: " + thisClass.Name);
+                    if (storeHeaders) IncidenceOutputsHeader.Add("To: " + thisClass.Name);
                     ++NumOfIncidenceOutputsToReport;
                 }
                 if (thisClass.ShowPrevalence)
                 {
-                    if (storeHeaders) SupportFunctions.AddToEndOfArray(ref PrevalenceOutputsHeader, "In: " + thisClass.Name);
+                    if (storeHeaders) PrevalenceOutputsHeader.Add("In: " + thisClass.Name);
                     ++NumOfPrevalenceOutputsToReport;
                 }
                 if (thisClass.ShowAccumIncidence)
                 {
-                    if (storeHeaders) SupportFunctions.AddToEndOfArray(ref PrevalenceOutputsHeader, "Sum To: " + thisClass.Name);
+                    if (storeHeaders) PrevalenceOutputsHeader.Add("Sum To: " + thisClass.Name);
                     ++NumOfPrevalenceOutputsToReport;
                 }
             }
@@ -706,14 +739,14 @@ namespace APACElib
                 {
                     case SumTrajectory.EnumType.Incidence:
                         {
-                            if (storeHeaders) SupportFunctions.AddToEndOfArray(ref IncidenceOutputsHeader, thisSumTraj.Name);
+                            if (storeHeaders) IncidenceOutputsHeader.Add(thisSumTraj.Name);
                             ++NumOfIncidenceOutputsToReport;
                         }
                         break;
                     case SumTrajectory.EnumType.AccumulatingIncident:
                     case SumTrajectory.EnumType.Prevalence:
                         {
-                            if (storeHeaders) SupportFunctions.AddToEndOfArray(ref PrevalenceOutputsHeader, thisSumTraj.Name);
+                            if (storeHeaders) PrevalenceOutputsHeader.Add(thisSumTraj.Name);
                             ++NumOfPrevalenceOutputsToReport;
                         }
                         break;
@@ -722,19 +755,82 @@ namespace APACElib
             // ratio statistics
             foreach (RatioTrajectory thisRatioTaj in _ratioTrajectories.Where(s => s.DisplayInSimOutput))
             {
-                if (storeHeaders) SupportFunctions.AddToEndOfArray(ref PrevalenceOutputsHeader, thisRatioTaj.Name);
+                if (storeHeaders) PrevalenceOutputsHeader.Add(thisRatioTaj.Name);
                 ++NumOfPrevalenceOutputsToReport;
             }
+        }
+    }
 
+    public class ObsOutputTrajs : OutputTrajs
+    {
+        private int _nDeltaTInObsInterval;
+        List<SurveyedIncidenceTrajectory> _surveyIncidenceTrajs;
+        List<SurveyedPrevalenceTrajectory> _surveyPrevalenceTrajs;
+
+        public ObsOutputTrajs(
+            int simReplication,
+            double deltaT,
+            int nDeltaTInObsInterval,
+            ref DecisionMaker decisionMaker,
+            ref List<SurveyedIncidenceTrajectory> surveyedIncidenceTrajectories,
+            ref List<SurveyedPrevalenceTrajectory> surveyedPrevalenceTrajectories,
+            bool findHeader = false) : base(simReplication, deltaT, ref decisionMaker, findHeader)
+        {
+            _nDeltaTInObsInterval = nDeltaTInObsInterval;
+            _surveyIncidenceTrajs = surveyedIncidenceTrajectories;
+            _surveyPrevalenceTrajs = surveyedPrevalenceTrajectories;
+
+            FindNumOfOutputsAndHeaders(findHeader);
         }
 
-        public void Reset()
-        {            
-            _nextSimTimeIndexToStore = 0;
-            SimRepIndeces = new int[0][];
-            InterventionCombinations = new int[0][];
-            SimPrevalenceOutputs = new double[0][];
-            SimIncidenceOutputs = new double[0][];
+        protected override void FillIn(int epiTimeIndex, ref double[][] thisIncidenceOutputs, ref double[][] thisPrevalenceOutputs, ref int[][] thisActionCombination)
+        {
+
+            // return if epidemic has not started yet
+            if (epiTimeIndex < 0)
+                return;
+
+            int colIndexPrevalenceOutputs = 0;
+            int colIndexIncidenceOutputs = 0;
+            thisPrevalenceOutputs[0] = new double[NumOfPrevalenceOutputsToReport];
+            thisIncidenceOutputs[0] = new double[NumOfIncidenceOutputsToReport];
+
+            // store the current time and the current interval            
+            thisIncidenceOutputs[0][colIndexIncidenceOutputs++]
+                = Math.Floor((double)(epiTimeIndex - 1) / _nDeltaTInObsInterval) + 1;
+            thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = epiTimeIndex * _deltaT;
+
+            foreach (SurveyedIncidenceTrajectory incdTraj in _surveyIncidenceTrajs.Where(i => i.DisplayInSimOut))
+            {
+                thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = incdTraj.GetLastObs(epiTimeIndex);
+            }
+            foreach (SurveyedPrevalenceTrajectory prevTraj in _surveyPrevalenceTrajs.Where(i => i.DisplayInSimOut))
+            {
+                thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = prevTraj.GetLastObs(epiTimeIndex);
+            }
+
+            // find next time index to store trajectories
+            _nextTimeIndexToStore += _nDeltaTInObsInterval;
+        }
+
+        private void FindNumOfOutputsAndHeaders(bool storeHeaders)
+        {
+            // create headers
+            NumOfIncidenceOutputsToReport = 1;
+            if (storeHeaders) IncidenceOutputsHeader.Add("Observation Period");
+            NumOfPrevalenceOutputsToReport = 1;
+            if (storeHeaders) PrevalenceOutputsHeader.Add("Epidemic Time");
+
+            foreach (SurveyedIncidenceTrajectory incdTraj in _surveyIncidenceTrajs.Where(i => i.DisplayInSimOut))
+            {
+                if (storeHeaders) IncidenceOutputsHeader.Add("Obs: " + incdTraj.Name);
+                ++NumOfIncidenceOutputsToReport;
+            }
+            foreach (SurveyedPrevalenceTrajectory prevTraj in _surveyPrevalenceTrajs.Where(i => i.DisplayInSimOut))
+            {
+                if (storeHeaders) IncidenceOutputsHeader.Add("Obs: " + prevTraj.Name);
+                ++NumOfIncidenceOutputsToReport;
+            }
         }
     }
 
@@ -753,29 +849,39 @@ namespace APACElib
         public List<SurveyedPrevalenceTrajectory> SurveyedPrevalenceTrajs { get => _survPrevalence; set => _survPrevalence = value; }
         
         // all trajectories prepared for simulation output 
-        public SimOutputTrajs TrajsForSimOutput { get; private set; }
+        public SimOutputTrajs SimOutputTrajs { get; private set; }
+        public ObsOutputTrajs ObsTrajs { get; private set; }
 
         public EpidemicHistory()
         {
         }
 
-        public void SetupTrajsForSimOutput(
+        public void SetupSimOutputTrajs(
             int ID,
             double deltaT,
-            int numOfDeltaT_inSimOutputInterval,
+            int nDeltaTinSimOutputInterval,
+            int nDeltaTInObsInterval,
             ref DecisionMaker decisionMaker,
             ref List<Class> classes,
             bool extractOutputHeaders)
         {
-            TrajsForSimOutput = new SimOutputTrajs(
+            SimOutputTrajs = new SimOutputTrajs(
                ID,
                deltaT,
-               numOfDeltaT_inSimOutputInterval,
+               nDeltaTinSimOutputInterval,
                ref decisionMaker,
                ref classes,
                ref _sumTrajs,
                ref _ratioTraj,
                extractOutputHeaders);
+            ObsTrajs = new ObsOutputTrajs(
+                ID,
+                deltaT,
+                nDeltaTInObsInterval,
+                ref decisionMaker,
+                ref _survIncidence,
+                ref _survPrevalence,
+                extractOutputHeaders);
         }
 
         public void UpdateSumAndRatioTrajs(int simTimeIndex, ref List<Class> classes, ref List<Event> events)
@@ -796,7 +902,8 @@ namespace APACElib
 
         public void Reset(int simTimeIndex, ref List<Class> classes, ref List<Event> events)
         {
-            TrajsForSimOutput.Reset();
+            SimOutputTrajs.Reset();
+            ObsTrajs.Reset();
 
             // update summation statistics
             foreach (SumTrajectory sumTraj in SumTrajs)
