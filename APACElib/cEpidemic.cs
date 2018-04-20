@@ -946,8 +946,8 @@ namespace APACElib
                 double costPerNewMember = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.CostPerNewMember));
                 // real-time monitoring
                 bool surveillanceDataAvailable = SupportFunctions.ConvertYesNoToBool(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.SurveillanceDataAvailable).ToString());
-                int numOfObservationPeriodsDelayBeforeObservating = Convert.ToInt32(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.NumOfObservationPeriodsDelayBeforeObservating));
-                bool firstObservationMarksTheStartOfTheSpread = SupportFunctions.ConvertYesNoToBool(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FirstObservationMarksTheStartOfTheSpread).ToString());
+                int nDeltaTDelayed = Convert.ToInt32(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.NumOfDeltaTsDelayed));
+                bool firstObsMarksEpiStart = SupportFunctions.ConvertYesNoToBool(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FirstObservationMarksTheStartOfTheSpread).ToString());
 
                 // calibration
                 bool ifIncludedInCalibration = SupportFunctions.ConvertYesNoToBool(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfIncludedInCalibration).ToString());
@@ -1001,6 +1001,37 @@ namespace APACElib
                         (statID, name, type, sumFormula, ifDispay, _modelSets.WarmUpPeriodTimeIndex, _modelSets.NumOfDeltaT_inSimOutputInterval);
                     // add the summation statistics
                     EpiHist.SumTrajs.Add(thisSumClassTraj);
+                    // add the survey 
+                    if (surveillanceDataAvailable)
+                    {
+                        // find the type of this summation statistics
+                        switch (type)
+                        {
+                            case SumTrajectory.EnumType.Incidence:
+                                EpiHist.SurveyedIncidenceTrajs.Add(
+                                    new SurveyedIncidenceTrajectory(
+                                        name,
+                                        firstObsMarksEpiStart,
+                                        thisSumClassTraj,
+                                        null,
+                                        _modelSets.NumOfDeltaT_inObservationPeriod,
+                                        nDeltaTDelayed)
+                                        );
+                                break;
+                            case SumTrajectory.EnumType.AccumulatingIncident:
+                            case SumTrajectory.EnumType.Prevalence:
+                                EpiHist.SurveyedPrevalenceTrajs.Add(
+                                    new SurveyedPrevalenceTrajectory(
+                                        name,
+                                        firstObsMarksEpiStart,
+                                        thisSumClassTraj,
+                                        null,
+                                        _modelSets.NumOfDeltaT_inObservationPeriod,
+                                        nDeltaTDelayed)
+                                        );
+                                break;
+                        }
+                    }
                     
                     // update class time-series
                     foreach (int i in thisSumClassTraj.ClassIDs)
@@ -1022,6 +1053,29 @@ namespace APACElib
                         (statID, name, type, sumFormula, ifDispay, _modelSets.WarmUpPeriodTimeIndex, _modelSets.NumOfDeltaT_inSimOutputInterval);
                     // add the summation statistics
                     EpiHist.SumTrajs.Add(thisSumEventTraj);
+
+                    // add the survey 
+                    if (surveillanceDataAvailable)
+                    {
+                        // find the type of this summation statistics
+                        switch (type)
+                        {
+                            case SumTrajectory.EnumType.Incidence:
+                                EpiHist.SurveyedIncidenceTrajs.Add(
+                                    new SurveyedIncidenceTrajectory(
+                                        name,
+                                        firstObsMarksEpiStart,
+                                        null,
+                                        thisSumEventTraj,
+                                        _modelSets.NumOfDeltaT_inObservationPeriod,
+                                        nDeltaTDelayed)
+                                        );
+                                break;
+                            case SumTrajectory.EnumType.AccumulatingIncident:
+                            case SumTrajectory.EnumType.Prevalence:                                
+                                break;
+                        }
+                    }                    
                 }
 
                 // adding cost and health outcomes
@@ -1047,6 +1101,12 @@ namespace APACElib
 
                 // if display
                 bool ifDispay = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfDisplay).ToString());
+
+                // real-time monitoring
+                bool surveillanceDataAvailable = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.SurveillanceDataAvailable).ToString());
+                int nDeltaTDelayed = Convert.ToInt32(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.NumOfDeltaTsDelayed));
+                bool firstObsMarksEpiStart = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FirstObservationMarksTheStartOfTheSpread).ToString());
+
 
                 // calibration
                 bool ifIncludedInCalibration = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfIncludedInCalibration).ToString());
@@ -1130,6 +1190,19 @@ namespace APACElib
                     _modelSets.WarmUpPeriodTimeIndex, 
                     _modelSets.NumOfDeltaT_inSimOutputInterval);
 
+                // add the survey 
+                if (surveillanceDataAvailable)
+                {
+                    EpiHist.SurveyedPrevalenceTrajs.Add(
+                        new SurveyedPrevalenceTrajectory(
+                            name,
+                            firstObsMarksEpiStart,
+                            null,
+                            thisRatioTraj,
+                            _modelSets.NumOfDeltaT_inObservationPeriod,
+                            nDeltaTDelayed)
+                            );
+                }
                 // set up calibration
                 thisRatioTraj.CalibInfo = new TrajectoryCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
 

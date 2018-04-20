@@ -157,7 +157,7 @@ namespace APACElib
             CostPerNewMember = 10,
 
             SurveillanceDataAvailable = 12,
-            NumOfObservationPeriodsDelayBeforeObservating = 13,
+            NumOfDeltaTsDelayed = 13,
             FirstObservationMarksTheStartOfTheSpread = 14,  
             
             IfIncludedInCalibration = 16,

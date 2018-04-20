@@ -385,6 +385,7 @@ namespace APACElib
         public Boolean DisplayInSimOutput { get; set; }
         public PrevalenceTimeSeries TimeSeries { get; set; }
         public ObsBasedStat AveragePrevalenceStat { get; set; }
+        public double LastRecordedRatio { get; private set; }
 
         public EnumType Type { get; set; }
         int _nominatorSpecialStatID;
@@ -417,21 +418,23 @@ namespace APACElib
 
         public void Add(int simIndex, ref List<SumTrajectory> sumTrajectories)
         {
-            double ratio = double.NaN;
+            LastRecordedRatio = double.NaN;
             switch (Type)
             {
                 case EnumType.PrevalenceOverPrevalence:
-                    {
-                        ratio = (double)sumTrajectories[_nominatorSpecialStatID].Prevalence
-                            / (double)sumTrajectories[_denominatorSpecialStatID].Prevalence;
-                        TimeSeries.Record(ratio);
-
-                        if (simIndex >= _warmUpSimIndex)
-                            AveragePrevalenceStat.Record(ratio);
-                    }
+                    LastRecordedRatio = (double)sumTrajectories[_nominatorSpecialStatID].Prevalence
+                        / (double)sumTrajectories[_denominatorSpecialStatID].Prevalence;
                     break;
-            }          
-                                             
+                case EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
+                    LastRecordedRatio = (double)sumTrajectories[_nominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp
+                        / (double)sumTrajectories[_denominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp;
+                    break;
+            }
+
+            TimeSeries.Record(LastRecordedRatio);
+            if (simIndex >= _warmUpSimIndex)
+                AveragePrevalenceStat.Record(LastRecordedRatio);
+
         }
         // convert ratio formula into the array of class IDs
         private int[] ConvertRatioFormulaToArrayOfClassIDs(string formula)
@@ -448,50 +451,103 @@ namespace APACElib
         }
     }
 
-    public class SurveyedIncidenceTrajectory
+    public abstract class SurveyedTrajectory
     {
-        int _nObsPeriodsDelay;
+        public string Name { get; private set; }
+        protected int _nObsPeriodsDelay;
         public bool FirstObsMarksStartOfEpidemic { get; private set; }
-        public IncidenceTimeSeries IncidenceTimeSeries { get; set; }
 
-        public SurveyedIncidenceTrajectory(
-            int IDofSpecialStats,
+        public SurveyedTrajectory(
             string name,
+            bool firstObsMarksStartOfEpidemic,
             int nDeltaTsObsPeriod,
             int nDeltaTsDelayed)
         {
+            Name = name;
+            FirstObsMarksStartOfEpidemic = firstObsMarksStartOfEpidemic;
             _nObsPeriodsDelay = nDeltaTsDelayed / nDeltaTsObsPeriod;
         }
 
-        public int GetLastObs()
-        {
-            return (int)IncidenceTimeSeries.GetLastObs(_nObsPeriodsDelay);
-        }
-    }
-    
-    public class SurveyedRatioTrajectory : RatioTrajectory
-    {
-        int _nObsPeriodsDelay;
-        bool _firstObsMarksStartOfEpidemic;
+        public abstract void Update();
+        public abstract double GetLastObs();
 
-        public SurveyedRatioTrajectory(
-            int ID,
+    }
+
+    public class SurveyedIncidenceTrajectory : SurveyedTrajectory
+    {
+        private IncidenceTimeSeries _timeSeries;
+        private SumClassesTrajectory _sumClassesTraj;
+        private SumEventTrajectory _sumEventsTraj;
+
+        public SurveyedIncidenceTrajectory(
             string name,
-            EnumType type,
-            string ratioFormula,
-            bool displayInSimOutput,
-            int warmUpSimIndex,
+            bool firstObsMarksStartOfEpidemic,
+            SumClassesTrajectory sumClassesTrajectory,
+            SumEventTrajectory sumEventTrajectory,
             int nDeltaTsObsPeriod,
             int nDeltaTsDelayed) 
-            : base(ID, name, type, ratioFormula, displayInSimOutput, warmUpSimIndex, nDeltaTsObsPeriod)
+            : base(name, firstObsMarksStartOfEpidemic, nDeltaTsObsPeriod, nDeltaTsDelayed)
         {
-            _nObsPeriodsDelay = nDeltaTsDelayed / nDeltaTsObsPeriod;
+            _sumClassesTraj = sumClassesTrajectory;
+            _sumEventsTraj = sumEventTrajectory;
+            _timeSeries = new IncidenceTimeSeries(nDeltaTsObsPeriod);
         }
 
-        public double GetLastObs()
+        public override void Update()
         {
-            return TimeSeries.GetLastObs(_nObsPeriodsDelay);
+            double value = 0;
+            if (!(_sumClassesTraj is null))
+                value = _sumClassesTraj.NumOfNewMembersOverPastPeriod;
+            else if (!(_sumEventsTraj is null))
+                value = _sumEventsTraj.NumOfNewMembersOverPastPeriod;
+
+            _timeSeries.Record(value);
         }
+        public override double GetLastObs()
+        {
+            return _timeSeries.GetLastObs(_nObsPeriodsDelay);
+        }
+    }
+
+    public class SurveyedPrevalenceTrajectory : SurveyedTrajectory
+    {
+        private PrevalenceTimeSeries _timeSeries;
+        private SumClassesTrajectory _sumClassesTraj;
+        private RatioTrajectory _ratioTraj;
+
+        public SurveyedPrevalenceTrajectory(
+            string name,
+            bool firstObsMarksStartOfEpidemic,
+            SumClassesTrajectory sumClassesTrajectory,
+            RatioTrajectory ratioTrajectory,
+            int nDeltaTsObsPeriod,
+            int nDeltaTsDelayed)
+            : base(name, firstObsMarksStartOfEpidemic, nDeltaTsObsPeriod, nDeltaTsDelayed)
+        {
+            _sumClassesTraj = sumClassesTrajectory;
+            _ratioTraj = ratioTrajectory;
+            _timeSeries = new PrevalenceTimeSeries(nDeltaTsObsPeriod);
+        }
+
+        public override void Update()
+        {
+            double value = 0;
+            if (!(_sumClassesTraj is null))
+                value = _sumClassesTraj.Prevalence;
+            else if (!(_ratioTraj is null))
+                value = _ratioTraj.LastRecordedRatio;
+
+            _timeSeries.Record(value);
+        }
+        public override double GetLastObs()
+        {
+            return _timeSeries.GetLastObs(_nObsPeriodsDelay);
+        }
+    }
+
+    public abstract class OutputTrajs
+    {
+
     }
 
     public class SimOutputTrajs
@@ -508,8 +564,8 @@ namespace APACElib
         public String[] PrevalenceOutputsHeader = new string[0];
         public String[] IncidenceOutputsHeader = new string[0];
 
-        public int NumOfPrevalenceOutputsToReport { get; set; }
-        public int NumOfIncidenceOutputsToReport { get; set; }
+        public int NumOfPrevalenceOutputsToReport { get; private set; }
+        public int NumOfIncidenceOutputsToReport { get; private set; }
 
         public int[][] SimRepIndeces { get; private set; }
         public double[][] SimIncidenceOutputs { get; private set; }
@@ -689,16 +745,15 @@ namespace APACElib
         public List<RatioTrajectory> _ratioTraj = new List<RatioTrajectory>();
         public List<SumTrajectory> SumTrajs { get => _sumTrajs; set => _sumTrajs = value; }
         public List<RatioTrajectory> RatioTrajs { get => _ratioTraj; set => _ratioTraj = value; }
-        // surveyed summation and ratio trajectories
-        public List<IncidenceTimeSeries> _survSumClassTimeSeries = new List<IncidenceTimeSeries>();
-
-        public List<SurveyedIncidenceTrajectory> _survSumClassTrajs = new List<SurveyedIncidenceTrajectory>();
-        public List<SurveyedRatioTrajectory> _survRatioTrajs = new List<SurveyedRatioTrajectory>();
-        public List<SurveyedIncidenceTrajectory> SurveyedSumTrajs { get => _survSumClassTrajs; set => _survSumClassTrajs = value; }
-        public List<SurveyedRatioTrajectory> SurveyedRatioTrajs { get => _survRatioTrajs; set => _survRatioTrajs = value; }
+        
+        // surveyed trajectories
+        public List<SurveyedIncidenceTrajectory> _survIncidence = new List<SurveyedIncidenceTrajectory>();
+        public List<SurveyedPrevalenceTrajectory> _survPrevalence = new List<SurveyedPrevalenceTrajectory>();
+        public List<SurveyedIncidenceTrajectory> SurveyedIncidenceTrajs { get => _survIncidence; set => _survIncidence = value; }
+        public List<SurveyedPrevalenceTrajectory> SurveyedPrevalenceTrajs { get => _survPrevalence; set => _survPrevalence = value; }
+        
         // all trajectories prepared for simulation output 
         public SimOutputTrajs TrajsForSimOutput { get; private set; }
-        public SimOutputTrajs SurveyedTrajsForSimOutput { get; private set; }
 
         public EpidemicHistory()
         {
@@ -731,6 +786,12 @@ namespace APACElib
             // update ratio statistics
             foreach (RatioTrajectory ratioTraj in RatioTrajs)
                 ratioTraj.Add(simTimeIndex, ref _sumTrajs);
+            // update surveyed incidence 
+            foreach (SurveyedIncidenceTrajectory survIncdTraj in SurveyedIncidenceTrajs)
+                survIncdTraj.Update();
+            // update surveyed prevalence 
+            foreach (SurveyedPrevalenceTrajectory survPrevTraj in SurveyedPrevalenceTrajs)
+                survPrevTraj.Update();
         }
 
         public void Reset(int simTimeIndex, ref List<Class> classes, ref List<Event> events)
