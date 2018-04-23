@@ -136,9 +136,8 @@ namespace APACElib
                 // update the effect of chance in time dependent parameter value
                 _paramManager.UpdateTimeDepParams(ref _rng, _simTimeIndex * _modelSets.DeltaT, ref _classes);
 
-                // update recorded trajectories 
-                EpiHist.SimOutputTrajs.Record(_simTimeIndex, false);
-                EpiHist.ObsTrajs.Record(_epiTimeIndex, false);
+                // update recorded trajectories
+                EpiHist.Update(_simTimeIndex, _epiTimeIndex, false);                
 
                 // check if this is has been a feasible trajectory for calibration
                 if (ModelUse == EnumModelUse.Calibration && !ifThisIsAFeasibleCalibrationTrajectory)
@@ -183,6 +182,10 @@ namespace APACElib
             foreach (Class thisClass in Classes)
                 thisClass.ClassStat.NumOfNewMembersOverPastPeriod = 0;
 
+            // reset number of members out of active events for all classes
+            foreach (Class thisClass in Classes)
+                thisClass.ResetNumOfMembersOutOfEvents();
+
             // do the transfer on all members
             foreach (Class thisClass in Classes.Where(c => c.ClassStat.Prevalence>0))
                 thisClass.ShouldBeProcessed = true;
@@ -218,29 +221,16 @@ namespace APACElib
                     }
             } // end of while (membersWaitingToBeTransferred)
 
-            // update class statistics                      
-            foreach (Class thisClass in Classes)
+            // update costs and health outcomes
+            if (ModelUse != EnumModelUse.Calibration)
             {
-                thisClass.ClassStat.CollectEndOfDeltaTStats(_simTimeIndex);
-                if (ModelUse != EnumModelUse.Calibration)
+                foreach (Class thisClass in Classes)
                 {
                     EpidemicCostHealth.Add(
                         _simTimeIndex,
                         thisClass.ClassStat.DeltaCostHealthCollector.DeltaTCost,
                         thisClass.ClassStat.DeltaCostHealthCollector.DeltaTDALY);
                 }
-            }
-
-            // update summation and ratio trajectories
-            EpiHist.UpdateSumAndRatioTrajs(_simTimeIndex, ref _classes, ref _events);
-
-            // reset number of members out of active events for all classes
-            foreach (Class thisClass in Classes)
-                thisClass.ResetNumOfMembersOutOfEvents();
-
-            // update decision costs
-            if (ModelUse != EnumModelUse.Calibration)
-            {
                 EpidemicCostHealth.Add(_simTimeIndex, DecisionMaker.CostOverThisDecisionPeriod, 0);
                 DecisionMaker.CostOverThisDecisionPeriod = 0;
             }
@@ -374,7 +364,7 @@ namespace APACElib
             // add events
             AddEvents(modelSettings.EventSheet);
             // epidemic history
-            EpiHist = new EpidemicHistory();
+            EpiHist = new EpidemicHistory(ref _classes, ref _events);
             // add summation statistics
             AddSummationStatistics(modelSettings.SummationStatisticsSheet);
             // add ratio statistics
@@ -1092,28 +1082,28 @@ namespace APACElib
             }
         }
         // add ratio statistics
-        private void AddRatioStatistics(Array ratioStatisticsSheet)
+        private void AddRatioStatistics(Array ratioStatsSheet)
         {
-            if (ratioStatisticsSheet == null) return;
+            if (ratioStatsSheet == null) return;
 
-            for (int rowIndex = 1; rowIndex <= ratioStatisticsSheet.GetLength(0); ++rowIndex)
+            for (int rowIndex = 1; rowIndex <= ratioStatsSheet.GetLength(0); ++rowIndex)
             {
                 // ID and Name
-                int statID = Convert.ToInt32(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.ID));
-                string name = Convert.ToString(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Name));
-                string strType = Convert.ToString(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Type));
-                string ratioFormula = Convert.ToString(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Formula));
+                int statID = Convert.ToInt32(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.ID));
+                string name = Convert.ToString(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Name));
+                string strType = Convert.ToString(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Type));
+                string ratioFormula = Convert.ToString(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Formula));
 
                 // if display
-                bool ifDispay = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfDisplay).ToString());
+                bool ifDispay = SupportFunctions.ConvertYesNoToBool(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfDisplay).ToString());
 
                 // real-time monitoring
-                bool surveillanceDataAvailable = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.SurveillanceDataAvailable).ToString());
-                int nDeltaTDelayed = Convert.ToInt32(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.NumOfDeltaTsDelayed));
-                bool firstObsMarksEpiStart = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FirstObservationMarksTheStartOfTheSpread).ToString());
+                bool surveillanceDataAvailable = SupportFunctions.ConvertYesNoToBool(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.SurveillanceDataAvailable).ToString());
+                int nDeltaTDelayed = Convert.ToInt32(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.NumOfDeltaTsDelayed));
+                bool firstObsMarksEpiStart = SupportFunctions.ConvertYesNoToBool(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FirstObservationMarksTheStartOfTheSpread).ToString());
 
                 // calibration
-                bool ifIncludedInCalibration = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfIncludedInCalibration).ToString());
+                bool ifIncludedInCalibration = SupportFunctions.ConvertYesNoToBool(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfIncludedInCalibration).ToString());
 
                 // default values
                 CalibrationTarget.enumGoodnessOfFitMeasure goodnessOfFitMeasure = CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_timeSeries;
@@ -1126,7 +1116,7 @@ namespace APACElib
                 if (ifIncludedInCalibration)
                 {
                     // measure of fit
-                    string strGoodnessOfFitMeasure = Convert.ToString(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.MeasureOfFit));
+                    string strGoodnessOfFitMeasure = Convert.ToString(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.MeasureOfFit));
                     switch (strGoodnessOfFitMeasure)
                     {
                         case "Sum Sqr Err (time-series)":
@@ -1140,29 +1130,29 @@ namespace APACElib
                             break;
                     }
                     // overall weight
-                    overalWeight = Convert.ToDouble(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_OveralFit));
+                    overalWeight = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_OveralFit));
                     // Fourier weights
                     if (goodnessOfFitMeasure == CalibrationTarget.enumGoodnessOfFitMeasure.Fourier)
                     {
                         fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.Cosine]
-                        = Convert.ToDouble(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierCosine));
+                        = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierCosine));
                         fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.Norm2]
-                            = Convert.ToDouble(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierEuclidean));
+                            = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierEuclidean));
                         fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.Average]
-                            = Convert.ToDouble(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierAverage));
+                            = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierAverage));
                         fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.StDev]
-                            = Convert.ToDouble(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierStDev));
+                            = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierStDev));
                         fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.Min]
-                            = Convert.ToDouble(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierMin));
+                            = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierMin));
                         fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.Max]
-                            = Convert.ToDouble(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierMax));
+                            = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierMax));
                     }
                     // if to check if within a feasible range
-                    ifCheckWithinFeasibleRange = SupportFunctions.ConvertYesNoToBool(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfCheckWithinFeasibleRange).ToString());
+                    ifCheckWithinFeasibleRange = SupportFunctions.ConvertYesNoToBool(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfCheckWithinFeasibleRange).ToString());
                     if (ifCheckWithinFeasibleRange)
                     {
-                        feasibleMin = Convert.ToDouble(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FeasibleRange_minimum));
-                        feasibleMax = Convert.ToDouble(ratioStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FeasibleRange_maximum));
+                        feasibleMin = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FeasibleRange_minimum));
+                        feasibleMax = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FeasibleRange_maximum));
                     }
                 }
 

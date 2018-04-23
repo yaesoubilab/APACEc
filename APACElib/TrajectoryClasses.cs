@@ -23,11 +23,17 @@ namespace APACElib
         /// <returns> the last period observation </returns>
         public double GetLastObs()
         {
-            return ObsList.Last();
+            if (ObsList.Count == 0)
+                return Double.NaN;
+            else
+                return ObsList.Last();
         }
         public double GetLastObs(int nPeriodDelay)
         {
-            return ObsList[ObsList.Count - nPeriodDelay - 1];
+            if (ObsList.Count < nPeriodDelay)
+                return Double.NaN;
+            else
+                return ObsList[ObsList.Count - nPeriodDelay - 1];
         }
 
         public abstract void Reset();
@@ -37,7 +43,6 @@ namespace APACElib
     {
         public IncidenceTimeSeries(int nOfRecodingsInEachPeriod):base(nOfRecodingsInEachPeriod)
         {
-            ObsList.Add(0); // 0 added for the interval 0
         }
 
         public override void Record(double value)
@@ -59,7 +64,7 @@ namespace APACElib
         public override void Reset()
         {
             ObsList.Clear();
-            ObsList.Add(0); // 0 added for the interval 0
+            //ObsList.Add(0); // 0 added for the interval 0
             _nRecordingsInThisPeriod = 0;
         }
     }
@@ -324,9 +329,13 @@ namespace APACElib
                 case EnumType.Incidence:
                 case EnumType.AccumulatingIncident:
                     {
-                        NumOfNewMembersOverPastPeriod = 0;
-                        for (int i = 0; i < ClassIDs.Length; ++i)
-                            NumOfNewMembersOverPastPeriod += classes[ClassIDs[i]].ClassStat.NumOfNewMembersOverPastPeriod;
+                        if (simIndex > 0)
+                        {
+                            NumOfNewMembersOverPastPeriod = 0;
+                            for (int i = 0; i < ClassIDs.Length; ++i)
+                                NumOfNewMembersOverPastPeriod += classes[ClassIDs[i]].ClassStat.NumOfNewMembersOverPastPeriod;
+                            CollectEndOfDeltaTStats(simIndex);
+                        }
                     }
                     break;
                 case EnumType.Prevalence:
@@ -334,11 +343,12 @@ namespace APACElib
                         Prevalence = 0;
                         for (int i = 0; i < ClassIDs.Length; ++i)
                             Prevalence += classes[ClassIDs[i]].ClassStat.Prevalence;
+                        CollectEndOfDeltaTStats(simIndex);
                     }
                     break;
             }
 
-            CollectEndOfDeltaTStats(simIndex);
+            
         }        
     }
 
@@ -361,6 +371,9 @@ namespace APACElib
 
         public override void Add(int simIndex, ref List<Class> classes, ref List<Event> events)
         {
+            if (simIndex == 0)
+                return;
+
             NumOfNewMembersOverPastPeriod = 0;
             for (int i = 0; i < _arrEventIDs.Length; ++i)
                 NumOfNewMembersOverPastPeriod += events[_arrEventIDs[i]].MembersOutOverPastDeltaT;
@@ -829,13 +842,16 @@ namespace APACElib
             foreach (SurveyedPrevalenceTrajectory prevTraj in _surveyPrevalenceTrajs.Where(i => i.DisplayInSimOut))
             {
                 if (storeHeaders) IncidenceOutputsHeader.Add("Obs: " + prevTraj.Name);
-                ++NumOfIncidenceOutputsToReport;
+                ++NumOfPrevalenceOutputsToReport;
             }
         }
     }
 
     public class EpidemicHistory
     {
+        private List<Class> _classes;
+        private List<Event> _events;
+
         // summation and ratio trajectories
         public List<SumTrajectory> _sumTrajs = new List<SumTrajectory>();
         public List<RatioTrajectory> _ratioTraj = new List<RatioTrajectory>();
@@ -852,8 +868,10 @@ namespace APACElib
         public SimOutputTrajs SimOutputTrajs { get; private set; }
         public ObsOutputTrajs ObsTrajs { get; private set; }
 
-        public EpidemicHistory()
+        public EpidemicHistory(ref List<Class> classes, ref List<Event> events)
         {
+            _classes = classes;
+            _events = events;
         }
 
         public void SetupSimOutputTrajs(
@@ -884,20 +902,27 @@ namespace APACElib
                 extractOutputHeaders);
         }
 
-        public void UpdateSumAndRatioTrajs(int simTimeIndex, ref List<Class> classes, ref List<Event> events)
+        public void Update(int simTimeIndex, int epiTimeIndex, bool endOfSim)
         {
+            // update class statistics                      
+            foreach (Class thisClass in _classes)
+                thisClass.ClassStat.CollectEndOfDeltaTStats(simTimeIndex);
             // update summation statistics
             foreach (SumTrajectory thisSumTaj in SumTrajs)
-                thisSumTaj.Add(simTimeIndex, ref classes, ref events);
+                thisSumTaj.Add(simTimeIndex, ref _classes, ref _events);
             // update ratio statistics
             foreach (RatioTrajectory ratioTraj in RatioTrajs)
                 ratioTraj.Add(simTimeIndex, ref _sumTrajs);
             // update surveyed incidence 
-            foreach (SurveyedIncidenceTrajectory survIncdTraj in SurveyedIncidenceTrajs)
-                survIncdTraj.Update();
+            if (simTimeIndex>0)
+                foreach (SurveyedIncidenceTrajectory survIncdTraj in SurveyedIncidenceTrajs)
+                    survIncdTraj.Update();
             // update surveyed prevalence 
             foreach (SurveyedPrevalenceTrajectory survPrevTraj in SurveyedPrevalenceTrajs)
                 survPrevTraj.Update();
+
+            SimOutputTrajs.Record(simTimeIndex, endOfSim);
+            ObsTrajs.Record(epiTimeIndex, endOfSim);
         }
 
         public void Reset(int simTimeIndex, ref List<Class> classes, ref List<Event> events)
