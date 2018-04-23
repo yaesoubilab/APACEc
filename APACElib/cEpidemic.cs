@@ -164,7 +164,7 @@ namespace APACElib
                 {
                     toStop = true;
                     // update recorded trajectories 
-                    EpiHist.SimOutputTrajs.Record(_simTimeIndex, true);
+                    EpiHist.Update(_simTimeIndex, _epiTimeIndex, true);
 
                     // find if it is an acceptable trajectory
                     acceptableTrajectory = true;

@@ -24,14 +24,14 @@ namespace APACElib
         public double GetLastObs()
         {
             if (ObsList.Count == 0)
-                return Double.NaN;
+                return -1;
             else
                 return ObsList.Last();
         }
         public double GetLastObs(int nPeriodDelay)
         {
             if (ObsList.Count < nPeriodDelay)
-                return Double.NaN;
+                return -1;
             else
                 return ObsList[ObsList.Count - nPeriodDelay - 1];
         }
@@ -175,7 +175,7 @@ namespace APACElib
                     AveragePrevalenceStat.Record(Prevalence);
 
             // time series
-            if (!(IncidenceTimeSeries is null))
+            if (!(IncidenceTimeSeries is null) && simIndex>0)
                 IncidenceTimeSeries.Record(NumOfNewMembersOverPastPeriod);
             if ((!(PrevalenceTimeSeries is null)))
                 PrevalenceTimeSeries.Record(Prevalence);
@@ -326,8 +326,15 @@ namespace APACElib
         {
             switch (Type)
             {
-                case EnumType.Incidence:
                 case EnumType.AccumulatingIncident:
+                    {
+                        NumOfNewMembersOverPastPeriod = 0;
+                        for (int i = 0; i < ClassIDs.Length; ++i)
+                            NumOfNewMembersOverPastPeriod += classes[ClassIDs[i]].ClassStat.NumOfNewMembersOverPastPeriod;
+                        CollectEndOfDeltaTStats(simIndex);
+                    }
+                    break;
+                case EnumType.Incidence:
                     {
                         if (simIndex > 0)
                         {
@@ -347,8 +354,6 @@ namespace APACElib
                     }
                     break;
             }
-
-            
         }        
     }
 
@@ -486,7 +491,7 @@ namespace APACElib
             _nObsPeriodsDelay = nDeltaTsDelayed / nDeltaTsObsPeriod;
         }
 
-        public abstract void Update();
+        public abstract void Update(int epiTimeIndex);
         public abstract double GetLastObs(int epiTimeIndex);
 
     }
@@ -512,8 +517,11 @@ namespace APACElib
             _timeSeries = new IncidenceTimeSeries(nDeltaTsObsPeriod);
         }
 
-        public override void Update()
+        public override void Update(int epiTimeIndex)
         {
+            if (epiTimeIndex == 0)
+                return;
+
             double value = 0;
             if (!(_sumClassesTraj is null))
                 value = _sumClassesTraj.NumOfNewMembersOverPastPeriod;
@@ -553,7 +561,7 @@ namespace APACElib
             _timeSeries = new PrevalenceTimeSeries(nDeltaTsObsPeriod);
         }
 
-        public override void Update()
+        public override void Update(int epiTimeIndex)
         {
             double value = 0;
             if (!(_sumClassesTraj is null))
@@ -913,13 +921,12 @@ namespace APACElib
             // update ratio statistics
             foreach (RatioTrajectory ratioTraj in RatioTrajs)
                 ratioTraj.Add(simTimeIndex, ref _sumTrajs);
-            // update surveyed incidence 
-            if (simTimeIndex>0)
-                foreach (SurveyedIncidenceTrajectory survIncdTraj in SurveyedIncidenceTrajs)
-                    survIncdTraj.Update();
+            // update surveyed incidence            
+            foreach (SurveyedIncidenceTrajectory survIncdTraj in SurveyedIncidenceTrajs)
+                survIncdTraj.Update(epiTimeIndex);
             // update surveyed prevalence 
             foreach (SurveyedPrevalenceTrajectory survPrevTraj in SurveyedPrevalenceTrajs)
-                survPrevTraj.Update();
+                survPrevTraj.Update(epiTimeIndex);
 
             SimOutputTrajs.Record(simTimeIndex, endOfSim);
             ObsTrajs.Record(epiTimeIndex, endOfSim);
