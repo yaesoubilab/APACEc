@@ -311,7 +311,7 @@ namespace APACElib
             }
 
             // reset epidemic history 
-            EpiHist.Reset(_simTimeIndex, ref _classes, ref _events);       
+            EpiHist.Reset();       
         }         
 
         // update current epidemic time
@@ -1184,6 +1184,12 @@ namespace APACElib
                     _modelSets.WarmUpPeriodTimeIndex, 
                     _modelSets.NumOfDeltaT_inSimOutputInterval);
 
+                // set up calibration
+                thisRatioTraj.CalibInfo = new TrajectoryCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
+
+                // add the summation statistics
+                EpiHist.RatioTrajs.Add(thisRatioTraj);
+
                 // add the survey 
                 if (surveillanceDataAvailable)
                 {
@@ -1198,11 +1204,6 @@ namespace APACElib
                             nDeltaTDelayed)
                             );
                 }
-                // set up calibration
-                thisRatioTraj.CalibInfo = new TrajectoryCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
-
-                // add the summation statistics
-                EpiHist.RatioTrajs.Add(thisRatioTraj);
             }
         }
         // add connections

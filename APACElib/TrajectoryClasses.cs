@@ -532,11 +532,15 @@ namespace APACElib
         }
         public override double GetLastObs(int epiTimeIndex)
         {
-            double value = 0;
+            double value = -1;
             if (epiTimeIndex > _nDeltaTsObsPeriod * _nObsPeriodsDelay)
                 value = _timeSeries.GetLastObs(_nObsPeriodsDelay);
 
             return value;
+        }
+        public void Reset()
+        {
+            _timeSeries.Reset();
         }
     }
 
@@ -573,10 +577,14 @@ namespace APACElib
         }
         public override double GetLastObs(int epiTimeIndex)
         {
-            double value = 0;
-            if (epiTimeIndex > _nDeltaTsObsPeriod * _nObsPeriodsDelay)
+            double value = -1;
+            if (epiTimeIndex >= _nDeltaTsObsPeriod * _nObsPeriodsDelay)
                 value = _timeSeries.GetLastObs(_nObsPeriodsDelay);
             return value;
+        }
+        public void Reset()
+        {
+            _timeSeries.Reset();
         }
     }
 
@@ -849,7 +857,7 @@ namespace APACElib
             }
             foreach (SurveyedPrevalenceTrajectory prevTraj in _surveyPrevalenceTrajs.Where(i => i.DisplayInSimOut))
             {
-                if (storeHeaders) IncidenceOutputsHeader.Add("Obs: " + prevTraj.Name);
+                if (storeHeaders) PrevalenceOutputsHeader.Add("Obs: " + prevTraj.Name);
                 ++NumOfPrevalenceOutputsToReport;
             }
         }
@@ -867,10 +875,10 @@ namespace APACElib
         public List<RatioTrajectory> RatioTrajs { get => _ratioTraj; set => _ratioTraj = value; }
         
         // surveyed trajectories
-        public List<SurveyedIncidenceTrajectory> _survIncidence = new List<SurveyedIncidenceTrajectory>();
-        public List<SurveyedPrevalenceTrajectory> _survPrevalence = new List<SurveyedPrevalenceTrajectory>();
-        public List<SurveyedIncidenceTrajectory> SurveyedIncidenceTrajs { get => _survIncidence; set => _survIncidence = value; }
-        public List<SurveyedPrevalenceTrajectory> SurveyedPrevalenceTrajs { get => _survPrevalence; set => _survPrevalence = value; }
+        public List<SurveyedIncidenceTrajectory> _survIncidenceTrajs = new List<SurveyedIncidenceTrajectory>();
+        public List<SurveyedPrevalenceTrajectory> _survPrevalenceTrajs = new List<SurveyedPrevalenceTrajectory>();
+        public List<SurveyedIncidenceTrajectory> SurveyedIncidenceTrajs { get => _survIncidenceTrajs; set => _survIncidenceTrajs = value; }
+        public List<SurveyedPrevalenceTrajectory> SurveyedPrevalenceTrajs { get => _survPrevalenceTrajs; set => _survPrevalenceTrajs = value; }
         
         // all trajectories prepared for simulation output 
         public SimOutputTrajs SimOutputTrajs { get; private set; }
@@ -905,8 +913,8 @@ namespace APACElib
                 deltaT,
                 nDeltaTInObsInterval,
                 ref decisionMaker,
-                ref _survIncidence,
-                ref _survPrevalence,
+                ref _survIncidenceTrajs,
+                ref _survPrevalenceTrajs,
                 extractOutputHeaders);
         }
 
@@ -932,24 +940,19 @@ namespace APACElib
             ObsTrajs.Record(epiTimeIndex, endOfSim);
         }
 
-        public void Reset(int simTimeIndex, ref List<Class> classes, ref List<Event> events)
+        public void Reset()
         {
-            SimOutputTrajs.Reset();
-            ObsTrajs.Reset();
-
-            // update summation statistics
-            foreach (SumTrajectory sumTraj in SumTrajs)
-            {
-                sumTraj.Reset();
-                if (sumTraj.Type == SumTrajectory.EnumType.Prevalence)
-                    sumTraj.Add(simTimeIndex, ref classes, ref events);
-            }
-            // update ratio statistics
+            foreach (SumTrajectory thisSumTaj in SumTrajs)
+                thisSumTaj.Reset();
             foreach (RatioTrajectory ratioTraj in RatioTrajs)
-            {
                 ratioTraj.Reset();
-                ratioTraj.Add(simTimeIndex, ref _sumTrajs);
-            }
+            foreach (SurveyedIncidenceTrajectory survIncdTraj in SurveyedIncidenceTrajs)
+                survIncdTraj.Reset();
+            foreach (SurveyedPrevalenceTrajectory survPrevTraj in SurveyedPrevalenceTrajs)
+                survPrevTraj.Reset();
+
+            SimOutputTrajs.Reset();
+            ObsTrajs.Reset();            
         }
 
         public void Clean()
