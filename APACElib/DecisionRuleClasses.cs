@@ -27,18 +27,27 @@ namespace APACElib
     // predetermined decision rule 
     public class DecionRule_Predetermined : DecisionRule
     {
-        public int PredeterminedSwitchValue { get; set; } = 0;
+        private int _switchValue = 0;
 
         public DecionRule_Predetermined(int predeterminedSwitchValue)
         {
-            PredeterminedSwitchValue = predeterminedSwitchValue;
+            _switchValue = predeterminedSwitchValue;
         }
 
         public override int GetSwitchStatus(int epiTimeIndex)
         {
-            return PredeterminedSwitchValue;
+            return _switchValue;
         }
     }
+
+    // thereshold based decision rule
+
+
+
+
+
+
+
 
     // periodic decision rule 
     public class DecionRule_Periodic : DecisionRule
