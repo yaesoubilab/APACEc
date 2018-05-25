@@ -41,6 +41,78 @@ namespace APACElib
     }
 
     // thereshold based decision rule
+    public class DecisionRule_OffIfThresholdsPassed : DecisionRule
+    {
+        public enum EnumConditionToSwitchOn
+        {
+            And = 0,
+            Or = 1,
+        }
+
+        private List<Feature> _features = new List<Feature>();
+        private double[] _thresholds = new double[0];
+        private EnumConditionToSwitchOn _switchCondition = EnumConditionToSwitchOn.And;
+
+        public DecisionRule_OffIfThresholdsPassed(
+            List<Feature> features, 
+            double[] thresholds, 
+            EnumConditionToSwitchOn switchCondition = EnumConditionToSwitchOn.And)
+        {
+            _features = features;
+            _thresholds = thresholds;
+            _switchCondition = switchCondition;
+        }
+
+        public override int GetSwitchStatus(int epiTimeIndex)
+        {
+            int switchValue = 1; // on
+
+            switch (_switchCondition)
+            {
+                case EnumConditionToSwitchOn.And:
+                    {
+                        bool allPassed = true;
+                        for (int i = 0; i<_features.Count; i++)
+                        {
+                            // if one is not passed
+                            if (_features[i].Value <= _thresholds[i])
+                            {
+                                allPassed = false;
+                                break;
+                            }
+                        }
+
+                        if (allPassed == true)
+                            switchValue = 0;
+                        else
+                            switchValue = 1;
+                                
+                    }
+                    break;
+                case EnumConditionToSwitchOn.Or:
+                    {
+                        bool anyPassed = false;
+                        for (int i = 0; i < _features.Count; i++)
+                        {
+                            // if one is passed
+                            if (_features[i].Value > _thresholds[i])
+                            {
+                                anyPassed = true;
+                                break;
+                            }
+                        }
+
+                        if (anyPassed == true)
+                            switchValue = 0;
+                        else
+                            switchValue = 1;
+                    }
+                    break;
+            }
+
+            return switchValue;
+        }
+    }
 
 
 

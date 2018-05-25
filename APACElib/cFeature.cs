@@ -21,6 +21,8 @@ namespace APACElib
         // Variables
         protected string _name;
         protected int _index;
+
+        public double Value { get; protected set; }
         protected enumFeatureType _featureType;
         protected int _numOfObsPeriodsForFuturePrediction;
         protected double _max, _min;
@@ -196,4 +198,71 @@ namespace APACElib
         }
     }
 
+
+    public class Condition
+    {
+        public enum EnumAndOr
+        {
+            And = 0,
+            Or = 1,
+        }
+
+        private int[] _featureIDs = new int[0];
+        private double[] _t_low = new double[0];
+        private double[] _t_high = new double[0];
+        private EnumAndOr _andOr = EnumAndOr.And;
+
+        public Condition(
+            int[] featureIDs,
+            double[] lowTheresholds,
+            double[] highThresholds,
+            EnumAndOr andOr = EnumAndOr.And)
+        {
+            _featureIDs = featureIDs;
+            _t_low = lowTheresholds;
+            _t_high = highThresholds;
+            _andOr = andOr;
+        }
+
+        public bool Value(int epiTimeIndex, List<Feature> features)
+        {
+            bool result = false;
+
+            switch (_andOr)
+            {
+                case EnumAndOr.And:
+                    {
+                        result = true;  // all will pass
+                        for (int i = 0; i < _featureIDs.Length; i++)
+                        {
+                            // if one is not passed
+                            if (!(features[_featureIDs[i]].Value >= _t_low[i] 
+                                && features[_featureIDs[i]].Value <= _t_high[i]))
+                            {
+                                result = false;
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                case EnumAndOr.Or:
+                    {
+                        result = false; // none will pass
+                        for (int i = 0; i < _featureIDs.Length; i++)
+                        {
+                            // if one is passed
+                            if (features[_featureIDs[i]].Value >= _t_low[i]
+                                && features[_featureIDs[i]].Value <= _t_high[i])
+                            {
+                                result = true;
+                                break;
+                            }
+                        }
+                    }
+                    break;
+            }
+
+            return result;
+        }
+    }
 }
