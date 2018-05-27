@@ -198,33 +198,31 @@ namespace APACElib
         }
     }
 
+    
 
     public class Condition
     {
-        public enum EnumAndOr
-        {
-            And = 0,
-            Or = 1,
-        }
-
+        private List<Feature> _features;
         private int[] _featureIDs = new int[0];
         private double[] _t_low = new double[0];
         private double[] _t_high = new double[0];
         private EnumAndOr _andOr = EnumAndOr.And;
 
         public Condition(
+            List<Feature> features,
             int[] featureIDs,
             double[] lowTheresholds,
             double[] highThresholds,
             EnumAndOr andOr = EnumAndOr.And)
         {
+            _features = features;
             _featureIDs = featureIDs;
             _t_low = lowTheresholds;
             _t_high = highThresholds;
             _andOr = andOr;
         }
 
-        public bool Value(int epiTimeIndex, List<Feature> features)
+        public bool GetValue(int epiTimeIndex)
         {
             bool result = false;
 
@@ -232,12 +230,12 @@ namespace APACElib
             {
                 case EnumAndOr.And:
                     {
-                        result = true;  // all will pass
+                        result = true;  // all features within thresholds
                         for (int i = 0; i < _featureIDs.Length; i++)
                         {
-                            // if one is not passed
-                            if (!(features[_featureIDs[i]].Value >= _t_low[i] 
-                                && features[_featureIDs[i]].Value <= _t_high[i]))
+                            // if one is outside
+                            if (!(_features[_featureIDs[i]].Value >= _t_low[i] 
+                                && _features[_featureIDs[i]].Value <= _t_high[i]))
                             {
                                 result = false;
                                 break;
@@ -247,12 +245,12 @@ namespace APACElib
                     break;
                 case EnumAndOr.Or:
                     {
-                        result = false; // none will pass
+                        result = false; // no feature is within the thresholds
                         for (int i = 0; i < _featureIDs.Length; i++)
                         {
-                            // if one is passed
-                            if (features[_featureIDs[i]].Value >= _t_low[i]
-                                && features[_featureIDs[i]].Value <= _t_high[i])
+                            // if one is within
+                            if (_features[_featureIDs[i]].Value >= _t_low[i]
+                                && _features[_featureIDs[i]].Value <= _t_high[i])
                             {
                                 result = true;
                                 break;

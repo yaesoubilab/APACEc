@@ -41,74 +41,28 @@ namespace APACElib
     }
 
     // thereshold based decision rule
-    public class DecisionRule_OffIfThresholdsPassed : DecisionRule
+    public class DecisionRule_ThresholdBased : DecisionRule
     {
-        public enum EnumConditionToSwitchOn
-        {
-            And = 0,
-            Or = 1,
-        }
 
-        private List<Feature> _features = new List<Feature>();
-        private double[] _thresholds = new double[0];
-        private EnumConditionToSwitchOn _switchCondition = EnumConditionToSwitchOn.And;
+        private List<Condition> _conditions = new List<Condition>();
+        private int[] _conditionIDs = new int[0];
+        private EnumAndOr _andOr = EnumAndOr.And;
 
-        public DecisionRule_OffIfThresholdsPassed(
-            List<Feature> features, 
-            double[] thresholds, 
-            EnumConditionToSwitchOn switchCondition = EnumConditionToSwitchOn.And)
+        public DecisionRule_ThresholdBased(
+            List<Condition> conditions, 
+            int[] conditionIDs,
+            EnumAndOr andOr = EnumAndOr.And)
         {
-            _features = features;
-            _thresholds = thresholds;
-            _switchCondition = switchCondition;
+            _conditions = conditions;
+            _conditionIDs = conditionIDs;
+            _andOr = andOr;
         }
 
         public override int GetSwitchStatus(int epiTimeIndex)
         {
             int switchValue = 1; // on
 
-            switch (_switchCondition)
-            {
-                case EnumConditionToSwitchOn.And:
-                    {
-                        bool allPassed = true;
-                        for (int i = 0; i<_features.Count; i++)
-                        {
-                            // if one is not passed
-                            if (_features[i].Value <= _thresholds[i])
-                            {
-                                allPassed = false;
-                                break;
-                            }
-                        }
-
-                        if (allPassed == true)
-                            switchValue = 0;
-                        else
-                            switchValue = 1;
-                                
-                    }
-                    break;
-                case EnumConditionToSwitchOn.Or:
-                    {
-                        bool anyPassed = false;
-                        for (int i = 0; i < _features.Count; i++)
-                        {
-                            // if one is passed
-                            if (_features[i].Value > _thresholds[i])
-                            {
-                                anyPassed = true;
-                                break;
-                            }
-                        }
-
-                        if (anyPassed == true)
-                            switchValue = 0;
-                        else
-                            switchValue = 1;
-                    }
-                    break;
-            }
+            
 
             return switchValue;
         }
@@ -135,17 +89,17 @@ namespace APACElib
     }
 
     // threshold-based decision rule 
-    public class DecionRule_ThresholdBased : DecisionRule
-    {
-        private double _threshold = 0;
-        private int _duration_nOfTimeIndices = 0;
+    //public class DecionRule_ThresholdBased : DecisionRule
+    //{
+    //    private double _threshold = 0;
+    //    private int _duration_nOfTimeIndices = 0;
 
-        public DecionRule_ThresholdBased(double threshold, int duration_nOfTimeIndices)
-        {
-            _threshold = threshold;
-            _duration_nOfTimeIndices = duration_nOfTimeIndices;
-        }
-    }
+    //    public DecionRule_ThresholdBased(double threshold, int duration_nOfTimeIndices)
+    //    {
+    //        _threshold = threshold;
+    //        _duration_nOfTimeIndices = duration_nOfTimeIndices;
+    //    }
+    //}
 
     // interval-based decision rule 
     public class DecionRule_IntervalBased : DecisionRule

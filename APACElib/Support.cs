@@ -72,9 +72,15 @@ namespace APACElib
         StartSimulationAPolicy = 0,
         EndOfBuildModelFromSpreadsheet = 1,
         End = 2,
-    }    
+    }
 
- 
+    public enum EnumAndOr
+    {
+        And = 0,
+        Or = 1,
+    }
+
+
     // Public procedures
     public static class SupportProcedures
     {
