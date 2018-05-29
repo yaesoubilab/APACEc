@@ -101,18 +101,16 @@ namespace APACElib
             PeriodicEmployment_Periodicity = 20,
             PeriodicEmployment_Length = 21, 
 
-            ThresholdBased_IDOfSpecialStatisticsToObserveAccumulation = 23,
-            ThresholdBased_Observation = 24,
-            ThresholdBased_ThresholdToTriggerThisDecision = 25,
-            ThresholdBased_NumOfDecisionPeriodsToUseThisDecision = 26,
+            ThresholdBased_ConditionIDToTurnOn = 23,
+            ThresholdBased_ConditionIDToTurnOff = 24,
 
-            IntervalBasedOptimizationSettings_AvailableUpToTime = 28,
-            IntervalBasedOptimizationSettings_MinNumOfDecisionPeriodsToUse = 29,
+            IntervalBasedOptimizationSettings_AvailableUpToTime = 26,
+            IntervalBasedOptimizationSettings_MinNumOfDecisionPeriodsToUse = 27,
 
-            SelectOnOffStatusAsFeature = 31,
-            PreviousObservationPeriodToObserveValue = 32,
-            UseNumOfDecisionPeriodEmployedAsFeature = 33,
-            RemainsOnOnceSwitchedOn = 34            
+            SelectOnOffStatusAsFeature = 29,
+            PreviousObservationPeriodToObserveValue = 30,
+            UseNumOfDecisionPeriodEmployedAsFeature = 31,
+            RemainsOnOnceSwitchedOn = 32
         }
         public enum enumResourceColumns : int
         {
@@ -175,8 +173,35 @@ namespace APACElib
 
             NewMember_FeatureType = 29,
             NewMember_NumOfPastObsPeriodsToStore = 30,
-
         }        
+        public enum enumFeaturesColumns : int
+        {
+            ID = 1,
+            Name = 2, 
+            FeatureObservation = 3,
+
+            SpecialStatID = 5,
+            SpecialStatFeatureType = 6, 
+            Par = 7, 
+
+            InterventionID = 9,
+            InterventionFeatureType = 10
+        }
+        public enum enumConditionsColumns : int
+        {
+            ID = 1,
+            Name = 2,
+            DefinedOn = 3,
+
+            FeatureIDs = 5,
+            FeatureSigns = 6, 
+            FeatureThresholds = 7,
+            FeatureConclusion = 9, 
+
+            Conditions = 10,
+            ConditionsConclusions = 11
+
+        }
         public enum enumSimulationStatisticsColumns : int
         {
             Name = 1,
@@ -319,6 +344,15 @@ namespace APACElib
             base.ActivateSheet("Connections");
             return SupportFunctions.ConvertMatrixToInt(base.ReadMatrixFromActiveSheet(5, 3, 4));
         }
+        public Array GetTableOfFeatures()
+        {
+            return GetTableOfCells("Features", "baseFeatures", (int)enumFeaturesColumns.InterventionFeatureType);
+        }
+        public Array GetTableOfConditions()
+        {
+            return GetTableOfCells("Conditions", "baseFeatures", (int)enumConditionsColumns.ConditionsConclusions);
+        }
+
 
         #endregion
 

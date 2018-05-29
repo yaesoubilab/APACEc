@@ -584,13 +584,13 @@ namespace APACElib
                 TrajsSimIntrvCombinations, simulatedEpi.EpiHist.SimOutputTrajs.InterventionCombinations);
 
             TrajsObsRepIndex = SupportFunctions.ConcatJaggedArray(
-                TrajsObsRepIndex, simulatedEpi.EpiHist.ObsTrajs.SimRepIndeces);
+                TrajsObsRepIndex, simulatedEpi.EpiHist.SurveyedOutputTrajs.SimRepIndeces);
             TrajsObsIncidence = SupportFunctions.ConcatJaggedArray(
-                TrajsObsIncidence, simulatedEpi.EpiHist.ObsTrajs.SimIncidenceOutputs);
+                TrajsObsIncidence, simulatedEpi.EpiHist.SurveyedOutputTrajs.SimIncidenceOutputs);
             TrajsObsPrevalence = SupportFunctions.ConcatJaggedArray(
-                TrajsObsPrevalence, simulatedEpi.EpiHist.ObsTrajs.SimPrevalenceOutputs);
+                TrajsObsPrevalence, simulatedEpi.EpiHist.SurveyedOutputTrajs.SimPrevalenceOutputs);
             TrajsObsIntrvCombinations = SupportFunctions.ConcatJaggedArray(
-                TrajsObsIntrvCombinations, simulatedEpi.EpiHist.ObsTrajs.InterventionCombinations);
+                TrajsObsIntrvCombinations, simulatedEpi.EpiHist.SurveyedOutputTrajs.InterventionCombinations);
         }
 
         public void Reset()

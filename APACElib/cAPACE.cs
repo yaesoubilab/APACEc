@@ -680,8 +680,8 @@ namespace APACElib
             ExcelInterface.SetupSimulationOutputSheet(
                 simIncidenceHeader: _epidemicModeller.ParentEpidemic.EpiHist.SimOutputTrajs.IncidenceOutputsHeader.ToArray(),
                 simPrevalenceHeader: _epidemicModeller.ParentEpidemic.EpiHist.SimOutputTrajs.PrevalenceOutputsHeader.ToArray(),                
-                obsIncidenceHeader: _epidemicModeller.ParentEpidemic.EpiHist.ObsTrajs.IncidenceOutputsHeader.ToArray(),
-                obsPrevalenceHeader: _epidemicModeller.ParentEpidemic.EpiHist.ObsTrajs.PrevalenceOutputsHeader.ToArray(),
+                obsIncidenceHeader: _epidemicModeller.ParentEpidemic.EpiHist.SurveyedOutputTrajs.IncidenceOutputsHeader.ToArray(),
+                obsPrevalenceHeader: _epidemicModeller.ParentEpidemic.EpiHist.SurveyedOutputTrajs.PrevalenceOutputsHeader.ToArray(),
                 resouceOutputs: resourceOutputs);                             
         }
         // report simulation statistics

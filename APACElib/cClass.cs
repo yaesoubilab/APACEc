@@ -12,8 +12,8 @@ namespace APACElib
     // Class
     public abstract class Class
     {
-        protected int _ID;
-        protected string _name;
+        public int ID { get; private set; }
+        public string Name { get; private set; }
         protected int _rowIndexInContactMatrix;
         protected int[] _destinationClasseIDs;
         protected int[] _numOfMembersToDestClasses;     // number of members to be sent to other classes        
@@ -26,22 +26,16 @@ namespace APACElib
         public bool ShowPrevalence { get; set; }
         public bool ShowAccumIncidence { get; set; }
 
-        public Class(int ID, string name)
+        public Class(int id, string name)
         {
-            _ID = ID;
-            _name = name;
+            ID = id;
+            Name = name;
             ShouldBeProcessed = true;
             MembersWaitingToDepart = false;
         }
 
         // Properties
-        public int ID
-        {
-            get { return _ID; } }
-        public string Name
-        {
-            get {return _name;}
-        }
+
         public int[] DestinationClasseIDs
         {
             get { return _destinationClasseIDs; }
@@ -50,7 +44,6 @@ namespace APACElib
         {
             get { return _numOfMembersToDestClasses; }
         }
-
         public virtual bool EmptyToEradicate
         {
             get { return false; }
@@ -80,28 +73,6 @@ namespace APACElib
             get { return false; }
         }
       
-        // read feature value  
-        public double ReadFeatureValue(Feature_DefinedOnNewClassMembers feature)
-        {
-            double value = 0;            
-            switch (feature.FeatureType)
-            {
-                case Feature.enumFeatureType.Incidence:
-                    value = ClassStat.IncidenceTimeSeries.GetLastObs();
-                    break;
-                case Feature.enumFeatureType.Prediction:
-                    value = 0; // Math.Max(0, _countStatisticsNewMembers.Prediction(feature.NumOfTimePeriodsForFuturePrediction));
-                    break;
-                case Feature.enumFeatureType.AccumulatingIncidence:
-                    value = ClassStat.AccumulatedIncidence;
-                    break;
-                default:
-                    value = -1;
-                    break;
-            }  
-            return value;
-        }
-
         //  add new member
         public virtual void AddNewMembers(int numOfNewMembers) { }
         // update the initial number of members

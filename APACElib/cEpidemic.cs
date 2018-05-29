@@ -357,14 +357,14 @@ namespace APACElib
             FOIModel = new ForceOfInfectionModel(
                 _pathogenIDs.Length,
                 ref _paramManager);
-            // add interventions
-            AddInterventions(modelSettings.InterventionSheet);
-            // add resources
-            AddResources(modelSettings.ResourcesSheet);
             // add events
             AddEvents(modelSettings.EventSheet);
             // epidemic history
             EpiHist = new EpidemicHistory(ref _classes, ref _events);
+            // add interventions
+            AddInterventions(modelSettings.InterventionSheet);
+            // add resources
+            AddResources(modelSettings.ResourcesSheet);            
             // add summation statistics
             AddSummationStatistics(modelSettings.SummationStatisticsSheet);
             // add ratio statistics
@@ -378,6 +378,10 @@ namespace APACElib
                 ref _decisionMaker,
                 ref _classes,
                 extractOutputHeaders);
+            // add conditions
+            AddConditions(modelSettings.ConditionsSheet);
+            // add features
+            AddFeatures(modelSettings.FeaturesSheet);
             // add connections
             AddConnections(modelSettings.ConnectionsMatrix);
             // monitor of interventions in effect
@@ -723,12 +727,10 @@ namespace APACElib
                         break;
                     case EnumDecisionRule.ThresholdBased:
                         {
-                            //int IDOfSpecialStatistics = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_IDOfSpecialStatisticsToObserveAccumulation));
-                            //string strObservation = Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_Observation));
-                            //APACE_lib.Intervention.EnumEpidemiologicalObservation observation = Intervention.EnumEpidemiologicalObservation.OverPastObservationPeriod;
-                            //if (strObservation == "Accumulating")
-                            //    observation = Intervention.EnumEpidemiologicalObservation.Accumulating;
+                            int conditionIDToTurnOn = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_ConditionIDToTurnOn));
+                            int conditionIDToTurnOff = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_ConditionIDToTurnOff));
 
+                            simDecisionRule= new DecisionRule_ThresholdBased(EpiHist.Conditions, )
                             //double threshold = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_ThresholdToTriggerThisDecision));
                             //int duration = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_NumOfDecisionPeriodsToUseThisDecision));
                             //thisIntervention.AddThresholdBasedEmploymentSetting(IDOfSpecialStatistics, observation, threshold, (int)(duration * _numOfDeltaTsInADecisionInterval));
@@ -766,7 +768,10 @@ namespace APACElib
 
                 // create the intervention
                 thisIntervention = new Intervention(ID, name, type, affectingContactPattern,
-                    (int)(timeBecomeAvailable / _modelSets.DeltaT), (int)(timeBecomeUnavailable / _modelSets.DeltaT), delayParID, ref simDecisionRule);
+                    timeIndexBecomesAvailable: (int)(timeBecomeAvailable / _modelSets.DeltaT), 
+                    timeIndexBecomesUnavailable: (int)(timeBecomeUnavailable / _modelSets.DeltaT), 
+                    parIDDelayToGoIntoEffectOnceTurnedOn: delayParID, 
+                    decisionRule: simDecisionRule);
 
                 // set up cost
                 thisIntervention.SetUpCost(fixedCost, costPerUnitOfTime, penaltyForSwitchingFromOnToOff);
@@ -1002,6 +1007,7 @@ namespace APACElib
                             case SumTrajectory.EnumType.Incidence:
                                 EpiHist.SurveyedIncidenceTrajs.Add(
                                     new SurveyedIncidenceTrajectory(
+                                        statID,
                                         name,
                                         ifDispay,
                                         firstObsMarksEpiStart,
@@ -1015,6 +1021,7 @@ namespace APACElib
                             case SumTrajectory.EnumType.Prevalence:
                                 EpiHist.SurveyedPrevalenceTrajs.Add(
                                     new SurveyedPrevalenceTrajectory(
+                                        statID,
                                         name,
                                         ifDispay,
                                         firstObsMarksEpiStart,
@@ -1057,6 +1064,7 @@ namespace APACElib
                             case SumTrajectory.EnumType.Incidence:
                                 EpiHist.SurveyedIncidenceTrajs.Add(
                                     new SurveyedIncidenceTrajectory(
+                                        statID,
                                         name,
                                         ifDispay,
                                         firstObsMarksEpiStart,
@@ -1195,6 +1203,7 @@ namespace APACElib
                 {
                     EpiHist.SurveyedPrevalenceTrajs.Add(
                         new SurveyedPrevalenceTrajectory(
+                            statID,
                             name,
                             ifDispay,
                             firstObsMarksEpiStart,
@@ -1219,7 +1228,82 @@ namespace APACElib
                 
                 ++i;
             }
-        }        
+        }
+        // add features
+        private void AddFeatures(Array featuresSheet)
+        {
+            for (int rowIndex = 1; rowIndex <= featuresSheet.GetLength(0); ++rowIndex)
+            {
+                int id = Convert.ToInt32(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.ID));
+                string name = Convert.ToString(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.Name));
+                string strFeatureObs = Convert.ToString(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.FeatureObservation));
+
+                int specialStatID;
+                string strSpecialStatFeatureType;
+                double par;
+                int interventionID;
+                string strInterventionFeatureType;
+
+                if (strFeatureObs == "Time")
+                {
+                    // create a feature
+                    EpiHist.Features.Add(new Feature_EpidemicTime(name, id));
+                }
+                else if (strFeatureObs == "Special Statistics")
+                {
+                    specialStatID = Convert.ToInt32(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.SpecialStatID));
+                    strSpecialStatFeatureType = Convert.ToString(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.SpecialStatFeatureType));
+                    par = Convert.ToDouble(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.Par));
+                    // create a feature
+                    EpiHist.AddASpecialStatisticsFeature(name, id, specialStatID, strSpecialStatFeatureType, par);
+                }
+                else if (strFeatureObs == "Intervention")
+                {
+                    interventionID = Convert.ToInt32(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.InterventionID));
+                    strInterventionFeatureType = Convert.ToString(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.InterventionFeatureType));
+                    // create a feature
+                    EpiHist.Features.Add(new Feature_Intervention(name, id, strInterventionFeatureType, _decisionMaker.Interventions[interventionID]));
+                }
+            }
+        }
+
+        // add conditions
+        private void AddConditions(Array conditionsSheet)
+        {
+            for (int rowIndex = 1; rowIndex <= conditionsSheet.GetLength(0); ++rowIndex)
+            {
+                int id = Convert.ToInt32(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.ID));
+                string name = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.Name));
+                string strDefinedOn = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.DefinedOn));
+                
+                switch (strDefinedOn)
+                {
+                    case "Features":
+                        {
+                            string strFeatureIDs = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureIDs));
+                            string strSigns = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureSigns));
+                            string strThresholds = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureThresholds));
+                            string strConclusion = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureConclusion));
+                            EpiHist.Conditions.Add(new Condition_OnFeatures(EpiHist.Features, strFeatureIDs, strSigns, strThresholds, strConclusion));
+                        }
+                        break;
+                    case "Conditions":
+                        {
+                            string strConditions = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.Conditions));
+                            string strConclusion = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.ConditionsConclusions));
+                            EpiHist.Conditions.Add(new Condition_OnConditions(EpiHist.Conditions, strConditions, strConditions));
+                        }
+                        break;
+                    case "Always True":
+                        EpiHist.Conditions.Add(new Condition_AlwaysTrue());
+                        break;
+                    case "Always False":
+                        EpiHist.Conditions.Add(new Condition_AlwaysFalse());
+                        break;
+                }
+            }
+        }
+
         #endregion
 
     }

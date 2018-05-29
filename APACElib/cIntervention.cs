@@ -34,23 +34,24 @@ namespace APACElib
             return actionType;
         }
 
-        public int Index { get; set; }   // 0, 1, 2, ...
-        public string Name { get; set; }
-        public EnumInterventionType Type { get; set; }  // default or additive
-        public DecisionRule DecisionRule { get; set; }   // pointer to the decision rule that guides the employment of this action
+        public int Index { get; private set; }   // 0, 1, 2, ...
+        public string Name { get; private set; }
+        public EnumInterventionType Type { get; private set; }  // default or additive
+        public DecisionRule DecisionRule { get; private set; }   // pointer to the decision rule that guides the employment of this action
 
         // costs
-        public double FixedCost { get; set; }          // fixed cost to switch on
-        public double CostPerDecisionPeriod { get; set; }  // cost of using during a decision period
-        public double PenaltyForSwitchingFromOnToOff { get; set; }
+        public double FixedCost { get; private set; }          // fixed cost to switch on
+        public double CostPerDecisionPeriod { get; private set; }  // cost of using during a decision period
+        public double PenaltyForSwitchingFromOnToOff { get; private set; }
 
         // availability
-        public long TIndexBecomesAvailable { get; set; }
-        public long TIndexBecomesUnavailable { get; set; }
-        public bool RemainOnOnceTurnedOn { get; set; }
+        public long TIndexBecomesAvailable { get; private set; }
+        public long TIndexBecomesUnavailable { get; private set; }
+        public bool RemainOnOnceTurnedOn { get; private set; }
 
         // usage statistics
-        public bool IfHasBeenTrunedOnBefore { get; set; } = false;
+        public bool IfEverTurnedOnBefore { get; set; } = false;
+        public bool IfEverTurnedOffBefore { get; set; } = false;
         public int NumOfSwitchesOccured { get; set; }
         public int NumOfDecisionPeriodsOverWhichThisInterventionWasUsed { get; set; }
 
@@ -75,7 +76,7 @@ namespace APACElib
             int timeIndexBecomesAvailable,
             int timeIndexBecomesUnavailable,
             int parIDDelayToGoIntoEffectOnceTurnedOn,
-            ref DecisionRule decisionRule)
+            DecisionRule decisionRule)
                
         {
             Index = index;
@@ -112,7 +113,7 @@ namespace APACElib
             // check if the intervention is available at this time index
             if (epiTimeIndex < TIndexBecomesAvailable || epiTimeIndex >= TIndexBecomesUnavailable)
                 return 0;
-            else if (RemainOnOnceTurnedOn && IfHasBeenTrunedOnBefore)
+            else if (RemainOnOnceTurnedOn && IfEverTurnedOnBefore)
                 return 1;
             else
                 return DecisionRule.GetSwitchStatus(epiTimeIndex);
@@ -121,7 +122,7 @@ namespace APACElib
         // reset for another simulation run
         public void ResetForAnotherSimulationRun()
         {
-            IfHasBeenTrunedOnBefore = false;
+            IfEverTurnedOnBefore = false;
             NumOfSwitchesOccured = 0;
             NumOfDecisionPeriodsOverWhichThisInterventionWasUsed = 0;
 

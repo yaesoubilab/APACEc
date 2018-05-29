@@ -28,6 +28,7 @@ namespace APACElib
             else
                 return ObsList.Last();
         }
+        /// <returns> the last period observations when there is a delay </returns>
         public double GetLastObs(int nPeriodDelay)
         {
             if (ObsList.Count < nPeriodDelay)
@@ -94,6 +95,7 @@ namespace APACElib
         }
     }
 
+    // to store data points from one epidemic output along with the cost and health outcomes
     public class OneDimTrajectory
     {
         protected int _warmUpSimIndex;
@@ -184,7 +186,6 @@ namespace APACElib
 
             // cost and health outcomes
             DeltaCostHealthCollector.Update(simIndex, Prevalence, NumOfNewMembersOverPastPeriod);
-
         }
 
         public void Reset()
@@ -201,9 +202,9 @@ namespace APACElib
                 AccumIncidenceTimeSeries.Reset();
             DeltaCostHealthCollector.Reset();
         }
-        
     }
 
+    // abstract class to manage summation statistics
     public abstract class SumTrajectory : OneDimTrajectory
     {
         public enum EnumType
@@ -305,6 +306,7 @@ namespace APACElib
 
     }
 
+    // summation statistics defined on classes
     public class SumClassesTrajectory: SumTrajectory
     {
         public int[] ClassIDs { get; private set; }
@@ -357,6 +359,7 @@ namespace APACElib
         }        
     }
 
+    // summation statistics defined on events
     public class SumEventTrajectory: SumTrajectory
     {
         int[] _arrEventIDs;
@@ -387,6 +390,7 @@ namespace APACElib
         }
     }    
 
+    // ratio statistics 
     public class RatioTrajectory
     {
         public enum EnumType
@@ -469,21 +473,25 @@ namespace APACElib
         }
     }
 
+    // abstract class to manage trajectories of outputs that could be surveyed (observed)
     public abstract class SurveyedTrajectory
     {
         public string Name { get; private set; }
+        public int ID { get; private set; }
         public bool DisplayInSimOut { get; private set; }
-        protected int _nObsPeriodsDelay;
-        protected int _nDeltaTsObsPeriod;
+        protected int _nDeltaTsObsPeriod; // number of deltaT's in an observation period 
+        protected int _nObsPeriodsDelay;  // number of observation periods delayed      
         public bool FirstObsMarksStartOfEpidemic { get; private set; }
 
         public SurveyedTrajectory(
+            int id,
             string name,
             bool displayInSimOutput,
             bool firstObsMarksStartOfEpidemic,
             int nDeltaTsObsPeriod,
             int nDeltaTsDelayed)
         {
+            ID = id;
             Name = name;
             DisplayInSimOut = displayInSimOutput;
             FirstObsMarksStartOfEpidemic = firstObsMarksStartOfEpidemic;
@@ -493,9 +501,9 @@ namespace APACElib
 
         public abstract void Update(int epiTimeIndex);
         public abstract double GetLastObs(int epiTimeIndex);
-
     }
 
+    // a surveyed incidence trajectory
     public class SurveyedIncidenceTrajectory : SurveyedTrajectory
     {
         private IncidenceTimeSeries _timeSeries;
@@ -503,6 +511,7 @@ namespace APACElib
         private SumEventTrajectory _sumEventsTraj;
 
         public SurveyedIncidenceTrajectory(
+            int id,
             string name,
             bool displayInSimOutput,
             bool firstObsMarksStartOfEpidemic,
@@ -510,7 +519,7 @@ namespace APACElib
             SumEventTrajectory sumEventTrajectory,
             int nDeltaTsObsPeriod,
             int nDeltaTsDelayed) 
-            : base(name, displayInSimOutput, firstObsMarksStartOfEpidemic, nDeltaTsObsPeriod, nDeltaTsDelayed)
+            : base(id, name, displayInSimOutput, firstObsMarksStartOfEpidemic, nDeltaTsObsPeriod, nDeltaTsDelayed)
         {
             _sumClassesTraj = sumClassesTrajectory;
             _sumEventsTraj = sumEventTrajectory;
@@ -544,6 +553,7 @@ namespace APACElib
         }
     }
 
+    // a surveryed prevalence trajectory (ratio statistics are considered a prevalence measure)
     public class SurveyedPrevalenceTrajectory : SurveyedTrajectory
     {
         private PrevalenceTimeSeries _timeSeries;
@@ -551,6 +561,7 @@ namespace APACElib
         private RatioTrajectory _ratioTraj;
 
         public SurveyedPrevalenceTrajectory(
+            int id,
             string name,
             bool displayInSimOutput,
             bool firstObsMarksStartOfEpidemic,
@@ -558,7 +569,7 @@ namespace APACElib
             RatioTrajectory ratioTrajectory,
             int nDeltaTsObsPeriod,
             int nDeltaTsDelayed)
-            : base(name, displayInSimOutput, firstObsMarksStartOfEpidemic, nDeltaTsObsPeriod, nDeltaTsDelayed)
+            : base(id, name, displayInSimOutput, firstObsMarksStartOfEpidemic, nDeltaTsObsPeriod, nDeltaTsDelayed)
         {
             _sumClassesTraj = sumClassesTrajectory;
             _ratioTraj = ratioTrajectory;
@@ -588,9 +599,10 @@ namespace APACElib
         }
     }
 
+    // abstract class to manage what the simulation outputs to the Excel file
     public abstract class OutputTrajs
     {
-        protected int _simReplication;
+        protected int _simRepIndex;
         protected double _deltaT;
         protected int _nextTimeIndexToStore;
         protected DecisionMaker _decisionMaker;
@@ -606,12 +618,12 @@ namespace APACElib
         public int[][] InterventionCombinations { get; protected set; }
 
         public OutputTrajs(
-            int simReplication,
+            int simRepIndex,
             double deltaT,
             ref DecisionMaker decisionMaker,
             bool findHeader = false)
         {
-            _simReplication = simReplication;
+            _simRepIndex = simRepIndex;
             _deltaT = deltaT;
             _decisionMaker = decisionMaker;
             _nextTimeIndexToStore = 0;
@@ -641,7 +653,7 @@ namespace APACElib
             int[][] thisActionCombination = new int[1][];
 
             // simulation replication index
-            thisSimRepIndeces[0][0] = _simReplication;
+            thisSimRepIndeces[0][0] = _simRepIndex;
             // action combination
             thisActionCombination[0] = (int[])_decisionMaker.CurrentDecision.Clone();
 
@@ -658,6 +670,7 @@ namespace APACElib
         protected abstract void FillIn(int timeIndex, ref double[][] thisIncidenceOutputs, ref double[][] thisPrevalenceOutputs, ref int[][] thisActionCombination);
     }
 
+    // simulation output trajectories to be written in the Excel file
     public class SimOutputTrajs : OutputTrajs
     {
         private int _nDeltaTInSimOutputInterval;
@@ -790,13 +803,14 @@ namespace APACElib
         }
     }
 
-    public class ObsOutputTrajs : OutputTrajs
+    // surveyed output trajectories to be written in the Excel file
+    public class SurveyedOutputTrajs : OutputTrajs
     {
         private int _nDeltaTInObsInterval;
         List<SurveyedIncidenceTrajectory> _surveyIncidenceTrajs;
         List<SurveyedPrevalenceTrajectory> _surveyPrevalenceTrajs;
 
-        public ObsOutputTrajs(
+        public SurveyedOutputTrajs(
             int simReplication,
             double deltaT,
             int nDeltaTInObsInterval,
@@ -865,8 +879,8 @@ namespace APACElib
 
     public class EpidemicHistory
     {
-        private List<Class> _classes;
-        private List<Event> _events;
+        private List<Class> _classes; // pointer to classes
+        private List<Event> _events;  // pointer to events
 
         // summation and ratio trajectories
         public List<SumTrajectory> _sumTrajs = new List<SumTrajectory>();
@@ -882,7 +896,11 @@ namespace APACElib
         
         // all trajectories prepared for simulation output 
         public SimOutputTrajs SimOutputTrajs { get; private set; }
-        public ObsOutputTrajs ObsTrajs { get; private set; }
+        public SurveyedOutputTrajs SurveyedOutputTrajs { get; private set; }
+
+        // features and conditions
+        public List<Feature> Features { set; get; } = new List<Feature>();
+        public List<Condition> Conditions { set; get; } = new List<Condition>();   
 
         public EpidemicHistory(ref List<Class> classes, ref List<Event> events)
         {
@@ -908,7 +926,7 @@ namespace APACElib
                ref _sumTrajs,
                ref _ratioTraj,
                extractOutputHeaders);
-            ObsTrajs = new ObsOutputTrajs(
+            SurveyedOutputTrajs = new SurveyedOutputTrajs(
                 ID,
                 deltaT,
                 nDeltaTInObsInterval,
@@ -916,6 +934,35 @@ namespace APACElib
                 ref _survIncidenceTrajs,
                 ref _survPrevalenceTrajs,
                 extractOutputHeaders);
+        }
+
+        public void AddASpecialStatisticsFeature(string name, int featureID, int specialStatID, string strFeatureType, double par)
+        {
+            bool ifFound = false;
+            SurveyedTrajectory survTraj = null;
+            foreach (SurveyedIncidenceTrajectory t in _survIncidenceTrajs)
+            {
+                if (t.ID == specialStatID)
+                {
+                    ifFound = true;
+                    survTraj = t;
+                    break;
+                }
+            }
+            if (ifFound == false)
+            {
+                foreach (SurveyedPrevalenceTrajectory t in _survPrevalenceTrajs)
+                {
+                    if (t.ID == specialStatID)
+                    {
+                        ifFound = true;
+                        survTraj = t;
+                        break;
+                    }
+                }
+            }
+
+            Features.Add(new Feature_SpecialStats(name, featureID, strFeatureType, survTraj, par));
         }
 
         public void Update(int simTimeIndex, int epiTimeIndex, bool endOfSim)
@@ -937,7 +984,7 @@ namespace APACElib
                 survPrevTraj.Update(epiTimeIndex);
 
             SimOutputTrajs.Record(simTimeIndex, endOfSim);
-            ObsTrajs.Record(epiTimeIndex, endOfSim);
+            SurveyedOutputTrajs.Record(epiTimeIndex, endOfSim);
         }
 
         public void Reset()
@@ -952,213 +999,215 @@ namespace APACElib
                 survPrevTraj.Reset();
 
             SimOutputTrajs.Reset();
-            ObsTrajs.Reset();            
+            SurveyedOutputTrajs.Reset();            
         }
 
         public void Clean()
         {
+            // to fee up memory
             SumTrajs = new List<SumTrajectory>();
             RatioTrajs = new List<RatioTrajectory>();
         }
     }
 
+
     // Counter Statistics
-    public class CounterStatistics
-    {
-        // Variables
-        #region Variables               
+    //public class CounterStatistics
+    //{
+    //    // Variables
+    //    #region Variables               
 
-        // Fields
-        string _name;
-        OldTimeSeries _timeSeries;
-        double _QALYLossPerCount;
-        double _healthQualityPerUnitOfTime;
-        double _costPerCount;
-        double _costPerUnitOfTime;     
-        int _numOfPastObsPeriodsToStore;
-        int _numOfObsPeriodsDelayed;
-        int _numOfDeltaTInEachObsPeriod;
-        // statistics        
-        int _currentCount;
-        double _currentCost;
-        double _currentQALY;
-        double _totalCost;
-        double _totalQALY;
-        int _totalCounts;
-        bool _collectTotalCount = false;        
-        #endregion
+    //    // Fields
+    //    string _name;
+    //    OldTimeSeries _timeSeries;
+    //    double _QALYLossPerCount;
+    //    double _healthQualityPerUnitOfTime;
+    //    double _costPerCount;
+    //    double _costPerUnitOfTime;     
+    //    int _numOfPastObsPeriodsToStore;
+    //    int _numOfObsPeriodsDelayed;
+    //    int _numOfDeltaTInEachObsPeriod;
+    //    // statistics        
+    //    int _currentCount;
+    //    double _currentCost;
+    //    double _currentQALY;
+    //    double _totalCost;
+    //    double _totalQALY;
+    //    int _totalCounts;
+    //    bool _collectTotalCount = false;        
+    //    #endregion
 
-        /// <summary>
-        /// Counter statistics with no time-series
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="QALYLossPerCount"></param>
-        /// <param name="healthQualityPerUnitOfTime"></param>
-        /// <param name="costPerCount"></param>
-        /// <param name="costPerUnitOfTime"></param>
-        /// <param name="collectTotalCount"></param>
-        public CounterStatistics(string name, double QALYLossPerCount, double healthQualityPerUnitOfTime, 
-            double costPerCount, double costPerUnitOfTime, bool collectTotalCount)
-        {
-            _name = name;
-            _QALYLossPerCount = QALYLossPerCount;
-            _healthQualityPerUnitOfTime = healthQualityPerUnitOfTime;
-            _costPerCount = costPerCount;
-            _costPerUnitOfTime = costPerUnitOfTime;
-            _collectTotalCount = collectTotalCount;
-        }
-        public CounterStatistics(string name, double QALYLossPerCount, double healthQualityPerUnitOfTime, double costPerCount, double costPerUnitOfTime,
-                                int numOfPastObsPeriodsToStore, int numOfDeltaTInEachObsPeriod, int numOfObsPeriodsDelayed, bool collectTotalCount)
-        {
-            _name = name;
-            _QALYLossPerCount = QALYLossPerCount;
-            _healthQualityPerUnitOfTime = healthQualityPerUnitOfTime;
-            _costPerCount = costPerCount;
-            _costPerUnitOfTime = costPerUnitOfTime;
+    //    /// <summary>
+    //    /// Counter statistics with no time-series
+    //    /// </summary>
+    //    /// <param name="name"></param>
+    //    /// <param name="QALYLossPerCount"></param>
+    //    /// <param name="healthQualityPerUnitOfTime"></param>
+    //    /// <param name="costPerCount"></param>
+    //    /// <param name="costPerUnitOfTime"></param>
+    //    /// <param name="collectTotalCount"></param>
+    //    public CounterStatistics(string name, double QALYLossPerCount, double healthQualityPerUnitOfTime, 
+    //        double costPerCount, double costPerUnitOfTime, bool collectTotalCount)
+    //    {
+    //        _name = name;
+    //        _QALYLossPerCount = QALYLossPerCount;
+    //        _healthQualityPerUnitOfTime = healthQualityPerUnitOfTime;
+    //        _costPerCount = costPerCount;
+    //        _costPerUnitOfTime = costPerUnitOfTime;
+    //        _collectTotalCount = collectTotalCount;
+    //    }
+    //    public CounterStatistics(string name, double QALYLossPerCount, double healthQualityPerUnitOfTime, double costPerCount, double costPerUnitOfTime,
+    //                            int numOfPastObsPeriodsToStore, int numOfDeltaTInEachObsPeriod, int numOfObsPeriodsDelayed, bool collectTotalCount)
+    //    {
+    //        _name = name;
+    //        _QALYLossPerCount = QALYLossPerCount;
+    //        _healthQualityPerUnitOfTime = healthQualityPerUnitOfTime;
+    //        _costPerCount = costPerCount;
+    //        _costPerUnitOfTime = costPerUnitOfTime;
 
-            _numOfPastObsPeriodsToStore = numOfPastObsPeriodsToStore;
-            _numOfDeltaTInEachObsPeriod = numOfDeltaTInEachObsPeriod;
-            _numOfObsPeriodsDelayed = numOfObsPeriodsDelayed;
-            _collectTotalCount = collectTotalCount;
+    //        _numOfPastObsPeriodsToStore = numOfPastObsPeriodsToStore;
+    //        _numOfDeltaTInEachObsPeriod = numOfDeltaTInEachObsPeriod;
+    //        _numOfObsPeriodsDelayed = numOfObsPeriodsDelayed;
+    //        _collectTotalCount = collectTotalCount;
 
-            // setup prediction
-            if (numOfPastObsPeriodsToStore > 0)
-                _timeSeries = new OldTimeSeries(name, numOfPastObsPeriodsToStore + numOfObsPeriodsDelayed, numOfDeltaTInEachObsPeriod, OldTimeSeries.enumPredictionModel.Nothing);
-        }  
+    //        // setup prediction
+    //        if (numOfPastObsPeriodsToStore > 0)
+    //            _timeSeries = new OldTimeSeries(name, numOfPastObsPeriodsToStore + numOfObsPeriodsDelayed, numOfDeltaTInEachObsPeriod, OldTimeSeries.enumPredictionModel.Nothing);
+    //    }  
      
-        // create a clone of this class
-        public CounterStatistics Clone()
-        {
-            CounterStatistics clone;
-            if (_timeSeries == null)
-                clone = new CounterStatistics(_name, _QALYLossPerCount, _healthQualityPerUnitOfTime, _costPerCount, _costPerUnitOfTime, _collectTotalCount);            
-            else
-                clone = new CounterStatistics(_name, _QALYLossPerCount, _healthQualityPerUnitOfTime, _costPerCount, _costPerUnitOfTime,
-                     _numOfPastObsPeriodsToStore, _numOfDeltaTInEachObsPeriod, _numOfObsPeriodsDelayed, _collectTotalCount);
+    //    // create a clone of this class
+    //    public CounterStatistics Clone()
+    //    {
+    //        CounterStatistics clone;
+    //        if (_timeSeries == null)
+    //            clone = new CounterStatistics(_name, _QALYLossPerCount, _healthQualityPerUnitOfTime, _costPerCount, _costPerUnitOfTime, _collectTotalCount);            
+    //        else
+    //            clone = new CounterStatistics(_name, _QALYLossPerCount, _healthQualityPerUnitOfTime, _costPerCount, _costPerUnitOfTime,
+    //                 _numOfPastObsPeriodsToStore, _numOfDeltaTInEachObsPeriod, _numOfObsPeriodsDelayed, _collectTotalCount);
                 
-            return clone;
-        }
+    //        return clone;
+    //    }
 
-        // Properties
-        public int CurrentCountsInThisObsPeriod
-        {
-            get { return (int)_timeSeries.CurrentAggregatedObsInLastObsPeriod; }
-        }
-        public int CurrentCountsInThisSimulationOutputInterval
-        {
-            get { return (int)_timeSeries.CurrentAggregatedObsInLastObsPeriod; }
-        }
-        public int TotalCounts
-        {
-            get { return _totalCounts; }
-        }
-        public int LastObservedCounts
-        {
-            get { return (int)_timeSeries.Sum(_numOfPastObsPeriodsToStore - 1, _numOfPastObsPeriodsToStore - 1); }
-        }
-        public int TotalObservedCounts
-        {
-            get
-            {
-                if (_timeSeries == null)
-                    return _totalCounts;
-                else
-                    return _totalCounts - (int)_timeSeries.Sum(_numOfPastObsPeriodsToStore, _numOfPastObsPeriodsToStore + _numOfObsPeriodsDelayed - 1);
-            }
-        }
+    //    // Properties
+    //    public int CurrentCountsInThisObsPeriod
+    //    {
+    //        get { return (int)_timeSeries.CurrentAggregatedObsInLastObsPeriod; }
+    //    }
+    //    public int CurrentCountsInThisSimulationOutputInterval
+    //    {
+    //        get { return (int)_timeSeries.CurrentAggregatedObsInLastObsPeriod; }
+    //    }
+    //    public int TotalCounts
+    //    {
+    //        get { return _totalCounts; }
+    //    }
+    //    public int LastObservedCounts
+    //    {
+    //        get { return (int)_timeSeries.Sum(_numOfPastObsPeriodsToStore - 1, _numOfPastObsPeriodsToStore - 1); }
+    //    }
+    //    public int TotalObservedCounts
+    //    {
+    //        get
+    //        {
+    //            if (_timeSeries == null)
+    //                return _totalCounts;
+    //            else
+    //                return _totalCounts - (int)_timeSeries.Sum(_numOfPastObsPeriodsToStore, _numOfPastObsPeriodsToStore + _numOfObsPeriodsDelayed - 1);
+    //        }
+    //    }
 
-        public double CurrentQALY
-        {
-            get{ return _currentQALY;}
-        }
-        public double CurrentCost
-        {
-            get{ return _currentCost;}
-        }
-        public double TotalQALY
-        {
-            get{ return _totalQALY; }
-        }
-        public double TotalCost
-        {
-            get{return _totalCost;}
-        }
+    //    public double CurrentQALY
+    //    {
+    //        get{ return _currentQALY;}
+    //    }
+    //    public double CurrentCost
+    //    {
+    //        get{ return _currentCost;}
+    //    }
+    //    public double TotalQALY
+    //    {
+    //        get{ return _totalQALY; }
+    //    }
+    //    public double TotalCost
+    //    {
+    //        get{return _totalCost;}
+    //    }
         
-        // add one row of data
-        public void AddAnObservation(int count, double duration)
-        {
-            // record the new count
-            _currentCount = count;
-            if (_collectTotalCount) _totalCounts += count;
+    //    // add one row of data
+    //    public void AddAnObservation(int count, double duration)
+    //    {
+    //        // record the new count
+    //        _currentCount = count;
+    //        if (_collectTotalCount) _totalCounts += count;
 
-            // if a time series object is attached
-            if (_timeSeries != null)
-                _timeSeries.AddAnObs(count);
+    //        // if a time series object is attached
+    //        if (_timeSeries != null)
+    //            _timeSeries.AddAnObs(count);
 
-            _currentQALY = (- _QALYLossPerCount + duration * _healthQualityPerUnitOfTime) * count ;
-            _currentCost = (_costPerCount + duration * _costPerUnitOfTime) * count;
+    //        _currentQALY = (- _QALYLossPerCount + duration * _healthQualityPerUnitOfTime) * count ;
+    //        _currentCost = (_costPerCount + duration * _costPerUnitOfTime) * count;
             
-            _totalQALY += _currentQALY;
-            _totalCost += _currentCost;
-        }        
-        public void AddAnObservation(int count)
-        {
-            AddAnObservation(count, 0);        
-        }        
-        // prediction
-        public double Prediction(int numOfObsPeriodsInFuture)
-        {
-            double prediction = 0;
-            if (_timeSeries != null)
-                prediction = _timeSeries.Prediction(numOfObsPeriodsInFuture, false);
+    //        _totalQALY += _currentQALY;
+    //        _totalCost += _currentCost;
+    //    }        
+    //    public void AddAnObservation(int count)
+    //    {
+    //        AddAnObservation(count, 0);        
+    //    }        
+    //    // prediction
+    //    public double Prediction(int numOfObsPeriodsInFuture)
+    //    {
+    //        double prediction = 0;
+    //        if (_timeSeries != null)
+    //            prediction = _timeSeries.Prediction(numOfObsPeriodsInFuture, false);
 
-            return prediction;
-        }
-        // trend
-        public double Trend()
-        {
-            double trend = 0;
-            if (_timeSeries != null)
-                trend = _timeSeries.Trend();
+    //        return prediction;
+    //    }
+    //    // trend
+    //    public double Trend()
+    //    {
+    //        double trend = 0;
+    //        if (_timeSeries != null)
+    //            trend = _timeSeries.Trend();
 
-            return trend;
-        }
-        // Mean
-        public double Mean()
-        {
-            double mean  = 0;
-            if (_timeSeries != null)
-                mean = _timeSeries.Mean();
+    //        return trend;
+    //    }
+    //    // Mean
+    //    public double Mean()
+    //    {
+    //        double mean  = 0;
+    //        if (_timeSeries != null)
+    //            mean = _timeSeries.Mean();
 
-            return mean;
-        }
-        public double DelayedMean()
-        {
-            double mean = 0;
-            if (_timeSeries != null)
-                mean = _timeSeries.Mean(0, _numOfPastObsPeriodsToStore - 1);
+    //        return mean;
+    //    }
+    //    public double DelayedMean()
+    //    {
+    //        double mean = 0;
+    //        if (_timeSeries != null)
+    //            mean = _timeSeries.Mean(0, _numOfPastObsPeriodsToStore - 1);
 
-            return mean;
-        }
+    //        return mean;
+    //    }
 
-        // reset current aggregated counts
-        public void ResetCurrentAggregatedObsInThisObsPeriodervation()
-        {
-            _timeSeries.ResetCurrentAggregatedObsInThisObsPeriodervation();
-        }
+    //    // reset current aggregated counts
+    //    public void ResetCurrentAggregatedObsInThisObsPeriodervation()
+    //    {
+    //        _timeSeries.ResetCurrentAggregatedObsInThisObsPeriodervation();
+    //    }
 
-        // reset the statistics for another simulation run
-        public void ResetForAnotherSimulationRun()
-        {
-            _currentQALY = 0;
-            _currentCost = 0;
-            _totalCounts = 0;
-            _totalQALY = 0;
-            _totalCost = 0;
+    //    // reset the statistics for another simulation run
+    //    public void ResetForAnotherSimulationRun()
+    //    {
+    //        _currentQALY = 0;
+    //        _currentCost = 0;
+    //        _totalCounts = 0;
+    //        _totalQALY = 0;
+    //        _totalCost = 0;
 
-            if (_timeSeries != null)
-                _timeSeries.Reset();
-        }        
-    }
+    //        if (_timeSeries != null)
+    //            _timeSeries.Reset();
+    //    }        
+    //}
 
 }

@@ -127,7 +127,7 @@ namespace APACElib
                     // if turning on
                     if (CurrentDecision[i] == 0 && newDecision[i] == 1)
                     {
-                        a.IfHasBeenTrunedOnBefore = true;
+                        a.IfEverTurnedOnBefore = true;
                         a.EpiTimeIndexTurnedOn = epiTimeIndex;
                         a.EpiTimeIndexToGoIntoEffect = epiTimeIndex + a.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn;
                         a.EpiTimeIndexToTurnOff = int.MaxValue;
@@ -135,6 +135,7 @@ namespace APACElib
                     // if the intervention is turning off
                     else if (CurrentDecision[i] == 1 && newDecision[i] == 0)
                     {
+                        a.IfEverTurnedOffBefore = true;
                         a.EpiTimeIndexTurnedOff = epiTimeIndex;
                         a.EpiTimeIndexToTurnOff = epiTimeIndex;
                         a.EpiTimeIndexToGoIntoEffect = int.MaxValue;

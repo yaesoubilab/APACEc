@@ -80,6 +80,15 @@ namespace APACElib
         Or = 1,
     }
 
+    public enum EnumSign
+    {
+        e = 0,
+        l = 1,
+        q = 2, 
+        le = 3, 
+        qe = 4
+    }
+
 
     // Public procedures
     public static class SupportProcedures
@@ -148,6 +157,82 @@ namespace APACElib
             return result;
         }
 
+        public static int[] ConvertStringToIntArray(string str)
+        {
+            // remove spaces and brackets
+            str = str.Replace(" ", "");
+            str = str.Replace("{", "");
+            str = str.Replace("}", "");
+            // convert to array
+            return Array.ConvertAll(str.Split(','), Convert.ToInt32);
+        }
+        public static double[] ConvertStringToDoubleArrray(string str)
+        {
+            // remove spaces and brackets
+            str = str.Replace(" ", "");
+            str = str.Replace("{", "");
+            str = str.Replace("}", "");
+            // convert to array
+            return Array.ConvertAll(str.Split(','), Convert.ToDouble);
+        }
+
+        public static EnumSign[] ConvertToEnumSigns(string strSigns)
+        {
+            EnumSign[] signs;
+
+            // remove spaces
+            strSigns = strSigns.Replace(" ", "");
+            // convert to array
+            string[] arrSigns = Array.ConvertAll(strSigns.Split(','), Convert.ToString);
+            signs = new EnumSign[arrSigns.Length];
+            for (int i = 0; i < signs.Length; i++)
+            {
+                switch (arrSigns[i])
+                {
+                    case "e":
+                        signs[i] = EnumSign.e;
+                        break;
+                    case "l":
+                        signs[i] = EnumSign.l;
+                        break;
+                    case "q":
+                        signs[i] = EnumSign.q;
+                        break;
+                    case "le":
+                        signs[i] = EnumSign.le;
+                        break;
+                    case "qe":
+                        signs[i] = EnumSign.qe;
+                        break;
+                }
+            }
+            return signs;
+        }
+
+        public static bool ValueOfComparison(double x, EnumSign sign, double y)
+        {
+            bool result = false;
+
+            switch (sign)
+            {
+                case EnumSign.e:
+                    result = (Math.Abs(x - y) < 0.0001);
+                    break;
+                case EnumSign.l:
+                    result = (x < y);
+                    break;
+                case EnumSign.q:
+                    result = (x > y);
+                    break;
+                case EnumSign.le:
+                    result = (x <= y);
+                    break;
+                case EnumSign.qe:
+                    result = (x >= y);
+                    break;
+            }
+            return result;
+        }
     }   
     
 

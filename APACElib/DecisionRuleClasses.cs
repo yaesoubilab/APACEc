@@ -43,19 +43,14 @@ namespace APACElib
     // thereshold based decision rule
     public class DecisionRule_ThresholdBased : DecisionRule
     {
-
-        private List<Condition> _conditions = new List<Condition>();
-        private int[] _conditionIDs = new int[0];
-        private EnumAndOr _andOr = EnumAndOr.And;
+        private int _conditionIDToTurnOn;
+        private int _conditionIDToTurnOff;
 
         public DecisionRule_ThresholdBased(
-            List<Condition> conditions, 
-            int[] conditionIDs,
-            EnumAndOr andOr = EnumAndOr.And)
+            int conditionIDToTurnOn, int conditionIDToTurnOff)
         {
-            _conditions = conditions;
-            _conditionIDs = conditionIDs;
-            _andOr = andOr;
+            _conditionIDToTurnOn = conditionIDToTurnOn;
+            _conditionIDToTurnOff = conditionIDToTurnOff;
         }
 
         public override int GetSwitchStatus(int epiTimeIndex)
