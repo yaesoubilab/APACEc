@@ -18,64 +18,36 @@ namespace APACElib
             NumOfDecisoinPeriodsOverWhichThisInterventionWasEmployed = 4,
         }
 
-        // Variables
-        protected string _name;
-        protected int _index;
-
+        public string Name { get; private set; }
+        public int Index { get; private set; }
         public double Value { get; protected set; }
-        protected enumFeatureType _featureType;
+        public enumFeatureType FeatureType { get; private set; }
+        public double Min { get; private set; }
+        public double Max { get; private set; }
         protected int _numOfObsPeriodsForFuturePrediction;
-        protected double _max, _min;
         // Instantiation
-        public Feature(string name, int index, enumFeatureType featureType)
+        public Feature(string name, int index, enumFeatureType featureType = enumFeatureType.Incidence)
         {
-            _name = name;
-            _index = index;
-            _featureType = featureType;
+            Name = name;
+            Index = index;
+            FeatureType = featureType;
 
-            _min = double.MaxValue;
-            _max = double.MinValue;
-        }
-        public Feature(string name, int index)
-        {
-            _name = name;
-            _index = index;
-
-            _min = double.MaxValue;
-            _max = double.MinValue;
+            Min = double.MaxValue;
+            Max = double.MinValue;
         }
 
-        // Properties
-        public int Index
-        {
-            get { return _index; }
-        }
-        public string Name
-        {
-            get{ return _name; }
-        }
-        public double Max
-        {
-            get{ return _max; }
-        }
-        public double Min
-        {
-            get{ return _min; }
-        }
-        public enumFeatureType FeatureType
-        {
-            get{ return _featureType; }
-        }
+        // Properties        
         public int NumOfTimePeriodsForFuturePrediction
         {
             get{ return _numOfObsPeriodsForFuturePrediction;}
         }
-        public void UpdateMinMax(double value)
+        public void UpdateValue(double value)
         {
-            if (value > _max)
-                _max = value;
-            if (value < _min)
-                _min = value;
+            Value = value;
+            if (value > Max)
+                Max = value;
+            if (value < Min)
+                Min = value;
         }
     }
 

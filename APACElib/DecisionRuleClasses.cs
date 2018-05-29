@@ -62,8 +62,37 @@ namespace APACElib
         {
             int switchValue = 1; // on
 
-            
-
+            switch (_andOr)
+            {
+                case EnumAndOr.And:
+                    {
+                        switchValue = 1;  // all conditions are satisifed
+                        for (int i = 0; i < _conditionIDs.Length; i++)
+                        {
+                            // if one conditions is not satisfied
+                            if (_conditions[_conditionIDs[i]].GetValue(epiTimeIndex) == false)
+                            {
+                                switchValue = 0;
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                case EnumAndOr.Or:
+                    {
+                        switchValue = 0;  // no conditions is satisifed
+                        for (int i = 0; i < _conditionIDs.Length; i++)
+                        {
+                            // if one is satisifed
+                            if (_conditions[_conditionIDs[i]].GetValue(epiTimeIndex) == true)
+                            {
+                                switchValue = 1;
+                                break;
+                            }
+                        }
+                    }
+                    break;
+            }
             return switchValue;
         }
     }
