@@ -722,18 +722,13 @@ namespace APACElib
                         {
                             int frequency = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.PeriodicEmployment_Periodicity));
                             int duration = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.PeriodicEmployment_Length));
-                            //thisIntervention.AddPeriodicEmploymentSetting(frequency, duration);
                         }
                         break;
                     case EnumDecisionRule.ThresholdBased:
                         {
                             int conditionIDToTurnOn = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_ConditionIDToTurnOn));
                             int conditionIDToTurnOff = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_ConditionIDToTurnOff));
-
-                            simDecisionRule= new DecisionRule_ThresholdBased(EpiHist.Conditions, )
-                            //double threshold = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_ThresholdToTriggerThisDecision));
-                            //int duration = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_NumOfDecisionPeriodsToUseThisDecision));
-                            //thisIntervention.AddThresholdBasedEmploymentSetting(IDOfSpecialStatistics, observation, threshold, (int)(duration * _numOfDeltaTsInADecisionInterval));
+                            simDecisionRule = new DecisionRule_ThresholdBased(EpiHist.Conditions, conditionIDToTurnOn, conditionIDToTurnOff);
                         }
                         break;
                     case EnumDecisionRule.IntervalBased:

@@ -16,8 +16,7 @@ namespace APACElib
     }
 
     public abstract class DecisionRule
-    {
-        
+    {        
         public virtual int GetSwitchStatus(int epiTimeIndex)
         {
             return 0;
@@ -43,56 +42,29 @@ namespace APACElib
     // thereshold based decision rule
     public class DecisionRule_ThresholdBased : DecisionRule
     {
+        private List<Condition> _conditions;
         private int _conditionIDToTurnOn;
         private int _conditionIDToTurnOff;
 
         public DecisionRule_ThresholdBased(
-            int conditionIDToTurnOn, int conditionIDToTurnOff)
+            List<Condition> conditions, int conditionIDToTurnOn, int conditionIDToTurnOff)
         {
+            _conditions = conditions;
             _conditionIDToTurnOn = conditionIDToTurnOn;
             _conditionIDToTurnOff = conditionIDToTurnOff;
         }
 
         public override int GetSwitchStatus(int epiTimeIndex)
         {
-            int switchValue = 1; // on
+            int value = 0;
+            if (_conditions[_conditionIDToTurnOn].GetValue(epiTimeIndex))
+                value = 1;
+            else if (_conditions[_conditionIDToTurnOff].GetValue(epiTimeIndex))
+                value = 0;
 
-            switch (_andOr)
-            {
-                case EnumAndOr.And:
-                    {
-                        switchValue = 1;  // all conditions are satisifed
-                        for (int i = 0; i < _conditionIDs.Length; i++)
-                        {
-                            // if one conditions is not satisfied
-                            if (_conditions[_conditionIDs[i]].GetValue(epiTimeIndex) == false)
-                            {
-                                switchValue = 0;
-                                break;
-                            }
-                        }
-                    }
-                    break;
-                case EnumAndOr.Or:
-                    {
-                        switchValue = 0;  // no conditions is satisifed
-                        for (int i = 0; i < _conditionIDs.Length; i++)
-                        {
-                            // if one is satisifed
-                            if (_conditions[_conditionIDs[i]].GetValue(epiTimeIndex) == true)
-                            {
-                                switchValue = 1;
-                                break;
-                            }
-                        }
-                    }
-                    break;
-            }
-            return switchValue;
+            return value;
         }
     }
-
-
 
 
 
