@@ -70,30 +70,48 @@ namespace APACElib
             _prespecifiedDecisionsOverDecisionsPeriods = prespecifiedDecisionsOverDecisionsPeriods;
         }
 
-        // find a new intervention combination (return true if there is a chance in decision)
-        public void MakeANewDecision(int epiTimeIndex, bool toInitialize)
+        // make the first decision (at time zero)
+        public void MakeTheFirstDecision(int epiTimeIndex)
         {
-            // make a decision only at epidemic time 0 or the next decision point
-            if (!(toInitialize || epiTimeIndex == _nextEpiTimeIndexToMakeDecision))
-                return; // no change in decision 
-
             int[] newDecision = new int[NumOfInterventions];
-            bool ifThereIsAChange = false;
 
             // check if decisions are not prespecified
             if (_prespecifiedDecisionsOverDecisionsPeriods == null)
             {
                 // find the switch status of each action
-                foreach (Intervention inter in Interventions)
-                {
-                    newDecision[inter.Index] = inter.FindSwitchStatus(epiTimeIndex);
-                }
+                foreach (Intervention intv in Interventions)
+                    newDecision[intv.Index] = intv.FindSwitchStatus(CurrentDecision[intv.Index], epiTimeIndex);
             }
             else // if decisions are prespecified
                 newDecision = _prespecifiedDecisionsOverDecisionsPeriods[DecisionIntervalIndex];
 
+            // update the current intervention combination to the new one
+            UpdateCurrentDecision(newDecision, epiTimeIndex, ifThereIsAChange: true);
+
+            // update the next time decisions should be made
+            _nextEpiTimeIndexToMakeDecision = Math.Max(epiTimeIndex + _nOfDeltaTsInADecisionInterval, EpiTimeIndexToStartDecisionMaking);
+        }
+
+        // find a new intervention combination
+        public void MakeANewDecision(int epiTimeIndex)
+        {
+            // if next decision point is reached
+            if (epiTimeIndex != _nextEpiTimeIndexToMakeDecision)
+                return; // no change in decision 
+
+            // check if decisions are not prespecified
+            int[] newDecision = new int[NumOfInterventions];
+            if (_prespecifiedDecisionsOverDecisionsPeriods == null)
+            {
+                // find the switch status of each action
+                foreach (Intervention intv in Interventions)
+                    newDecision[intv.Index] = intv.FindSwitchStatus(CurrentDecision[intv.Index], epiTimeIndex);
+            }
+            else // if decisions are prespecified
+                newDecision = _prespecifiedDecisionsOverDecisionsPeriods[DecisionIntervalIndex];
 
             // check if this new intervention combination is the same as the current one
+            bool ifThereIsAChange = false;
             if (CurrentDecision.SequenceEqual(newDecision))
                 ifThereIsAChange = false;
             else
@@ -104,6 +122,7 @@ namespace APACElib
 
             // update the index of the decision period
             DecisionIntervalIndex += 1;
+
             // update the next time decisions should be made
             _nextEpiTimeIndexToMakeDecision = Math.Max(epiTimeIndex + _nOfDeltaTsInADecisionInterval, EpiTimeIndexToStartDecisionMaking);
         }
@@ -163,7 +182,7 @@ namespace APACElib
                     if (newDecision[i] == 1)
                     {
                         CostOverThisDecisionPeriod += a.CostPerDecisionPeriod;
-                        ++a.NumOfDecisionPeriodsOverWhichThisInterventionWasUsed;
+                        ++a.NumOfDecisionPeriodsUsedOver;
                     }
 
                     // update the new action
@@ -180,7 +199,7 @@ namespace APACElib
                 if (newDecision[a.Index] == 1)
                 {
                     CostOverThisDecisionPeriod += a.CostPerDecisionPeriod;
-                    ++a.NumOfDecisionPeriodsOverWhichThisInterventionWasUsed;
+                    ++a.NumOfDecisionPeriodsUsedOver;
                 }
             }
         }
@@ -274,7 +293,10 @@ namespace APACElib
         public void Update(int epiTimeIndex, bool toInitialize, ref List<Class> classes)
         {
             // request for a decision
-            _decisionMaker.MakeANewDecision(epiTimeIndex, toInitialize);
+            if (toInitialize)
+                _decisionMaker.MakeTheFirstDecision(epiTimeIndex);
+            else
+                _decisionMaker.MakeANewDecision(epiTimeIndex);
 
             // update interventions that are in effect
             if (epiTimeIndex == _decisionMaker.EpiTimeIndexToChangeIntervetionsInEffect)
@@ -313,9 +335,7 @@ namespace APACElib
                 foreach (Class thisClass in classes)
                     thisClass.UpdateIntrvnCombination(InterventionsInEffect);
             }
-
-        }        
-        
+        }    
     }
 
     public class ADP

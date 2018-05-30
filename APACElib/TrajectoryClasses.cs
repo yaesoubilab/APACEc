@@ -902,7 +902,7 @@ namespace APACElib
         public List<Feature> Features { set; get; } = new List<Feature>();
         public List<Condition> Conditions { set; get; } = new List<Condition>();   
 
-        public EpidemicHistory(ref List<Class> classes, ref List<Event> events)
+        public EpidemicHistory(List<Class> classes, List<Event> events)
         {
             _classes = classes;
             _events = events;
@@ -982,7 +982,13 @@ namespace APACElib
             // update surveyed prevalence 
             foreach (SurveyedPrevalenceTrajectory survPrevTraj in SurveyedPrevalenceTrajs)
                 survPrevTraj.Update(epiTimeIndex);
+            // update features
+            foreach (Feature f in Features)
+                f.Update(epiTimeIndex);
+        }
 
+        public void Record(int simTimeIndex, int epiTimeIndex, bool endOfSim)
+        {
             SimOutputTrajs.Record(simTimeIndex, endOfSim);
             SurveyedOutputTrajs.Record(epiTimeIndex, endOfSim);
         }

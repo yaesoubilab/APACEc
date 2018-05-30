@@ -24,7 +24,7 @@ namespace APACElib
         public ForceOfInfectionModel FOIModel { get; set; }
         public List<Class> Classes { get => _classes; }
         private List<Class> _classes = new List<Class>();
-        private List<Event> _events = new List<Event>();    
+        private List<Event> _events = new List<Event>();
         public EpidemicHistory EpiHist { get; private set; }
         public EpidemicCostHealth EpidemicCostHealth { get; set; }
 
@@ -130,14 +130,17 @@ namespace APACElib
             // simulate the epidemic
             while (!toStop)
             {
+                // update history
+                EpiHist.Update(_simTimeIndex, _epiTimeIndex, false);
+
                 // make decisions if decision is not predetermined and announce the new decisions (may not necessarily go into effect)
                 _monitorOfIntrvsInEffect.Update(_epiTimeIndex, false, ref _classes);
 
                 // update the effect of chance in time dependent parameter value
                 _paramManager.UpdateTimeDepParams(ref _rng, _simTimeIndex * _modelSets.DeltaT, ref _classes);
 
-                // update recorded trajectories
-                EpiHist.Update(_simTimeIndex, _epiTimeIndex, false);                
+                // Update recorded trajectories to report to the Excel file
+                EpiHist.Record(_simTimeIndex, _epiTimeIndex, false);                
 
                 // check if this is has been a feasible trajectory for calibration
                 if (ModelUse == EnumModelUse.Calibration && !ifThisIsAFeasibleCalibrationTrajectory)
@@ -343,6 +346,8 @@ namespace APACElib
         {
             // model settings
             _modelSets = modelSettings;
+            // epidemic history
+            EpiHist = new EpidemicHistory(_classes, _events);
             // decision maker
             _decisionMaker = new DecisionMaker(
                 _modelSets.EpidemicTimeIndexToStartDecisionMaking,
@@ -359,8 +364,7 @@ namespace APACElib
                 ref _paramManager);
             // add events
             AddEvents(modelSettings.EventSheet);
-            // epidemic history
-            EpiHist = new EpidemicHistory(ref _classes, ref _events);
+            
             // add interventions
             AddInterventions(modelSettings.InterventionSheet);
             // add resources
@@ -378,10 +382,10 @@ namespace APACElib
                 ref _decisionMaker,
                 ref _classes,
                 extractOutputHeaders);
-            // add conditions
-            AddConditions(modelSettings.ConditionsSheet);
             // add features
             AddFeatures(modelSettings.FeaturesSheet);
+            // add conditions
+            AddConditions(modelSettings.ConditionsSheet);
             // add connections
             AddConnections(modelSettings.ConnectionsMatrix);
             // monitor of interventions in effect

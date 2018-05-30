@@ -17,10 +17,7 @@ namespace APACElib
 
     public abstract class DecisionRule
     {        
-        public virtual int GetSwitchStatus(int epiTimeIndex)
-        {
-            return 0;
-        }
+        public virtual int GetSwitchStatus(int currentSwitchStatus, int epiTimeIndex) { return 0; }
     }
 
     // predetermined decision rule 
@@ -33,7 +30,7 @@ namespace APACElib
             _switchValue = predeterminedSwitchValue;
         }
 
-        public override int GetSwitchStatus(int epiTimeIndex)
+        public override int GetSwitchStatus(int currentSwitchStatus, int epiTimeIndex)
         {
             return _switchValue;
         }
@@ -54,22 +51,19 @@ namespace APACElib
             _conditionIDToTurnOff = conditionIDToTurnOff;
         }
 
-        public override int GetSwitchStatus(int epiTimeIndex)
+        public override int GetSwitchStatus(int currentSwitchStatus, int epiTimeIndex)
         {
-            int value = 0;
-            if (_conditions[_conditionIDToTurnOn].GetValue(epiTimeIndex))
+            int value = currentSwitchStatus;
+            // if to turn on
+            if (currentSwitchStatus == 0 && _conditions[_conditionIDToTurnOn].GetValue(epiTimeIndex))
                 value = 1;
-            else if (_conditions[_conditionIDToTurnOff].GetValue(epiTimeIndex))
+            // if to turn off
+            else if (currentSwitchStatus == 1 && _conditions[_conditionIDToTurnOff].GetValue(epiTimeIndex))
                 value = 0;
 
             return value;
         }
     }
-
-
-
-
-
 
     // periodic decision rule 
     public class DecionRule_Periodic : DecisionRule

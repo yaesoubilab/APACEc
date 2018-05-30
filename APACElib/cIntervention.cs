@@ -53,7 +53,7 @@ namespace APACElib
         public bool IfEverTurnedOnBefore { get; set; } = false;
         public bool IfEverTurnedOffBefore { get; set; } = false;
         public int NumOfSwitchesOccured { get; set; }
-        public int NumOfDecisionPeriodsOverWhichThisInterventionWasUsed { get; set; }
+        public int NumOfDecisionPeriodsUsedOver { get; set; }
 
         public bool IfAffectingContactPattern { get; set; }
         
@@ -104,7 +104,7 @@ namespace APACElib
         }
 
         // find the switch status
-        public int FindSwitchStatus(int epiTimeIndex)
+        public int FindSwitchStatus(int currentSwitchStatus, int epiTimeIndex)
         {
             // defualt intervention is always on
             if (Type == EnumInterventionType.Default)
@@ -116,7 +116,7 @@ namespace APACElib
             else if (RemainOnOnceTurnedOn && IfEverTurnedOnBefore)
                 return 1;
             else
-                return DecisionRule.GetSwitchStatus(epiTimeIndex);
+                return DecisionRule.GetSwitchStatus(currentSwitchStatus, epiTimeIndex);
         }
 
         // reset for another simulation run
@@ -124,7 +124,7 @@ namespace APACElib
         {
             IfEverTurnedOnBefore = false;
             NumOfSwitchesOccured = 0;
-            NumOfDecisionPeriodsOverWhichThisInterventionWasUsed = 0;
+            NumOfDecisionPeriodsUsedOver = 0;
 
             // find the time to go into effect
             if (Type == EnumInterventionType.Default)

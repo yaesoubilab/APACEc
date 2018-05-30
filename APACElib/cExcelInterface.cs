@@ -196,7 +196,7 @@ namespace APACElib
             FeatureIDs = 5,
             FeatureSigns = 6, 
             FeatureThresholds = 7,
-            FeatureConclusion = 9, 
+            FeatureConclusion = 8, 
 
             Conditions = 10,
             ConditionsConclusions = 11
