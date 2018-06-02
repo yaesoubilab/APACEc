@@ -14,7 +14,7 @@ namespace APACElib
         public List<Intervention> Interventions { get; set; } = new List<Intervention>();
         public int NumOfInterventions { get; set; } = 0;
 
-        private int _nOfDeltaTsInADecisionInterval; // number of time steps in a decision interval
+        private readonly int _nOfDeltaTsInADecisionInterval; // number of time steps in a decision interval
         private int _nextEpiTimeIndexToMakeDecision; // next epidemic time index to make a decision       
         public int DecisionIntervalIndex { get; set; } // index of the current decision interval
         public int EpiTimeIndexToStartDecisionMaking { get; set; }
@@ -99,8 +99,9 @@ namespace APACElib
             if (epiTimeIndex != _nextEpiTimeIndexToMakeDecision)
                 return; // no change in decision 
 
-            // check if decisions are not prespecified
             int[] newDecision = new int[NumOfInterventions];
+
+            // check if decisions are not prespecified
             if (_prespecifiedDecisionsOverDecisionsPeriods == null)
             {
                 // find the switch status of each action
@@ -144,16 +145,14 @@ namespace APACElib
                         a.NumOfSwitchesOccured += 1;
 
                     // if turning on
-                    if (CurrentDecision[i] == 0 && newDecision[i] == 1)
-                    {
+                    if (CurrentDecision[i] == 0 && newDecision[i] == 1) {
                         a.IfEverTurnedOnBefore = true;
                         a.EpiTimeIndexTurnedOn = epiTimeIndex;
                         a.EpiTimeIndexToGoIntoEffect = epiTimeIndex + a.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn;
                         a.EpiTimeIndexToTurnOff = int.MaxValue;
                     }
                     // if the intervention is turning off
-                    else if (CurrentDecision[i] == 1 && newDecision[i] == 0)
-                    {
+                    else if (CurrentDecision[i] == 1 && newDecision[i] == 0) {
                         a.IfEverTurnedOffBefore = true;
                         a.EpiTimeIndexTurnedOff = epiTimeIndex;
                         a.EpiTimeIndexToTurnOff = epiTimeIndex;
@@ -161,26 +160,20 @@ namespace APACElib
                     }
                     // if the intervention remains off
                     else if (CurrentDecision[i] == 0)
-                    {
                         a.EpiTimeIndexToGoIntoEffect = int.MaxValue;
-                    }
 
                     // calculate fixed cost
                     if (CurrentDecision[i] == 0 && newDecision[i] == 1)
-                    {
                         CostOverThisDecisionPeriod += a.FixedCost;
-                    }
 
                     // calculate the penalty cost for switching from on to off
-                    if (a.PenaltyForSwitchingFromOnToOff > 0)
-                    {
+                    if (a.PenaltyForSwitchingFromOnToOff > 0)  {
                         if (CurrentDecision[i] == 1 && newDecision[i] == 0)
                             CostOverThisDecisionPeriod += a.PenaltyForSwitchingFromOnToOff;
                     }
 
                     // update the cost per unit of time for this action combination
-                    if (newDecision[i] == 1)
-                    {
+                    if (newDecision[i] == 1) {
                         CostOverThisDecisionPeriod += a.CostPerDecisionPeriod;
                         ++a.NumOfDecisionPeriodsUsedOver;
                     }
@@ -190,17 +183,7 @@ namespace APACElib
                 }
 
                 // find the epidemic time index to change the interventions that are in effect
-                //EpiTimeIndexToChangeIntervetionsInEffect = FindNextEpiTimeIndexToChangeInterventionsInEffect();
-            }
-
-            // update cost of this period
-            foreach (Intervention a in Interventions)
-            {
-                if (newDecision[a.Index] == 1)
-                {
-                    CostOverThisDecisionPeriod += a.CostPerDecisionPeriod;
-                    ++a.NumOfDecisionPeriodsUsedOver;
-                }
+                EpiTimeIndexToChangeIntervetionsInEffect = FindNextEpiTimeIndexToChangeInterventionsInEffect();
             }
         }
 
@@ -329,7 +312,7 @@ namespace APACElib
                     }
                 }
 
-                _decisionMaker.UpdateNextEpiTimeIndexToChangeInterventionsInEffect();
+                //_decisionMaker.UpdateNextEpiTimeIndexToChangeInterventionsInEffect();
 
                 // update interventions that are in effect for each class
                 foreach (Class thisClass in classes)

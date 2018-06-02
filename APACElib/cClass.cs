@@ -209,7 +209,7 @@ namespace APACElib
         // update rates of epidemic independent processes associated to this class
         public override void UpdateRatesOfBirthAndEpiIndpEvents(double[] values)
         {
-            foreach (Event thisEvent in _activeEvents.Where(e => e.IDOfRateParameter > 0))
+            foreach (Event thisEvent in _events.Where(e => e.IDOfRateParameter > 0))
                 thisEvent.UpdateRate(values[thisEvent.IDOfRateParameter]);
         }        
 
@@ -217,7 +217,7 @@ namespace APACElib
         public override void UpdateTransmissionRates(double[] transmissionRatesByPathogen)
         {
             // update the transmission rates
-            foreach (Event thisEvent in _activeEvents.Where(e => e is Event_EpidemicDependent))
+            foreach (Event thisEvent in _events.Where(e => e is Event_EpidemicDependent))
                 thisEvent.UpdateRate(transmissionRatesByPathogen[thisEvent.IDOfPathogenToGenerate]);
         }
 
