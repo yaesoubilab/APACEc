@@ -131,13 +131,13 @@ namespace APACElib
             while (!toStop)
             {
                 // update history
-                EpiHist.Update(_simTimeIndex, _epiTimeIndex, false);
+                EpiHist.Update(_simTimeIndex, _epiTimeIndex, false, _rng);
 
                 // make decisions if decision is not predetermined and announce the new decisions (may not necessarily go into effect)
                 _monitorOfIntrvsInEffect.Update(_epiTimeIndex, false, ref _classes);
 
                 // update the effect of chance in time dependent parameter value
-                _paramManager.UpdateTimeDepParams(ref _rng, _simTimeIndex * _modelSets.DeltaT, ref _classes);
+                _paramManager.UpdateTimeDepParams(_rng, _simTimeIndex * _modelSets.DeltaT, _classes);
 
                 // Update recorded trajectories to report to the Excel file
                 EpiHist.Record(_simTimeIndex, _epiTimeIndex, false);                
@@ -167,7 +167,7 @@ namespace APACElib
                 {
                     toStop = true;
                     // update recorded trajectories 
-                    EpiHist.Update(_simTimeIndex, _epiTimeIndex, true);
+                    EpiHist.Update(_simTimeIndex, _epiTimeIndex, true, _rng);
 
                     // find if it is an acceptable trajectory
                     acceptableTrajectory = true;
@@ -1027,7 +1027,8 @@ namespace APACElib
                                         thisSumClassTraj,
                                         null,
                                         _modelSets.NumOfDeltaT_inObservationPeriod,
-                                        nDeltaTDelayed)
+                                        nDeltaTDelayed, 
+                                        1)
                                         );
                                 break;
                         }
@@ -1084,7 +1085,7 @@ namespace APACElib
                 EpiHist.SumTrajs.Last().AddCostHealthOutcomes(DALYPerNewMember, costPerNewMember, 0, 0);
 
                 // update calibraton infor
-                EpiHist.SumTrajs.Last().CalibInfo = new TrajectoryCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
+                EpiHist.SumTrajs.Last().CalibInfo = new TrajCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
                 
             }
         }
@@ -1107,6 +1108,7 @@ namespace APACElib
                 // real-time monitoring
                 bool surveillanceDataAvailable = SupportFunctions.ConvertYesNoToBool(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.SurveillanceDataAvailable).ToString());
                 int nDeltaTDelayed = Convert.ToInt32(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.NumOfDeltaTsDelayed));
+                double noise = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Noise));
                 bool firstObsMarksEpiStart = SupportFunctions.ConvertYesNoToBool(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FirstObservationMarksTheStartOfTheSpread).ToString());
 
                 // calibration
@@ -1192,7 +1194,7 @@ namespace APACElib
                     _modelSets.NumOfDeltaT_inSimOutputInterval);
 
                 // set up calibration
-                thisRatioTraj.CalibInfo = new TrajectoryCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
+                thisRatioTraj.CalibInfo = new TrajCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
 
                 // add the summation statistics
                 EpiHist.RatioTrajs.Add(thisRatioTraj);
@@ -1209,7 +1211,8 @@ namespace APACElib
                             null,
                             thisRatioTraj,
                             _modelSets.NumOfDeltaT_inObservationPeriod,
-                            nDeltaTDelayed)
+                            nDeltaTDelayed, 
+                            noise)
                             );
                 }
             }

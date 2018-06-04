@@ -48,7 +48,7 @@ namespace APACElib
         }
 
         // update the effect of change in time dependent parameters
-        public void UpdateTimeDepParams(ref RNG rng, double time, ref List<Class> classes)
+        public void UpdateTimeDepParams(RNG rng, double time, List<Class> classes)
         {
             if (ThereAreTimeDepParms)
             {

@@ -4,12 +4,13 @@ using System.Linq;
 using System.Text;
 using SimulationLib;
 using ComputationLib;
+using RandomVariateLib;
 
 namespace APACElib
 {
     public abstract class TimeSeries
     {
-        public List<double> ObsList { get; set; } = new List<double>();
+        public List<double> Recordings { get; set; } = new List<double>();
         protected int _nRecordingsInThisPeriod = 0;
         protected int _nRecodingsInEachPeriod;
 
@@ -20,21 +21,21 @@ namespace APACElib
 
         public abstract void Record(double value);
 
-        /// <returns> the last period observation </returns>
-        public double GetLastObs()
+        /// <returns> the last period recording </returns>
+        public double GetLastRecording()
         {
-            if (ObsList.Count == 0)
+            if (Recordings.Count == 0)
                 return -1;
             else
-                return ObsList.Last();
+                return Recordings.Last();
         }
         /// <returns> the last period observations when there is a delay </returns>
-        public double GetLastObs(int nPeriodDelay)
+        public double GetLastRecording(int nPeriodDelay)
         {
-            if (ObsList.Count < nPeriodDelay)
+            if (Recordings.Count < nPeriodDelay)
                 return -1;
             else
-                return ObsList[ObsList.Count - nPeriodDelay - 1];
+                return Recordings[Recordings.Count - nPeriodDelay - 1];
         }
 
         public abstract void Reset();
@@ -51,20 +52,20 @@ namespace APACElib
             // find if a new element should be added to the list
             if (_nRecordingsInThisPeriod % _nRecodingsInEachPeriod == 0)
             {
-                ObsList.Add(value);
+                Recordings.Add(value);
                 _nRecordingsInThisPeriod = 1;
             }
             else
             {
                 // increment the observation in the current period
-                ObsList[ObsList.Count-1] += value;
+                Recordings[Recordings.Count-1] += value;
                 ++_nRecordingsInThisPeriod;
             }
         }
 
         public override void Reset()
         {
-            ObsList.Clear();
+            Recordings.Clear();
             //ObsList.Add(0); // 0 added for the interval 0
             _nRecordingsInThisPeriod = 0;
         }
@@ -81,7 +82,7 @@ namespace APACElib
             // find if a new element should be added to the list
             if (_nRecordingsInThisPeriod % _nRecodingsInEachPeriod == 0)
             {
-                ObsList.Add(value);
+                Recordings.Add(value);
                 _nRecordingsInThisPeriod = 1;
             }
             else
@@ -90,7 +91,7 @@ namespace APACElib
 
         public override void Reset()
         {
-            ObsList.Clear();
+            Recordings.Clear();
             _nRecordingsInThisPeriod = 0;
         }
     }
@@ -221,7 +222,7 @@ namespace APACElib
 
         public Boolean DisplayInSimOutput { get; set; }
         public EnumType Type { get; set; }
-        public TrajectoryCalibrationInfo CalibInfo { get; set; }
+        public TrajCalibrationInfo CalibInfo { get; set; }
 
         public SumTrajectory(
             int ID,
@@ -285,13 +286,13 @@ namespace APACElib
             switch (Type)
             {
                 case EnumType.Incidence:
-                    value = (int)IncidenceTimeSeries.GetLastObs();
+                    value = (int)IncidenceTimeSeries.GetLastRecording();
                     break;
                 case EnumType.AccumulatingIncident:
                     value = AccumulatedIncidenceAfterWarmUp;
                     break;
                 case EnumType.Prevalence:
-                    value = (int)PrevalenceTimeSeries.GetLastObs();
+                    value = (int)PrevalenceTimeSeries.GetLastRecording();
                     break;
             }
             return value;
@@ -400,14 +401,15 @@ namespace APACElib
             PrevalenceOverPrevalence = 2,
             IncidenceOverPrevalence = 3,
         }
-        public TrajectoryCalibrationInfo CalibInfo { get; set; }
+        public TrajCalibrationInfo CalibInfo { get; set; }
 
         public int ID { get; }
         public string Name { get; set; }
         public Boolean DisplayInSimOutput { get; set; }
-        public PrevalenceTimeSeries TimeSeries { get; set; }
+        public PrevalenceTimeSeries TimeSeries { get; set; }    // treating all ratio stat as prevalence
         public ObsBasedStat AveragePrevalenceStat { get; set; }
         public double LastRecordedRatio { get; private set; }
+        public int LastRecordedDenominator { get; private set; }
 
         public EnumType Type { get; set; }
         int _nominatorSpecialStatID;
@@ -438,26 +440,39 @@ namespace APACElib
                 AveragePrevalenceStat = new ObsBasedStat("Average prevalence");
         }
 
-        public void Add(int simIndex, ref List<SumTrajectory> sumTrajectories)
+        public void Add(int simIndex, List<SumTrajectory> sumTrajectories)
         {
             LastRecordedRatio = double.NaN;
             switch (Type)
             {
                 case EnumType.PrevalenceOverPrevalence:
-                    LastRecordedRatio = (double)sumTrajectories[_nominatorSpecialStatID].Prevalence
-                        / (double)sumTrajectories[_denominatorSpecialStatID].Prevalence;
+                    {
+                        LastRecordedDenominator = sumTrajectories[_denominatorSpecialStatID].Prevalence;
+                        LastRecordedRatio = (double)sumTrajectories[_nominatorSpecialStatID].Prevalence
+                            / LastRecordedDenominator;
+                    }
+                    break;
+                case EnumType.IncidenceOverIncidence:
+                    {
+                        LastRecordedDenominator = sumTrajectories[_denominatorSpecialStatID].GetLastObs();
+                        LastRecordedRatio = (double)sumTrajectories[_nominatorSpecialStatID].GetLastObs()
+                            / LastRecordedDenominator;
+                    }
                     break;
                 case EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
-                    LastRecordedRatio = (double)sumTrajectories[_nominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp
-                        / (double)sumTrajectories[_denominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp;
+                    {
+                        LastRecordedDenominator = sumTrajectories[_denominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp;
+                        LastRecordedRatio = (double)sumTrajectories[_nominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp
+                            / LastRecordedDenominator;
+                    }
                     break;
             }
 
             TimeSeries.Record(LastRecordedRatio);
-            if (simIndex >= _warmUpSimIndex)
+            if (simIndex >= _warmUpSimIndex && AveragePrevalenceStat != null)
                 AveragePrevalenceStat.Record(LastRecordedRatio);
-
         }
+
         // convert ratio formula into the array of class IDs
         private int[] ConvertRatioFormulaToArrayOfClassIDs(string formula)
         {
@@ -481,6 +496,7 @@ namespace APACElib
         public bool DisplayInSimOut { get; private set; }
         protected int _nDeltaTsObsPeriod; // number of deltaT's in an observation period 
         protected int _nObsPeriodsDelay;  // number of observation periods delayed      
+        protected int _noiseParValue; // value of the noise parameter
         public bool FirstObsMarksStartOfEpidemic { get; private set; }
 
         public SurveyedTrajectory(
@@ -499,7 +515,7 @@ namespace APACElib
             _nObsPeriodsDelay = nDeltaTsDelayed / nDeltaTsObsPeriod;
         }
 
-        public abstract void Update(int epiTimeIndex);
+        public abstract void Update(int epiTimeIndex, RNG rnd);
         public abstract double GetLastObs(int epiTimeIndex);
     }
 
@@ -526,7 +542,7 @@ namespace APACElib
             _timeSeries = new IncidenceTimeSeries(nDeltaTsObsPeriod);
         }
 
-        public override void Update(int epiTimeIndex)
+        public override void Update(int epiTimeIndex, RNG rnd)
         {
             if (epiTimeIndex == 0)
                 return;
@@ -543,7 +559,7 @@ namespace APACElib
         {
             double value = -1;
             if (epiTimeIndex > _nDeltaTsObsPeriod * _nObsPeriodsDelay)
-                value = _timeSeries.GetLastObs(_nObsPeriodsDelay);
+                value = _timeSeries.GetLastRecording(_nObsPeriodsDelay);
 
             return value;
         }
@@ -557,8 +573,9 @@ namespace APACElib
     public class SurveyedPrevalenceTrajectory : SurveyedTrajectory
     {
         private PrevalenceTimeSeries _timeSeries;
-        private SumClassesTrajectory _sumClassesTraj;
-        private RatioTrajectory _ratioTraj;
+        private SumClassesTrajectory _sumClassesTraj;   // reference to the summation statistics
+        private RatioTrajectory _ratioTraj;             // reference to the ratio statistics
+        private double _noise_percOfDemoninatorSampled; 
 
         public SurveyedPrevalenceTrajectory(
             int id,
@@ -568,21 +585,35 @@ namespace APACElib
             SumClassesTrajectory sumClassesTrajectory,
             RatioTrajectory ratioTrajectory,
             int nDeltaTsObsPeriod,
-            int nDeltaTsDelayed)
+            int nDeltaTsDelayed, 
+            double noise_percOfDemoninatorSampled)
             : base(id, name, displayInSimOutput, firstObsMarksStartOfEpidemic, nDeltaTsObsPeriod, nDeltaTsDelayed)
         {
             _sumClassesTraj = sumClassesTrajectory;
             _ratioTraj = ratioTrajectory;
             _timeSeries = new PrevalenceTimeSeries(nDeltaTsObsPeriod);
+            _noise_percOfDemoninatorSampled = noise_percOfDemoninatorSampled;
         }
 
-        public override void Update(int epiTimeIndex)
+        public override void Update(int epiTimeIndex, RNG rnd)
         {
             double value = 0;
             if (!(_sumClassesTraj is null))
                 value = _sumClassesTraj.Prevalence;
             else if (!(_ratioTraj is null))
-                value = _ratioTraj.LastRecordedRatio;
+            {
+                // check if there is noise (less than 100% of the denominator is sampled in reality)
+                if (_noise_percOfDemoninatorSampled < 0.99999)
+                {
+                    double mean = _ratioTraj.LastRecordedRatio;
+                    double stDev = Math.Sqrt(mean * (1 - mean));
+                    Normal noise = new Normal("Noise model", mean, 
+                        stDev/ (_noise_percOfDemoninatorSampled * _ratioTraj.LastRecordedDenominator));
+                    value = noise.SampleContinuous(rnd);
+                }
+                else
+                    value = _ratioTraj.LastRecordedRatio;
+            }
 
             _timeSeries.Record(value);
         }
@@ -590,7 +621,7 @@ namespace APACElib
         {
             double value = -1;
             if (epiTimeIndex >= _nDeltaTsObsPeriod * _nObsPeriodsDelay)
-                value = _timeSeries.GetLastObs(_nObsPeriodsDelay);
+                value = _timeSeries.GetLastRecording(_nObsPeriodsDelay);
             return value;
         }
         public void Reset()
@@ -671,14 +702,14 @@ namespace APACElib
     }
 
     // simulation output trajectories to be written in the Excel file
-    public class SimOutputTrajs : OutputTrajs
+    public class OutputTrajs_Sim : OutputTrajs
     {
         private int _nDeltaTInSimOutputInterval;
         private List<Class> _classes;
         private List<SumTrajectory> _sumTrajectories;
         private List<RatioTrajectory> _ratioTrajectories;
 
-        public SimOutputTrajs(
+        public OutputTrajs_Sim(
             int simReplication, 
             double deltaT,
             int nDeltaTInSimOutputInterval,
@@ -713,7 +744,7 @@ namespace APACElib
             foreach (Class thisClass in _classes)
             {
                 if (thisClass.ShowIncidence)
-                    thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = thisClass.ClassStat.IncidenceTimeSeries.GetLastObs();
+                    thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = thisClass.ClassStat.IncidenceTimeSeries.GetLastRecording();
                 if (thisClass.ShowPrevalence)
                     thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = thisClass.ClassStat.Prevalence;
                 if (thisClass.ShowAccumIncidence)
@@ -726,7 +757,7 @@ namespace APACElib
                 switch (thisSumTraj.Type)
                 {
                     case SumTrajectory.EnumType.Incidence:
-                        thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = thisSumTraj.IncidenceTimeSeries.GetLastObs();
+                        thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = thisSumTraj.IncidenceTimeSeries.GetLastRecording();
                         break;
                     case SumTrajectory.EnumType.AccumulatingIncident:
                         thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = thisSumTraj.AccumulatedIncidence;
@@ -739,7 +770,7 @@ namespace APACElib
             // ratio statistics
             foreach (RatioTrajectory thisRatioTraj in _ratioTrajectories.Where(s => s.DisplayInSimOutput))
             {
-                thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = thisRatioTraj.TimeSeries.GetLastObs();
+                thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = thisRatioTraj.TimeSeries.GetLastRecording();
             }
 
             // find next time index to store trajectories
@@ -804,13 +835,13 @@ namespace APACElib
     }
 
     // surveyed output trajectories to be written in the Excel file
-    public class SurveyedOutputTrajs : OutputTrajs
+    public class OutputTrajs_Surveyed : OutputTrajs
     {
         private int _nDeltaTInObsInterval;
         List<SurveyedIncidenceTrajectory> _surveyIncidenceTrajs;
         List<SurveyedPrevalenceTrajectory> _surveyPrevalenceTrajs;
 
-        public SurveyedOutputTrajs(
+        public OutputTrajs_Surveyed(
             int simReplication,
             double deltaT,
             int nDeltaTInObsInterval,
@@ -877,6 +908,7 @@ namespace APACElib
         }
     }
 
+    // stores the epidemic history 
     public class EpidemicHistory
     {
         private List<Class> _classes; // pointer to classes
@@ -895,8 +927,8 @@ namespace APACElib
         public List<SurveyedPrevalenceTrajectory> SurveyedPrevalenceTrajs { get => _survPrevalenceTrajs; set => _survPrevalenceTrajs = value; }
         
         // all trajectories prepared for simulation output 
-        public SimOutputTrajs SimOutputTrajs { get; private set; }
-        public SurveyedOutputTrajs SurveyedOutputTrajs { get; private set; }
+        public OutputTrajs_Sim SimOutputTrajs { get; private set; }
+        public OutputTrajs_Surveyed SurveyedOutputTrajs { get; private set; }
 
         // features and conditions
         public List<Feature> Features { set; get; } = new List<Feature>();
@@ -917,7 +949,7 @@ namespace APACElib
             ref List<Class> classes,
             bool extractOutputHeaders)
         {
-            SimOutputTrajs = new SimOutputTrajs(
+            SimOutputTrajs = new OutputTrajs_Sim(
                ID,
                deltaT,
                nDeltaTinSimOutputInterval,
@@ -926,7 +958,7 @@ namespace APACElib
                ref _sumTrajs,
                ref _ratioTraj,
                extractOutputHeaders);
-            SurveyedOutputTrajs = new SurveyedOutputTrajs(
+            SurveyedOutputTrajs = new OutputTrajs_Surveyed(
                 ID,
                 deltaT,
                 nDeltaTInObsInterval,
@@ -965,7 +997,7 @@ namespace APACElib
             Features.Add(new Feature_SpecialStats(name, featureID, strFeatureType, survTraj, par));
         }
 
-        public void Update(int simTimeIndex, int epiTimeIndex, bool endOfSim)
+        public void Update(int simTimeIndex, int epiTimeIndex, bool endOfSim, RNG rnd)
         {
             // update class statistics                      
             foreach (Class thisClass in _classes)
@@ -975,13 +1007,13 @@ namespace APACElib
                 thisSumTaj.Add(simTimeIndex, ref _classes, ref _events);
             // update ratio statistics
             foreach (RatioTrajectory ratioTraj in RatioTrajs)
-                ratioTraj.Add(simTimeIndex, ref _sumTrajs);
+                ratioTraj.Add(simTimeIndex, _sumTrajs);
             // update surveyed incidence            
             foreach (SurveyedIncidenceTrajectory survIncdTraj in SurveyedIncidenceTrajs)
-                survIncdTraj.Update(epiTimeIndex);
+                survIncdTraj.Update(epiTimeIndex, rnd);
             // update surveyed prevalence 
             foreach (SurveyedPrevalenceTrajectory survPrevTraj in SurveyedPrevalenceTrajs)
-                survPrevTraj.Update(epiTimeIndex);
+                survPrevTraj.Update(epiTimeIndex, rnd);
             // update features
             foreach (Feature f in Features)
                 f.Update(epiTimeIndex);

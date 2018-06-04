@@ -715,13 +715,13 @@ namespace APACElib
                 switch (ratioTraj.Type)
                 {
                     case RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
-                        RatioStats[ratioStatIndex].Record(ratioTraj.TimeSeries.GetLastObs(), simItr);
+                        RatioStats[ratioStatIndex].Record(ratioTraj.TimeSeries.GetLastRecording(), simItr);
                         break;
                     case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
                         RatioStats[ratioStatIndex].Record(ratioTraj.AveragePrevalenceStat.Mean, simItr);
                         break;
                     case RatioTrajectory.EnumType.IncidenceOverIncidence:
-                        RatioStats[ratioStatIndex].Record(ratioTraj.TimeSeries.ObsList.Average(), simItr);
+                        RatioStats[ratioStatIndex].Record(ratioTraj.TimeSeries.Recordings.Average(), simItr);
                         break;
                 }
                 ++ratioStatIndex;

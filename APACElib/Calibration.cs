@@ -596,14 +596,14 @@ namespace SimulationLib
 
     }
 
-    public class TrajectoryCalibrationInfo
+    public class TrajCalibrationInfo
     {
         public bool IfIncluded { get; } = false;
         public bool IfCheckWithinFeasibleRange { get; } = false;
         public double LowFeasibleRange { get; }
         public double UpFeasibleRange { get; }
 
-        public TrajectoryCalibrationInfo(bool ifIncluded, bool ifCheckWithinFeasibleRange, double lowFeasibleBound=0, double upFeasibleBound=double.MaxValue)
+        public TrajCalibrationInfo(bool ifIncluded, bool ifCheckWithinFeasibleRange, double lowFeasibleBound=0, double upFeasibleBound=double.MaxValue)
         {
             IfIncluded = ifIncluded;
             IfCheckWithinFeasibleRange = ifCheckWithinFeasibleRange;
