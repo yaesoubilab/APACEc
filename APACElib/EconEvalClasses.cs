@@ -26,8 +26,9 @@ namespace APACElib
             double costPerDeltaT)
         {
             // find if cost and health outcomes should be collected
-            double m = new[] { DALYPerNewMember, costPerNewMember, disabilityWeightPerDeltaT, costPerDeltaT }.Max();
-            if (m > 0) _ifCollecting = true;
+            double max = new[] { DALYPerNewMember, costPerNewMember, disabilityWeightPerDeltaT, costPerDeltaT }.Max();
+            double min = new[] { DALYPerNewMember, costPerNewMember, disabilityWeightPerDeltaT, costPerDeltaT }.Min();
+            if (max > 0 || min < 0) _ifCollecting = true;
 
             _warmUpSimIndex = warmUpSimIndex;
             _DALYPerNewMember = DALYPerNewMember;

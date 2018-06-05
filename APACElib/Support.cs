@@ -233,6 +233,18 @@ namespace APACElib
             }
             return result;
         }
+
+        public static double ReplaceNaNWith(double value, double replaceWith)
+        {
+            double result = 0;
+
+            if (value is double.NaN)
+                result = replaceWith;
+            else
+                result = value;
+            
+            return result;
+        }
     }   
     
 

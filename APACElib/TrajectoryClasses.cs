@@ -25,7 +25,7 @@ namespace APACElib
         public double GetLastRecording()
         {
             if (Recordings.Count == 0)
-                return -1;
+                return double.NaN;
             else
                 return Recordings.Last();
         }
@@ -33,7 +33,7 @@ namespace APACElib
         public double GetLastRecording(int nPeriodDelay)
         {
             if (Recordings.Count < nPeriodDelay)
-                return -1;
+                return double.NaN;
             else
                 return Recordings[Recordings.Count - nPeriodDelay - 1];
         }
@@ -280,19 +280,19 @@ namespace APACElib
 
         public virtual void Add(int simIndex, ref List<Class> classes, ref List<Event> events) { return; }
 
-        public int GetLastObs()
+        public double GetLastRecording()
         {
-            int value = 0;
+            double value = 0;
             switch (Type)
             {
                 case EnumType.Incidence:
-                    value = (int)IncidenceTimeSeries.GetLastRecording();
+                    value = IncidenceTimeSeries.GetLastRecording();
                     break;
                 case EnumType.AccumulatingIncident:
                     value = AccumulatedIncidenceAfterWarmUp;
                     break;
                 case EnumType.Prevalence:
-                    value = (int)PrevalenceTimeSeries.GetLastRecording();
+                    value = PrevalenceTimeSeries.GetLastRecording();
                     break;
             }
             return value;
@@ -443,6 +443,7 @@ namespace APACElib
         public void Add(int simIndex, List<SumTrajectory> sumTrajectories)
         {
             LastRecordedRatio = double.NaN;
+            LastRecordedDenominator = -1;
             switch (Type)
             {
                 case EnumType.PrevalenceOverPrevalence:
@@ -454,9 +455,15 @@ namespace APACElib
                     break;
                 case EnumType.IncidenceOverIncidence:
                     {
-                        LastRecordedDenominator = sumTrajectories[_denominatorSpecialStatID].GetLastObs();
-                        LastRecordedRatio = (double)sumTrajectories[_nominatorSpecialStatID].GetLastObs()
-                            / LastRecordedDenominator;
+                        double denom = sumTrajectories[_denominatorSpecialStatID].GetLastRecording();
+                        if (denom is double.NaN || denom == 0)
+                            LastRecordedRatio = double.NaN;
+                        else
+                        {
+                            LastRecordedDenominator = (int)denom;
+                            LastRecordedRatio = (double)sumTrajectories[_nominatorSpecialStatID].GetLastRecording()
+                                / LastRecordedDenominator;
+                        }
                     }
                     break;
                 case EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
@@ -483,6 +490,7 @@ namespace APACElib
         public void Reset()
         {
             TimeSeries.Reset();
+            LastRecordedRatio = double.NaN;
             if (Type == EnumType.PrevalenceOverPrevalence)
                 AveragePrevalenceStat.Reset();
         }
@@ -603,13 +611,19 @@ namespace APACElib
             else if (!(_ratioTraj is null))
             {
                 // check if there is noise (less than 100% of the denominator is sampled in reality)
-                if (_noise_percOfDemoninatorSampled < 0.99999)
+                if (_noise_percOfDemoninatorSampled < 0.99999 && !(_ratioTraj.LastRecordedRatio is double.NaN))
                 {
                     double mean = _ratioTraj.LastRecordedRatio;
-                    double stDev = Math.Sqrt(mean * (1 - mean));
-                    Normal noise = new Normal("Noise model", mean, 
-                        stDev/ (_noise_percOfDemoninatorSampled * _ratioTraj.LastRecordedDenominator));
-                    value = noise.SampleContinuous(rnd);
+                    if (mean > 0)
+                    {
+                        double stDev = Math.Sqrt(mean * (1 - mean));
+                        Normal noiseModel = new Normal("Noise model", 0,
+                            stDev / Math.Sqrt(_noise_percOfDemoninatorSampled * _ratioTraj.LastRecordedDenominator));
+                        double noise = noiseModel.SampleContinuous(rnd);
+                        value = Math.Min(Math.Max(mean + noise, 0), 1);
+                    }
+                    else
+                        value = 0;
                 }
                 else
                     value = _ratioTraj.LastRecordedRatio;
@@ -744,7 +758,8 @@ namespace APACElib
             foreach (Class thisClass in _classes)
             {
                 if (thisClass.ShowIncidence)
-                    thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = thisClass.ClassStat.IncidenceTimeSeries.GetLastRecording();
+                    thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = 
+                        SupportProcedures.ReplaceNaNWith(thisClass.ClassStat.IncidenceTimeSeries.GetLastRecording(), -1);
                 if (thisClass.ShowPrevalence)
                     thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = thisClass.ClassStat.Prevalence;
                 if (thisClass.ShowAccumIncidence)
@@ -757,21 +772,21 @@ namespace APACElib
                 switch (thisSumTraj.Type)
                 {
                     case SumTrajectory.EnumType.Incidence:
-                        thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = thisSumTraj.IncidenceTimeSeries.GetLastRecording();
+                            thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = 
+                                SupportProcedures.ReplaceNaNWith(thisSumTraj.IncidenceTimeSeries.GetLastRecording(), -1);
                         break;
                     case SumTrajectory.EnumType.AccumulatingIncident:
                         thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = thisSumTraj.AccumulatedIncidence;
                         break;
                     case SumTrajectory.EnumType.Prevalence:
-                        thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = thisSumTraj.Prevalence;
+                            thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] =
+                                SupportProcedures.ReplaceNaNWith(thisSumTraj.Prevalence, -1);
                         break;
                 }
             }
             // ratio statistics
             foreach (RatioTrajectory thisRatioTraj in _ratioTrajectories.Where(s => s.DisplayInSimOutput))
-            {
-                thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = thisRatioTraj.TimeSeries.GetLastRecording();
-            }
+                thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = SupportProcedures.ReplaceNaNWith(thisRatioTraj.TimeSeries.GetLastRecording(), -1);
 
             // find next time index to store trajectories
             _nextTimeIndexToStore += _nDeltaTInSimOutputInterval;
@@ -875,13 +890,12 @@ namespace APACElib
             thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = epiTimeIndex * _deltaT;
 
             foreach (SurveyedIncidenceTrajectory incdTraj in _surveyIncidenceTrajs.Where(i => i.DisplayInSimOut))
-            {
-                thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = incdTraj.GetLastObs(epiTimeIndex);
-            }
+                thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = 
+                    SupportProcedures.ReplaceNaNWith(incdTraj.GetLastObs(epiTimeIndex), -1);
+
             foreach (SurveyedPrevalenceTrajectory prevTraj in _surveyPrevalenceTrajs.Where(i => i.DisplayInSimOut))
-            {
-                thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = prevTraj.GetLastObs(epiTimeIndex);
-            }
+                thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = 
+                    SupportProcedures.ReplaceNaNWith(prevTraj.GetLastObs(epiTimeIndex), -1);
 
             // find next time index to store trajectories
             _nextTimeIndexToStore += _nDeltaTInObsInterval;
