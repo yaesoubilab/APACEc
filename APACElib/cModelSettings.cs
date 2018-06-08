@@ -131,7 +131,6 @@ namespace APACElib
             NumOfDeltaT_inDecisionInterval = excelInterface.GetNumDeltaTDecisionInterval();
             NumOfDeltaT_inSimOutputInterval = excelInterface.GetNumDeltaTSimulationOutputInterval();
             NumOfDeltaT_inObservationPeriod = excelInterface.GetNumDeltaTObservationPeriod();
-            
 
             EpidemicTimeIndexToStartDecisionMaking = (int)(excelInterface.GetTimeToStartDecisionMaking()/DeltaT);
             MarkOfEpidemicStartTime = excelInterface.GetMarkOfEpidemicStartTime();

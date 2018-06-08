@@ -211,7 +211,7 @@ namespace APACElib
             double[][] simulationIterations_otherOutcomes = new double[0][];
 
             // read designs
-            double[,] experimentDesigns = (double[,])ExcelInterface.GetExperimentalDesignMatrix();
+            double[,] experimentDesigns = ExcelInterface.GetExperimentalDesignMatrix();
 
             // build epidemic modelers            
             _epidemicModellers.Clear();
