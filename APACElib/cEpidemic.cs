@@ -163,11 +163,12 @@ namespace APACElib
                 UpdateEpiTimeIndex();
 
                 // check if stopping rules are satisfied 
-                if (_epiTimeIndex >= timeIndexToStop || StoppedDueToEradication == true)
+                if (_epiTimeIndex > timeIndexToStop || StoppedDueToEradication == true)
                 {
                     toStop = true;
                     // update recorded trajectories 
                     EpiHist.Update(_simTimeIndex, _epiTimeIndex, true, _rng);
+                    EpiHist.Record(_simTimeIndex, _epiTimeIndex, true);
 
                     // find if it is an acceptable trajectory
                     acceptableTrajectory = true;
