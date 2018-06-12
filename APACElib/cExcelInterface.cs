@@ -2065,7 +2065,7 @@ namespace APACElib
 
             // check if there is data on the first cell
             if (Convert.ToString(base.ReadCellFromActiveSheet(baseCellName, 1, 0)) == "")
-                return null;
+                return (Array) (new double[0,0]);
 
             // read the entire parameter matrix            
             int firstRowIndex = base.RowIndex(baseCellName) + 1;

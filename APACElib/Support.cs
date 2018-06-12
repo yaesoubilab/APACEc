@@ -106,8 +106,8 @@ namespace APACElib
                 case "Periodic":
                     onOffSwitchSetting = EnumDecisionRule.Periodic;
                     break;
-                case "Threshold-Based":
-                    onOffSwitchSetting = EnumDecisionRule.ThresholdBased;
+                case "Condition-Based":
+                    onOffSwitchSetting = EnumDecisionRule.ConditionBased;
                     break;
                 case "Interval-Based":
                     onOffSwitchSetting = EnumDecisionRule.IntervalBased;

@@ -729,11 +729,11 @@ namespace APACElib
                             int duration = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.PeriodicEmployment_Length));
                         }
                         break;
-                    case EnumDecisionRule.ThresholdBased:
+                    case EnumDecisionRule.ConditionBased:
                         {
                             int conditionIDToTurnOn = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_ConditionIDToTurnOn));
                             int conditionIDToTurnOff = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_ConditionIDToTurnOff));
-                            simDecisionRule = new DecisionRule_ThresholdBased(EpiHist.Conditions, conditionIDToTurnOn, conditionIDToTurnOff);
+                            simDecisionRule = new DecisionRule_ConditionBased(EpiHist.Conditions, conditionIDToTurnOn, conditionIDToTurnOff);
                         }
                         break;
                     case EnumDecisionRule.IntervalBased:
@@ -1108,9 +1108,15 @@ namespace APACElib
 
                 // real-time monitoring
                 bool surveillanceDataAvailable = SupportFunctions.ConvertYesNoToBool(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.SurveillanceDataAvailable).ToString());
-                int nDeltaTDelayed = Convert.ToInt32(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.NumOfDeltaTsDelayed));
-                double noise = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Noise));
-                bool firstObsMarksEpiStart = SupportFunctions.ConvertYesNoToBool(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FirstObservationMarksTheStartOfTheSpread).ToString());
+                int nDeltaTDelayed = 0;
+                double noise= 0;
+                bool firstObsMarksEpiStart = false;
+                if (surveillanceDataAvailable)
+                {
+                    nDeltaTDelayed = Convert.ToInt32(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.NumOfDeltaTsDelayed));
+                    noise = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Noise));
+                    firstObsMarksEpiStart = SupportFunctions.ConvertYesNoToBool(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FirstObservationMarksTheStartOfTheSpread).ToString());
+                }
 
                 // calibration
                 bool ifIncludedInCalibration = SupportFunctions.ConvertYesNoToBool(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfIncludedInCalibration).ToString());

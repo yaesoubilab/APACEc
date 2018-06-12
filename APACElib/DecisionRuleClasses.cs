@@ -10,7 +10,7 @@ namespace APACElib
     {
         Predetermined = 1,      // always one or off
         Periodic = 2,           // employ at certain frequency
-        ThresholdBased = 3,     // employ once a threshold is passed
+        ConditionBased = 3,     // employ when a condition is met
         IntervalBased = 4,      // employ during a certain time interval
         Dynamic = 5             // guided by a dynamic policy 
     }
@@ -37,13 +37,13 @@ namespace APACElib
     }
 
     // thereshold based decision rule
-    public class DecisionRule_ThresholdBased : DecisionRule
+    public class DecisionRule_ConditionBased : DecisionRule
     {
         private List<Condition> _conditions;
         private int _conditionIDToTurnOn;
         private int _conditionIDToTurnOff;
 
-        public DecisionRule_ThresholdBased(
+        public DecisionRule_ConditionBased(
             List<Condition> conditions, int conditionIDToTurnOn, int conditionIDToTurnOff)
         {
             _conditions = conditions;
