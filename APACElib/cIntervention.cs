@@ -21,7 +21,6 @@ namespace APACElib
         public static EnumInterventionType ConvertToActionType(string value)
         {
             EnumInterventionType actionType = EnumInterventionType.Default;
-
             switch (value)
             {
                 case "Default":
@@ -38,6 +37,7 @@ namespace APACElib
         public string Name { get; private set; }
         public EnumInterventionType Type { get; private set; }  // default or additive
         public DecisionRule DecisionRule { get; private set; }   // pointer to the decision rule that guides the employment of this action
+        public bool IfAffectingContactPattern { get; set; }
 
         // costs
         public double FixedCost { get; private set; }          // fixed cost to switch on
@@ -53,19 +53,17 @@ namespace APACElib
         public bool IfEverTurnedOnBefore { get; set; } = false;
         public bool IfEverTurnedOffBefore { get; set; } = false;
         public int NumOfSwitchesOccured { get; set; }
-        public int NumOfDecisionPeriodsUsedOver { get; set; }
-
-        public bool IfAffectingContactPattern { get; set; }
+        public int NumOfDecisionPeriodsUsedOver { get; set; }        
         
         // availability
         public int ParIDDelayToGoIntoEffectOnceTurnedOn { get; set; }
-        public int NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn { get; set; } = 0;
+        public int NumOfTimeIndeciesDelayedToGoIntoEffect { get; set; } = 0; // delay after turned on
 
         public int EpiTimeIndexToTurnOn { get; set; }
         public int EpiTimeIndexToGoIntoEffect { get; set; }
         public int EpiTimeIndexToTurnOff { get; set; }
-        public int EpiTimeIndexTurnedOn { get; set; }
-        public int EpiTimeIndexTurnedOff { get; set; }
+        public int EpiTimeIndexLastTurnedOn { get; set; }
+        public int EpiTimeIndexLastTurnedOff { get; set; }
         
         // Instantiation
         public Intervention(
@@ -126,21 +124,24 @@ namespace APACElib
             NumOfSwitchesOccured = 0;
             NumOfDecisionPeriodsUsedOver = 0;
 
-            // find the time to go into effect
-            if (Type == EnumInterventionType.Default)
-            {
-                EpiTimeIndexToTurnOn = int.MinValue;
-                EpiTimeIndexTurnedOn = int.MinValue;
-                EpiTimeIndexToGoIntoEffect = int.MinValue;
-                EpiTimeIndexToTurnOff = int.MaxValue;
-            }
-            else
-            {
-                EpiTimeIndexToTurnOn = int.MaxValue;
-                EpiTimeIndexTurnedOn = int.MaxValue;
-                EpiTimeIndexToGoIntoEffect = int.MaxValue;
-                EpiTimeIndexToTurnOff = int.MaxValue;
-            }
+            EpiTimeIndexToTurnOn = int.MaxValue;
+            EpiTimeIndexToTurnOff = int.MaxValue;
+            EpiTimeIndexToGoIntoEffect = int.MaxValue;
+            EpiTimeIndexLastTurnedOn = int.MaxValue;
+            EpiTimeIndexLastTurnedOff = int.MaxValue;
+
+            //// find the time to go into effect
+            //if (Type == EnumInterventionType.Default)
+            //{
+            //    EpiTimeIndexToTurnOn = int.MinValue;
+            //    EpiTimeIndexLastTurnedOn = int.MinValue;
+            //    EpiTimeIndexToGoIntoEffect = int.MinValue;
+            //    EpiTimeIndexToTurnOff = int.MaxValue;
+            //}
+            //else
+            //{
+                
+            //}
         }
         
     }

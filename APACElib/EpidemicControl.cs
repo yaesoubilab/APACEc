@@ -43,25 +43,26 @@ namespace APACElib
         }
 
         // update after all interventions are added
-        public void UpdateAfterAllInterventionsAdded()
-        {
-            DefaultDecision = new int[Interventions.Count];
-            CurrentDecision = new int[Interventions.Count];
+        //public void UpdateAfterAllInterventionsAdded()
+        //{
+        //    DefaultDecision = new int[Interventions.Count];
+        //    CurrentDecision = new int[Interventions.Count];
 
-            // make sure the default intervention is on
-            foreach (Intervention intervention in Interventions
-                .Where(s => s.Type == EnumInterventionType.Default))
-            {
-                DefaultDecision[intervention.Index] = 1;
-                CurrentDecision[intervention.Index] = 1;
-            }
-        }
+        //    // make sure the default intervention is on
+        //    foreach (Intervention intervention in Interventions
+        //        .Where(s => s.Type == EnumInterventionType.Default))
+        //    {
+        //        DefaultDecision[intervention.Index] = 1;
+        //        CurrentDecision[intervention.Index] = 1;
+        //    }
+        //}
 
         // update parameters
         public void UpdateParameters(ParameterManager parManager, double deltaT)
         {
             foreach (Intervention intv in Interventions)
-                intv.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn = (int)(parManager.ParameterValues[intv.ParIDDelayToGoIntoEffectOnceTurnedOn] / deltaT);
+                intv.NumOfTimeIndeciesDelayedToGoIntoEffect = 
+                    (int)(parManager.ParameterValues[intv.ParIDDelayToGoIntoEffectOnceTurnedOn] / deltaT);
         }
 
         // add prespecified decisions
@@ -74,6 +75,7 @@ namespace APACElib
         public void MakeTheFirstDecision(int epiTimeIndex)
         {
             int[] newDecision = new int[NumOfInterventions];
+            CurrentDecision = new int[NumOfInterventions];
 
             // check if decisions are not prespecified
             if (_prespecifiedDecisionsOverDecisionsPeriods == null)
@@ -125,7 +127,7 @@ namespace APACElib
             DecisionIntervalIndex += 1;
 
             // update the next time decisions should be made
-            _nextEpiTimeIndexToMakeDecision = Math.Max(epiTimeIndex + _nOfDeltaTsInADecisionInterval, EpiTimeIndexToStartDecisionMaking);
+            _nextEpiTimeIndexToMakeDecision = epiTimeIndex + _nOfDeltaTsInADecisionInterval;
         }
 
         // update the currect decision    
@@ -147,14 +149,14 @@ namespace APACElib
                     // if turning on
                     if (CurrentDecision[i] == 0 && newDecision[i] == 1) {
                         a.IfEverTurnedOnBefore = true;
-                        a.EpiTimeIndexTurnedOn = epiTimeIndex;
-                        a.EpiTimeIndexToGoIntoEffect = epiTimeIndex + a.NumOfTimeIndeciesDelayedToGoIntoEffectOnceTurnedOn;
+                        a.EpiTimeIndexLastTurnedOn = epiTimeIndex;
+                        a.EpiTimeIndexToGoIntoEffect = epiTimeIndex + a.NumOfTimeIndeciesDelayedToGoIntoEffect;
                         a.EpiTimeIndexToTurnOff = int.MaxValue;
                     }
                     // if the intervention is turning off
                     else if (CurrentDecision[i] == 1 && newDecision[i] == 0) {
                         a.IfEverTurnedOffBefore = true;
-                        a.EpiTimeIndexTurnedOff = epiTimeIndex;
+                        a.EpiTimeIndexLastTurnedOff = epiTimeIndex;
                         a.EpiTimeIndexToTurnOff = epiTimeIndex;
                         a.EpiTimeIndexToGoIntoEffect = int.MaxValue;
                     }
@@ -195,54 +197,10 @@ namespace APACElib
         public void Reset()
         {
             CostOverThisDecisionPeriod = 0;
-            CurrentDecision = (int[])DefaultDecision.Clone();
+            CurrentDecision = new int[NumOfInterventions];// (int[])DefaultDecision.Clone();
 
             foreach (Intervention thisIntervention in Interventions)
                 thisIntervention.ResetForAnotherSimulationRun();
-        }
-
-        private void ReadValuesOfFeatures(int epiTimeIndex)
-        {
-            // check if it is time to record current state
-            if (epiTimeIndex == _nextEpiTimeIndexToMakeDecision) //|| _aResourceJustReplinished == true) //(EligibleToStoreADPStateDecision())
-            {
-                // update the values of features
-                //int i = 0;
-                //foreach (Feature thisFeature in _features)
-                //{
-                //    i = thisFeature.Index;
-
-                //    if (thisFeature is Feature_EpidemicTime)
-                //    {
-                //        _arrCurrentValuesOfFeatures[i] = epiTimeIndex * _deltaT;
-                //    }
-                //    else if (thisFeature is Feature_DefinedOnNewClassMembers)
-                //    {
-                //        _arrCurrentValuesOfFeatures[i] = Math.Max((_classes[((Feature_DefinedOnNewClassMembers)thisFeature).ClassID])
-                //                                                            .ReadFeatureValue((Feature_DefinedOnNewClassMembers)thisFeature), 0);
-                //    }
-                //    else if (thisFeature is Feature_DefinedOnSummationStatistics)
-                //    {
-                //        int sumStatID = ((Feature_DefinedOnSummationStatistics)thisFeature).SumStatisticsID;
-                //        _arrCurrentValuesOfFeatures[i] = (_summationStatistics[sumStatID]).ReadFeatureValue((Feature_DefinedOnSummationStatistics)thisFeature);
-                //    }
-                //    else if (thisFeature is Feature_InterventionOnOffStatus)
-                //    {
-                //        int interventionID = ((Feature_InterventionOnOffStatus)thisFeature).InterventionID;
-                //        int numOfPastObservationPeriodToObserveOnOffValue = ((Feature_InterventionOnOffStatus)thisFeature).PreviousObservationPeriodToObserveOnOffValue;
-                //        _arrCurrentValuesOfFeatures[i] = _pastActionCombinations[numOfPastObservationPeriodToObserveOnOffValue][interventionID];
-                //    }
-                //    else if (thisFeature is Feature_NumOfDecisoinPeriodsOverWhichThisInterventionWasUsed)
-                //    {
-                //        int interventionID = ((Feature_InterventionOnOffStatus)thisFeature).InterventionID;
-                //        _arrCurrentValuesOfFeatures[i] = (_decisionMaker.Interventions[interventionID]).NumOfDecisionPeriodsOverWhichThisInterventionWasUsed;
-                //    }
-
-
-                //    // update the min max on this feature
-                //    thisFeature.UpdateMinMax(_arrCurrentValuesOfFeatures[i]);
-                //}
-            }
         }
 
         // find next epidemic time index when an intervention effect changes

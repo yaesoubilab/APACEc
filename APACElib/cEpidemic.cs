@@ -781,7 +781,7 @@ namespace APACElib
             }
 
             // gather info
-            DecisionMaker.UpdateAfterAllInterventionsAdded();
+            //DecisionMaker.UpdateAfterAllInterventionsAdded();
 
         }
         // add resources
