@@ -196,11 +196,13 @@ namespace APACElib
 
         public void Reset()
         {
+            _nextEpiTimeIndexToMakeDecision = 0;
+            DecisionIntervalIndex = 0;
             CostOverThisDecisionPeriod = 0;
             CurrentDecision = new int[NumOfInterventions];// (int[])DefaultDecision.Clone();
 
             foreach (Intervention thisIntervention in Interventions)
-                thisIntervention.ResetForAnotherSimulationRun();
+                thisIntervention.Reset();
         }
 
         // find next epidemic time index when an intervention effect changes
@@ -210,11 +212,11 @@ namespace APACElib
             int temp;
             foreach (Intervention a in Interventions)
             {
-                if (a.Type != EnumInterventionType.Default)
-                {
+                //if (a.Type != EnumInterventionType.Default)
+                //{
                     temp = Math.Min(a.EpiTimeIndexToTurnOff, a.EpiTimeIndexToGoIntoEffect);
                     tIndex = Math.Min(temp, tIndex);
-                }
+                //}
             }
             return tIndex;
         }

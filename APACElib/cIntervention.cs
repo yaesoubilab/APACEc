@@ -118,7 +118,7 @@ namespace APACElib
         }
 
         // reset for another simulation run
-        public void ResetForAnotherSimulationRun()
+        public void Reset()
         {
             IfEverTurnedOnBefore = false;
             NumOfSwitchesOccured = 0;
