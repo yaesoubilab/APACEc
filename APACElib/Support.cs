@@ -315,20 +315,20 @@ namespace APACElib
             }
 
             // fourier
-            double[] fourierWeights = new double[(int)CalibrationTarget.enumFourierSimilarityMeasures.SIZE];
+            double[] fourierWeights = new double[(int)CalibrationTargetOld.enumFourierSimilarityMeasures.SIZE];
             if (IfIncludedInCalibration && StrMeasureOfFit == "Fourier")
             {
-                fourierWeights[(int)CalibrationTarget.enumFourierSimilarityMeasures.Cosine]
+                fourierWeights[(int)CalibrationTargetOld.enumFourierSimilarityMeasures.Cosine]
                     = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierCosine));
-                fourierWeights[(int)CalibrationTarget.enumFourierSimilarityMeasures.Norm2]
+                fourierWeights[(int)CalibrationTargetOld.enumFourierSimilarityMeasures.Norm2]
                     = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierEuclidean));
-                fourierWeights[(int)CalibrationTarget.enumFourierSimilarityMeasures.Average]
+                fourierWeights[(int)CalibrationTargetOld.enumFourierSimilarityMeasures.Average]
                     = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierAverage));
-                fourierWeights[(int)CalibrationTarget.enumFourierSimilarityMeasures.StDev]
+                fourierWeights[(int)CalibrationTargetOld.enumFourierSimilarityMeasures.StDev]
                     = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierStDev));
-                fourierWeights[(int)CalibrationTarget.enumFourierSimilarityMeasures.Min]
+                fourierWeights[(int)CalibrationTargetOld.enumFourierSimilarityMeasures.Min]
                     = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierMin));
-                fourierWeights[(int)CalibrationTarget.enumFourierSimilarityMeasures.Max]
+                fourierWeights[(int)CalibrationTargetOld.enumFourierSimilarityMeasures.Max]
                     = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierMax));
             }
         }

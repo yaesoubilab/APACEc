@@ -646,7 +646,7 @@ namespace APACElib
                     strObsHeader[0, 2 * j] = namesOfCalibrationTargets[j];
                     strObsHeader[0, 2 * j + 1] = "";
                     strObsHeader[1, 2 * j] = "Observed Value";
-                    strObsHeader[1, 2 * j + 1] = "Weight";
+                    strObsHeader[1, 2 * j + 1] = "Likelihood Parameters";
                 }
 
                 // get the index of observation periods

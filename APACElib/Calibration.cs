@@ -33,17 +33,9 @@ namespace APACElib
             Binomial = 2,
             Multinomial = 3,
         }
-        //public enum EnumLikelihoodParam : int
-        //{
-        //    NotSpecified = 0,
-        //    MeasurementError = 1,
-        //    StatIDOfSampleSize = 2,
-        //    SampleSize = 3,
-        //}
 
         public EnumMeasureOfFit GoodnessOfFit { get; }
         public EnumLikelihoodFunc LikelihoodFunc { get; }
-        //public EnumLikelihoodParam LikelihoodParam { get; }
         public bool IfCheckWithinFeasibleRange { get; } = false;
         public double LowFeasibleRange { get; }
         public double UpFeasibleRange { get; }
@@ -100,5 +92,53 @@ namespace APACElib
 
     }
 
-    
+
+
+    public abstract class CalibrTimeSeriesData
+    {
+
+    }
+
+    public class CalibrTS_Normal : CalibrTimeSeriesData
+    {
+        double[] _obs;
+        double[] _measureError;
+
+        public CalibrTS_Normal(double[] obs, double[] measureError)
+        {
+            _obs = obs;
+            _measureError = measureError;
+        }
+    }
+
+    public abstract class CalibrTS_Binomial: CalibrTimeSeriesData
+    {
+
+    }
+
+    public class CalibrTS_Binomial_NSim : CalibrTS_Binomial
+    {
+        int _IDofN;
+        double[] _k;
+
+        public CalibrTS_Binomial_NSim(int idOfN, double[] k)
+        {
+            _IDofN = idOfN;
+            _k = k;
+        }
+    }
+
+    public class CalibrTS_Binomial_NData : CalibrTS_Binomial
+    {
+        int[] _N;
+        double[] _p;
+
+        public CalibrTS_Binomial_NData(int[] N, double[] p)
+        {
+            _N = N;
+            _p = p;
+        }
+
+    }
+
 }

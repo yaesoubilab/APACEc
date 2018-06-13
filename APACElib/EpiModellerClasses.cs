@@ -392,7 +392,7 @@ namespace APACElib
             ShouldStoreEpidemicTrajectories(false);
 
             // add observations
-            AddObservationsToSetUpCalibration(ref _parentEpidemic, _modelSet.MatrixOfObservationsAndWeights);
+            AddObservationsToSetUpCalibration(ref _parentEpidemic, _modelSet.MatrixOfObservationsAndLikelihoodParams);
         }
    
         // add observations to set up calibration

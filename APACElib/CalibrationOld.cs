@@ -16,7 +16,7 @@ namespace APACElib
         string[] _namesOfParameters;
         string[] _namesOfSimOutsWithNonZeroWeights;
         private List<ResultOfASimulation> _colOfSimulationResults = new List<ResultOfASimulation>();
-        private List<CalibrationTarget> _colOfCalibrationTargets = new List<CalibrationTarget>();
+        private List<CalibrationTargetOld> _colOfCalibrationTargets = new List<CalibrationTargetOld>();
 
         protected int[] _arrSimulationItr;
         protected int[] _arrSimulationRNDSeeds;
@@ -96,8 +96,8 @@ namespace APACElib
         public void AddACalibrationTarget_timeSeries(string name, double weightOfThisCalibrationTarget, double[] observations, double[] weightsOfObservations)
         {
             // create a new target
-            CalibrationTarget thisCalibrationTarget = new CalibrationTarget();
-            thisCalibrationTarget.GoodnessOfFitMeasure = CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_timeSeries;
+            CalibrationTargetOld thisCalibrationTarget = new CalibrationTargetOld();
+            thisCalibrationTarget.GoodnessOfFitMeasure = CalibrationTargetOld.enumGoodnessOfFitMeasure.SumSqurError_timeSeries;
             // enter observations and observation weights
             thisCalibrationTarget.EnterObservation_timeSeries(observations, weightsOfObservations);
             // enter the weight of this calibration target
@@ -117,8 +117,8 @@ namespace APACElib
         public void AddACalibrationTarget_aveTimeSeries(string name, double weightOfThisCalibrationTarget, double[] observations, double[] weightsOfObservations)
         {
             // create a new target
-            CalibrationTarget thisCalibrationTarget = new CalibrationTarget();
-            thisCalibrationTarget.GoodnessOfFitMeasure = CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_average;
+            CalibrationTargetOld thisCalibrationTarget = new CalibrationTargetOld();
+            thisCalibrationTarget.GoodnessOfFitMeasure = CalibrationTargetOld.enumGoodnessOfFitMeasure.SumSqurError_average;
             // enter observations and observation weights
             thisCalibrationTarget.EnterObservation_aveTimeSeries(observations[observations.Length-1], weightsOfObservations[weightsOfObservations.Length-1]);
             // enter the weight of this calibration target
@@ -134,8 +134,8 @@ namespace APACElib
         public void AddACalibrationTarget_fourier(string name, double weightOfThisCalibrationTarget, double[] observations, double[] weightsOfFourierSimilarityMeasures)
         {
             // create a new target
-            CalibrationTarget thisCalibrationTarget = new CalibrationTarget();
-            thisCalibrationTarget.GoodnessOfFitMeasure = CalibrationTarget.enumGoodnessOfFitMeasure.Fourier;
+            CalibrationTargetOld thisCalibrationTarget = new CalibrationTargetOld();
+            thisCalibrationTarget.GoodnessOfFitMeasure = CalibrationTargetOld.enumGoodnessOfFitMeasure.Fourier;
             // enter observations and observation weights
             thisCalibrationTarget.EnterObservation_fourier(observations, weightsOfFourierSimilarityMeasures);
             // enter the weight of this calibration target
@@ -323,7 +323,7 @@ namespace APACElib
         //}
     }
 
-    public class CalibrationTarget
+    public class CalibrationTargetOld
     {
         public enum enumGoodnessOfFitMeasure : int
         {
@@ -376,7 +376,7 @@ namespace APACElib
         }
 
         // Instantiation
-        public CalibrationTarget()
+        public CalibrationTargetOld()
         {
         }
 
@@ -460,7 +460,7 @@ namespace APACElib
             get { return _vectorOfSimOutsNonZerpWeight; }
         }
         // calculate the goodness of fit for one observation matrix
-        public void CalculateGoodnessOfFit(List<CalibrationTarget> colOfCalibrationTargets)
+        public void CalculateGoodnessOfFit(List<CalibrationTargetOld> colOfCalibrationTargets)
         {
             _arrGoodnessOfFit = new double[colOfCalibrationTargets.Count + 1];
 
@@ -468,7 +468,7 @@ namespace APACElib
             int j = 0;
             double weightedGoodnessOfFit = 0.0;
             double totalWeight = 0.0;
-            foreach (CalibrationTarget thisCalibrationTarget in colOfCalibrationTargets)
+            foreach (CalibrationTargetOld thisCalibrationTarget in colOfCalibrationTargets)
             {
                 if (thisCalibrationTarget.CalibrationTargetWeight > 0)
                 {
@@ -488,13 +488,13 @@ namespace APACElib
         }
 
         // calculate goodness of fit with respect to this calibration target
-        private double CalcuateGoodnessOfFitToThisCalibrationTarget(CalibrationTarget calibrationTarget, int colIndexInSimuOutputMatrix)
+        private double CalcuateGoodnessOfFitToThisCalibrationTarget(CalibrationTargetOld calibrationTarget, int colIndexInSimuOutputMatrix)
         {
             double goodnessOfFit = 0;
             
             switch (calibrationTarget.GoodnessOfFitMeasure)
             {
-                case CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_timeSeries:
+                case CalibrationTargetOld.enumGoodnessOfFitMeasure.SumSqurError_timeSeries:
                     {
                         // calculate the weighted sum of squired errors
                         for (int i = 0; i < _matrixOfSimulationOutputs.GetLength(0); i++)
@@ -509,7 +509,7 @@ namespace APACElib
                         }
                     }
                     break;
-                case CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_average:
+                case CalibrationTargetOld.enumGoodnessOfFitMeasure.SumSqurError_average:
                     {
                         // calcualte the average
                         double sum = 0, ave = 0;
@@ -523,7 +523,7 @@ namespace APACElib
                         SupportFunctions.AddToEndOfArray(ref _vectorOfSimOutsNonZerpWeight, ave);
                     }
                     break;
-                case CalibrationTarget.enumGoodnessOfFitMeasure.Fourier:
+                case CalibrationTargetOld.enumGoodnessOfFitMeasure.Fourier:
                     {
                         // find the vector of observations for this calibration target
                         double[] simOutputForThisCalibrationTarget = new double[_matrixOfSimulationOutputs.GetLength(0)];
@@ -534,14 +534,14 @@ namespace APACElib
                         double normFourierWeights = -1;
                         double dotProduct= -1;
                         double cosAngle = -1;
-                        if (calibrationTarget.WeightsOfFourierSimilarityMeasures(CalibrationTarget.enumFourierSimilarityMeasures.Cosine) > 0)
+                        if (calibrationTarget.WeightsOfFourierSimilarityMeasures(CalibrationTargetOld.enumFourierSimilarityMeasures.Cosine) > 0)
                         {
                             double[] arrFourierTransformWeights = new double[0], arrReconstructedFourierObs = new double[0], arrPeriods = new double[0];
                             FourierTransform.DoFourierTransform(simOutputForThisCalibrationTarget, ref arrPeriods, ref arrFourierTransformWeights, ref arrReconstructedFourierObs);
 
                             normFourierWeights = LinearAlgebraFunctions.Norm(arrFourierTransformWeights, LinearAlgebraFunctions.enumVectorNorm.L_2);
                             dotProduct = LinearAlgebraFunctions.DotProduct(calibrationTarget.ObservedFourierAmplitudes, arrFourierTransformWeights);
-                            cosAngle = dotProduct / (calibrationTarget.ObservedFourierSimilarityMeasures(CalibrationTarget.enumFourierSimilarityMeasures.Norm2) * normFourierWeights);
+                            cosAngle = dotProduct / (calibrationTarget.ObservedFourierSimilarityMeasures(CalibrationTargetOld.enumFourierSimilarityMeasures.Norm2) * normFourierWeights);
                         }
 
                         // find the goodness of fit                        
@@ -566,25 +566,25 @@ namespace APACElib
                         else
                         {
                             // cosine similarity 
-                            goodnessOfFit += calibrationTarget.WeightsOfFourierSimilarityMeasures(CalibrationTarget.enumFourierSimilarityMeasures.Cosine)
+                            goodnessOfFit += calibrationTarget.WeightsOfFourierSimilarityMeasures(CalibrationTargetOld.enumFourierSimilarityMeasures.Cosine)
                                 * 1 / 4 * Math.Pow(1 - cosAngle, 2);
                             // euclidean distance
-                            goodnessOfFit += calibrationTarget.WeightsOfFourierSimilarityMeasures(CalibrationTarget.enumFourierSimilarityMeasures.Norm2)
+                            goodnessOfFit += calibrationTarget.WeightsOfFourierSimilarityMeasures(CalibrationTargetOld.enumFourierSimilarityMeasures.Norm2)
                                 * Math.Pow(
-                                            calibrationTarget.ObservedFourierSimilarityMeasures(CalibrationTarget.enumFourierSimilarityMeasures.Norm2) - normFourierWeights
+                                            calibrationTarget.ObservedFourierSimilarityMeasures(CalibrationTargetOld.enumFourierSimilarityMeasures.Norm2) - normFourierWeights
                                        , 2);
                             // average
-                            goodnessOfFit += calibrationTarget.WeightsOfFourierSimilarityMeasures(CalibrationTarget.enumFourierSimilarityMeasures.Average)
-                                * Math.Pow(calibrationTarget.ObservedFourierSimilarityMeasures(CalibrationTarget.enumFourierSimilarityMeasures.Average) - average, 2);
+                            goodnessOfFit += calibrationTarget.WeightsOfFourierSimilarityMeasures(CalibrationTargetOld.enumFourierSimilarityMeasures.Average)
+                                * Math.Pow(calibrationTarget.ObservedFourierSimilarityMeasures(CalibrationTargetOld.enumFourierSimilarityMeasures.Average) - average, 2);
                             // st dev
-                            goodnessOfFit += calibrationTarget.WeightsOfFourierSimilarityMeasures(CalibrationTarget.enumFourierSimilarityMeasures.StDev)
-                                * Math.Pow(calibrationTarget.ObservedFourierSimilarityMeasures(CalibrationTarget.enumFourierSimilarityMeasures.StDev) - stDev, 2);
+                            goodnessOfFit += calibrationTarget.WeightsOfFourierSimilarityMeasures(CalibrationTargetOld.enumFourierSimilarityMeasures.StDev)
+                                * Math.Pow(calibrationTarget.ObservedFourierSimilarityMeasures(CalibrationTargetOld.enumFourierSimilarityMeasures.StDev) - stDev, 2);
                             // min
-                            goodnessOfFit += calibrationTarget.WeightsOfFourierSimilarityMeasures(CalibrationTarget.enumFourierSimilarityMeasures.Min)
-                                * Math.Pow(calibrationTarget.ObservedFourierSimilarityMeasures(CalibrationTarget.enumFourierSimilarityMeasures.Min) - min, 2);
+                            goodnessOfFit += calibrationTarget.WeightsOfFourierSimilarityMeasures(CalibrationTargetOld.enumFourierSimilarityMeasures.Min)
+                                * Math.Pow(calibrationTarget.ObservedFourierSimilarityMeasures(CalibrationTargetOld.enumFourierSimilarityMeasures.Min) - min, 2);
                             // max
-                            goodnessOfFit += calibrationTarget.WeightsOfFourierSimilarityMeasures(CalibrationTarget.enumFourierSimilarityMeasures.Max)
-                                * Math.Pow(calibrationTarget.ObservedFourierSimilarityMeasures(CalibrationTarget.enumFourierSimilarityMeasures.Max) - max, 2);
+                            goodnessOfFit += calibrationTarget.WeightsOfFourierSimilarityMeasures(CalibrationTargetOld.enumFourierSimilarityMeasures.Max)
+                                * Math.Pow(calibrationTarget.ObservedFourierSimilarityMeasures(CalibrationTargetOld.enumFourierSimilarityMeasures.Max) - max, 2);
                             //_goodnessOfFit = _goodnessOfFit / _weightsOfFourierSimilarityMeasures.Sum();
                         }
                     }

@@ -79,7 +79,7 @@ namespace APACElib
         public int ThresholdBasedPolicy_MaximumNumOfDecisionPeriodsToUse { get; set; }
         public int ThresholdBasedPolicy_MaximumValueOfThresholds { get; set; }
         public int[][] PrespecifiedSequenceOfInterventions { get; set; }
-        public double[,] MatrixOfObservationsAndWeights { get; set; }
+        public double[,] MatrixOfObservationsAndLikelihoodParams { get; set; }
         public int NumOfSimulationsRunInParallelForCalibration { get; set; }
         public Array ParametersSheet { get; set; }
         public Array PathogenSheet { get; set; }
@@ -265,7 +265,7 @@ namespace APACElib
             // find the number of observations that should be eliminated during the warm-up period
             int numOfInitialObsToRemove = (int)(WarmUpPeriodTimeIndex / NumOfDeltaT_inObservationPeriod);
             // read observations
-            MatrixOfObservationsAndWeights = excelInterface.GetMatrixOfObservationsAndWeights(numOfInitialObsToRemove, numOfCalibrationTargets);
+            MatrixOfObservationsAndLikelihoodParams = excelInterface.GetMatrixOfObservationsAndWeights(numOfInitialObsToRemove, numOfCalibrationTargets);
         }
 
         // read q-function coefficient initial values
