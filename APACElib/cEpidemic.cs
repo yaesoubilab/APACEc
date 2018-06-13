@@ -919,117 +919,59 @@ namespace APACElib
             if (summationStatisticsSheet == null) return;
             for (int rowIndex = 1; rowIndex <= summationStatisticsSheet.GetLength(0); ++rowIndex)
             {
+                // common information between summation and ratio statistics
+                CommonSumRatioStatistics info = new CommonSumRatioStatistics(summationStatisticsSheet, rowIndex);
+
                 // ID and Name
-                int statID = Convert.ToInt32(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.ID));
-                string name = Convert.ToString(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Name));
                 string strDefinedOn = Convert.ToString(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.DefinedOn));
-                string strType = Convert.ToString(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Type));
-                string sumFormula = Convert.ToString(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Formula));
 
                 // defined on 
                 SumTrajectory.EnumDefinedOn definedOn = SumTrajectory.EnumDefinedOn.Classes;
                 if (strDefinedOn == "Events") definedOn = SumTrajectory.EnumDefinedOn.Events;
-
-                // type
-                SumTrajectory.EnumType type = SumTrajectory.EnumType.Incidence;
-                if (strType == "Prevalence") type = SumTrajectory.EnumType.Prevalence;
-                else if (strType == "Accumulating Incidence") type = SumTrajectory.EnumType.AccumulatingIncident;
-
-                // if display
-                bool ifDispay = SupportFunctions.ConvertYesNoToBool(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfDisplay).ToString());
-
+          
                 // DALY and cost outcomes
                 double DALYPerNewMember = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.DALYPerNewMember));
                 double costPerNewMember = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.CostPerNewMember));
-                // real-time monitoring
-                bool surveillanceDataAvailable = SupportFunctions.ConvertYesNoToBool(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.SurveillanceDataAvailable).ToString());
-                int nDeltaTDelayed = Convert.ToInt32(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.NumOfDeltaTsDelayed));
-                bool firstObsMarksEpiStart = SupportFunctions.ConvertYesNoToBool(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FirstObservationMarksTheStartOfTheSpread).ToString());
-
-                // calibration
-                bool ifIncludedInCalibration = SupportFunctions.ConvertYesNoToBool(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfIncludedInCalibration).ToString());
                 
-                // goodness of fit measure
-                // default values
-                CalibrationTarget.enumGoodnessOfFitMeasure goodnessOfFitMeasure = CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_timeSeries;
-                double[] fourierWeights = new double[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.SIZE];
-                bool ifCheckWithinFeasibleRange = false;
-                double feasibleMin = 0, feasibleMax = 0;
-                
-                // check if included in calibration 
-                double overalWeight = 0;
-                if (ifIncludedInCalibration)
-                {
-                    // measure of fit
-                    string strGoodnessOfFitMeasure = Convert.ToString(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.MeasureOfFit));
-                    if (strGoodnessOfFitMeasure == "Fourier") goodnessOfFitMeasure = CalibrationTarget.enumGoodnessOfFitMeasure.Fourier;
-
-                    // overall weight
-                    overalWeight = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_OveralFit));
-                    // Fourier weights
-                    if (goodnessOfFitMeasure == CalibrationTarget.enumGoodnessOfFitMeasure.Fourier)
-                    {
-                        fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.Cosine]
-                        = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierCosine));
-                        fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.Norm2]
-                            = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierEuclidean));
-                        fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.Average]
-                            = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierAverage));
-                        fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.StDev]
-                            = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierStDev));
-                        fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.Min]
-                            = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierMin));
-                        fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.Max]
-                            = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierMax));
-                    }
-                    // if to check if within a feasible range
-                    ifCheckWithinFeasibleRange = SupportFunctions.ConvertYesNoToBool(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfCheckWithinFeasibleRange).ToString());
-                    if (ifCheckWithinFeasibleRange)
-                    {
-                        feasibleMin = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FeasibleRange_minimum));
-                        feasibleMax = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FeasibleRange_maximum));
-                    }
-                }
-
                 // build and add the summation statistics
                 if (definedOn == SumTrajectory.EnumDefinedOn.Classes)
                 {
                     SumClassesTrajectory thisSumClassTraj = new SumClassesTrajectory
-                        (statID, name, type, sumFormula, ifDispay, _modelSets.WarmUpPeriodTimeIndex, _modelSets.NumOfDeltaT_inSimOutputInterval);
+                        (info.ID, info.Name, info.StrType, info.Formula, info.IfDisplay, _modelSets.WarmUpPeriodTimeIndex, _modelSets.NumOfDeltaT_inSimOutputInterval);
                     // add the summation statistics
                     EpiHist.SumTrajs.Add(thisSumClassTraj);
                     // add the survey 
-                    if (surveillanceDataAvailable)
+                    if (info.SurveillanceDataAvailable)
                     {
                         // find the type of this summation statistics
-                        switch (type)
+                        switch (thisSumClassTraj.Type)
                         {
                             case SumTrajectory.EnumType.Incidence:
                                 EpiHist.SurveyedIncidenceTrajs.Add(
                                     new SurveyedIncidenceTrajectory(
-                                        statID,
-                                        name,
-                                        ifDispay,
-                                        firstObsMarksEpiStart,
-                                        thisSumClassTraj,
-                                        null,
-                                        _modelSets.NumOfDeltaT_inObservationPeriod,
-                                        nDeltaTDelayed)
+                                        id: info.ID,
+                                        name: info.Name,
+                                        displayInSimOutput: info.IfDisplay,
+                                        firstObsMarksStartOfEpidemic: info.FirstObsMarksEpiStart,
+                                        sumClassesTrajectory: thisSumClassTraj,
+                                        sumEventTrajectory: null,
+                                        nDeltaTsObsPeriod: _modelSets.NumOfDeltaT_inObservationPeriod, 
+                                        nDeltaTsDelayed: info.NDeltaTDelayed)
                                         );
                                 break;
                             case SumTrajectory.EnumType.AccumulatingIncident:
                             case SumTrajectory.EnumType.Prevalence:
                                 EpiHist.SurveyedPrevalenceTrajs.Add(
                                     new SurveyedPrevalenceTrajectory(
-                                        statID,
-                                        name,
-                                        ifDispay,
-                                        firstObsMarksEpiStart,
-                                        thisSumClassTraj,
-                                        null,
-                                        _modelSets.NumOfDeltaT_inObservationPeriod,
-                                        nDeltaTDelayed, 
-                                        1)
+                                        id: info.ID,
+                                        name: info.Name,
+                                        displayInSimOutput: info.IfDisplay,
+                                        firstObsMarksStartOfEpidemic: info.FirstObsMarksEpiStart,
+                                        sumClassesTrajectory: thisSumClassTraj,
+                                        ratioTrajectory: null,
+                                        nDeltaTsObsPeriod: _modelSets.NumOfDeltaT_inObservationPeriod,
+                                        nDeltaTsDelayed: info.NDeltaTDelayed, 
+                                        noise_percOfDemoninatorSampled: 1)
                                         );
                                 break;
                         }
@@ -1052,27 +994,27 @@ namespace APACElib
                 else // if defined on events
                 {
                     SumEventTrajectory thisSumEventTraj = new SumEventTrajectory
-                        (statID, name, type, sumFormula, ifDispay, _modelSets.WarmUpPeriodTimeIndex, _modelSets.NumOfDeltaT_inSimOutputInterval);
+                        (info.ID, info.Name, info.StrType, info.Formula, info.IfDisplay, _modelSets.WarmUpPeriodTimeIndex, _modelSets.NumOfDeltaT_inSimOutputInterval);
                     // add the summation statistics
                     EpiHist.SumTrajs.Add(thisSumEventTraj);
 
                     // add the survey 
-                    if (surveillanceDataAvailable)
+                    if (info.SurveillanceDataAvailable)
                     {
                         // find the type of this summation statistics
-                        switch (type)
+                        switch (thisSumEventTraj.Type)
                         {
                             case SumTrajectory.EnumType.Incidence:
                                 EpiHist.SurveyedIncidenceTrajs.Add(
                                     new SurveyedIncidenceTrajectory(
-                                        statID,
-                                        name,
-                                        ifDispay,
-                                        firstObsMarksEpiStart,
+                                        info.ID,
+                                        info.Name,
+                                        info.IfDisplay,
+                                        info.FirstObsMarksEpiStart,
                                         null,
                                         thisSumEventTraj,
                                         _modelSets.NumOfDeltaT_inObservationPeriod,
-                                        nDeltaTDelayed)
+                                        info.NDeltaTDelayed)
                                         );
                                 break;
                             case SumTrajectory.EnumType.AccumulatingIncident:
@@ -1086,7 +1028,9 @@ namespace APACElib
                 EpiHist.SumTrajs.Last().AddCostHealthOutcomes(DALYPerNewMember, costPerNewMember, 0, 0);
 
                 // update calibraton infor
-                EpiHist.SumTrajs.Last().CalibInfo = new TrajCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
+                if (_modelSets.ModelUse == EnumModelUse.Calibration && info.IfIncludedInCalibration)
+                    EpiHist.SumTrajs.Last().CalibInfo = 
+                        new SpecialStatCalibrInfo(info.StrMeasureOfFit, info.StrLikelihood, info.IfCheckWithinFeasibleRange, info.FeasibleMin, info.FeasibleMax);
                 
             }
         }
@@ -1097,129 +1041,40 @@ namespace APACElib
 
             for (int rowIndex = 1; rowIndex <= ratioStatsSheet.GetLength(0); ++rowIndex)
             {
-                // ID and Name
-                int statID = Convert.ToInt32(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.ID));
-                string name = Convert.ToString(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Name));
-                string strType = Convert.ToString(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Type));
-                string ratioFormula = Convert.ToString(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Formula));
-
-                // if display
-                bool ifDispay = SupportFunctions.ConvertYesNoToBool(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfDisplay).ToString());
-
-                // real-time monitoring
-                bool surveillanceDataAvailable = SupportFunctions.ConvertYesNoToBool(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.SurveillanceDataAvailable).ToString());
-                int nDeltaTDelayed = 0;
-                double noise= 0;
-                bool firstObsMarksEpiStart = false;
-                if (surveillanceDataAvailable)
-                {
-                    nDeltaTDelayed = Convert.ToInt32(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.NumOfDeltaTsDelayed));
-                    noise = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Noise));
-                    firstObsMarksEpiStart = SupportFunctions.ConvertYesNoToBool(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FirstObservationMarksTheStartOfTheSpread).ToString());
-                }
-
-                // calibration
-                bool ifIncludedInCalibration = SupportFunctions.ConvertYesNoToBool(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfIncludedInCalibration).ToString());
-
-                // default values
-                CalibrationTarget.enumGoodnessOfFitMeasure goodnessOfFitMeasure = CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_timeSeries;
-                double[] fourierWeights = new double[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.SIZE];
-                bool ifCheckWithinFeasibleRange = false;
-                double feasibleMin = 0, feasibleMax = 0;
-
-                // check if included in calibration 
-                double overalWeight = 0;
-                if (ifIncludedInCalibration)
-                {
-                    // measure of fit
-                    string strGoodnessOfFitMeasure = Convert.ToString(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.MeasureOfFit));
-                    switch (strGoodnessOfFitMeasure)
-                    {
-                        case "Sum Sqr Err (time-series)":
-                            goodnessOfFitMeasure = CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_timeSeries;
-                            break;
-                        case "Sum Sqr Err (average time-series)":
-                            goodnessOfFitMeasure = CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_average;
-                            break;
-                        case "Fourier":
-                            goodnessOfFitMeasure = CalibrationTarget.enumGoodnessOfFitMeasure.Fourier;
-                            break;
-                    }
-                    // overall weight
-                    overalWeight = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_OveralFit));
-                    // Fourier weights
-                    if (goodnessOfFitMeasure == CalibrationTarget.enumGoodnessOfFitMeasure.Fourier)
-                    {
-                        fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.Cosine]
-                        = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierCosine));
-                        fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.Norm2]
-                            = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierEuclidean));
-                        fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.Average]
-                            = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierAverage));
-                        fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.StDev]
-                            = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierStDev));
-                        fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.Min]
-                            = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierMin));
-                        fourierWeights[(int)SimulationLib.CalibrationTarget.enumFourierSimilarityMeasures.Max]
-                            = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierMax));
-                    }
-                    // if to check if within a feasible range
-                    ifCheckWithinFeasibleRange = SupportFunctions.ConvertYesNoToBool(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfCheckWithinFeasibleRange).ToString());
-                    if (ifCheckWithinFeasibleRange)
-                    {
-                        feasibleMin = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FeasibleRange_minimum));
-                        feasibleMax = Convert.ToDouble(ratioStatsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FeasibleRange_maximum));
-                    }
-                }
-
-                // find the type
-                RatioTrajectory.EnumType type = RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence;
-                switch (strType)
-                {
-                    case "Incidence/Incidence":
-                        type = RatioTrajectory.EnumType.IncidenceOverIncidence;
-                        break;
-                    case "Accumulated Incidence/Accumulated Incidence":
-                        type = RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence;
-                        break;
-                    case "Prevalence/Prevalence":
-                        type = RatioTrajectory.EnumType.PrevalenceOverPrevalence;
-                        break;
-                    case "Incidence/Prevalence":
-                        type = RatioTrajectory.EnumType.IncidenceOverPrevalence;
-                        break;
-                }
-
+                // common information between summation and ratio statistics
+                CommonSumRatioStatistics info = new CommonSumRatioStatistics(ratioStatsSheet, rowIndex);
+               
                 // build a ratio stat
                 RatioTrajectory thisRatioTraj = new RatioTrajectory(
-                    statID, 
-                    name, 
-                    type, 
-                    ratioFormula, 
-                    ifDispay, 
+                    info.ID,
+                    info.Name,
+                    info.StrType,
+                    info.Formula,
+                    info.IfDisplay, 
                     _modelSets.WarmUpPeriodTimeIndex, 
                     _modelSets.NumOfDeltaT_inSimOutputInterval);
 
                 // set up calibration
-                thisRatioTraj.CalibInfo = new TrajCalibrationInfo(ifIncludedInCalibration, ifCheckWithinFeasibleRange, feasibleMin, feasibleMax);
+                if (_modelSets.ModelUse == EnumModelUse.Calibration && info.IfIncludedInCalibration)
+                    thisRatioTraj.CalibInfo = new SpecialStatCalibrInfo(info.StrMeasureOfFit, info.StrLikelihood, info.IfCheckWithinFeasibleRange, info.FeasibleMin, info.FeasibleMax);
 
                 // add the summation statistics
                 EpiHist.RatioTrajs.Add(thisRatioTraj);
 
                 // add the survey 
-                if (surveillanceDataAvailable)
+                if (info.SurveillanceDataAvailable)
                 {
                     EpiHist.SurveyedPrevalenceTrajs.Add(
                         new SurveyedPrevalenceTrajectory(
-                            statID,
-                            name,
-                            ifDispay,
-                            firstObsMarksEpiStart,
+                            info.ID,
+                            info.Name,
+                            info.IfDisplay,
+                            info.FirstObsMarksEpiStart,
                             null,
                             thisRatioTraj,
                             _modelSets.NumOfDeltaT_inObservationPeriod,
-                            nDeltaTDelayed, 
-                            noise)
+                            info.NDeltaTDelayed,
+                            info.SurveillanceNoise)
                             );
                 }
             }

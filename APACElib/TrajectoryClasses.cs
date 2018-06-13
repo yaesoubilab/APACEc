@@ -222,17 +222,22 @@ namespace APACElib
 
         public Boolean DisplayInSimOutput { get; set; }
         public EnumType Type { get; set; }
-        public TrajCalibrationInfo CalibInfo { get; set; }
+        public SpecialStatCalibrInfo CalibInfo { get; set; }
 
         public SumTrajectory(
             int ID,
             string name,
-            EnumType type,
+            string strType,
             bool displayInSimOutput,
             int warmUpSimIndex,
             int nDeltaTInAPeriod)
             : base(ID, name, warmUpSimIndex)
         {
+            // type
+            EnumType type = EnumType.Incidence;
+            if (strType == "Prevalence") type = EnumType.Prevalence;
+            else if (strType == "Accumulating Incidence") type = EnumType.AccumulatingIncident;
+
             Type = type;
             DisplayInSimOutput = displayInSimOutput;
             switch (Type)
@@ -315,12 +320,12 @@ namespace APACElib
         public SumClassesTrajectory(
             int ID,
             string name,
-            EnumType type,
+            string strType,
             string sumFormula,
             bool displayInSimOutput,
             int warmUpSimIndex,
             int nDeltaTInAPeriod) 
-            :base(ID, name, type, displayInSimOutput, warmUpSimIndex, nDeltaTInAPeriod)
+            :base(ID, name, strType, displayInSimOutput, warmUpSimIndex, nDeltaTInAPeriod)
         {           
             ClassIDs = ConvertSumFormulaToArrayOfIDs(sumFormula);
         }
@@ -368,12 +373,12 @@ namespace APACElib
         public SumEventTrajectory(
             int ID,
             string name,
-             EnumType type,
+            string strType,
             string sumFormula,
             bool displayInSimOutput,
             int warmUpSimIndex,
             int nDeltaTInAPeriod) 
-            :base(ID, name, type, displayInSimOutput, warmUpSimIndex, nDeltaTInAPeriod)
+            :base(ID, name, strType, displayInSimOutput, warmUpSimIndex, nDeltaTInAPeriod)
         {
             _arrEventIDs = ConvertSumFormulaToArrayOfIDs(sumFormula);
         }
@@ -401,7 +406,7 @@ namespace APACElib
             PrevalenceOverPrevalence = 2,
             IncidenceOverPrevalence = 3,
         }
-        public TrajCalibrationInfo CalibInfo { get; set; }
+        public SpecialStatCalibrInfo CalibInfo { get; set; }
 
         public int ID { get; }
         public string Name { get; set; }
@@ -419,15 +424,32 @@ namespace APACElib
         public RatioTrajectory(
             int id,
             string name,
-            EnumType type,
+            string strType,
             string ratioFormula,
             bool displayInSimOutput,
             int warmUpSimIndex,
             int nDeltaTInAPeriod)            
         {
             ID = id;
+
             Name = name;
-            Type = type;
+            // find the type
+            switch (strType)
+            {
+                case "Incidence/Incidence":
+                    Type = RatioTrajectory.EnumType.IncidenceOverIncidence;
+                    break;
+                case "Accumulated Incidence/Accumulated Incidence":
+                    Type = RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence;
+                    break;
+                case "Prevalence/Prevalence":
+                    Type = RatioTrajectory.EnumType.PrevalenceOverPrevalence;
+                    break;
+                case "Incidence/Prevalence":
+                    Type = RatioTrajectory.EnumType.IncidenceOverPrevalence;
+                    break;
+            }
+
             DisplayInSimOutput = displayInSimOutput;
             int[] arrRatio = ConvertRatioFormulaToArrayOfClassIDs(ratioFormula);
             _nominatorSpecialStatID = arrRatio[0];

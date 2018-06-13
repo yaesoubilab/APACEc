@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using ComputationLib;
 
 namespace APACElib
 {
@@ -262,6 +263,74 @@ namespace APACElib
         {
             int endTime = Environment.TickCount;
             TimePassed = (double)(endTime - _startTime) / 1000;
+        }
+    }
+
+    public class CommonSumRatioStatistics
+    {
+        public int ID { get; }
+        public string Name { get; }
+        public string StrType { get; }
+        public string Formula { get; }
+        public bool IfDisplay { get; }
+        public bool SurveillanceDataAvailable { get; }
+        public int NDeltaTDelayed { get; }
+        public double SurveillanceNoise { get; }
+        public bool FirstObsMarksEpiStart { get; }
+
+        public bool IfIncludedInCalibration { get; }
+        public string StrMeasureOfFit { get; }
+        public string StrLikelihood { get; }
+        public bool IfCheckWithinFeasibleRange { get; }
+        public double FeasibleMin { get; }
+        public double FeasibleMax { get; }
+        
+        public CommonSumRatioStatistics(Array sheet, int rowIndex)
+        {
+            ID = Convert.ToInt32(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.ID));
+            Name = Convert.ToString(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Name));
+            StrType = Convert.ToString(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Type));
+            Formula = Convert.ToString(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Formula));
+
+            // if display
+            IfDisplay = SupportFunctions.ConvertYesNoToBool(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfDisplay).ToString());
+
+            // real-time monitoring
+            SurveillanceDataAvailable = SupportFunctions.ConvertYesNoToBool(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.SurveillanceDataAvailable).ToString());
+            if (SurveillanceDataAvailable)
+            {
+                NDeltaTDelayed = Convert.ToInt32(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.NumOfDeltaTsDelayed));
+                SurveillanceNoise = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Noise));
+                FirstObsMarksEpiStart = SupportFunctions.ConvertYesNoToBool(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FirstObservationMarksTheStartOfTheSpread).ToString());
+            }
+            // basic settings
+            IfIncludedInCalibration = SupportFunctions.ConvertYesNoToBool(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfIncludedInCalibration).ToString());
+            StrMeasureOfFit = Convert.ToString(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.MeasureOfFit));
+            StrLikelihood = Convert.ToString(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Likelihood));
+            IfCheckWithinFeasibleRange = SupportFunctions.ConvertYesNoToBool(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfCheckWithinFeasibleRange).ToString());
+            if (IfCheckWithinFeasibleRange)
+            {
+                FeasibleMin = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FeasibleRange_minimum));
+                FeasibleMax = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FeasibleRange_maximum));
+            }
+
+            // fourier
+            double[] fourierWeights = new double[(int)CalibrationTarget.enumFourierSimilarityMeasures.SIZE];
+            if (IfIncludedInCalibration && StrMeasureOfFit == "Fourier")
+            {
+                fourierWeights[(int)CalibrationTarget.enumFourierSimilarityMeasures.Cosine]
+                    = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierCosine));
+                fourierWeights[(int)CalibrationTarget.enumFourierSimilarityMeasures.Norm2]
+                    = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierEuclidean));
+                fourierWeights[(int)CalibrationTarget.enumFourierSimilarityMeasures.Average]
+                    = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierAverage));
+                fourierWeights[(int)CalibrationTarget.enumFourierSimilarityMeasures.StDev]
+                    = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierStDev));
+                fourierWeights[(int)CalibrationTarget.enumFourierSimilarityMeasures.Min]
+                    = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierMin));
+                fourierWeights[(int)CalibrationTarget.enumFourierSimilarityMeasures.Max]
+                    = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierMax));
+            }
         }
     }
 }

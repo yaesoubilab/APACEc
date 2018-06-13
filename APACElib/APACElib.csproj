@@ -57,6 +57,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Calibration.cs" />
+    <Compile Include="CalibrationOld.cs" />
     <Compile Include="cAPACE.cs" />
     <Compile Include="cClass.cs" />
     <Compile Include="EconEvalClasses.cs" />

@@ -402,7 +402,7 @@ namespace APACElib
             int numOfRows = matrixOfObservationsAndWeights.GetLength(0);
 
             // go over summation statistics
-            foreach (SumTrajectory sumStat in thisEpiModel.EpiHist.SumTrajs.Where(s => s.CalibInfo.IfIncluded))
+            foreach (SumTrajectory sumStat in thisEpiModel.EpiHist.SumTrajs.Where(s => !(s.CalibInfo is null)))
             {
                 double[] arrObservations = new double[numOfRows];
                 double[] arrWeights = new double[numOfRows];
@@ -429,7 +429,7 @@ namespace APACElib
             }
 
             // go over ratio statistics
-            foreach (RatioTrajectory ratioStat in thisEpiModel.EpiHist.RatioTrajs.Where(r => r.CalibInfo.IfIncluded))
+            foreach (RatioTrajectory ratioStat in thisEpiModel.EpiHist.RatioTrajs.Where(r => !(r.CalibInfo is null)))
             {
                 double[] arrObservations = new double[numOfRows];
                 double[] arrWeights = new double[numOfRows];
@@ -488,10 +488,10 @@ namespace APACElib
             string[] names = new string[0];
 
             // summation statistics
-            foreach (SumTrajectory thisSumTraj in _parentEpidemic.EpiHist.SumTrajs.Where(s => s.CalibInfo.IfIncluded))
+            foreach (SumTrajectory thisSumTraj in _parentEpidemic.EpiHist.SumTrajs.Where(s => !(s.CalibInfo is null)))
                 SupportFunctions.AddToEndOfArray(ref names, thisSumTraj.Name);
             // ratio statistics
-            foreach (RatioTrajectory thisRatioTraj in _parentEpidemic.EpiHist.RatioTrajs.Where(s => s.CalibInfo.IfIncluded))
+            foreach (RatioTrajectory thisRatioTraj in _parentEpidemic.EpiHist.RatioTrajs.Where(s => !(s.CalibInfo is null)))
                 SupportFunctions.AddToEndOfArray(ref names, thisRatioTraj.Name);
             //}
 

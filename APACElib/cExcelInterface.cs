@@ -161,7 +161,7 @@ namespace APACElib
             
             IfIncludedInCalibration = 17,
             MeasureOfFit = 18,
-            Weight_OveralFit = 19,
+            Likelihood = 19,
             Weight_FourierCosine = 20,
             Weight_FourierEuclidean = 21,
             Weight_FourierAverage = 22,
