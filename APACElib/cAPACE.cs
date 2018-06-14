@@ -134,17 +134,20 @@ namespace APACElib
         // calibrate
         private void Calibrate()
         {
-            // initialize calibration
-            InitializeCalibration();
+            // making sure seeds are incrementing from 0
+            _modelSettings.SimRNDSeedsSource = EnumSimRNDSeedsSource.StartFrom0;
+
+            // create an epidemic modeler
+            _epidemicModeller = new EpidemicModeller(0, ref _excelInterface, ref _modelSettings);
+
+            // read the observed epidemic history 
+            ReadObservedHistory();
 
             // calibrate
-            _epidemicModeller.Calibrate(
-                ExcelInterface.GetInitialNumberOfTrajectoriesForCalibration(), 
-                ExcelInterface.GetNumOfFittestTrajectoriesToReturn());
+            _epidemicModeller.Calibrate(ExcelInterface.GetNumOfTrajsToSimForCalibr());
             
             // report calibration results
             ReportCalibrationResult();
-
         }
         
         // optimize the dynamic policy
@@ -236,7 +239,7 @@ namespace APACElib
                 // create and epidemic modeler
                 EpidemicModeller thisEpidemicModeller = new EpidemicModeller(designIndex, ref _excelInterface, ref _modelSettings);
                 // don't store epidemic trajectories
-                thisEpidemicModeller.ShouldStoreEpidemicTrajectories(false);
+                thisEpidemicModeller.StoreEpiTrajsForExcelOutput(false);
 
                 // run the simulation
                 thisEpidemicModeller.SimulateEpidemics();
@@ -472,23 +475,6 @@ namespace APACElib
             return (EpidemicModeller)_epidemicModellers[positionOfOptimalEpiModeller];
         }        
        
-        // initialize calibration
-        private void InitializeCalibration()
-        {
-            _modelSettings.SimRNDSeedsSource = EnumSimRNDSeedsSource.StartFrom0;
-
-            // create an epidemic modeler
-            _epidemicModeller = new EpidemicModeller(0, ref _excelInterface, ref _modelSettings);
-
-            // read the observed epidemic history 
-            ReadObservedHistory();
-
-            // setup calibration            
-            _epidemicModeller.SetUpCalibration();
-            
-            // specify RNG source
-            //_epidemicModeller.SpecifyRNGSource(_firstRNGSeed, _distanceBtwRNGSeeds);
-        }
         // initialize dynamic policy optimization
         private void InitializeDynamicPolicyOptimization()
         {
@@ -634,10 +620,10 @@ namespace APACElib
                 return;
 
             // check if current epidemic history can be used if not get the history from the user
-            if (ExcelInterface.GetIfUseCurrentObservationsToCalibrate() == false)
+            if (ExcelInterface.GetIfUseCurrentHistoryToCalibr() == false)
             {
                 // get the names of calibration data
-                string[] namesOfCalibrationTargets = _epidemicModeller.GetNamesOfSpecialStatisticsIncludedInCalibratoin();
+                string[] namesOfCalibrationTargets = _epidemicModeller.GetNamesOfCalibrTargets();
 
                 // create the header
                 string[,] strObsHeader = new string[2, 2 * namesOfCalibrationTargets.Length];
@@ -652,15 +638,15 @@ namespace APACElib
                 // get the index of observation periods
                 int numOfObsPeriods = (int)(_modelSettings.TimeIndexToStop/ _modelSettings.NumOfDeltaT_inObservationPeriod);
                 int[] obsPeriodIndex = new int[numOfObsPeriods];
-                for (int i = 0; i < numOfObsPeriods; i++)
-                    obsPeriodIndex[i] = i+1;
+                for (int i = 0; i <= numOfObsPeriods; i++)
+                    obsPeriodIndex[i] = i;
 
                 // set up the epidemic history sheet
                 ExcelInterface.SetupEpidemicHistoryWorksheet(strObsHeader, obsPeriodIndex); 
             }
             // read past actions
             _modelSettings.ReadPastActions(ref _excelInterface);
-            _modelSettings.ReadPastObservations(ref _excelInterface, 0);
+            _modelSettings.ReadObservedHistory(ref _excelInterface, _epidemicModeller.GetNamesOfCalibrTargets().Length);
         }
 
         #endregion

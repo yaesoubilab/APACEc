@@ -91,6 +91,7 @@ namespace APACElib
         public Array RatioStatisticsSheet { get; set; }
         public Array FeaturesSheet { get; set; }
         public Array ConditionsSheet { get; set; }
+        public Array ObservedHistory { get; set; }
         public int[,] ConnectionsMatrix { get; set; }
 
         public double[][,] GetBaseContactMatrices() { return _baseContactMatrices; }
@@ -178,9 +179,12 @@ namespace APACElib
 
             // calibration 
             NumOfSimulationsRunInParallelForCalibration = Math.Min(
-                excelInterface.GetInitialNumberOfTrajectoriesForCalibration(), 
-                excelInterface.GetNumOfSimulationsRunInParallelForCalibration());
+                excelInterface.GetNumOfTrajsToSimForCalibr(), 
+                excelInterface.GetNumOfTrajsInParallelForCalibr());
 
+            // read prespecified decisions
+            if (DecisionRule == EnumEpiDecisions.PredeterminedSequence)
+                ReadPastActions(ref excelInterface);
         }
 
         // read feature and approximation related settings
@@ -255,18 +259,22 @@ namespace APACElib
             {
                 int[] actionCombination = SupportFunctions.ConvertStringToIntArray(pastActions[i], ',');
                 PrespecifiedSequenceOfInterventions = SupportFunctions.ConcatJaggedArray(PrespecifiedSequenceOfInterventions, actionCombination);
-            }
-
-            
+            }            
         }
-        // read past observations
-        public void ReadPastObservations(ref ExcelInterface excelInterface, int numOfCalibrationTargets)
+        // read sheet of observed history
+        public void ReadObservedHistory(ref ExcelInterface excelInterface, int numOfCalibrationTargets)
         {
-            // find the number of observations that should be eliminated during the warm-up period
-            int numOfInitialObsToRemove = (int)(WarmUpPeriodTimeIndex / NumOfDeltaT_inObservationPeriod);
-            // read observations
-            MatrixOfObservationsAndLikelihoodParams = excelInterface.GetMatrixOfObservationsAndWeights(numOfInitialObsToRemove, numOfCalibrationTargets);
+            ObservedHistory = excelInterface.GetTableOfObservedHistory(numOfCalibrationTargets);
         }
+
+        //// read past observations
+        //public void ReadPastObservations(ref ExcelInterface excelInterface, int numOfCalibrationTargets)
+        //{
+        //    // find the number of observations that should be eliminated during the warm-up period
+        //    int numOfInitialObsToRemove = (int)(WarmUpPeriodTimeIndex / NumOfDeltaT_inObservationPeriod);
+        //    // read observations
+        //    MatrixOfObservationsAndLikelihoodParams = excelInterface.GetMatrixOfObservationsAndWeights(numOfInitialObsToRemove, numOfCalibrationTargets);
+        //}
 
         // read q-function coefficient initial values
         public void ReadQFunctionCoefficientsInitialValues(ref ExcelInterface excelInterface, int numOfFeatures)

@@ -162,18 +162,19 @@ namespace APACElib
             IfIncludedInCalibration = 17,
             MeasureOfFit = 18,
             Likelihood = 19,
-            Weight_FourierCosine = 20,
-            Weight_FourierEuclidean = 21,
-            Weight_FourierAverage = 22,
-            Weight_FourierStDev = 23,
-            Weight_FourierMin = 24,
-            Weight_FourierMax = 25,
-            IfCheckWithinFeasibleRange = 26,
-            FeasibleRange_minimum = 27,
-            FeasibleRange_maximum = 28,
+            LikelihoodParam = 20,
+            Weight_FourierCosine = 21,
+            Weight_FourierEuclidean = 22,
+            Weight_FourierAverage = 23,
+            Weight_FourierStDev = 24,
+            Weight_FourierMin = 25,
+            Weight_FourierMax = 26,
+            IfCheckWithinFeasibleRange = 27,
+            FeasibleRange_minimum = 28,
+            FeasibleRange_maximum = 29,
 
-            NewMember_FeatureType = 30,
-            NewMember_NumOfPastObsPeriodsToStore = 31,
+            NewMember_FeatureType = 31,
+            NewMember_NumOfPastObsPeriodsToStore = 32,
         }        
         public enum enumFeaturesColumns : int
         {
@@ -327,6 +328,10 @@ namespace APACElib
         public Array GetTableOfEvents()
         {
             return GetTableOfCells("Events", "eventsBase", (int)enumEventColumns.IDOfDestinationClass);
+        }
+        public Array GetTableOfObservedHistory(int numOfCalibrationTargets)
+        {
+            return GetTableOfCells("Epidemic History", "epidemicHistoryBase", 2+ 2*numOfCalibrationTargets);
         }
         //public Array GetTableOfResourceRules()
         //{
@@ -631,30 +636,24 @@ namespace APACElib
         {
             return GetCellValue("General Settings", "calibrationMethod").ToString();
         }
-        public string GetGoodnessOfFitMeasure()
-        {
-            return GetCellValue("General Settings", "goodnessOfFitObjFunction").ToString();
-        }
-        public int GetNumOfSimulationsRunInParallelForCalibration()
+
+        public int GetNumOfTrajsInParallelForCalibr()
         {
             return (int)(double)GetCellValue("General Settings", "numOfSimulationsRunInParallelForCalibration");
         }
-        public int GetInitialNumberOfTrajectoriesForCalibration()
+        public int GetNumOfTrajsToSimForCalibr()
         {
             return (int)(double)GetCellValue("General Settings", "initialNumberOfTrajectoriesForCalibration");
         }
-        public int GetNumOfFittestTrajectoriesToReturn()
-        {
-            return (int)(double)GetCellValue("General Settings", "numOfFittestTrajectoriesToReturn");
-        }
-        public bool GetIfUseCurrentObservationsToCalibrate()
+
+        public bool GetIfUseCurrentHistoryToCalibr()
         {
             return SupportFunctions.ConvertYesNoToBool(GetCellValue("General Settings", "useCurrentObservationsToCalibrate").ToString());
         }
         public string[] GetPrespecifiedSequenceOfInterventions()
         {
             base.ActivateSheet("Epidemic History");
-            return base.ReadStringRangeFromActiveSheet(base.RowIndex("epidemicHistoryBase") + 1, (int)ExcelInterface.enumObservationsColumns.InterventionID, ExcelInteractorLib.ExcelInteractor.enumRangeDirection.DownEnd);
+            return base.ReadStringRangeFromActiveSheet(base.RowIndex("epidemicHistoryBase") + 2, (int)ExcelInterface.enumObservationsColumns.InterventionID, ExcelInteractorLib.ExcelInteractor.enumRangeDirection.DownEnd);
         }
         public double[,] GetObservationMatrix(int numOfObservableOutcomes)
         {

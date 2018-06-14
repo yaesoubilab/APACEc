@@ -16,7 +16,7 @@ namespace APACElib
         ModelSettings _modelSets;
         public int ID { get; set; }
         public EnumModelUse ModelUse { get; set; } = EnumModelUse.Simulation;
-        public bool StoreEpidemicTrajectories { get; set; } = true;
+        public bool StoreEpiTrajsForExcelOutput { get; set; } = true;
         
         // public model entities
         public DecisionMaker DecisionMaker { get => _decisionMaker; }
@@ -29,7 +29,7 @@ namespace APACElib
         public EpidemicCostHealth EpidemicCostHealth { get; set; }
 
         public Timer Timer { get; private set; } = new Timer();
-        public Calibration Calibration { get; private set; } = new Calibration();
+        //public Calibration Calibration { get; private set; } = new Calibration();
         
         RNG _rng;
         private DecisionMaker _decisionMaker;
@@ -63,29 +63,35 @@ namespace APACElib
     }
         
         // Simulate one trajectory (parameters will be sampled)
-        public int SimulateTrajectoriesUntilOneAcceptibleFound(int beginSeed, int stopSeed, int imRepIndex, int timeIndexToStop)
+        public int SimulateUntilOneAcceptibleTrajFound(int beginSeed, int stopSeed, int imRepIndex, int timeIndexToStop)
         {
+            int seed = beginSeed;
             bool acceptableTrajFound = false;
             int nTrajDiscarded = 0;
+            Timer.Start();       // reset the timer 
 
-            while (!acceptableTrajFound && beginSeed <= stopSeed)
+            SeedProducedAcceptibleTraj = -1;
+            while (!acceptableTrajFound && seed <= stopSeed)
             {
                 // reset for another simulation
-                ResetForAnotherSimulation(beginSeed);
+                ResetForAnotherSimulation(seed);
                 // simulate
                 if (Simulate(imRepIndex, timeIndexToStop))
                 {
                     acceptableTrajFound = true;
-                    SeedProducedAcceptibleTraj = beginSeed;
+                    SeedProducedAcceptibleTraj = seed;
                 }
                 else
                 {
-                    ++beginSeed;
+                    ++seed;
                     // if the model is used for calibration, record the number of discarded trajectories due to violating the feasible ranges
                     if (_modelSets.ModelUse == EnumModelUse.Calibration)
                         ++nTrajDiscarded;
                 }
             }
+
+            Timer.Stop(); // stop timer
+
             return nTrajDiscarded;
         }
         // Simulate one trajectory (parameters will be sampled)
@@ -140,7 +146,8 @@ namespace APACElib
                 _paramManager.UpdateTimeDepParams(_rng, _simTimeIndex * _modelSets.DeltaT, _classes);
 
                 // Update recorded trajectories to report to the Excel file
-                EpiHist.Record(_simTimeIndex, _epiTimeIndex, false);                
+                if (StoreEpiTrajsForExcelOutput)
+                    EpiHist.Record(_simTimeIndex, _epiTimeIndex, false);                
 
                 // check if this is has been a feasible trajectory for calibration
                 if (ModelUse == EnumModelUse.Calibration && !ifThisIsAFeasibleCalibrationTrajectory)
@@ -168,7 +175,8 @@ namespace APACElib
                     toStop = true;
                     // update recorded trajectories 
                     EpiHist.Update(_simTimeIndex, _epiTimeIndex, true, _rng);
-                    EpiHist.Record(_simTimeIndex, _epiTimeIndex, true);
+                    if (StoreEpiTrajsForExcelOutput)
+                        EpiHist.Record(_simTimeIndex, _epiTimeIndex, true);
 
                     // find if it is an acceptable trajectory
                     acceptableTrajectory = true;
@@ -394,6 +402,10 @@ namespace APACElib
             
             // find if there are classes with eradiation condition
             _thereAreClassesWithEradicationCondition = Classes.Where(s => s.EmptyToEradicate).Count() > 0;
+
+            // prespecified decisions
+            if (_modelSets.DecisionRule == EnumEpiDecisions.PredeterminedSequence)
+                _decisionMaker.AddPrespecifiedDecisionsOverDecisionsPeriods(_modelSets.PrespecifiedSequenceOfInterventions);
         }
         // read parameters
         private void AddParameters(Array parametersSheet)
@@ -1030,7 +1042,7 @@ namespace APACElib
                 // update calibraton infor
                 if (_modelSets.ModelUse == EnumModelUse.Calibration && info.IfIncludedInCalibration)
                     EpiHist.SumTrajs.Last().CalibInfo = 
-                        new SpecialStatCalibrInfo(info.StrMeasureOfFit, info.StrLikelihood, info.IfCheckWithinFeasibleRange, info.FeasibleMin, info.FeasibleMax);
+                        new SpecialStatCalibrInfo(info.StrMeasureOfFit, info.StrLikelihood, info.StrLikelihoodParam, info.IfCheckWithinFeasibleRange, info.FeasibleMin, info.FeasibleMax);
                 
             }
         }
@@ -1056,7 +1068,7 @@ namespace APACElib
 
                 // set up calibration
                 if (_modelSets.ModelUse == EnumModelUse.Calibration && info.IfIncludedInCalibration)
-                    thisRatioTraj.CalibInfo = new SpecialStatCalibrInfo(info.StrMeasureOfFit, info.StrLikelihood, info.IfCheckWithinFeasibleRange, info.FeasibleMin, info.FeasibleMax);
+                    thisRatioTraj.CalibInfo = new SpecialStatCalibrInfo(info.StrMeasureOfFit, info.StrLikelihood, info.StrLikelihoodParam, info.IfCheckWithinFeasibleRange, info.FeasibleMin, info.FeasibleMax);
 
                 // add the summation statistics
                 EpiHist.RatioTrajs.Add(thisRatioTraj);

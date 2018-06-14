@@ -19,7 +19,7 @@ namespace APACElib
         public int DecisionIntervalIndex { get; set; } // index of the current decision interval
         public int EpiTimeIndexToStartDecisionMaking { get; set; }
         public int EpiTimeIndexToChangeIntervetionsInEffect { get; set; } = 0; // epidemic time index to change the interventions that are in effect
-        private int[][] _prespecifiedDecisionsOverDecisionsPeriods; // prespecified decisions
+        private int[][] _presetDecisionsOverDecisionsPeriods; // prespecified decisions
 
         public int[] CurrentDecision { get; set; } = new int[0];   // array of 0 and 1 to represent which action is on or off
         public int[] DefaultDecision { get; set; } = new int[0];   // if all other actions become unavailable, we will use this action combination 
@@ -68,7 +68,7 @@ namespace APACElib
         // add prespecified decisions
         public void AddPrespecifiedDecisionsOverDecisionsPeriods(int[][] prespecifiedDecisionsOverDecisionsPeriods)
         {
-            _prespecifiedDecisionsOverDecisionsPeriods = prespecifiedDecisionsOverDecisionsPeriods;
+            _presetDecisionsOverDecisionsPeriods = prespecifiedDecisionsOverDecisionsPeriods;
         }
 
         // make the first decision (at time zero)
@@ -78,14 +78,14 @@ namespace APACElib
             CurrentDecision = new int[NumOfInterventions];
 
             // check if decisions are not prespecified
-            if (_prespecifiedDecisionsOverDecisionsPeriods == null)
+            if (_presetDecisionsOverDecisionsPeriods == null)
             {
                 // find the switch status of each action
                 foreach (Intervention intv in Interventions)
                     newDecision[intv.Index] = intv.FindSwitchStatus(CurrentDecision[intv.Index], epiTimeIndex);
             }
             else // if decisions are prespecified
-                newDecision = _prespecifiedDecisionsOverDecisionsPeriods[DecisionIntervalIndex];
+                newDecision = _presetDecisionsOverDecisionsPeriods[DecisionIntervalIndex];
 
             // update the current intervention combination to the new one
             UpdateCurrentDecision(newDecision, epiTimeIndex, ifThereIsAChange: true);
@@ -104,14 +104,14 @@ namespace APACElib
             int[] newDecision = new int[NumOfInterventions];
 
             // check if decisions are not prespecified
-            if (_prespecifiedDecisionsOverDecisionsPeriods == null)
+            if (_presetDecisionsOverDecisionsPeriods == null)
             {
                 // find the switch status of each action
                 foreach (Intervention intv in Interventions)
                     newDecision[intv.Index] = intv.FindSwitchStatus(CurrentDecision[intv.Index], epiTimeIndex);
             }
             else // if decisions are prespecified
-                newDecision = _prespecifiedDecisionsOverDecisionsPeriods[DecisionIntervalIndex];
+                newDecision = _presetDecisionsOverDecisionsPeriods[DecisionIntervalIndex];
 
             // check if this new intervention combination is the same as the current one
             bool ifThereIsAChange = false;

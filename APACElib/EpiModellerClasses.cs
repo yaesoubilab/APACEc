@@ -81,11 +81,6 @@ namespace APACElib
                     // create an epidemic
                     _epidemics.Add(new Epidemic(simItr));
             }
-
-            //// read prespecified interventions
-            //if (_modelSettings.TempEpidemic.DecisionRule == enumDecisionRule.PredeterminedSequence ||
-            //    _modelSettings.ModelUse == enumModelUse.Calibration)
-            //    _prespecifiedDecisionsOverObservationPeriods = (int[][])_modelSettings.PrespecifiedSequenceOfInterventions.Clone();
         }
 
         // simulate several epidemics
@@ -114,7 +109,7 @@ namespace APACElib
                     seed = _seedGenerator.FindRNDSeed(epi.ID);
 
                     // simulate
-                    epi.SimulateTrajectoriesUntilOneAcceptibleFound(
+                    epi.SimulateUntilOneAcceptibleTrajFound(
                         seed,
                         seed + Math.Max(_modelSet.DistanceBtwRNGSeeds, 1),
                         epi.ID,
@@ -123,22 +118,6 @@ namespace APACElib
                     // store epidemic trajectories and outcomes
                     SimSummary.Add(epi, epi.ID);
                 }
-
-                //for (int simItr = 0; simItr < _modelSet.NumOfSimItrs; ++simItr)
-                //{
-                //    // find the RND seed for this iteration
-                //    seed = _seedGenerator.FindRNDSeed(simItr);
-
-                //    // simulate one epidemic trajectory
-                //    _parentEpidemic.SimulateTrajectoriesUntilOneAcceptibleFound(
-                //        seed,
-                //        seed + Math.Max(_modelSet.DistanceBtwRNGSeeds, 1),
-                //        simItr,
-                //        _modelSet.TimeIndexToStop);
-
-                //    // store epidemic trajectories and outcomes
-                //    SimSummary.Add(_parentEpidemic, simItr);
-                //}
             }
             else // (_modelSettings.UseParallelComputing == true)
             {
@@ -152,7 +131,7 @@ namespace APACElib
                     seed = _seedGenerator.FindRNDSeed(epi.ID);
 
                     // simulate
-                    epi.SimulateTrajectoriesUntilOneAcceptibleFound(
+                    epi.SimulateUntilOneAcceptibleTrajFound(
                         seed,
                         seed + Math.Max(_modelSet.DistanceBtwRNGSeeds, 1),
                         ((Epidemic)epi).ID,
@@ -168,13 +147,14 @@ namespace APACElib
             SimSummary.TimeToSimulateAllEpidemics = Timer.TimePassed;
         }
         // calibrate
-        public void Calibrate(int numOfInitialSimulationRuns, int numOfFittestRunsToReturn)
+        public void Calibrate(int numOfTrajsToSim)
         {   
             int calibrationTimeHorizonIndex = _modelSet.TimeIndexToStop;
             int numOfSimulationsRunInParallelForCalibration = _modelSet.NumOfSimulationsRunInParallelForCalibration;
 
-            // reset calibration
-            Calibration.Reset();
+            Calibration = new Calibration(_modelSet.ObservedHistory);
+            Calibration.AddTargets(_parentEpidemic.EpiHist.SumTrajs, _parentEpidemic.EpiHist.RatioTrajs);
+
             // toggle to calibration
             ToggleModellerTo(EnumModelUse.Calibration, EnumEpiDecisions.PredeterminedSequence, false); 
 
@@ -196,8 +176,8 @@ namespace APACElib
                 });
             }
 
-            while (simItr <  numOfInitialSimulationRuns - 1)
-                //|| !_calibration.IfAcceptedSimulationRunsAreSymmetricAroundObservations)
+            int seedsDiscarded = 0;
+            while (simItr < numOfTrajsToSim - 1)
             {
                 // use parallel computing? 
                 if (_modelSet.UseParallelComputing == false)
@@ -206,28 +186,32 @@ namespace APACElib
                     // increment the simulation iteration
                     ++simItr;
                     // find the RND seed for this iteration
-                    int rndSeedToGetAnAcceptibleEpidemic = _seedGenerator.FindRNDSeed(simItr);                    
+                    int seed = _seedGenerator.FindRNDSeed(simItr);
 
                     // simulate one epidemic trajectory
-                    //_parentEpidemic.SimulateTrajectoriesUntilOneAcceptibleFound(rndSeedToGetAnAcceptibleEpidemic, int.MaxValue, simItr, calibrationTimeHorizonIndex);
-                    _parentEpidemic.SimulateOneTrajectory(rndSeedToGetAnAcceptibleEpidemic, simItr, calibrationTimeHorizonIndex);
+                    seedsDiscarded = _parentEpidemic.SimulateUntilOneAcceptibleTrajFound
+                        (seed, seed + _modelSet.DistanceBtwRNGSeeds, simItr, calibrationTimeHorizonIndex);
+                    //_parentEpidemic.SimulateOneTrajectory(rndSeedToGetAnAcceptibleEpidemic, simItr, calibrationTimeHorizonIndex);
 
+                    // update calibration time and trajectories discarded
                     Calibration.TimeUsed += _parentEpidemic.Timer.TimePassed;
+                    Calibration.NumOfDiscardedTrajs += seedsDiscarded;
 
-                    // find the number of discarded trajectories    
-                    if (_parentEpidemic.SeedProducedAcceptibleTraj == -1)
-                        ++Calibration.NumOfDiscardedTrajs;
-                    else
+                    if (_parentEpidemic.SeedProducedAcceptibleTraj != -1)
                     {
-                        // add this simulation observations
-                        //_calibration.AddResultOfASimulationRun(simItr, _parentEpidemic.RNDSeedResultedInAnAcceptibleTrajectory, _parentEpidemic.GetValuesOfParametersToCalibrate(),
-                        //SupportFunctions.ConvertJaggedArrayToRegularArray(_parentEpidemic.CalibrationObservation, _parentEpidemic.NumOfCalibratoinTargets));
-                        double[,] mOfObs = SupportFunctions.ConvertJaggedArrayToRegularArray(new double[0][], 1);//_parentEpidemic.NumOfCalibratoinTargets);
-                        double[] par = new double[0];
-                        //Calibration.AddResultOfASimulationRun(simItr, _parentEpidemic.SeedProducedAcceptibleTraj, ref par, ref mOfObs);
-
+                        Calibration.CalibSimTrajs.Add(
+                            new CalibSimTraj(
+                                simItr,
+                                seed,
+                                _parentEpidemic.ParamManager.ParameterValues,
+                                _parentEpidemic.EpiHist.SumTrajs,
+                                _parentEpidemic.EpiHist.RatioTrajs)
+                                );
+                        
                         // find the fit of the stored simulation results
                         //Calibration.FindTheFitOfRecordedSimulationResults(_set.UseParallelComputing);
+
+                        ++simItr;
                     }
                     #endregion
                 }
@@ -305,19 +289,17 @@ namespace APACElib
             // simulate epidemic (sequential)
             SimulateEpidemics();
         }
-       
+
         // change the status of storing epidemic trajectories
-        public void ShouldStoreEpidemicTrajectories(bool yesOrNo)
+        public void StoreEpiTrajsForExcelOutput(bool yesOrNo)
         {
             if (_modelSet.UseParallelComputing)
-            {
                 foreach (Epidemic thisEpidemic in _epidemics)
-                    thisEpidemic.StoreEpidemicTrajectories = yesOrNo;
-            }
+                    thisEpidemic.StoreEpiTrajsForExcelOutput = yesOrNo;
             else
-                _parentEpidemic.StoreEpidemicTrajectories = yesOrNo;
+                _parentEpidemic.StoreEpiTrajsForExcelOutput = yesOrNo;
         }
-        
+
         // add policy related settings
         public void AddDynamicPolicySettings(ref ExcelInterface excelInterface)
         {
@@ -384,77 +366,8 @@ namespace APACElib
                 //_parentEpidemic.UpdateQFunctionCoefficients(qFunctionCoefficients);
             }
         }   
+          
         
-        // set up calibration
-        public void SetUpCalibration()
-        {
-            Calibration = new Calibration();
-            ShouldStoreEpidemicTrajectories(false);
-
-            // add observations
-            AddObservationsToSetUpCalibration(ref _parentEpidemic, _modelSet.MatrixOfObservationsAndLikelihoodParams);
-        }
-   
-        // add observations to set up calibration
-        private void AddObservationsToSetUpCalibration(ref Epidemic thisEpiModel, double[,] matrixOfObservationsAndWeights)
-        {
-            int j = 0;
-            int numOfRows = matrixOfObservationsAndWeights.GetLength(0);
-
-            // go over summation statistics
-            foreach (SumTrajectory sumStat in thisEpiModel.EpiHist.SumTrajs.Where(s => !(s.CalibInfo is null)))
-            {
-                double[] arrObservations = new double[numOfRows];
-                double[] arrWeights = new double[numOfRows];
-                // read observations for this target
-                for (int i = 0; i < numOfRows; i++)
-                {
-                    arrObservations[i] = matrixOfObservationsAndWeights[i, j];
-                    arrWeights[i] = matrixOfObservationsAndWeights[i, j + 1];
-                }
-                j += 2;
-                // enter observations for this target
-                //switch (sumStat.GoodnessOfFitMeasure)
-                //{
-                //    case CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_timeSeries:
-                //        _calibration.AddACalibrationTarget_timeSeries(sumStat.Name, sumStat.Weight_overalFit, arrObservations, arrWeights);
-                //        break;
-                //    case CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_average:
-                //        _calibration.AddACalibrationTarget_aveTimeSeries(sumStat.Name, sumStat.Weight_overalFit, arrObservations, arrWeights);
-                //        break;
-                //    case CalibrationTarget.enumGoodnessOfFitMeasure.Fourier:
-                //        _calibration.AddACalibrationTarget_fourier(sumStat.Name, sumStat.Weight_overalFit, arrObservations, sumStat.Weight_fourierSimilarities);
-                //        break;
-                //}
-            }
-
-            // go over ratio statistics
-            foreach (RatioTrajectory ratioStat in thisEpiModel.EpiHist.RatioTrajs.Where(r => !(r.CalibInfo is null)))
-            {
-                double[] arrObservations = new double[numOfRows];
-                double[] arrWeights = new double[numOfRows];
-                // read observations for this target
-                for (int i = 0; i < numOfRows; i++)
-                {
-                    arrObservations[i] = matrixOfObservationsAndWeights[i, j];
-                    arrWeights[i] = matrixOfObservationsAndWeights[i, j + 1];
-                }
-                j += 2;
-                // enter observations for this target
-                //switch (ratioStat.GoodnessOfFitMeasure)
-                //{
-                //    case CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_timeSeries:
-                //        _calibration.AddACalibrationTarget_timeSeries(ratioStat.Name, ratioStat.Weight_overalFit, arrObservations, arrWeights);
-                //        break;
-                //    case CalibrationTarget.enumGoodnessOfFitMeasure.SumSqurError_average:
-                //        _calibration.AddACalibrationTarget_aveTimeSeries(ratioStat.Name, ratioStat.Weight_overalFit, arrObservations, arrWeights);
-                //        break;
-                //    case CalibrationTarget.enumGoodnessOfFitMeasure.Fourier:
-                //        _calibration.AddACalibrationTarget_fourier(ratioStat.Name, ratioStat.Weight_overalFit, arrObservations, ratioStat.Weight_fourierSimilarities);
-                //        break;
-                //}
-            }
-        }
         // set up optimization 
         public void SetUpOptimization(
             double wtpForHealth, double harmonicRule_a, double epsilonGreedy_beta, double epsilonGreedy_delta)
@@ -482,38 +395,36 @@ namespace APACElib
         }
 
         // get name of special statistics included in calibratoin 
-        public string[] GetNamesOfSpecialStatisticsIncludedInCalibratoin()
+        public string[] GetNamesOfCalibrTargets()
         {
             // find the names of the parameters
-            string[] names = new string[0];
-
+            List<string> names = new List<string>(); 
             // summation statistics
             foreach (SumTrajectory thisSumTraj in _parentEpidemic.EpiHist.SumTrajs.Where(s => !(s.CalibInfo is null)))
-                SupportFunctions.AddToEndOfArray(ref names, thisSumTraj.Name);
+                names.Add(thisSumTraj.Name);
             // ratio statistics
             foreach (RatioTrajectory thisRatioTraj in _parentEpidemic.EpiHist.RatioTrajs.Where(s => !(s.CalibInfo is null)))
-                SupportFunctions.AddToEndOfArray(ref names, thisRatioTraj.Name);
-            //}
+                names.Add(thisRatioTraj.Name);
 
-            return names;
+            return names.ToArray();
         }
 
         // toggle modeller to different operation
-        public void ToggleModellerTo(EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool reportEpidemicTrajectories)
+        public void ToggleModellerTo(EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool reportEpiTrajsToExcel)
         {
             // toggle each epidemic
             if (_modelSet.UseParallelComputing)
                 foreach (Epidemic thisEpidemic in _epidemics)
-                    ToggleAnEpidemicTo(thisEpidemic, modelUse, decisionRule, reportEpidemicTrajectories);
+                    ToggleAnEpidemicTo(thisEpidemic, modelUse, decisionRule, reportEpiTrajsToExcel);
             else
-                ToggleAnEpidemicTo(_parentEpidemic, modelUse, decisionRule, reportEpidemicTrajectories);
+                ToggleAnEpidemicTo(_parentEpidemic, modelUse, decisionRule, reportEpiTrajsToExcel);
         }
         // toggle one epidemic
-        private void ToggleAnEpidemicTo(Epidemic thisEpidemic, EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool storeEpidemicTrajectories)
+        private void ToggleAnEpidemicTo(Epidemic thisEpidemic, EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool reportEpiTrajsToExcel)
         {   
             thisEpidemic.ModelUse = modelUse;
             //thisEpidemic.DecisionRule = decisionRule;
-            thisEpidemic.StoreEpidemicTrajectories = storeEpidemicTrajectories;
+            thisEpidemic.StoreEpiTrajsForExcelOutput = reportEpiTrajsToExcel;
 
             switch (modelUse)
             {
@@ -524,15 +435,13 @@ namespace APACElib
                     }
                     break;
                 case EnumModelUse.Calibration:
-                    #region Calibration
                     {
                         thisEpidemic.DecisionMaker.AddPrespecifiedDecisionsOverDecisionsPeriods(_modelSet.PrespecifiedSequenceOfInterventions);
                     }
                     break;
-                    #endregion
                 case EnumModelUse.Optimization:
                     {
-                        thisEpidemic.StoreEpidemicTrajectories = false;
+                        thisEpidemic.StoreEpiTrajsForExcelOutput = false;
                     }
                     break;
             }
@@ -917,7 +826,6 @@ namespace APACElib
             _epi = epidemic;
             FindNamesOfParams();
             FindNamesOfParamsInCalib();
-
         }
 
         // find the names of parameters

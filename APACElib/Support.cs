@@ -281,6 +281,7 @@ namespace APACElib
         public bool IfIncludedInCalibration { get; }
         public string StrMeasureOfFit { get; }
         public string StrLikelihood { get; }
+        public string StrLikelihoodParam { get; }
         public bool IfCheckWithinFeasibleRange { get; }
         public double FeasibleMin { get; }
         public double FeasibleMax { get; }
@@ -307,6 +308,7 @@ namespace APACElib
             IfIncludedInCalibration = SupportFunctions.ConvertYesNoToBool(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfIncludedInCalibration).ToString());
             StrMeasureOfFit = Convert.ToString(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.MeasureOfFit));
             StrLikelihood = Convert.ToString(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Likelihood));
+            StrLikelihoodParam = Convert.ToString(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.LikelihoodParam));
             IfCheckWithinFeasibleRange = SupportFunctions.ConvertYesNoToBool(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfCheckWithinFeasibleRange).ToString());
             if (IfCheckWithinFeasibleRange)
             {
