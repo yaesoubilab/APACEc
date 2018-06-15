@@ -148,15 +148,6 @@ namespace APACElib
                 AccumIncidenceTimeSeries = new PrevalenceTimeSeries(nDeltaTInAPeriod);
         }
 
-        public void AddCostHealthOutcomes(
-            double DALYPerNewMember,
-            double costPerNewMember,
-            double disabilityWeightPerDeltaT,
-            double costPerDeltaT)
-        {
-            DeltaCostHealthCollector = new DeltaTCostHealth(_warmUpSimIndex, DALYPerNewMember, costPerNewMember, disabilityWeightPerDeltaT, costPerDeltaT);
-        }
-
         public void Add(int value)
         {
             NumOfNewMembersOverPastPeriod += value;
@@ -180,13 +171,14 @@ namespace APACElib
             // time series
             if (!(IncidenceTimeSeries is null) && simIndex>0)
                 IncidenceTimeSeries.Record(NumOfNewMembersOverPastPeriod);
-            if ((!(PrevalenceTimeSeries is null)))
+            if (!(PrevalenceTimeSeries is null))
                 PrevalenceTimeSeries.Record(Prevalence);
-            if ((!(AccumIncidenceTimeSeries is null)))
+            if (!(AccumIncidenceTimeSeries is null))
                 AccumIncidenceTimeSeries.Record(AccumulatedIncidence);
 
             // cost and health outcomes
-            DeltaCostHealthCollector.Update(simIndex, Prevalence, NumOfNewMembersOverPastPeriod);
+            if (!(DeltaCostHealthCollector is null))
+                DeltaCostHealthCollector.Update(simIndex, Prevalence, NumOfNewMembersOverPastPeriod);
         }
 
         public void Reset()
@@ -201,7 +193,8 @@ namespace APACElib
                 PrevalenceTimeSeries.Reset();
             if (AccumIncidenceTimeSeries != null)
                 AccumIncidenceTimeSeries.Reset();
-            DeltaCostHealthCollector.Reset();
+            if (DeltaCostHealthCollector != null)
+                DeltaCostHealthCollector.Reset();
         }
     }
 
@@ -234,11 +227,18 @@ namespace APACElib
             : base(ID, name, warmUpSimIndex)
         {
             // type
-            EnumType type = EnumType.Incidence;
-            if (strType == "Prevalence") type = EnumType.Prevalence;
-            else if (strType == "Accumulating Incidence") type = EnumType.AccumulatingIncident;
-
-            Type = type;
+            switch (strType)
+            {
+                case "Incidence":
+                    Type = EnumType.Incidence;
+                    break;
+                case "Prevalence":
+                    Type = EnumType.Prevalence;
+                    break;
+                case "Accumulating Incidence":
+                    Type = EnumType.AccumulatingIncident;
+                    break;
+            }
             DisplayInSimOutput = displayInSimOutput;
             switch (Type)
             {
@@ -283,7 +283,7 @@ namespace APACElib
             }
         }
 
-        public virtual void Add(int simIndex, ref List<Class> classes, ref List<Event> events) { return; }
+        public abstract bool Add(int simIndex, ref List<Class> classes, ref List<Event> events);
 
         public double GetLastRecording()
         {
@@ -330,8 +330,10 @@ namespace APACElib
             ClassIDs = ConvertSumFormulaToArrayOfIDs(sumFormula);
         }
 
-        public override void Add(int simIndex, ref List<Class> classes, ref List<Event> events)
+        public override bool Add(int simIndex, ref List<Class> classes, ref List<Event> events)
         {
+            bool ifFeasiableRangesViolated = false;
+
             switch (Type)
             {
                 case EnumType.AccumulatingIncident:
@@ -340,6 +342,13 @@ namespace APACElib
                         for (int i = 0; i < ClassIDs.Length; ++i)
                             NumOfNewMembersOverPastPeriod += classes[ClassIDs[i]].ClassStat.NumOfNewMembersOverPastPeriod;
                         CollectEndOfDeltaTStats(simIndex);
+
+                        if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
+                        {
+                            if (AccumulatedIncidenceAfterWarmUp < CalibInfo.LowFeasibleRange 
+                                || AccumulatedIncidenceAfterWarmUp > CalibInfo.UpFeasibleRange)
+                                ifFeasiableRangesViolated = true;
+                        }
                     }
                     break;
                 case EnumType.Incidence:
@@ -351,6 +360,13 @@ namespace APACElib
                                 NumOfNewMembersOverPastPeriod += classes[ClassIDs[i]].ClassStat.NumOfNewMembersOverPastPeriod;
                             CollectEndOfDeltaTStats(simIndex);
                         }
+                         
+                        if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
+                        {
+                            if (IncidenceTimeSeries.GetLastRecording() < CalibInfo.LowFeasibleRange
+                                || IncidenceTimeSeries.GetLastRecording() > CalibInfo.UpFeasibleRange)
+                                ifFeasiableRangesViolated = true;
+                        }
                     }
                     break;
                 case EnumType.Prevalence:
@@ -359,9 +375,18 @@ namespace APACElib
                         for (int i = 0; i < ClassIDs.Length; ++i)
                             Prevalence += classes[ClassIDs[i]].ClassStat.Prevalence;
                         CollectEndOfDeltaTStats(simIndex);
+
+                        if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
+                        {
+                            if (Prevalence < CalibInfo.LowFeasibleRange
+                                || Prevalence > CalibInfo.UpFeasibleRange)
+                                ifFeasiableRangesViolated = true;
+                        }
                     }
                     break;
             }
+
+            return ifFeasiableRangesViolated;
         }        
     }
 
@@ -383,16 +408,28 @@ namespace APACElib
             _arrEventIDs = ConvertSumFormulaToArrayOfIDs(sumFormula);
         }
 
-        public override void Add(int simIndex, ref List<Class> classes, ref List<Event> events)
+        public override bool Add(int simIndex, ref List<Class> classes, ref List<Event> events)
         {
+            bool ifFeasiableRangesViolated = false; 
+
             if (simIndex == 0)
-                return;
+                return false;
 
             NumOfNewMembersOverPastPeriod = 0;
             for (int i = 0; i < _arrEventIDs.Length; ++i)
                 NumOfNewMembersOverPastPeriod += events[_arrEventIDs[i]].MembersOutOverPastDeltaT;
 
             CollectEndOfDeltaTStats(simIndex);
+
+            // check for feasibility
+            if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
+            {
+                if (IncidenceTimeSeries.GetLastRecording() < CalibInfo.LowFeasibleRange ||
+                    IncidenceTimeSeries.GetLastRecording() > CalibInfo.LowFeasibleRange)
+                    ifFeasiableRangesViolated = true;
+            }
+
+            return ifFeasiableRangesViolated;
         }
     }    
 
@@ -415,8 +452,8 @@ namespace APACElib
         public Boolean DisplayInSimOutput { get; }
         public PrevalenceTimeSeries TimeSeries { get; set; }    // treating all ratio stat as prevalence
         public ObsBasedStat AveragePrevalenceStat { get; set; }
-        public double LastRecordedRatio { get; private set; }
-        public int LastRecordedDenominator { get; private set; }
+        public double ratio { get; private set; }
+        public int denom { get; private set; }
 
         public EnumType Type { get; set; }
         
@@ -463,44 +500,54 @@ namespace APACElib
                 AveragePrevalenceStat = new ObsBasedStat("Average prevalence");
         }
 
-        public void Add(int simIndex, List<SumTrajectory> sumTrajectories)
+        public bool Add(int simIndex, List<SumTrajectory> sumTrajectories)
         {
-            LastRecordedRatio = double.NaN;
-            LastRecordedDenominator = -1;
+            ratio = double.NaN;
+            denom = -1;
+            bool ifFeasiableRangesViolated = false;
+
             switch (Type)
             {
                 case EnumType.PrevalenceOverPrevalence:
                     {
-                        LastRecordedDenominator = sumTrajectories[DenominatorSpecialStatID].Prevalence;
-                        LastRecordedRatio = (double)sumTrajectories[NominatorSpecialStatID].Prevalence
-                            / LastRecordedDenominator;
+                        denom = sumTrajectories[DenominatorSpecialStatID].Prevalence;
+                        ratio = (double)sumTrajectories[NominatorSpecialStatID].Prevalence
+                            / denom;
                     }
                     break;
                 case EnumType.IncidenceOverIncidence:
                     {
                         double denom = sumTrajectories[DenominatorSpecialStatID].GetLastRecording();
                         if (denom is double.NaN || denom == 0)
-                            LastRecordedRatio = double.NaN;
+                            ratio = double.NaN;
                         else
                         {
-                            LastRecordedDenominator = (int)denom;
-                            LastRecordedRatio = (double)sumTrajectories[NominatorSpecialStatID].GetLastRecording()
-                                / LastRecordedDenominator;
+                            this.denom = (int)denom;
+                            ratio = (double)sumTrajectories[NominatorSpecialStatID].GetLastRecording()
+                                / this.denom;
                         }
                     }
                     break;
                 case EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
                     {
-                        LastRecordedDenominator = sumTrajectories[DenominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp;
-                        LastRecordedRatio = (double)sumTrajectories[NominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp
-                            / LastRecordedDenominator;
+                        denom = sumTrajectories[DenominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp;
+                        ratio = (double)sumTrajectories[NominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp
+                            / denom;
                     }
                     break;
             }
 
-            TimeSeries.Record(LastRecordedRatio);
+            TimeSeries.Record(ratio);
             if (simIndex >= _warmUpSimIndex && AveragePrevalenceStat != null)
-                AveragePrevalenceStat.Record(LastRecordedRatio);
+                AveragePrevalenceStat.Record(ratio);
+
+            if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
+            {
+                if (ratio < CalibInfo.LowFeasibleRange || ratio > CalibInfo.UpFeasibleRange)
+                    ifFeasiableRangesViolated = true;
+            }
+
+            return ifFeasiableRangesViolated;
         }
 
         // convert ratio formula into the array of class IDs
@@ -513,7 +560,7 @@ namespace APACElib
         public void Reset()
         {
             TimeSeries.Reset();
-            LastRecordedRatio = double.NaN;
+            ratio = double.NaN;
             if (Type == EnumType.PrevalenceOverPrevalence)
                 AveragePrevalenceStat.Reset();
         }
@@ -634,14 +681,14 @@ namespace APACElib
             else if (!(_ratioTraj is null))
             {
                 // check if there is noise (less than 100% of the denominator is sampled in reality)
-                if (_noise_percOfDemoninatorSampled < 0.99999 && !(_ratioTraj.LastRecordedRatio is double.NaN))
+                if (_noise_percOfDemoninatorSampled < 0.99999 && !(_ratioTraj.ratio is double.NaN))
                 {
-                    double mean = _ratioTraj.LastRecordedRatio;
+                    double mean = _ratioTraj.ratio;
                     if (mean > 0)
                     {
                         double stDev = Math.Sqrt(mean * (1 - mean));
                         Normal noiseModel = new Normal("Noise model", 0,
-                            stDev / Math.Sqrt(_noise_percOfDemoninatorSampled * _ratioTraj.LastRecordedDenominator));
+                            stDev / Math.Sqrt(_noise_percOfDemoninatorSampled * _ratioTraj.denom));
                         double noise = noiseModel.SampleContinuous(rnd);
                         value = Math.Min(Math.Max(mean + noise, 0), 1);
                     }
@@ -649,7 +696,7 @@ namespace APACElib
                         value = 0;
                 }
                 else
-                    value = _ratioTraj.LastRecordedRatio;
+                    value = _ratioTraj.ratio;
             }
 
             _timeSeries.Record(value);
@@ -1034,17 +1081,21 @@ namespace APACElib
             Features.Add(new Feature_SpecialStats(name, featureID, strFeatureType, survTraj, par));
         }
 
-        public void Update(int simTimeIndex, int epiTimeIndex, bool endOfSim, RNG rnd)
+        public bool Update(int simTimeIndex, int epiTimeIndex, bool endOfSim, RNG rnd)
         {
+            bool ifFeasibleRangesViolated = false; // for calibration
+
             // update class statistics                      
             foreach (Class thisClass in _classes)
                 thisClass.ClassStat.CollectEndOfDeltaTStats(simTimeIndex);
             // update summation statistics
             foreach (SumTrajectory thisSumTaj in SumTrajs)
-                thisSumTaj.Add(simTimeIndex, ref _classes, ref _events);
+                if (thisSumTaj.Add(simTimeIndex, ref _classes, ref _events))
+                     ifFeasibleRangesViolated = true;
             // update ratio statistics
             foreach (RatioTrajectory ratioTraj in RatioTrajs)
-                ratioTraj.Add(simTimeIndex, _sumTrajs);
+                if (ratioTraj.Add(simTimeIndex, _sumTrajs))
+                    ifFeasibleRangesViolated = true;
             // update surveyed incidence            
             foreach (SurveyedIncidenceTrajectory survIncdTraj in SurveyedIncidenceTrajs)
                 survIncdTraj.Update(epiTimeIndex, rnd);
@@ -1054,6 +1105,8 @@ namespace APACElib
             // update features
             foreach (Feature f in Features)
                 f.Update(epiTimeIndex);
+
+            return ifFeasibleRangesViolated;
         }
 
         public void Record(int simTimeIndex, int epiTimeIndex, bool endOfSim)

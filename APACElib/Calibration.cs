@@ -6,12 +6,14 @@ using System.Threading.Tasks;
 
 namespace APACElib
 {
-    public class CalibSummaryForATraj
+    public class ResulOfASimEpi
     {
         public int SimItr { get; }
         public int Seed { get; }
         public double LnL { get; }
-        public CalibSummaryForATraj (int simItr, int seed, double lnL)
+        public double Prob { get; set; }
+
+        public ResulOfASimEpi (int simItr, int seed, double lnL)
         {
             SimItr = simItr;
             Seed = seed;
@@ -19,11 +21,21 @@ namespace APACElib
         }
     }
 
+    public class CalibResultsToReportToExcel
+    {
+        public List<int> SimItrs = new List<int>();
+        public List<int> RndSeeds = new List<int>();
+        public List<double> Probs = new List<double>();
+    }
+
     public class Calibration
     {
         private List<ObsAndLikelihoodParams> _history = new List<ObsAndLikelihoodParams>();
         private List<LikelihoodTimeSeries> _likelihoodTSs = new List<LikelihoodTimeSeries>();
-        public List<CalibSummaryForATraj> CalibSummaries { get; private set; } = new List<CalibSummaryForATraj>();
+        public List<ResulOfASimEpi> SimEpiResults { get; private set; } = new List<ResulOfASimEpi>();
+        public List<ResulOfASimEpi> SortedResults;
+        public CalibResultsToReportToExcel ResultsForExcel = new CalibResultsToReportToExcel();
+        private double _maxLnL=double.MinValue;
 
         public int[] SimulationItrs { get; }
         public int[] SimulationRNDSeeds { get; }
@@ -56,7 +68,7 @@ namespace APACElib
         public void AddCalibTargets(List<SumTrajectory> sumTrajs, List<RatioTrajectory> ratioTrajs)
         {
             // summation statistics
-            int sumTrajIdx = 0;
+            int calibTargIdx = 0;
             foreach (SumTrajectory st in sumTrajs.Where(s => !(s.CalibInfo is null)))
             {
                 switch (st.CalibInfo.GoodnessOfFit)
@@ -68,13 +80,13 @@ namespace APACElib
                             {
                                 case SpecialStatCalibrInfo.EnumLikelihoodFunc.Normal:
                                     _likelihoodTSs.Add(
-                                        new LikelihoodTS_Normal(_history[sumTrajIdx], sumTrajIdx)
+                                        new LikelihoodTS_Normal(_history[calibTargIdx], st.ID)
                                         );
                                     break;
                                 case SpecialStatCalibrInfo.EnumLikelihoodFunc.Binomial:
                                     _likelihoodTSs.Add(
                                         new LikelihoodTS_BinomialIncd(
-                                            _history[sumTrajIdx], sumTrajIdx, st.CalibInfo.LikelihoodParam.Value)
+                                            _history[calibTargIdx], st.ID, st.CalibInfo.LikelihoodParam.Value)
                                         );
                                     break;
                                 case SpecialStatCalibrInfo.EnumLikelihoodFunc.Multinomial:
@@ -87,11 +99,10 @@ namespace APACElib
                     case SpecialStatCalibrInfo.EnumMeasureOfFit.Fourier:
                         break;
                 }
-                ++sumTrajIdx;
+                ++calibTargIdx;
             }
 
             // ratio statistics
-            int ratioTrajIdx = 0;
             foreach (RatioTrajectory rt in ratioTrajs.Where(s => !(s.CalibInfo is null)))
             {
                 switch (rt.CalibInfo.GoodnessOfFit)
@@ -104,7 +115,7 @@ namespace APACElib
                                 case SpecialStatCalibrInfo.EnumLikelihoodFunc.Binomial:
                                     _likelihoodTSs.Add(
                                         new LikelihoodTS_BinomialPrev(
-                                            _history[sumTrajIdx],
+                                            _history[calibTargIdx],
                                             rt.NominatorSpecialStatID,
                                             rt.DenominatorSpecialStatID)
                                         );
@@ -115,7 +126,6 @@ namespace APACElib
                         }
                         break;
                 }
-                ++ratioTrajIdx;
             }
         }
 
@@ -138,12 +148,41 @@ namespace APACElib
             if (epi.SeedProducedAcceptibleTraj != -1)
             {  
                 // store the summary of likelihood calculation
-                CalibSummaries.Add(
-                    new CalibSummaryForATraj(
+                SimEpiResults.Add(
+                    new ResulOfASimEpi(
                         simItr, epi.SeedProducedAcceptibleTraj, epi.LnL)
                         );
+                // update the maximum LnL
+                if (epi.LnL > _maxLnL)
+                    _maxLnL = epi.LnL;
             }
         }
+
+        public void CalcProbsAndSort()
+        {
+            // adjust likelihoods
+            double sum =0;
+            foreach (ResulOfASimEpi s in SimEpiResults)
+            {
+                s.Prob = Math.Exp(s.LnL - _maxLnL);
+                sum += s.Prob;
+            }
+            // calculate probabilities
+            foreach (ResulOfASimEpi s in SimEpiResults)
+                s.Prob /= sum;
+
+            // sort
+            SortedResults = SimEpiResults.OrderByDescending(o => o.Prob).ToList();
+
+            // prepare results for Excel
+            foreach (ResulOfASimEpi s in SortedResults)
+            {
+                ResultsForExcel.SimItrs.Add(s.SimItr);
+                ResultsForExcel.RndSeeds.Add(s.Seed);
+                ResultsForExcel.Probs.Add(s.Prob);
+            }
+        }
+
     }
 
     public class SpecialStatCalibrInfo
@@ -319,8 +358,8 @@ namespace APACElib
                 // if an observation is recorded
                 if (info.Obs[i].HasValue)
                 {
-                    double simPrev = sumTrajs[IndexOfSumStat_Prev].PrevalenceTimeSeries.Recordings[i];
-                    double simInc = sumTrajs[IndexOfSumStat_Incd].IncidenceTimeSeries.Recordings[i];
+                    double simPrev = sumTrajs[IndexOfSumStat_Prev].PrevalenceTimeSeries.Recordings[i-1];
+                    double simInc = sumTrajs[IndexOfSumStat_Incd].IncidenceTimeSeries.Recordings[i-1];
                     double p = simInc / simPrev;
 
                     // pdf of binomial calcualted at x = observation

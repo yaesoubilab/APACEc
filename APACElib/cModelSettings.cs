@@ -23,7 +23,7 @@ namespace APACElib
 
         public int EpidemicTimeIndexToStartDecisionMaking { get; set; }
         public EnumMarkOfEpidemicStartTime MarkOfEpidemicStartTime { get; set; }
-        public int WarmUpPeriodTimeIndex { get; set; }
+        public int WarmUpPeriodSimTIndex { get; set; }
         public int TimeIndexToStop { get; set; }
         public int EpidemicConditionTimeIndex { get; set; }
         public EnumEpiDecisions DecisionRule { get; set; }
@@ -134,7 +134,7 @@ namespace APACElib
 
             EpidemicTimeIndexToStartDecisionMaking = (int)(excelInterface.GetTimeToStartDecisionMaking()/DeltaT);
             MarkOfEpidemicStartTime = excelInterface.GetMarkOfEpidemicStartTime();
-            WarmUpPeriodTimeIndex = (int)(excelInterface.GetWarmUpPeriod() / DeltaT);
+            WarmUpPeriodSimTIndex = (int)(excelInterface.GetWarmUpPeriod() / DeltaT);
             TimeIndexToStop = (int)(excelInterface.GetTimeToStop() / DeltaT);
             EpidemicConditionTimeIndex = (int)(excelInterface.GetEpidemicConditionTime() / DeltaT);
             DecisionRule = excelInterface.GetDecisionRule();

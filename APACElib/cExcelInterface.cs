@@ -53,18 +53,19 @@ namespace APACElib
             DestinationClassIDIfSuccess = 14,
             DestinationClassIDIfFailure = 15,
 
-            DALYPerNewMember = 17,
-            CostPerNewMember = 18,
-            DisabilityWeightPerUnitOfTime = 19,
-            CostPerUnitOfTime = 20,
-            ResourceUnitsConsumedPerArrival = 21,
+            IfCollectOutcomes = 17,
+            ParID_DALYPerNewMember = 18,
+            ParID_CostPerNewMember = 19,
+            ParID_DisableWeightPerUnitOfTime = 20,
+            ParID_CostPerUnitOfTime = 21,
+            ResourceUnitsConsumedPerArrival = 22,
 
-            CollectAccumIncidenceStats = 23,
-            CollectPrevalenceStats = 24,
+            CollectAccumIncidenceStats = 24,
+            CollectPrevalenceStats = 25,
 
-            ShowIncidence = 26,
-            ShowPrevalence = 27,
-            ShowAccumIncidence = 28,
+            ShowIncidence = 27,
+            ShowPrevalence = 28,
+            ShowAccumIncidence = 29,
         }
         public enum enumEventColumns : int
         {
@@ -151,30 +152,31 @@ namespace APACElib
             Formula = 6,
 
             IfDisplay = 8,
-            DALYPerNewMember = 9,
-            CostPerNewMember = 10,
+            IfCollectOutcomes = 9,
+            ParID_DALYPerNewMember = 10,
+            ParID_CostPerNewMember = 11,
 
-            SurveillanceDataAvailable = 12,
-            NumOfDeltaTsDelayed = 13,
-            Noise = 14,
-            FirstObservationMarksTheStartOfTheSpread = 15,  
+            SurveillanceDataAvailable = 13,
+            NumOfDeltaTsDelayed = 14,
+            Noise = 15,
+            FirstObservationMarksTheStartOfTheSpread = 16,  
             
-            IfIncludedInCalibration = 17,
-            MeasureOfFit = 18,
-            Likelihood = 19,
-            LikelihoodParam = 20,
-            Weight_FourierCosine = 21,
-            Weight_FourierEuclidean = 22,
-            Weight_FourierAverage = 23,
-            Weight_FourierStDev = 24,
-            Weight_FourierMin = 25,
-            Weight_FourierMax = 26,
-            IfCheckWithinFeasibleRange = 27,
-            FeasibleRange_minimum = 28,
-            FeasibleRange_maximum = 29,
+            IfIncludedInCalibration = 18,
+            MeasureOfFit = 19,
+            Likelihood = 20,
+            LikelihoodParam = 21,
+            Weight_FourierCosine = 22,
+            Weight_FourierEuclidean = 23,
+            Weight_FourierAverage = 24,
+            Weight_FourierStDev = 25,
+            Weight_FourierMin = 26,
+            Weight_FourierMax = 27,
+            IfCheckWithinFeasibleRange = 28,
+            FeasibleRange_minimum = 29,
+            FeasibleRange_maximum = 30,
 
-            NewMember_FeatureType = 31,
-            NewMember_NumOfPastObsPeriodsToStore = 32,
+            NewMember_FeatureType = 32,
+            NewMember_NumOfPastObsPeriodsToStore = 33,
         }        
         public enum enumFeaturesColumns : int
         {
@@ -1384,8 +1386,62 @@ namespace APACElib
             MessageBox.Show("Enter the observations into the sheet 'Epidemic History' and then click the OK button.",
                 "Observations", MessageBoxButtons.OK);
         }
+
         // report calibration results
-        public void ReportCalibrationResults(double calibrationTimeInMinute, int numOfTrajectoriesDiscarded, string[] namesOfCalibrationTargets, 
+        public void ReportCalibrationResults(
+            double calibrationTimeInMinute, 
+            int numOfTrajectoriesDiscarded, 
+            int[] simItrs, 
+            int[] rndSeeds,
+            double[] probs)
+        {
+            // select "Calibration" sheet
+            ActivateSheet("Calibration");
+
+            // clear worksheet
+            int rowIndex = LastRowWithData();
+            int colIndex = ColIndex(2, 2, enumRangeDirection.RightEnd);
+            ClearAll(1, 1, rowIndex, colIndex);
+
+            // computation time
+            WriteToCell("Computation time (minutes): ", 1, 2);
+            WriteToCell(calibrationTimeInMinute, 1, 3);
+            FormatNumber(1, 3, "#,##0.0");
+
+            // report the number of trajectories discarded
+            WriteToCell(numOfTrajectoriesDiscarded, 1, 5);
+            WriteToCell("Total trajectories discarded due to violating feasibility ranges or early eradication.", 1, 6);
+
+            // setup the header definitions
+            rowIndex = 2;
+            WriteToCell("Simulation Iteration", rowIndex, (int)enumCalibrationColumns.SimulationItr);
+            WriteToCell("Random Seed", rowIndex, (int)enumCalibrationColumns.RandomSeed);
+            WriteToCell("Goodness of Fit", rowIndex, (int)enumCalibrationColumns.GoodnessOfFit_overal);
+
+            // formate the header
+            colIndex = (int)enumCalibrationColumns.SimulationItr;
+            Align(rowIndex, colIndex, enumRangeDirection.RightEnd, enumAlignment.Center);
+            MakeBold(rowIndex, colIndex, enumRangeDirection.RightEnd);
+            WrapText(rowIndex, colIndex, enumRangeDirection.RightEnd);
+            AddABorder(rowIndex, colIndex, enumRangeDirection.RightEnd, enumBorder.Bottom);
+
+            if (!(simItrs is null))
+            {
+                // write results
+                ++rowIndex;
+                // simulation iterations
+                WriteToColumn(SupportFunctions.ConvertArrayToDouble(simItrs), rowIndex, (int)enumCalibrationColumns.SimulationItr);
+                // rnd seeds
+                WriteToColumn(SupportFunctions.ConvertArrayToDouble(rndSeeds), rowIndex, (int)enumCalibrationColumns.RandomSeed);
+                // goodness of fit
+                WriteToColumn(probs, rowIndex, (int)enumCalibrationColumns.GoodnessOfFit_overal);
+                // align
+                AlignAMatrix(rowIndex - 1, (int)enumCalibrationColumns.SimulationItr, enumAlignment.Center);
+            }
+        }
+
+        // report calibration results
+        public void OldReportCalibrationResults(double calibrationTimeInMinute, int numOfTrajectoriesDiscarded, string[] namesOfCalibrationTargets, 
             //string[] namesOfParameters,
             string[] namesOfSimOutsWithNonZeroWeights, 
             int[] calibrationItrs, int[] calibrationRNDSeeds, 

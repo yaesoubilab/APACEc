@@ -352,7 +352,7 @@ namespace APACElib
                     //thisEpiModeller.FindOptimalDynamicPolicy();
                     // simulate the dynamic Policy
                     thisEpiModeller.SimulateTheOptimalDynamicPolicy(_modelSettings.NumOfSimItrs, _modelSettings.TimeIndexToStop,
-                        _modelSettings.WarmUpPeriodTimeIndex, storeEpidemicTrajectories);
+                        _modelSettings.WarmUpPeriodSimTIndex, storeEpidemicTrajectories);
                 }
                 #endregion
             }
@@ -388,7 +388,7 @@ namespace APACElib
                     //((EpidemicModeller)thisEpiModeller).FindOptimalDynamicPolicy();
                     // simulate the dynamic Policy
                     ((EpidemicModeller)thisEpiModeller).SimulateTheOptimalDynamicPolicy(_modelSettings.NumOfSimItrs, _modelSettings.TimeIndexToStop,
-                        _modelSettings.WarmUpPeriodTimeIndex, storeEpidemicTrajectories);
+                        _modelSettings.WarmUpPeriodSimTIndex, storeEpidemicTrajectories);
                 });     
                 
                 #endregion
@@ -759,14 +759,23 @@ namespace APACElib
         // report calibration result
         private void ReportCalibrationResult()
         {
-            int numOfParametersToCalibrate = _epidemicModeller.ModelInfo.NamesOfParamsInCalib.Length;
+            ExcelInterface.ReportCalibrationResults(
+                _epidemicModeller.Calibration.TimeUsed,
+                _epidemicModeller.Calibration.NumOfDiscardedTrajs,
+                _epidemicModeller.Calibration.ResultsForExcel.SimItrs.ToArray(),
+                _epidemicModeller.Calibration.ResultsForExcel.RndSeeds.ToArray(),
+                _epidemicModeller.Calibration.ResultsForExcel.Probs.ToArray()
+                );
+
+
+            //int numOfParametersToCalibrate = _epidemicModeller.ModelInfo.NamesOfParamsInCalib.Length;
             // report
             //ExcelInterface.ReportCalibrationResults(
             //    _epidemicModeller.ActualTimeUsedByCalibration / 60,
             //    _epidemicModeller.NumOfTrajectoriesDiscardedByCalibration,
             //    _epidemicModeller.GetNamesOfSpecialStatisticsIncludedInCalibratoin(),
             //    //_epidemicModeller.Calibration.NamesOfParameters,
-            //    _epidemicModeller.Calibration.NamesOfSimOutsWithNonZeroWeights,                
+            //    _epidemicModeller.Calibration.NamesOfSimOutsWithNonZeroWeights,
             //    _epidemicModeller.Calibration.SelectedSimulationItrs,
             //    _epidemicModeller.Calibration.SelectedSimulationRNDSeeds,
             //    //_epidemicModeller.Calibration.SelectedGoodnessOfFit,

@@ -44,50 +44,34 @@ namespace APACElib
             // extract model information 
             ModelInfo = new ModelInfo(ref _parentEpidemic);
 
-            // if use parallel computing, create a collection of epidemics
-            if (_modelSet.UseParallelComputing)
+            // find how many epi model to create
+            int numOfEpidemics = 0;
+            switch (_modelSet.ModelUse)
             {
-                // find how many epi model to create
-                int numOfEpidemics = 0;
-                switch (_modelSet.ModelUse)
-                {
-                    case EnumModelUse.Simulation:
-                        numOfEpidemics = _modelSet.NumOfSimItrs;
-                        break;
-                    case EnumModelUse.Calibration:
-                        numOfEpidemics = _modelSet.NumOfTrajsInParallelForCalibr;
-                        break;
-                }
-
-                // create the epi models
-                _epidemics.Clear();
-                Object thisLock = new Object();
-                Parallel.For(0, numOfEpidemics, simItr =>
-                {
-                    // create an epidemic
-                    Epidemic thisEpidemic = new Epidemic(simItr);
-                    // add this epidemic
-                    lock (thisLock)
-                        {
-                            _epidemics.Add(thisEpidemic);
-                        }
-                });
+                case EnumModelUse.Simulation:
+                    numOfEpidemics = _modelSet.NumOfSimItrs;
+                    break;
+                case EnumModelUse.Calibration:
+                    {
+                        if (_modelSet.UseParallelComputing)
+                            numOfEpidemics = _modelSet.NumOfTrajsInParallelForCalibr;
+                        else
+                            numOfEpidemics = 1;
+                    }
+                    break;
             }
-            else
-            {
-                // create the epi models
-                _epidemics.Clear();
-                for (int simItr = 0; simItr < _modelSet.NumOfSimItrs; simItr++)
-                    // create an epidemic
-                    _epidemics.Add(new Epidemic(simItr));
-            }
+            // create the epi models
+            _epidemics.Clear();
+            for (int simItr = 0; simItr < numOfEpidemics; simItr++)
+                // create an epidemic
+                _epidemics.Add(new Epidemic(simItr));            
         }
 
         // simulate several epidemics
         public void SimulateEpidemics()
         {
             // create a rnd seed generator 
-            _seedGenerator = new RNDSeedGenerator(ref _modelSet, ref _rng);
+            _seedGenerator = new RNDSeedGenerator(_modelSet, _rng);
             // simulatoin summary
             SimSummary = new SimSummary(ref _modelSet, ref _parentEpidemic);
             SimSummary.Reset();
@@ -109,11 +93,7 @@ namespace APACElib
                     seed = _seedGenerator.FindRNDSeed(epi.ID);
 
                     // simulate
-                    epi.SimulateUntilOneAcceptibleTrajFound(
-                        seed,
-                        seed + Math.Max(_modelSet.DistanceBtwRNGSeeds, 1),
-                        epi.ID,
-                        _modelSet.TimeIndexToStop);
+                    epi.SimulateUntilOneAcceptibleTrajFound(_modelSet.TimeIndexToStop, seed);
 
                     // store epidemic trajectories and outcomes
                     SimSummary.Add(epi, epi.ID);
@@ -131,11 +111,7 @@ namespace APACElib
                     seed = _seedGenerator.FindRNDSeed(epi.ID);
 
                     // simulate
-                    epi.SimulateUntilOneAcceptibleTrajFound(
-                        seed,
-                        seed + Math.Max(_modelSet.DistanceBtwRNGSeeds, 1),
-                        ((Epidemic)epi).ID,
-                        _modelSet.TimeIndexToStop);
+                    epi.SimulateUntilOneAcceptibleTrajFound(_modelSet.TimeIndexToStop, seed);
                 });
 
                 // store epidemic trajectories and outcomes
@@ -148,18 +124,18 @@ namespace APACElib
         }
         // calibrate
         public void Calibrate(int numOfTrajsToSim)
-        {   
-            //int calibrationTimeHorizonIndex = _modelSet.TimeIndexToStop;
-            //int numOfSimulationsRunInParallelForCalibration = _modelSet.NumOfTrajsInParallelForCalibr;
-
-            Calibration = new Calibration(_modelSet.ObservedHistory);
-            Calibration.AddCalibTargets(_parentEpidemic.EpiHist.SumTrajs, _parentEpidemic.EpiHist.RatioTrajs);
-
-            // toggle to calibration
-            ToggleModellerTo(EnumModelUse.Calibration, EnumEpiDecisions.PredeterminedSequence, false); 
+        {
 
             // computation time
+            Timer = new Timer();
             Timer.Start();
+
+            // create a rnd seed generator 
+            _seedGenerator = new RNDSeedGenerator(_modelSet, _rng);
+
+            // set up calibration 
+            Calibration = new Calibration(_modelSet.ObservedHistory);
+            Calibration.AddCalibTargets(_parentEpidemic.EpiHist.SumTrajs, _parentEpidemic.EpiHist.RatioTrajs);
 
             // build the epidemic models if using parallel computing
             if (_modelSet.UseParallelComputing)
@@ -170,6 +146,11 @@ namespace APACElib
                     thisEpidemic.BuildModel(ref _modelSet);
                 });
             }
+            else
+                _epidemics[0].BuildModel(ref _modelSet);
+
+            // toggle to calibration
+            ToggleModellerTo(EnumModelUse.Calibration, EnumEpiDecisions.PredeterminedSequence, false);
 
             // keep obtaining trajectories until enough
             int simItr = -1;
@@ -186,14 +167,17 @@ namespace APACElib
                     // find the RND seed for this iteration
                     int seed = _seedGenerator.FindRNDSeed(simItr);
                     // simulate one epidemic trajectory
-                    _parentEpidemic.SimulateUntilOneAcceptibleTrajFound
-                        (seed, seed + _modelSet.DistanceBtwRNGSeeds, simItr, _modelSet.TimeIndexToStop);
+                    _epidemics[0].SimulateUntilOneAcceptibleTrajFound
+                        (seed, seed + _modelSet.DistanceBtwRNGSeeds, _modelSet.TimeIndexToStop);
                     //_parentEpidemic.SimulateOneTrajectory(rndSeedToGetAnAcceptibleEpidemic, simItr, calibrationTimeHorizonIndex);
 
                     // find the likeligood of this simulation 
-                    Calibration.CalculateLnL(_parentEpidemic);
-                    // store calibration summary
-                    Calibration.AddCalibSummary(_parentEpidemic, simItr);                    
+                    if (_epidemics[0].SeedProducedAcceptibleTraj != -1)
+                    {
+                        Calibration.CalculateLnL(_epidemics[0]);
+                        // store calibration summary
+                        Calibration.AddCalibSummary(_epidemics[0], simItr);
+                    }
                     #endregion
                 }
                 else // (_modelSettings.UseParallelComputing == true)
@@ -208,11 +192,12 @@ namespace APACElib
                         int seed = _seedGenerator.FindRNDSeed(simItr);
                         // simulate            
                         epi.SimulateUntilOneAcceptibleTrajFound(
-                            seed, seed + _modelSet.DistanceBtwRNGSeeds, simItr, _modelSet.TimeIndexToStop);
+                            seed, seed + _modelSet.DistanceBtwRNGSeeds, _modelSet.TimeIndexToStop);
                         //thisEpidemic.SimulateOneTrajectory(rndSeedToGetAnAcceptibleEpidemic, simItr, _modelSet.TimeIndexToStop);
 
                         // find the likeligood of this simulation 
-                        Calibration.CalculateLnL(epi);
+                        if (epi.SeedProducedAcceptibleTraj != -1)
+                            Calibration.CalculateLnL(epi);
                     });
 
                     // run the calibration
@@ -232,8 +217,8 @@ namespace APACElib
                 }                
             }
 
-            // find the fittest runs
-            //Calibration.FindTheFittestSimulationRuns(numOfFittestRunsToReturn);
+            // finalize calibration
+            Calibration.CalcProbsAndSort();
 
             // computation time
             Timer.Stop();
@@ -370,12 +355,13 @@ namespace APACElib
         // toggle modeller to different operation
         public void ToggleModellerTo(EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool reportEpiTrajsToExcel)
         {
-            // toggle each epidemic
-            if (_modelSet.UseParallelComputing)
-                foreach (Epidemic thisEpidemic in _epidemics)
-                    ToggleAnEpidemicTo(thisEpidemic, modelUse, decisionRule, reportEpiTrajsToExcel);
-            else
-                ToggleAnEpidemicTo(_parentEpidemic, modelUse, decisionRule, reportEpiTrajsToExcel);
+            foreach (Epidemic thisEpidemic in _epidemics)
+                ToggleAnEpidemicTo(thisEpidemic, modelUse, decisionRule, reportEpiTrajsToExcel);
+
+            //// toggle each epidemic
+            //if (_modelSet.UseParallelComputing)                
+            //else
+            //    ToggleAnEpidemicTo(_parentEpidemic, modelUse, decisionRule, reportEpiTrajsToExcel);
         }
         // toggle one epidemic
         private void ToggleAnEpidemicTo(Epidemic thisEpidemic, EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool reportEpiTrajsToExcel)
@@ -555,7 +541,7 @@ namespace APACElib
             CostStat.Record(simulatedEpi.EpidemicCostHealth.TotalDisountedCost);
             AnnualCostStat.Record(simulatedEpi.EpidemicCostHealth.GetEquivalentAnnualCost(
                 _set.AnnualDiscountRate,
-                (int)(_set.WarmUpPeriodTimeIndex * _set.DeltaT),
+                (int)(_set.WarmUpPeriodSimTIndex * _set.DeltaT),
                 (int)(_set.TimeIndexToStop * _set.DeltaT)));
             NHBStat.Record(simulatedEpi.EpidemicCostHealth.GetDiscountedNHB(_set.WTPForHealth));
             NMBStat.Record(simulatedEpi.EpidemicCostHealth.GetDiscountedNMB(_set.WTPForHealth));
@@ -603,7 +589,7 @@ namespace APACElib
             Costs[simItr] = simulatedEpi.EpidemicCostHealth.TotalDisountedCost;
             AnnualCosts[simItr] = simulatedEpi.EpidemicCostHealth.GetEquivalentAnnualCost(
                 _set.AnnualDiscountRate,
-                (int)(_set.WarmUpPeriodTimeIndex * _set.DeltaT),
+                (int)(_set.WarmUpPeriodSimTIndex * _set.DeltaT),
                 (int)(_set.TimeIndexToStop * _set.DeltaT));
         }
 
@@ -811,7 +797,7 @@ namespace APACElib
         Discrete _discreteDist;
         private int[] _sampledSeeds;
 
-        public RNDSeedGenerator(ref ModelSettings modelSet, ref RNG rng)
+        public RNDSeedGenerator(ModelSettings modelSet, RNG rng)
         {
             _modelSet = modelSet;
 
@@ -846,7 +832,7 @@ namespace APACElib
             switch (_modelSet.SimRNDSeedsSource)
             {
                 case EnumSimRNDSeedsSource.StartFrom0:
-                    r = _modelSet.DistanceBtwRNGSeeds * simItr + _modelSet.FirstRNGSeed;
+                    r = 0;
                     break;
                 case EnumSimRNDSeedsSource.Prespecified:
                     r = _modelSet.RndSeeds[simItr];

@@ -52,35 +52,41 @@ namespace APACElib
         }
         
         // Simulate one trajectory (parameters will be sampled)
-        public void SimulateUntilOneAcceptibleTrajFound(int beginSeed, int stopSeed, int imRepIndex, int timeIndexToStop)
+        public void SimulateUntilOneAcceptibleTrajFound(int timeIndexToStop, int rndSeed = 0, int maxTries = 5000)
         {
-            int seed = beginSeed;
-            bool acceptableTrajFound = false;
-            SeedsDiscarded = 0;
-
-            Timer.Start();       // reset the timer 
+            int seed = 0;
+            RNG seedGenerator = new RNG(ID);
+            if (rndSeed == 0)
+                seed = seedGenerator.Next();
+            else
+                seed = rndSeed;
+            
 
             SeedProducedAcceptibleTraj = -1;
-            while (!acceptableTrajFound && seed <= stopSeed)
+            SeedsDiscarded = 0;
+            bool acceptableTrajFound = false;
+            Timer.Start();       // reset the timer 
+            while (!acceptableTrajFound)// && seed <= stopSeed)
             {
                 // reset for another simulation
                 ResetForAnotherSimulation(seed);
                 // simulate
-                if (Simulate(imRepIndex, timeIndexToStop))
+                if (Simulate(timeIndexToStop))
                 {
                     acceptableTrajFound = true;
                     SeedProducedAcceptibleTraj = seed;
                 }
                 else
                 {
-                    ++seed;
+                    //++seed;
+                    seed = seedGenerator.Next();
                     ++SeedsDiscarded;
                 }
             }
             Timer.Stop(); // stop timer
         }
         // Simulate one trajectory (parameters will be sampled)
-        public void SimulateOneTrajectory(int seed, int simRepIndex, int timeIndexToStop)
+        public void SimulateOneTrajectory(int seed, int timeIndexToStop)
         {
             Timer.Start();       // reset the timer     
             SeedProducedAcceptibleTraj = -1;    // reset the seed
@@ -88,7 +94,7 @@ namespace APACElib
             // reset for another simulation
             ResetForAnotherSimulation(seed);
             // simulate
-            if (Simulate(simRepIndex, timeIndexToStop))
+            if (Simulate(timeIndexToStop))
                 // if this is an acceptable trajectory
                 SeedProducedAcceptibleTraj = seed;
 
@@ -112,17 +118,17 @@ namespace APACElib
         }
 
         // simulate the trajectory assuming that parameter values are already assigned
-        private bool Simulate(int simReplication, int timeIndexToStop)
+        private bool Simulate(int timeIndexToStop)
         {
             bool toStop = false;
             bool acceptableTrajectory = false;
-            bool ifThisIsAFeasibleCalibrationTrajectory = true;        
+            bool ifFeasibleRangesViolated = true;        
 
             // simulate the epidemic
             while (!toStop)
             {
                 // update history
-                EpiHist.Update(_simTimeIndex, _epiTimeIndex, false, _rng);
+                ifFeasibleRangesViolated = EpiHist.Update(_simTimeIndex, _epiTimeIndex, false, _rng);
 
                 // make decisions if decision is not predetermined and announce the new decisions (may not necessarily go into effect)
                 _monitorOfIntrvsInEffect.Update(_epiTimeIndex, false, ref _classes);
@@ -135,7 +141,7 @@ namespace APACElib
                     EpiHist.Record(_simTimeIndex, _epiTimeIndex, false);                
 
                 // check if this is has been a feasible trajectory for calibration
-                if (ModelUse == EnumModelUse.Calibration && !ifThisIsAFeasibleCalibrationTrajectory)
+                if (ModelUse == EnumModelUse.Calibration && ifFeasibleRangesViolated)
                 {
                     acceptableTrajectory = false;
                     return acceptableTrajectory;
@@ -221,7 +227,7 @@ namespace APACElib
             // update costs and health outcomes
             if (ModelUse != EnumModelUse.Calibration)
             {
-                foreach (Class thisClass in Classes)
+                foreach (Class thisClass in Classes.Where(s => !(s.ClassStat.DeltaCostHealthCollector is null)))
                 {
                     EpidemicCostHealth.Add(
                         _simTimeIndex,
@@ -381,7 +387,7 @@ namespace APACElib
             // monitor of interventions in effect
             _monitorOfIntrvsInEffect = new MonitorOfInterventionsInEffect(ref _decisionMaker);
             // economic cost and health
-            EpidemicCostHealth = new EpidemicCostHealth(_modelSets.DeltaTDiscountRate, _modelSets.WarmUpPeriodTimeIndex);
+            EpidemicCostHealth = new EpidemicCostHealth(_modelSets.DeltaTDiscountRate, _modelSets.WarmUpPeriodSimTIndex);
             // find if there are classes with eradiation condition
             _thereAreClassesWithEradicationCondition = Classes.Where(s => s.EmptyToEradicate).Count() > 0;
 
@@ -508,10 +514,16 @@ namespace APACElib
                 string strClassType = Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ClassType));
 
                 // DALY loss and cost outcomes
-                double DALYPerNewMember = Convert.ToDouble(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.DALYPerNewMember));
-                double costPerNewMember = Convert.ToDouble(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CostPerNewMember));
-                double healthQualityPerUnitOfTime = Convert.ToDouble(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.DisabilityWeightPerUnitOfTime));
-                double costPerUnitOfTime = Convert.ToDouble(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CostPerUnitOfTime));
+                bool ifCollectOutcomes = false;
+                int parID_DALYPerNewMember=0; int parID_costPerNewMember=0; int parID_healthQualityPerUnitOfTime=0; int parID_costPerUnitOfTime=0;
+                ifCollectOutcomes = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.IfCollectOutcomes)));
+                if (ifCollectOutcomes)
+                {
+                    parID_DALYPerNewMember = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ParID_DALYPerNewMember));
+                    parID_costPerNewMember = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ParID_CostPerNewMember));
+                    parID_healthQualityPerUnitOfTime = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ParID_DisableWeightPerUnitOfTime));
+                    parID_costPerUnitOfTime = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ParID_CostPerUnitOfTime));
+                }
 
                 // statistics                
                 bool collectPrevalenceStats = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CollectPrevalenceStats)));
@@ -617,7 +629,7 @@ namespace APACElib
                 #endregion
 
                 // class statistics 
-                Classes.Last().ClassStat = new OneDimTrajectory(classID, name, _modelSets.WarmUpPeriodTimeIndex);
+                Classes.Last().ClassStat = new OneDimTrajectory(classID, name, _modelSets.WarmUpPeriodSimTIndex);
                 Classes.Last().ClassStat.SetupStatisticsCollectors(
                     collectAccumIncidenceStats,
                     collectPrevalenceStats
@@ -631,8 +643,16 @@ namespace APACElib
                     );
                 
                 // adding cost and health outcomes
-                Classes.Last().ClassStat.AddCostHealthOutcomes(
-                    DALYPerNewMember, costPerNewMember, healthQualityPerUnitOfTime * _modelSets.DeltaT, costPerUnitOfTime * _modelSets.DeltaT);
+                if (ifCollectOutcomes)
+                    Classes.Last().ClassStat.DeltaCostHealthCollector 
+                        = new DeltaTCostHealth(
+                            _modelSets.DeltaT,
+                            _modelSets.WarmUpPeriodSimTIndex, 
+                            _paramManager.Parameters[parID_DALYPerNewMember],
+                            _paramManager.Parameters[parID_costPerNewMember],
+                            _paramManager.Parameters[parID_healthQualityPerUnitOfTime],
+                            _paramManager.Parameters[parID_costPerUnitOfTime]
+                            );
 
                 // set up which statistics to show
                 Classes.Last().ShowIncidence = showIncidence;
@@ -922,16 +942,22 @@ namespace APACElib
                 // defined on 
                 SumTrajectory.EnumDefinedOn definedOn = SumTrajectory.EnumDefinedOn.Classes;
                 if (strDefinedOn == "Events") definedOn = SumTrajectory.EnumDefinedOn.Events;
-          
+
                 // DALY and cost outcomes
-                double DALYPerNewMember = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.DALYPerNewMember));
-                double costPerNewMember = Convert.ToDouble(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.CostPerNewMember));
+                bool ifCollectOutcomes = false;
+                int parID_DALYPerNewMember = 0; int parID_costPerNewMember = 0;
+                ifCollectOutcomes = SupportFunctions.ConvertYesNoToBool(Convert.ToString(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfCollectOutcomes)));
+                if (ifCollectOutcomes)
+                {
+                    parID_DALYPerNewMember = Convert.ToInt32(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.ParID_DALYPerNewMember));
+                    parID_costPerNewMember = Convert.ToInt32(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.ParID_CostPerNewMember));
+                }
                 
                 // build and add the summation statistics
                 if (definedOn == SumTrajectory.EnumDefinedOn.Classes)
                 {
                     SumClassesTrajectory thisSumClassTraj = new SumClassesTrajectory
-                        (info.ID, info.Name, info.StrType, info.Formula, info.IfDisplay, _modelSets.WarmUpPeriodTimeIndex, _modelSets.NumOfDeltaT_inSimOutputInterval);
+                        (info.ID, info.Name, info.StrType, info.Formula, info.IfDisplay, _modelSets.WarmUpPeriodSimTIndex, _modelSets.NumOfDeltaT_inSimOutputInterval);
                     // add the summation statistics
                     EpiHist.SumTrajs.Add(thisSumClassTraj);
                     // add the survey 
@@ -988,7 +1014,7 @@ namespace APACElib
                 else // if defined on events
                 {
                     SumEventTrajectory thisSumEventTraj = new SumEventTrajectory
-                        (info.ID, info.Name, info.StrType, info.Formula, info.IfDisplay, _modelSets.WarmUpPeriodTimeIndex, _modelSets.NumOfDeltaT_inSimOutputInterval);
+                        (info.ID, info.Name, info.StrType, info.Formula, info.IfDisplay, _modelSets.WarmUpPeriodSimTIndex, _modelSets.NumOfDeltaT_inSimOutputInterval);
                     // add the summation statistics
                     EpiHist.SumTrajs.Add(thisSumEventTraj);
 
@@ -1019,7 +1045,13 @@ namespace APACElib
                 }
 
                 // adding cost and health outcomes
-                EpiHist.SumTrajs.Last().AddCostHealthOutcomes(DALYPerNewMember, costPerNewMember, 0, 0);
+                if (ifCollectOutcomes)
+                    EpiHist.SumTrajs.Last().DeltaCostHealthCollector = 
+                        new DeltaTCostHealth(
+                            _modelSets.DeltaT, 
+                            _modelSets.WarmUpPeriodSimTIndex, 
+                            _paramManager.Parameters[parID_DALYPerNewMember],
+                            _paramManager.Parameters[parID_costPerNewMember]);
 
                 // update calibraton infor
                 if (_modelSets.ModelUse == EnumModelUse.Calibration && info.IfIncludedInCalibration)
@@ -1027,6 +1059,56 @@ namespace APACElib
                         new SpecialStatCalibrInfo(info.StrMeasureOfFit, info.StrLikelihood, info.StrLikelihoodParam, info.IfCheckWithinFeasibleRange, info.FeasibleMin, info.FeasibleMax);
                 
             }
+
+            // identify sum statistics for which time-series should be collected
+            if (_modelSets.ModelUse == EnumModelUse.Calibration)
+                foreach (SumTrajectory st in EpiHist.SumTrajs.Where(s => !(s.CalibInfo is null)))
+                {
+                    switch (st.Type)
+                    {
+                        case SumTrajectory.EnumType.Incidence:
+                            st.AddTimeSeries(
+                                collectIncidence: true,
+                                collectPrevalence: false,
+                                collectAccumIncidence: false,
+                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                );
+                            break;
+                        case SumTrajectory.EnumType.AccumulatingIncident:
+                            st.AddTimeSeries(
+                                collectIncidence: false,
+                                collectPrevalence: false,
+                                collectAccumIncidence: true,
+                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                );
+                            break;
+                        case SumTrajectory.EnumType.Prevalence:
+                            st.AddTimeSeries(
+                                collectIncidence: false,
+                                collectPrevalence: true,
+                                collectAccumIncidence: false,
+                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                );
+                            break;
+                    }
+                
+                    if (st.CalibInfo.GoodnessOfFit == SpecialStatCalibrInfo.EnumMeasureOfFit.Likelihood)
+                    {
+                        switch (st.CalibInfo.LikelihoodFunc)
+                        {
+                            case SpecialStatCalibrInfo.EnumLikelihoodFunc.Binomial:
+                                {
+                                    EpiHist.SumTrajs[st.CalibInfo.LikelihoodParam.Value].AddTimeSeries(
+                                        collectIncidence: false,
+                                        collectPrevalence: true,
+                                        collectAccumIncidence: false,
+                                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                        );
+                                }
+                                break;
+                        }
+                    }
+                }
         }
         // add ratio statistics
         private void AddRatioStatistics(Array ratioStatsSheet)
@@ -1045,7 +1127,7 @@ namespace APACElib
                     info.StrType,
                     info.Formula,
                     info.IfDisplay, 
-                    _modelSets.WarmUpPeriodTimeIndex, 
+                    _modelSets.WarmUpPeriodSimTIndex, 
                     _modelSets.NumOfDeltaT_inSimOutputInterval);
 
                 // set up calibration
@@ -1072,6 +1154,41 @@ namespace APACElib
                             );
                 }
             }
+
+            // identify ratio statistics for which time-series should be collected
+            if (_modelSets.ModelUse == EnumModelUse.Calibration)
+                foreach (RatioTrajectory rt in EpiHist.RatioTrajs.Where(s => !(s.CalibInfo is null)))
+                {
+                    if (rt.CalibInfo.GoodnessOfFit == SpecialStatCalibrInfo.EnumMeasureOfFit.Likelihood)
+                    {
+                        switch (rt.CalibInfo.LikelihoodFunc)
+                        {
+                            case SpecialStatCalibrInfo.EnumLikelihoodFunc.Binomial:
+                                {
+                                    switch (rt.Type)
+                                    {
+                                        case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
+                                            {
+                                                EpiHist.SumTrajs[rt.NominatorSpecialStatID].AddTimeSeries(
+                                                    collectIncidence: false,
+                                                    collectPrevalence: true,
+                                                    collectAccumIncidence: false,
+                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                                    );
+                                                EpiHist.SumTrajs[rt.DenominatorSpecialStatID].AddTimeSeries(
+                                                    collectIncidence: false,
+                                                    collectPrevalence: true,
+                                                    collectAccumIncidence: false,
+                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                                    );
+                                            }
+                                            break;
+                                    }                                
+                                }
+                                break;
+                        }
+                    }
+                }
         }
         // add connections
         private void AddConnections(int[,] connectionsMatrix)

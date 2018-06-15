@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SimulationLib;
 
 namespace APACElib
 {
@@ -12,37 +13,43 @@ namespace APACElib
         public double DeltaTDALY { get; set; }
 
         bool _ifCollecting;
+        double _deltaT;
         double _warmUpSimIndex;
-        double _DALYPerNewMember;
-        double _costPerNewMember;
-        double _disabilityWeightPerDeltaT;
-        double _costPerDeltaT;
+        Parameter _DALYPerNewMember;
+        Parameter _costPerNewMember;
+        Parameter _disabilityWeightPerUnitOfTime;
+        Parameter _costPerUnitOfTime;
 
         public DeltaTCostHealth(
+            double deltaT,
             int warmUpSimIndex,
-            double DALYPerNewMember,
-            double costPerNewMember,
-            double disabilityWeightPerDeltaT,
-            double costPerDeltaT)
-        {
+            Parameter DALYPerNewMember,
+            Parameter costPerNewMember,
+            Parameter disabilityWeightPerUnitOfTime = null,
+            Parameter costPerUnitOfTime = null)
+        {            
             // find if cost and health outcomes should be collected
-            double max = new[] { DALYPerNewMember, costPerNewMember, disabilityWeightPerDeltaT, costPerDeltaT }.Max();
-            double min = new[] { DALYPerNewMember, costPerNewMember, disabilityWeightPerDeltaT, costPerDeltaT }.Min();
-            if (max > 0 || min < 0) _ifCollecting = true;
-
+            _ifCollecting = true;
+            _deltaT = deltaT;
             _warmUpSimIndex = warmUpSimIndex;
             _DALYPerNewMember = DALYPerNewMember;
             _costPerNewMember = costPerNewMember;
-            _disabilityWeightPerDeltaT = disabilityWeightPerDeltaT;
-            _costPerDeltaT = costPerDeltaT;
+            if (disabilityWeightPerUnitOfTime is null)
+                _disabilityWeightPerUnitOfTime = new IndependetParameter(0, "dummy", RandomVariateLib.EnumRandomVariates.Constant, 0, 0, 0, 0);
+            else
+                _disabilityWeightPerUnitOfTime = disabilityWeightPerUnitOfTime;
+            if (costPerUnitOfTime is null)
+                _costPerUnitOfTime = new IndependetParameter(0, "dummy", RandomVariateLib.EnumRandomVariates.Constant, 0, 0, 0, 0);
+            else
+                _costPerUnitOfTime = disabilityWeightPerUnitOfTime;
         }
 
         public void Update(int simIndex, double prevalence, double incidence)
         {
             if (_ifCollecting && simIndex >= _warmUpSimIndex)
             {
-                DeltaTCost = _costPerNewMember * incidence + _costPerDeltaT * prevalence;
-                DeltaTDALY = _DALYPerNewMember * incidence + _disabilityWeightPerDeltaT * prevalence;
+                DeltaTCost = _costPerNewMember.Value * incidence + _costPerUnitOfTime.Value * _deltaT * prevalence;
+                DeltaTDALY = _DALYPerNewMember.Value * incidence + _disabilityWeightPerUnitOfTime.Value * _deltaT * prevalence;
             }
         }
 
