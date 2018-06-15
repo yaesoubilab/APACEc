@@ -11,8 +11,8 @@ namespace APACElib
 {
     public class ModelSettings
     {
-        private double[][,] _baseContactMatrices = null; //[pathogen ID][group i, group j]
-        private int[][][,] _percentChangeInContactMatricesParIDs = null; //[intervention ID][pathogen ID][group i, group j]
+        private double[][,] _baseContactMatrices = new double[0][,]; //[pathogen ID][group i, group j]
+        private int[][][,] _percentChangeInContactMatricesParIDs = new int[0][][,]; //[intervention ID][pathogen ID][group i, group j]
 
         // delta t
         public double DeltaT { get; set; }
@@ -80,7 +80,7 @@ namespace APACElib
         public int ThresholdBasedPolicy_MaximumValueOfThresholds { get; set; }
         public int[][] PrespecifiedSequenceOfInterventions { get; set; }
         public double[,] MatrixOfObservationsAndLikelihoodParams { get; set; }
-        public int NumOfSimulationsRunInParallelForCalibration { get; set; }
+        public int NumOfTrajsInParallelForCalibr { get; set; }
         public Array ParametersSheet { get; set; }
         public Array PathogenSheet { get; set; }
         public Array ClassesSheet { get; set; }
@@ -97,7 +97,6 @@ namespace APACElib
         public double[][,] GetBaseContactMatrices() { return _baseContactMatrices; }
         public int[][][,] GetPercentChangeInContactMatricesParIDs() { return _percentChangeInContactMatricesParIDs; }
         
-
         // read settings from the excel interface
         public void ReadSettings(ref ExcelInterface excelInterface)
         {
@@ -178,7 +177,7 @@ namespace APACElib
             ConditionsSheet = excelInterface.GetTableOfConditions();
 
             // calibration 
-            NumOfSimulationsRunInParallelForCalibration = Math.Min(
+            NumOfTrajsInParallelForCalibr = Math.Min(
                 excelInterface.GetNumOfTrajsToSimForCalibr(), 
                 excelInterface.GetNumOfTrajsInParallelForCalibr());
 
@@ -313,6 +312,11 @@ namespace APACElib
                 }
                 thisWTPForHealth += WtpForHealth_step;
             }
+        }
+
+        public void Clean()
+        {
+            
         }
     }
 }

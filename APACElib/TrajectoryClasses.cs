@@ -409,16 +409,17 @@ namespace APACElib
         public SpecialStatCalibrInfo CalibInfo { get; set; }
 
         public int ID { get; }
-        public string Name { get; set; }
-        public Boolean DisplayInSimOutput { get; set; }
+        public string Name { get; }
+        public int NominatorSpecialStatID { get; }
+        public int DenominatorSpecialStatID { get; }
+        public Boolean DisplayInSimOutput { get; }
         public PrevalenceTimeSeries TimeSeries { get; set; }    // treating all ratio stat as prevalence
         public ObsBasedStat AveragePrevalenceStat { get; set; }
         public double LastRecordedRatio { get; private set; }
         public int LastRecordedDenominator { get; private set; }
 
         public EnumType Type { get; set; }
-        int _nominatorSpecialStatID;
-        int _denominatorSpecialStatID;
+        
         int _warmUpSimIndex;
 
         public RatioTrajectory(
@@ -452,8 +453,8 @@ namespace APACElib
 
             DisplayInSimOutput = displayInSimOutput;
             int[] arrRatio = ConvertRatioFormulaToArrayOfClassIDs(ratioFormula);
-            _nominatorSpecialStatID = arrRatio[0];
-            _denominatorSpecialStatID = arrRatio[1];
+            NominatorSpecialStatID = arrRatio[0];
+            DenominatorSpecialStatID = arrRatio[1];
             _warmUpSimIndex = warmUpSimIndex;
 
             TimeSeries = new PrevalenceTimeSeries(nDeltaTInAPeriod);
@@ -470,28 +471,28 @@ namespace APACElib
             {
                 case EnumType.PrevalenceOverPrevalence:
                     {
-                        LastRecordedDenominator = sumTrajectories[_denominatorSpecialStatID].Prevalence;
-                        LastRecordedRatio = (double)sumTrajectories[_nominatorSpecialStatID].Prevalence
+                        LastRecordedDenominator = sumTrajectories[DenominatorSpecialStatID].Prevalence;
+                        LastRecordedRatio = (double)sumTrajectories[NominatorSpecialStatID].Prevalence
                             / LastRecordedDenominator;
                     }
                     break;
                 case EnumType.IncidenceOverIncidence:
                     {
-                        double denom = sumTrajectories[_denominatorSpecialStatID].GetLastRecording();
+                        double denom = sumTrajectories[DenominatorSpecialStatID].GetLastRecording();
                         if (denom is double.NaN || denom == 0)
                             LastRecordedRatio = double.NaN;
                         else
                         {
                             LastRecordedDenominator = (int)denom;
-                            LastRecordedRatio = (double)sumTrajectories[_nominatorSpecialStatID].GetLastRecording()
+                            LastRecordedRatio = (double)sumTrajectories[NominatorSpecialStatID].GetLastRecording()
                                 / LastRecordedDenominator;
                         }
                     }
                     break;
                 case EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
                     {
-                        LastRecordedDenominator = sumTrajectories[_denominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp;
-                        LastRecordedRatio = (double)sumTrajectories[_nominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp
+                        LastRecordedDenominator = sumTrajectories[DenominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp;
+                        LastRecordedRatio = (double)sumTrajectories[NominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp
                             / LastRecordedDenominator;
                     }
                     break;

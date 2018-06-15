@@ -55,7 +55,7 @@ namespace APACElib
                         numOfEpidemics = _modelSet.NumOfSimItrs;
                         break;
                     case EnumModelUse.Calibration:
-                        numOfEpidemics = _modelSet.NumOfSimulationsRunInParallelForCalibration;
+                        numOfEpidemics = _modelSet.NumOfTrajsInParallelForCalibr;
                         break;
                 }
 
@@ -149,19 +149,14 @@ namespace APACElib
         // calibrate
         public void Calibrate(int numOfTrajsToSim)
         {   
-            int calibrationTimeHorizonIndex = _modelSet.TimeIndexToStop;
-            int numOfSimulationsRunInParallelForCalibration = _modelSet.NumOfSimulationsRunInParallelForCalibration;
+            //int calibrationTimeHorizonIndex = _modelSet.TimeIndexToStop;
+            //int numOfSimulationsRunInParallelForCalibration = _modelSet.NumOfTrajsInParallelForCalibr;
 
             Calibration = new Calibration(_modelSet.ObservedHistory);
-            Calibration.AddTargets(_parentEpidemic.EpiHist.SumTrajs, _parentEpidemic.EpiHist.RatioTrajs);
+            Calibration.AddCalibTargets(_parentEpidemic.EpiHist.SumTrajs, _parentEpidemic.EpiHist.RatioTrajs);
 
             // toggle to calibration
             ToggleModellerTo(EnumModelUse.Calibration, EnumEpiDecisions.PredeterminedSequence, false); 
-
-            // keep obtaining trajectories until enough
-            int simItr = -1;
-            int simItrParallel = -1;
-            int parallelLoopIndex = 0;
 
             // computation time
             Timer.Start();
@@ -176,7 +171,10 @@ namespace APACElib
                 });
             }
 
-            int seedsDiscarded = 0;
+            // keep obtaining trajectories until enough
+            int simItr = -1;
+            int simItrParallel = -1;
+            int parallelLoopIndex = 0;
             while (simItr < numOfTrajsToSim - 1)
             {
                 // use parallel computing? 
@@ -187,85 +185,45 @@ namespace APACElib
                     ++simItr;
                     // find the RND seed for this iteration
                     int seed = _seedGenerator.FindRNDSeed(simItr);
-
                     // simulate one epidemic trajectory
-                    seedsDiscarded = _parentEpidemic.SimulateUntilOneAcceptibleTrajFound
-                        (seed, seed + _modelSet.DistanceBtwRNGSeeds, simItr, calibrationTimeHorizonIndex);
+                    _parentEpidemic.SimulateUntilOneAcceptibleTrajFound
+                        (seed, seed + _modelSet.DistanceBtwRNGSeeds, simItr, _modelSet.TimeIndexToStop);
                     //_parentEpidemic.SimulateOneTrajectory(rndSeedToGetAnAcceptibleEpidemic, simItr, calibrationTimeHorizonIndex);
 
-                    // update calibration time and trajectories discarded
-                    Calibration.TimeUsed += _parentEpidemic.Timer.TimePassed;
-                    Calibration.NumOfDiscardedTrajs += seedsDiscarded;
-
-                    if (_parentEpidemic.SeedProducedAcceptibleTraj != -1)
-                    {
-                        Calibration.CalibSimTrajs.Add(
-                            new CalibSimTraj(
-                                simItr,
-                                seed,
-                                _parentEpidemic.ParamManager.ParameterValues,
-                                _parentEpidemic.EpiHist.SumTrajs,
-                                _parentEpidemic.EpiHist.RatioTrajs)
-                                );
-                        
-                        // find the fit of the stored simulation results
-                        //Calibration.FindTheFitOfRecordedSimulationResults(_set.UseParallelComputing);
-
-                        ++simItr;
-                    }
+                    // find the likeligood of this simulation 
+                    Calibration.CalculateLnL(_parentEpidemic);
+                    // store calibration summary
+                    Calibration.AddCalibSummary(_parentEpidemic, simItr);                    
                     #endregion
                 }
                 else // (_modelSettings.UseParallelComputing == true)
                 {
-                    #region Use parallel computing
-                    
-                    // simulate and store outcomes
-                    int rndSeedToGetAnAcceptibleEpidemic = 0;
-                    //Object thisLock = new Object();
-                    //Parallel.ForEach(_epidemics.Cast<object>(), thisEpidemic =>
-                    Parallel.ForEach(_epidemics, thisEpidemic =>
+                    #region Use parallel computing                    
+                    // simulate and calculate likelihood
+                    Parallel.ForEach(_epidemics, epi =>
                     {
-                        // build the parent epidemic model
-                        //thisEpidemic.BuildModel(ref _modelSettings);
-
                         // find sim iteration 
-                        simItr = numOfSimulationsRunInParallelForCalibration * parallelLoopIndex + thisEpidemic.ID;
-
+                        simItr = _modelSet.NumOfTrajsInParallelForCalibr * parallelLoopIndex + epi.ID;
                         // find the RND seed for this iteration
-                        rndSeedToGetAnAcceptibleEpidemic = _seedGenerator.FindRNDSeed(simItr);
-
+                        int seed = _seedGenerator.FindRNDSeed(simItr);
                         // simulate            
-                        //((Epidemic)thisEpidemic).SimulateTrajectoriesUntilOneAcceptibleFound(rndSeedToGetAnAcceptibleEpidemic, int.MaxValue, simItr, calibrationTimeHorizonIndex);
-                        thisEpidemic.SimulateOneTrajectory(rndSeedToGetAnAcceptibleEpidemic, simItr, calibrationTimeHorizonIndex);
+                        epi.SimulateUntilOneAcceptibleTrajFound(
+                            seed, seed + _modelSet.DistanceBtwRNGSeeds, simItr, _modelSet.TimeIndexToStop);
+                        //thisEpidemic.SimulateOneTrajectory(rndSeedToGetAnAcceptibleEpidemic, simItr, _modelSet.TimeIndexToStop);
 
-                        // clean the memory
-                        //thisEpidemic.CleanExceptResults();
+                        // find the likeligood of this simulation 
+                        Calibration.CalculateLnL(epi);
                     });
 
                     // run the calibration
-                    foreach (Epidemic thisEpidemic in _epidemics)
+                    foreach (Epidemic epi in _epidemics)
                     {
                         ++ simItrParallel;
-                        // simulation time
-                        Calibration.TimeUsed += thisEpidemic.Timer.TimePassed;
                         // sim itr
-                        simItr = numOfSimulationsRunInParallelForCalibration * parallelLoopIndex + thisEpidemic.ID;
-
-                        // find the number of discarded trajectories    
-                        //_numOfTrajectoriesDiscardedByCalibration += thisEpidemic.NumOfDiscardedTrajectoriesAmongCalibrationRuns;
-                        if (thisEpidemic.SeedProducedAcceptibleTraj == -1)
-                            Calibration.NumOfDiscardedTrajs += 1;
-                        else
-                        {
-                            double[,] mOfObs = SupportFunctions.ConvertJaggedArrayToRegularArray(new double[0][], 1);// thisEpidemic.NumOfCalibratoinTargets);
-                            double[] par = new double[0];
-                            // add this simulation observations
-                            //Calibration.AddResultOfASimulationRun(simItr, thisEpidemic.SeedProducedAcceptibleTraj, ref par, ref mOfObs);
-                        }
+                        simItr = _modelSet.NumOfTrajsInParallelForCalibr * parallelLoopIndex + epi.ID;
+                        // store calibration summary
+                        Calibration.AddCalibSummary(epi, simItr);                        
                     }
-                    
-                    // find the fit of the stored simulation results
-                    //Calibration.FindTheFitOfRecordedSimulationResults(_set.UseParallelComputing);
 
                     // increment the loop id
                     ++parallelLoopIndex;

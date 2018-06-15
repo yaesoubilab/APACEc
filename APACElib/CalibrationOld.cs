@@ -15,7 +15,7 @@ namespace APACElib
         int _numOfParameters;
         string[] _namesOfParameters;
         string[] _namesOfSimOutsWithNonZeroWeights;
-        private List<CalibSimTraj> _colOfSimulationResults = new List<CalibSimTraj>();
+        private List<ResultOfASimulation> _colOfSimulationResults = new List<ResultOfASimulation>();
         private List<CalibrationTargetOld> _colOfCalibrationTargets = new List<CalibrationTargetOld>();
 
         protected int[] _arrSimulationItr;
@@ -156,7 +156,7 @@ namespace APACElib
         public void AddResultOfASimulationRun(int simItr, int rndSeed, ref double[] parameterValues, ref double[,] matrixOfObservations)
         {
             // store this result
-            _colOfSimulationResults.Add(new CalibSimTraj(simItr, rndSeed, ref parameterValues, ref matrixOfObservations));
+            _colOfSimulationResults.Add(new ResultOfASimulation(simItr, rndSeed, ref parameterValues, ref matrixOfObservations));
         }
         // find the fit of the recorded simulation results
         public void FindTheFitOfRecordedSimulationResults(bool ifToProcessInParallel)
@@ -165,7 +165,7 @@ namespace APACElib
 
             if (ifToProcessInParallel == false)
             {
-                foreach (CalibSimTraj thisResult in _colOfSimulationResults)
+                foreach (ResultOfASimulation thisResult in _colOfSimulationResults)
                 {
                     // find the goodness of fit 
                     thisResult.CalculateGoodnessOfFit(_colOfCalibrationTargets);
@@ -175,17 +175,17 @@ namespace APACElib
             {
                 Parallel.ForEach(_colOfSimulationResults.Cast<object>(), thisResult =>
                 {
-                    ((CalibSimTraj)thisResult).CalculateGoodnessOfFit(_colOfCalibrationTargets);
+                    ((ResultOfASimulation)thisResult).CalculateGoodnessOfFit(_colOfCalibrationTargets);
                 });
             }
 
-            foreach (CalibSimTraj thisResult in _colOfSimulationResults)
+            foreach (ResultOfASimulation thisResult in _colOfSimulationResults)
             {
                 // store the iteration and rnd seeds
                 SupportFunctions.AddToEndOfArray(ref _arrSimulationItr, thisResult.SimItr);
                 SupportFunctions.AddToEndOfArray(ref _arrSimulationRNDSeeds, thisResult.RndSeed);
                 // parameter values for this simulation run
-                _matrixOfParameterValues = SupportFunctions.ConcatJaggedArray(_matrixOfParameterValues, thisResult.ParamValues);
+                _matrixOfParameterValues = SupportFunctions.ConcatJaggedArray(_matrixOfParameterValues, thisResult.ParameterValues);
                 // simulation observations for this simulation run
                 _matrixOfSimObs = SupportFunctions.ConcatJaggedArray(_matrixOfSimObs, thisResult.VectorOfSimOutsNonZerpWeight);
                 // concatenate results

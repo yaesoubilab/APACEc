@@ -27,9 +27,8 @@ namespace APACElib
         private List<Event> _events = new List<Event>();
         public EpidemicHistory EpiHist { get; private set; }
         public EpidemicCostHealth EpidemicCostHealth { get; set; }
-
+        public double LnL { get; set; } // likelihood
         public Timer Timer { get; private set; } = new Timer();
-        //public Calibration Calibration { get; private set; } = new Calibration();
         
         RNG _rng;
         private DecisionMaker _decisionMaker;
@@ -44,30 +43,21 @@ namespace APACElib
         private bool _thereAreClassesWithEradicationCondition = false;
         public bool StoppedDueToEradication { get; private set; }
         public int SeedProducedAcceptibleTraj { get; private set; }
+        public int SeedsDiscarded { get; private set; }
 
         // Instantiation
         public Epidemic(int id)
         {
             ID = id;
         }
-
-        // clean except the results
-        public void CleanExceptResults()
-        {
-            _modelSets = null;
-            _paramManager = new ParameterManager();
-            _classes = new List<Class>();
-            _events = new List<Event>();
-            EpiHist.Clean();
-            FOIModel.Clean();            
-    }
         
         // Simulate one trajectory (parameters will be sampled)
-        public int SimulateUntilOneAcceptibleTrajFound(int beginSeed, int stopSeed, int imRepIndex, int timeIndexToStop)
+        public void SimulateUntilOneAcceptibleTrajFound(int beginSeed, int stopSeed, int imRepIndex, int timeIndexToStop)
         {
             int seed = beginSeed;
             bool acceptableTrajFound = false;
-            int nTrajDiscarded = 0;
+            SeedsDiscarded = 0;
+
             Timer.Start();       // reset the timer 
 
             SeedProducedAcceptibleTraj = -1;
@@ -84,15 +74,10 @@ namespace APACElib
                 else
                 {
                     ++seed;
-                    // if the model is used for calibration, record the number of discarded trajectories due to violating the feasible ranges
-                    if (_modelSets.ModelUse == EnumModelUse.Calibration)
-                        ++nTrajDiscarded;
+                    ++SeedsDiscarded;
                 }
             }
-
             Timer.Stop(); // stop timer
-
-            return nTrajDiscarded;
         }
         // Simulate one trajectory (parameters will be sampled)
         public void SimulateOneTrajectory(int seed, int simRepIndex, int timeIndexToStop)
@@ -285,28 +270,20 @@ namespace APACElib
 
             // resample parameters 
             _paramManager.SampleAllParameters(ref _rng, 0);
-
-            // update contact matrices
-            FOIModel.AddContactInfo(
-                _modelSets.GetBaseContactMatrices(),
-                _modelSets.GetPercentChangeInContactMatricesParIDs()
-                );
+            
             // reset force of infection manager 
             FOIModel.Reset();
 
             // update intervention information 
             DecisionMaker.UpdateParameters(_paramManager, _modelSets.DeltaT);
+            DecisionMaker.Reset();
 
             // reset the number of people in each compartment
             foreach (Class thisClass in Classes)
                 thisClass.UpdateInitialNumOfMembers((int)Math.Round(_paramManager.ParameterValues[thisClass.InitialMemebersParID]));
 
-            // health and cost outcomes
-            EpidemicCostHealth = new EpidemicCostHealth(_modelSets.DeltaTDiscountRate, _modelSets.WarmUpPeriodTimeIndex);
+            // health and cost outcomes            
             EpidemicCostHealth.Reset();
-
-            // reset decisions
-            DecisionMaker.Reset();
 
             // update decisions
             _monitorOfIntrvsInEffect.Update(0, true, ref _classes);
@@ -371,9 +348,13 @@ namespace APACElib
             FOIModel = new ForceOfInfectionModel(
                 _pathogenIDs.Length,
                 ref _paramManager);
+            // add contact matrices
+            FOIModel.AddContactInfo(
+                _modelSets.GetBaseContactMatrices(),
+                _modelSets.GetPercentChangeInContactMatricesParIDs()
+                );
             // add events
-            AddEvents(modelSettings.EventSheet);
-            
+            AddEvents(modelSettings.EventSheet);            
             // add interventions
             AddInterventions(modelSettings.InterventionSheet);
             // add resources
@@ -399,7 +380,8 @@ namespace APACElib
             AddConnections(modelSettings.ConnectionsMatrix);
             // monitor of interventions in effect
             _monitorOfIntrvsInEffect = new MonitorOfInterventionsInEffect(ref _decisionMaker);
-            
+            // economic cost and health
+            EpidemicCostHealth = new EpidemicCostHealth(_modelSets.DeltaTDiscountRate, _modelSets.WarmUpPeriodTimeIndex);
             // find if there are classes with eradiation condition
             _thereAreClassesWithEradicationCondition = Classes.Where(s => s.EmptyToEradicate).Count() > 0;
 
