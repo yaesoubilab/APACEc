@@ -139,7 +139,7 @@ namespace APACElib
                 epi.LnL += L.LnLikelihood(epi.EpiHist.SumTrajs, epi.EpiHist.RatioTrajs);
         }
         
-        public void AddCalibSummary(Epidemic epi, int simItr)
+        public void AddCalibSummary(Epidemic epi)
         {
             // update calibration time and trajectories discarded
             TimeUsed += epi.Timer.TimePassed;
@@ -150,7 +150,7 @@ namespace APACElib
                 // store the summary of likelihood calculation
                 SimEpiResults.Add(
                     new ResulOfASimEpi(
-                        simItr, epi.SeedProducedAcceptibleTraj, epi.LnL)
+                        epi.ID, epi.SeedProducedAcceptibleTraj, epi.LnL)
                         );
                 // update the maximum LnL
                 if (epi.LnL > _maxLnL)

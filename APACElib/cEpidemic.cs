@@ -54,19 +54,19 @@ namespace APACElib
         // Simulate one trajectory (parameters will be sampled)
         public void SimulateUntilOneAcceptibleTrajFound(int timeIndexToStop, int rndSeed = 0, int maxTries = 5000)
         {
+            int tries = 0;
             int seed = 0;
             RNG seedGenerator = new RNG(ID);
             if (rndSeed == 0)
                 seed = seedGenerator.Next();
             else
-                seed = rndSeed;
-            
+                seed = rndSeed;            
 
             SeedProducedAcceptibleTraj = -1;
             SeedsDiscarded = 0;
             bool acceptableTrajFound = false;
             Timer.Start();       // reset the timer 
-            while (!acceptableTrajFound)// && seed <= stopSeed)
+            while (!acceptableTrajFound && tries <= maxTries)// && seed <= stopSeed)
             {
                 // reset for another simulation
                 ResetForAnotherSimulation(seed);
@@ -80,6 +80,7 @@ namespace APACElib
                 {
                     //++seed;
                     seed = seedGenerator.Next();
+                    ++tries;
                     ++SeedsDiscarded;
                 }
             }

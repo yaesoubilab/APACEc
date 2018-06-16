@@ -44,7 +44,7 @@ namespace APACElib
             // extract model information 
             ModelInfo = new ModelInfo(ref _parentEpidemic);
 
-            // find how many epi model to create
+            // find how many epi models to create
             int numOfEpidemics = 0;
             switch (_modelSet.ModelUse)
             {
@@ -54,24 +54,21 @@ namespace APACElib
                 case EnumModelUse.Calibration:
                     {
                         if (_modelSet.UseParallelComputing)
-                            numOfEpidemics = _modelSet.NumOfTrajsInParallelForCalibr;
+                            numOfEpidemics = excelInterface.GetNumOfTrajsToSimForCalibr(); //_modelSet.NumOfTrajsInParallelForCalibr;
                         else
-                            numOfEpidemics = 1;
+                            numOfEpidemics = excelInterface.GetNumOfTrajsToSimForCalibr(); // excelInterface.GetNumOfTrajsToSimForCalibr();
                     }
                     break;
             }
             // create the epi models
             _epidemics.Clear();
-            for (int simItr = 0; simItr < numOfEpidemics; simItr++)
-                // create an epidemic
-                _epidemics.Add(new Epidemic(simItr));            
+            for (int id = 0; id < numOfEpidemics; id++)                
+                _epidemics.Add(new Epidemic(id));            
         }
 
         // simulate several epidemics
         public void SimulateEpidemics()
         {
-            // create a rnd seed generator 
-            _seedGenerator = new RNDSeedGenerator(_modelSet, _rng);
             // simulatoin summary
             SimSummary = new SimSummary(ref _modelSet, ref _parentEpidemic);
             SimSummary.Reset();
@@ -79,6 +76,9 @@ namespace APACElib
             // simulation time
             Timer = new Timer();
             Timer.Start();
+
+            // create a rnd seed generator 
+            _seedGenerator = new RNDSeedGenerator(_modelSet, _rng);
 
             // use parallel computing? 
             if (!_modelSet.UseParallelComputing)
@@ -88,13 +88,10 @@ namespace APACElib
                 {
                     // build the parent epidemic model
                     epi.BuildModel(ref _modelSet);
-
                     // find the RND seed for this iteration
                     seed = _seedGenerator.FindRNDSeed(epi.ID);
-
                     // simulate
                     epi.SimulateUntilOneAcceptibleTrajFound(_modelSet.TimeIndexToStop, seed);
-
                     // store epidemic trajectories and outcomes
                     SimSummary.Add(epi, epi.ID);
                 }
@@ -106,10 +103,8 @@ namespace APACElib
                 {
                     // build the parent epidemic model
                     epi.BuildModel(ref _modelSet);
-
                     // find the RND seed for this iteration
                     seed = _seedGenerator.FindRNDSeed(epi.ID);
-
                     // simulate
                     epi.SimulateUntilOneAcceptibleTrajFound(_modelSet.TimeIndexToStop, seed);
                 });
@@ -122,32 +117,82 @@ namespace APACElib
             Timer.Stop();
             SimSummary.TimeToSimulateAllEpidemics = Timer.TimePassed;
         }
-        // calibrate
-        public void Calibrate(int numOfTrajsToSim)
-        {
 
+        // calibrate
+        public void Calibrate()
+        {
             // computation time
             Timer = new Timer();
             Timer.Start();
-
-            // create a rnd seed generator 
-            _seedGenerator = new RNDSeedGenerator(_modelSet, _rng);
 
             // set up calibration 
             Calibration = new Calibration(_modelSet.ObservedHistory);
             Calibration.AddCalibTargets(_parentEpidemic.EpiHist.SumTrajs, _parentEpidemic.EpiHist.RatioTrajs);
 
-            // build the epidemic models if using parallel computing
-            if (_modelSet.UseParallelComputing)
-            {
-                Parallel.ForEach(_epidemics, thisEpidemic =>
+            // use parallel computing? 
+            if (_modelSet.UseParallelComputing == false)
+                foreach(Epidemic epi in _epidemics)
                 {
-                    // build the parent epidemic model
+                    // build the epidemic model
+                    epi.BuildModel(ref _modelSet);
+                    // toggle to calibration
+                    ToggleAnEpidemicTo(epi, EnumModelUse.Calibration, EnumEpiDecisions.PredeterminedSequence, false);
+                    // simulate            
+                    epi.SimulateUntilOneAcceptibleTrajFound(_modelSet.TimeIndexToStop);
+                    // find the likeligood of this simulation 
+                    if (epi.SeedProducedAcceptibleTraj != -1)
+                        Calibration.CalculateLnL(epi);
+                    // store calibration summary
+                    Calibration.AddCalibSummary(epi);
+                }
+            else // using parallel processing
+            {
+                // simulate and calculate likelihood
+                Parallel.ForEach(_epidemics, epi =>
+                {
+                    // build the epidemic model
+                    epi.BuildModel(ref _modelSet);
+                    // toggle to calibration
+                    ToggleAnEpidemicTo(epi, EnumModelUse.Calibration, EnumEpiDecisions.PredeterminedSequence, false);
+                    // simulate            
+                    epi.SimulateUntilOneAcceptibleTrajFound(_modelSet.TimeIndexToStop);
+                    // find the likeligood of this simulation 
+                    if (epi.SeedProducedAcceptibleTraj != -1)
+                        Calibration.CalculateLnL(epi);
+                });
+                // rstore calibration results
+                foreach (Epidemic epi in _epidemics)
+                    Calibration.AddCalibSummary(epi);
+
+            }
+
+            // finalize calibration
+            Calibration.CalcProbsAndSort();
+
+            // computation time
+            Timer.Stop();
+        }
+
+        // calibrate
+        public void CalibrateOld(int numOfTrajsToSim)
+        {
+            // computation time
+            Timer = new Timer();
+            Timer.Start();
+
+            // set up calibration 
+            Calibration = new Calibration(_modelSet.ObservedHistory);
+            Calibration.AddCalibTargets(_parentEpidemic.EpiHist.SumTrajs, _parentEpidemic.EpiHist.RatioTrajs);
+
+            // build the epidemic models 
+            if (_modelSet.UseParallelComputing)
+                Parallel.ForEach(_epidemics, thisEpidemic =>
+                {                    
                     thisEpidemic.BuildModel(ref _modelSet);
                 });
-            }
             else
-                _epidemics[0].BuildModel(ref _modelSet);
+                foreach (Epidemic epi in _epidemics)
+                    epi.BuildModel(ref _modelSet);
 
             // toggle to calibration
             ToggleModellerTo(EnumModelUse.Calibration, EnumEpiDecisions.PredeterminedSequence, false);
@@ -176,7 +221,7 @@ namespace APACElib
                     {
                         Calibration.CalculateLnL(_epidemics[0]);
                         // store calibration summary
-                        Calibration.AddCalibSummary(_epidemics[0], simItr);
+                        Calibration.AddCalibSummary(_epidemics[0]);
                     }
                     #endregion
                 }
@@ -186,13 +231,10 @@ namespace APACElib
                     // simulate and calculate likelihood
                     Parallel.ForEach(_epidemics, epi =>
                     {
-                        // find sim iteration 
-                        simItr = _modelSet.NumOfTrajsInParallelForCalibr * parallelLoopIndex + epi.ID;
-                        // find the RND seed for this iteration
-                        int seed = _seedGenerator.FindRNDSeed(simItr);
+                        // build the epidemic model
+                        epi.BuildModel(ref _modelSet);
                         // simulate            
-                        epi.SimulateUntilOneAcceptibleTrajFound(
-                            seed, seed + _modelSet.DistanceBtwRNGSeeds, _modelSet.TimeIndexToStop);
+                        epi.SimulateUntilOneAcceptibleTrajFound(_modelSet.TimeIndexToStop);
                         //thisEpidemic.SimulateOneTrajectory(rndSeedToGetAnAcceptibleEpidemic, simItr, _modelSet.TimeIndexToStop);
 
                         // find the likeligood of this simulation 
@@ -207,7 +249,7 @@ namespace APACElib
                         // sim itr
                         simItr = _modelSet.NumOfTrajsInParallelForCalibr * parallelLoopIndex + epi.ID;
                         // store calibration summary
-                        Calibration.AddCalibSummary(epi, simItr);                        
+                        Calibration.AddCalibSummary(epi);                        
                     }
 
                     // increment the loop id
@@ -367,7 +409,6 @@ namespace APACElib
         private void ToggleAnEpidemicTo(Epidemic thisEpidemic, EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool reportEpiTrajsToExcel)
         {   
             thisEpidemic.ModelUse = modelUse;
-            //thisEpidemic.DecisionRule = decisionRule;
             thisEpidemic.StoreEpiTrajsForExcelOutput = reportEpiTrajsToExcel;
 
             switch (modelUse)

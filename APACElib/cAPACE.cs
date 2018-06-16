@@ -144,7 +144,7 @@ namespace APACElib
             ReadObservedHistory();
 
             // calibrate
-            _epidemicModeller.Calibrate(ExcelInterface.GetNumOfTrajsToSimForCalibr());
+            _epidemicModeller.Calibrate();
             
             // report calibration results
             ReportCalibrationResult();
