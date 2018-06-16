@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace APACElib
 {
+    /// <summary>
+    /// store the seed, ln of the likelihood, and the probability of a simulated epidemic
+    /// </summary>
     public class ResulOfASimEpi
     {
         public int SimItr { get; }
@@ -21,6 +24,9 @@ namespace APACElib
         }
     }
 
+    /// <summary>
+    /// final results of calibration to report to Excel
+    /// </summary>
     public class CalibResultsToReportToExcel
     {
         public List<int> SimItrs = new List<int>();
@@ -28,28 +34,23 @@ namespace APACElib
         public List<double> Probs = new List<double>();
     }
 
+    /// <summary>
+    /// a Bayesian calibration approach
+    /// </summary>
     public class Calibration
     {
-        private List<ObsAndLikelihoodParams> _history = new List<ObsAndLikelihoodParams>();
+        private List<ObsAndLikelihoodParams> _obsHist = new List<ObsAndLikelihoodParams>();
         private List<LikelihoodTimeSeries> _likelihoodTSs = new List<LikelihoodTimeSeries>();
         public List<ResulOfASimEpi> SimEpiResults { get; private set; } = new List<ResulOfASimEpi>();
         public List<ResulOfASimEpi> SortedResults;
         public CalibResultsToReportToExcel ResultsForExcel = new CalibResultsToReportToExcel();
-        private double _maxLnL=double.MinValue;
-
-        public int[] SimulationItrs { get; }
-        public int[] SimulationRNDSeeds { get; }
-        public double[][] MatrixOfGoodnessOfFit { get; }
-        public double[][] MatrixOfParameterValues { get; }
-        public double[][] MatrixOfSimObs { get; } // matrix of simulation observations used for calibratoin 
-
-        public int NumOfCalibratoinTargets { get; } = 0;
+        private double _maxLnL=double.MinValue;         // maximum ln(likelihood) recorded
         public int NumOfDiscardedTrajs { get; set; } = 0;
         public double TimeUsed { get; set; } = 0;
 
         public Calibration(Array sheetOfObsdHist)
         {
-            // store epidemic history along with the time-specific likelihood parameters
+            // store epidemic history and the time-specific likelihood parameters
             string strObsValue; string strLikePar;
             for (int colIdx = 3; colIdx < sheetOfObsdHist.GetLength(1); colIdx += 2)
             {
@@ -61,7 +62,7 @@ namespace APACElib
                     strLikePar = Convert.ToString(sheetOfObsdHist.GetValue(rowIdx, colIdx+1));
                     calibInfo.AddObsPar(strObsValue, strLikePar);
                 }
-                _history.Add(calibInfo);
+                _obsHist.Add(calibInfo);
             }
         }
 
@@ -80,13 +81,13 @@ namespace APACElib
                             {
                                 case SpecialStatCalibrInfo.EnumLikelihoodFunc.Normal:
                                     _likelihoodTSs.Add(
-                                        new LikelihoodTS_Normal(_history[calibTargIdx], st.ID)
+                                        new LikelihoodTS_Normal(_obsHist[calibTargIdx], st.ID)
                                         );
                                     break;
                                 case SpecialStatCalibrInfo.EnumLikelihoodFunc.Binomial:
                                     _likelihoodTSs.Add(
                                         new LikelihoodTS_BinomialIncd(
-                                            _history[calibTargIdx], st.ID, st.CalibInfo.LikelihoodParam.Value)
+                                            _obsHist[calibTargIdx], st.ID, st.CalibInfo.LikelihoodParam.Value)
                                         );
                                     break;
                                 case SpecialStatCalibrInfo.EnumLikelihoodFunc.Multinomial:
@@ -115,7 +116,7 @@ namespace APACElib
                                 case SpecialStatCalibrInfo.EnumLikelihoodFunc.Binomial:
                                     _likelihoodTSs.Add(
                                         new LikelihoodTS_BinomialPrev(
-                                            _history[calibTargIdx],
+                                            _obsHist[calibTargIdx],
                                             rt.NominatorSpecialStatID,
                                             rt.DenominatorSpecialStatID)
                                         );
@@ -182,9 +183,11 @@ namespace APACElib
                 ResultsForExcel.Probs.Add(s.Prob);
             }
         }
-
     }
 
+    /// <summary>
+    /// class to store the calibration settings of a calibration target
+    /// </summary>
     public class SpecialStatCalibrInfo
     {
         public enum EnumMeasureOfFit : int
@@ -265,14 +268,15 @@ namespace APACElib
 
     }
 
+    /// <summary>
+    /// store the observations and likelihood settings for a calibration target
+    /// </summary>
     public class ObsAndLikelihoodParams
     {
-        public List<double?> Obs { get; } = new List<double?>();                // observations (can take null)
-        public List<double?> LikelihoodParam { get; } = new List<double?>();    // likelihood settings (can take null)
+        public List<double?> Obs { get; } = new List<double?>();              // observations (can take null)
+        public List<double?> LikelihoodParam { get; } = new List<double?>();  // likelihood settings (can take null)
 
-        public ObsAndLikelihoodParams()
-        {                        
-        }
+        public ObsAndLikelihoodParams() { }
 
         public void AddObsPar(string strObsValue, string strLikePar)
         {
@@ -289,8 +293,10 @@ namespace APACElib
         }
     }
 
-    ////////// Likelihoods for Calibration Targets //////////
-
+    
+    /// <summary>
+    /// abstract class to calculate ln(likelihood) of an observed time-series
+    /// </summary>
     public abstract class LikelihoodTimeSeries
     {
         protected ObsAndLikelihoodParams info;
@@ -305,6 +311,9 @@ namespace APACElib
         public abstract double LnLikelihood(List<SumTrajectory> sumTrajs, List<RatioTrajectory> ratioTrajs);
     }
 
+    /// <summary>
+    /// class to calculate ln(likelihood) of an observed time-series when observations follow normal distributions
+    /// </summary>
     public class LikelihoodTS_Normal : LikelihoodTimeSeries
     {
         public int IndexOfSumStat_Prev { get; }
@@ -335,6 +344,9 @@ namespace APACElib
         }
     }
 
+    /// <summary>
+    /// class to calculate ln(likelihood) of an observed time-series when incidence observations follow binomial distributions
+    /// </summary>
     public class LikelihoodTS_BinomialIncd : LikelihoodTimeSeries
     {
         public int IndexOfSumStat_Prev { get; }
@@ -371,6 +383,9 @@ namespace APACElib
         }
     }
 
+    /// <summary>
+    /// class to calculate ln(likelihood) of an observed time-series when prevalence observations follow binomial distributions
+    /// </summary>
     public class LikelihoodTS_BinomialPrev : LikelihoodTimeSeries
     {
         public int IndexOfSumStat_PrevNomin { get; }

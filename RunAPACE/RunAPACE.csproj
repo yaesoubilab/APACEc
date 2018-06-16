@@ -35,6 +35,10 @@
     <Reference Include="APACElib">
       <HintPath>..\APACElib\bin\Release\APACElib.dll</HintPath>
     </Reference>
+    <Reference Include="CSExcelInteractorLib, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\CSExcelInteractorLib\CSExcelInteractorLib\bin\Release\CSExcelInteractorLib.dll</HintPath>
+    </Reference>
     <Reference Include="MathNet.Numerics, Version=4.4.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\MathNet.Numerics.4.4.0\lib\net461\MathNet.Numerics.dll</HintPath>
     </Reference>

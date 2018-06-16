@@ -13,8 +13,6 @@ namespace APACElib
     {
         private double[][,] _baseContactMatrices = new double[0][,]; //[pathogen ID][group i, group j]
         private int[][][,] _percentChangeInContactMatricesParIDs = new int[0][][,]; //[intervention ID][pathogen ID][group i, group j]
-
-        // delta t
         public double DeltaT { get; set; }
         // simulation, observation and decision periods
         public int NumOfDeltaT_inSimOutputInterval { get; set; }
@@ -266,15 +264,6 @@ namespace APACElib
             ObservedHistory = excelInterface.GetTableOfObservedHistory(numOfCalibrationTargets);
         }
 
-        //// read past observations
-        //public void ReadPastObservations(ref ExcelInterface excelInterface, int numOfCalibrationTargets)
-        //{
-        //    // find the number of observations that should be eliminated during the warm-up period
-        //    int numOfInitialObsToRemove = (int)(WarmUpPeriodTimeIndex / NumOfDeltaT_inObservationPeriod);
-        //    // read observations
-        //    MatrixOfObservationsAndLikelihoodParams = excelInterface.GetMatrixOfObservationsAndWeights(numOfInitialObsToRemove, numOfCalibrationTargets);
-        //}
-
         // read q-function coefficient initial values
         public void ReadQFunctionCoefficientsInitialValues(ref ExcelInterface excelInterface, int numOfFeatures)
         {
@@ -312,11 +301,6 @@ namespace APACElib
                 }
                 thisWTPForHealth += WtpForHealth_step;
             }
-        }
-
-        public void Clean()
-        {
-            
         }
     }
 }

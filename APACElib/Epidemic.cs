@@ -586,7 +586,6 @@ namespace APACElib
                         {
                             // build the class
                             Class_Death thisDealthClass = new Class_Death(classID, name);
-
                             // add class
                             Classes.Add(thisDealthClass);
                         }
@@ -595,12 +594,12 @@ namespace APACElib
                         {
                             // read settings
                             int parIDForProbOfSuccess = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ParIDForProbOfSuccess));
-                            int destinationClassIDGivenSuccess = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.DestinationClassIDIfSuccess));
-                            int destinationClassIDGivenFailure = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.DestinationClassIDIfFailure));
+                            int destClassIDGivenSuccess = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.DestinationClassIDIfSuccess));
+                            int destClassIDGivenFailure = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.DestinationClassIDIfFailure));
 
                             // build the class
                             Class_Splitting thisSplittingClass = new Class_Splitting(classID, name);
-                            thisSplittingClass.SetUp(parIDForProbOfSuccess, destinationClassIDGivenSuccess, destinationClassIDGivenFailure);
+                            thisSplittingClass.SetUp(parIDForProbOfSuccess, destClassIDGivenSuccess, destClassIDGivenFailure);
 
                             // add class
                             Classes.Add(thisSplittingClass);

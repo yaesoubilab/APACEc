@@ -28,7 +28,7 @@ namespace APACE
             // connect to the epidemic model
             myAPACE.ConnectToExcelInteface();
 
-            this.textBox1.Text = "Connected to " + myAPACE.ExcelFileName();
+            this.textBox1.Text = "Connected to " + myAPACE.ExcelIntface.GetFileName();
             this.textBox1.ForeColor = System.Drawing.Color.Black;
             
             this.btnRun.Enabled = true;
@@ -48,22 +48,22 @@ namespace APACE
 
             // check the visibility of the model
             if (this.chbIfMakeExcelFileVisible.Checked == true)
-                myAPACE.MakeModelInvisible();
+                myAPACE.ExcelIntface.Visible = true;
             else
-                myAPACE.MakeModelVisible();
+                myAPACE.ExcelIntface.Visible = false;
 
             // run the model
             myAPACE.Run();
 
             // make the model visible
-            myAPACE.MakeModelVisible();
+            myAPACE.ExcelIntface.Visible = true;
 
             // reset the epidemic model
             //myAPACE.RestartEpidemicModel();
-            
+
             // save the excel file if needed
             if (this.chbifSaveExcelFile.Checked)
-                myAPACE.SaveExcelFile();
+                myAPACE.ExcelIntface.Save();
 
             // display the status
             this.lblStatus.Text = "Status: Finished!";
@@ -73,7 +73,7 @@ namespace APACE
         private void btnShowExcel_Click(object sender, EventArgs e)
         {
             // make the model visible
-            myAPACE.MakeModelVisible();
+            myAPACE.ExcelIntface.Visible = true;
         }
 
     }

@@ -13,16 +13,14 @@ namespace APACElib
 {
     public class APACE
     {
-        // Variable Definition 
-        #region Variable Definition
-
-        public ExcelInterface _excelInterface;
-        public ExcelInterface ExcelInterface { get => _excelInterface; set => _excelInterface = value; }
+        private ExcelInterface _excelInterface;
+        public ExcelInterface ExcelIntface { get => _excelInterface; set => _excelInterface = value; }
         private ModelSettings _modelSettings = new ModelSettings();
         private EpidemicModeller _epidemicModeller;
         private ArrayList _epidemicModellers = new ArrayList();
 
         // computation time
+        #region Variable Definition
         private double _actualTimeUsedToFindAllDynamicPolicies; // considering several ADP parameter designs
         private ObsBasedStat _obsTotalSimulationTimeToEvaluateOneStaticPolicy = new ObsBasedStat("");
         private ObsBasedStat _obsTimeUsedToFindOneStaticPolicy = new ObsBasedStat("");
@@ -44,31 +42,8 @@ namespace APACElib
         // connect to the excel interface
         public void ConnectToExcelInteface()
         {
-            ExcelInterface = new ExcelInterface();
-            ExcelInterface.ConnectToExcelInterface();
-        }
-
-        // get excel file name
-        public string ExcelFileName()
-        {
-            return _excelInterface.GetFileName();
-        }
-
-        // save excel file
-        public void SaveExcelFile()
-        {
-            _excelInterface.Save();
-        }
-
-        // make the excel file visible
-        public void MakeModelVisible()
-        {
-            _excelInterface.Visible = true;
-        }
-        // make the excel file invisible
-        public void MakeModelInvisible()
-        {
-            _excelInterface.Visible = false;
+            ExcelIntface = new ExcelInterface();
+            ExcelIntface.ConnectToExcelInterface();
         }
 
         // run
@@ -78,7 +53,7 @@ namespace APACElib
             _modelSettings.ReadSettings(ref _excelInterface);
 
             // find the task            
-            switch (ExcelInterface.GetWhatToDo())
+            switch (ExcelIntface.GetWhatToDo())
             {
                 case ExcelInterface.enumWhatToDo.Simulate:
                     {
@@ -214,7 +189,7 @@ namespace APACElib
             double[][] simulationIterations_otherOutcomes = new double[0][];
 
             // read designs
-            double[,] experimentDesigns = ExcelInterface.GetExperimentalDesignMatrix();
+            double[,] experimentDesigns = ExcelIntface.GetExperimentalDesignMatrix();
 
             // build epidemic modelers            
             _epidemicModellers.Clear();
@@ -223,16 +198,15 @@ namespace APACElib
 
             for (int designIndex = 0; designIndex < numOfDesigns; designIndex++)
             {
-
                 #region read a design, and build and run the epidemic model 
                 // find the design
                 double[] thisDesign = new double[numOfVars];
                 for (int varIndex = 0; varIndex < numOfVars; varIndex++)
                     thisDesign[varIndex] = experimentDesigns[designIndex, varIndex];
                 // write back the design
-                ExcelInterface.WriteADesign(thisDesign);
+                ExcelIntface.WriteADesign(thisDesign);
                 // recalculate
-                ExcelInterface.Recalculate();
+                ExcelIntface.Recalculate();
                 // read model settings
                 _modelSettings.ReadSettings(ref _excelInterface);
 
@@ -290,7 +264,7 @@ namespace APACElib
             }
 
             // report summary statistics
-            ExcelInterface.ReportSimulationOutcomes(
+            ExcelIntface.ReportSimulationOutcomes(
                 "Experimental Designs", "baseExperimentalDesignsResults",
                 SupportFunctions.ConvertJaggedArrayToRegularArray(
                     simulationSummaryOutcomes, 6), 
@@ -298,7 +272,7 @@ namespace APACElib
                 );
 
             // report outcomes for each run for each design
-            ExcelInterface.ReportExperimentalDesignSimulationOutcomes(
+            ExcelIntface.ReportExperimentalDesignSimulationOutcomes(
                 numOfVars,
                 SupportFunctions.ConvertJaggedArrayToRegularArray(
                     simulationIterations_objFunction, 
@@ -485,7 +459,7 @@ namespace APACElib
             _epidemicModeller.AddDynamicPolicySettings(ref _excelInterface);
 
             // set up Q-function approximation worksheet if necessary
-            if (ExcelInterface.GetIfToUseCurrentQFunctionApproximationSettings() == false)
+            if (ExcelIntface.GetIfToUseCurrentQFunctionApproximationSettings() == false)
             {                
                 // decision names
                 //string[] strDecisionNames = _epidemicModeller.NamesOfDefaultInterventionsAndThoseSpecifiedByDynamicRule;
@@ -504,36 +478,11 @@ namespace APACElib
             _modelSettings.ReadQFunctionCoefficientsInitialValues(ref _excelInterface, _epidemicModeller.ModelInfo.NumOfFeatures);
            
             // set up ADP Iterations sheet
-            ExcelInterface.SetUpOptimizationOutput(_modelSettings.NumOfADPIterations* _modelSettings.NumOfSimRunsToBackPropogate);
+            ExcelIntface.SetUpOptimizationOutput(_modelSettings.NumOfADPIterations* _modelSettings.NumOfSimRunsToBackPropogate);
             // setup simulation output sheet
             SetupSimulationOutputSheet();
         }
         
-        //// build an epidemic modeler
-        //private EpidemicModeller BuildAnEpidemicModeller_SequentialSimulation(int epiModellerID)
-        //{
-        //    // create and epidemic modeler
-        //    EpidemicModeller epidemicModeller = new EpidemicModeller(epiModellerID);
-        //    epidemicModeller.BuildAnEpidemicModelForSequentialSimulation(
-        //        _excelEpidemic,
-        //        _parametersSheet, _pathogenSheet, _classesSheet, _interventionSheet, _resourcesSheet, _processesSheet,
-        //        _summationStatisticsSheet, _ratioStatisticsSheet,
-        //        _connectionsMatrix);
-        //    return epidemicModeller;
-        //}
-        //private EpidemicModeller BuildAnEpidemicModeller_ParallelSimulation(int epiModellerID, int numOfParallelEpidemics)
-        //{
-        //    // create and epidemic modeler
-        //    EpidemicModeller epidemicModeller = new EpidemicModeller(epiModellerID);
-        //    // build the parent epidemic modeler
-        //    epidemicModeller.BuildCollectionOfEpidemicModelForParralelSimulation(
-        //        numOfParallelEpidemics, _excelEpidemic,
-        //        _parametersSheet, _pathogenSheet, _classesSheet, _interventionSheet, _resourcesSheet, _processesSheet,
-        //        _summationStatisticsSheet, _ratioStatisticsSheet,
-        //        _connectionsMatrix);
-        //    return epidemicModeller;
-        //} 
-
         // get an epidemic modeler for optimizing adaptive policies
         private EpidemicModeller GetAnEpidemicModellerForOptimizatingDynamicPolicies
             (int epiModellerID, double wtpForHealth, double harmonicStepSize_a, double epsilonGreedy_beta)
@@ -548,8 +497,7 @@ namespace APACElib
             thisEpidemicModeller.SetUpOptimization(wtpForHealth, harmonicStepSize_a, epsilonGreedy_beta, 0);
 
             return thisEpidemicModeller;
-        }
-              
+        }              
         
         //private void SetUpADPParameterDesigns(double wtpForHealth)
         //{
@@ -609,9 +557,6 @@ namespace APACElib
             return thisSimulationOutcomes;
         }
 
-        // ******* model construction subs ***********
-        #region Model construction subs
-            
         // set up observation worksheet
         private void ReadObservedHistory()
         {
@@ -620,7 +565,7 @@ namespace APACElib
                 return;
 
             // check if current epidemic history can be used if not get the history from the user
-            if (ExcelInterface.GetIfUseCurrentHistoryToCalibr() == false)
+            if (ExcelIntface.GetIfUseCurrentHistoryToCalibr() == false)
             {
                 // get the names of calibration data
                 string[] namesOfCalibrationTargets = _epidemicModeller.GetNamesOfCalibrTargets();
@@ -642,18 +587,15 @@ namespace APACElib
                     obsPeriodIndex[i] = i;
 
                 // set up the epidemic history sheet
-                ExcelInterface.SetupEpidemicHistoryWorksheet(strObsHeader, obsPeriodIndex); 
+                ExcelIntface.SetupEpidemicHistoryWorksheet(strObsHeader, obsPeriodIndex); 
             }
             // read past actions
             _modelSettings.ReadPastActions(ref _excelInterface);
             _modelSettings.ReadObservedHistory(ref _excelInterface, _epidemicModeller.GetNamesOfCalibrTargets().Length);
         }
 
-        #endregion
-
         // report results subs
         #region Report results subs
-
         // setup simulation output sheet
         private void SetupSimulationOutputSheet()
         {
@@ -663,7 +605,7 @@ namespace APACElib
             string[] resourceOutputs = new string[0];
 
             // write header
-            ExcelInterface.SetupSimulationOutputSheet(
+            ExcelIntface.SetupSimulationOutputSheet(
                 simIncidenceHeader: _epidemicModeller.ParentEpidemic.EpiHist.SimOutputTrajs.IncidenceOutputsHeader.ToArray(),
                 simPrevalenceHeader: _epidemicModeller.ParentEpidemic.EpiHist.SimOutputTrajs.PrevalenceOutputsHeader.ToArray(),                
                 obsIncidenceHeader: _epidemicModeller.ParentEpidemic.EpiHist.SurveyedOutputTrajs.IncidenceOutputsHeader.ToArray(),
@@ -690,7 +632,7 @@ namespace APACElib
             // report trajectories
             SimSummaryTrajs s = epiModeller.SimSummary.SimSummaryTrajs;
             if (epiModeller.ModelSettings.IfShowSimulatedTrajs)
-                ExcelInterface.ReportEpidemicTrajectories(
+                ExcelIntface.ReportEpidemicTrajectories(
                     // simulation trajectories 
                     simRepIndeces: SupportFunctions.ConvertJaggedArrayToRegularArray(
                         s.TrajsSimRepIndex,
@@ -740,7 +682,7 @@ namespace APACElib
                 ref arrIterationOutcomes);
 
             // report
-            ExcelInterface.ReportSimulationStatistics(
+            ExcelIntface.ReportSimulationStatistics(
                 strSummaryStatistics, SupportFunctions.ConvertJaggedArrayToRegularArray(arrSummaryStatistics, 3),
                 strClassAndSumStatistics, SupportFunctions.ConvertJaggedArrayToRegularArray(arrClassAndSumStatistics, 3),
                 strRatioStatistics, SupportFunctions.ConvertJaggedArrayToRegularArray(arrRatioStatistics, 3), 
@@ -748,7 +690,7 @@ namespace APACElib
                 strIterationOutcomes, SupportFunctions.ConvertJaggedArrayToRegularArray(arrIterationOutcomes,arrIterationOutcomes[0].Length));
 
             // report sampled parameter values
-            ExcelInterface.ReportSampledParameterValues(
+            ExcelIntface.ReportSampledParameterValues(
                 epiModeller.ModelInfo.NamesOfParams, 
                 epiModeller.SimSummary.SimItrs,
                 epiModeller.SimSummary.RNDSeeds,
@@ -759,28 +701,13 @@ namespace APACElib
         // report calibration result
         private void ReportCalibrationResult()
         {
-            ExcelInterface.ReportCalibrationResults(
+            ExcelIntface.ReportCalibrationResults(
                 _epidemicModeller.Calibration.TimeUsed,
                 _epidemicModeller.Calibration.NumOfDiscardedTrajs,
                 _epidemicModeller.Calibration.ResultsForExcel.SimItrs.ToArray(),
                 _epidemicModeller.Calibration.ResultsForExcel.RndSeeds.ToArray(),
                 _epidemicModeller.Calibration.ResultsForExcel.Probs.ToArray()
                 );
-
-
-            //int numOfParametersToCalibrate = _epidemicModeller.ModelInfo.NamesOfParamsInCalib.Length;
-            // report
-            //ExcelInterface.ReportCalibrationResults(
-            //    _epidemicModeller.ActualTimeUsedByCalibration / 60,
-            //    _epidemicModeller.NumOfTrajectoriesDiscardedByCalibration,
-            //    _epidemicModeller.GetNamesOfSpecialStatisticsIncludedInCalibratoin(),
-            //    //_epidemicModeller.Calibration.NamesOfParameters,
-            //    _epidemicModeller.Calibration.NamesOfSimOutsWithNonZeroWeights,
-            //    _epidemicModeller.Calibration.SelectedSimulationItrs,
-            //    _epidemicModeller.Calibration.SelectedSimulationRNDSeeds,
-            //    //_epidemicModeller.Calibration.SelectedGoodnessOfFit,
-            //    //_epidemicModeller.Calibration.SelectedParameterValues,
-            //    _epidemicModeller.Calibration.SelectedSimObservations);
         }
         // report dynamic policy optimization result
         private void ReportADPResultsForThisEpidemic(EpidemicModeller thisEpidemicModeller, double harmonicStep_a, double epsilonGreedy_beta)
@@ -800,7 +727,7 @@ namespace APACElib
                 //thisEpidemicModeller.GetOptimalDynamicPolicy(ref featureName, ref headers, ref optimalDecisions, _modelSettings.NumOfIntervalsToDescretizeFeatures);
 
                 // report the dynamic policy
-                ExcelInterface.Report1DimOptimalPolicy(featureName, headers, optimalDecisions);
+                ExcelIntface.Report1DimOptimalPolicy(featureName, headers, optimalDecisions);
 
             }
             else if (thisEpidemicModeller.ModelInfo.NumOfFeatures == 2)
@@ -811,7 +738,7 @@ namespace APACElib
                 //thisEpidemicModeller.GetOptimalDynamicPolicy(ref strFeatureNames, ref headers, ref optimalDecisions, _modelSettings.NumOfIntervalsToDescretizeFeatures);
 
                 // report the dynamic policy
-                ExcelInterface.Report2DimOptimalPolicy(strFeatureNames, headers, optimalDecisions);
+                ExcelIntface.Report2DimOptimalPolicy(strFeatureNames, headers, optimalDecisions);
             }
             else if (thisEpidemicModeller.ModelInfo.NumOfFeatures == 3)
             {
@@ -821,7 +748,7 @@ namespace APACElib
                 //thisEpidemicModeller.GetOptimalDynamicPolicy(ref strFeatureNames, ref headers, ref optimalDecisions, _modelSettings.NumOfIntervalsToDescretizeFeatures);
 
                 // report the dynamic policy
-                ExcelInterface.Report3DimOptimalPolicy(strFeatureNames, headers, optimalDecisions);
+                ExcelIntface.Report3DimOptimalPolicy(strFeatureNames, headers, optimalDecisions);
             }
         }
         // report the results of adaptive policy optimization 
@@ -883,7 +810,7 @@ namespace APACElib
             }
 
             // report
-            ExcelInterface.ReportADPResultsForAllEpidemic(
+            ExcelIntface.ReportADPResultsForAllEpidemic(
                 SupportFunctions.ConvertJaggedArrayToRegularArray(adpOptParameterDesigns, 3),
                 SupportFunctions.ConvertJaggedArrayToRegularArray(adpSASimulationOutcomes, 6),
                 SupportFunctions.ConvertJaggedArrayToRegularArray(adpSASimulationIterations, 7), 
@@ -912,7 +839,7 @@ namespace APACElib
             statistics[3, 0] = _actualTimeUsedToFindAllDynamicPolicies;
 
             // report
-            ExcelInterface.ReportADPComputationTimes(measures, statistics);
+            ExcelIntface.ReportADPComputationTimes(measures, statistics);
         }
         // report static optimization results
         public void ReportStaticPolicyOptimizationResults(ArrayList staticPolicyParameterDesigns)
@@ -977,7 +904,7 @@ namespace APACElib
             }
 
             // report
-            ExcelInterface.ReportStaticPolicyOptimization( wtp, 
+            ExcelIntface.ReportStaticPolicyOptimization( wtp, 
                 SupportFunctions.ConvertJaggedArrayToRegularArray(staticPolicies, 3),
                 SupportFunctions.ConvertJaggedArrayToRegularArray(simulationOutcomes, 6),
                 SupportFunctions.ConvertJaggedArrayToRegularArray(simulationIterations, 5),

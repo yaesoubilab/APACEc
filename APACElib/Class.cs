@@ -16,7 +16,9 @@ namespace APACElib
         public string Name { get; private set; }
         protected int _rowIndexInContactMatrix;
         protected int[] _destinationClasseIDs;
-        protected int[] _numOfMembersToDestClasses;     // number of members to be sent to other classes        
+        public int[] DestinationClasseIDs { get => _destinationClasseIDs; }
+        protected int[] _numOfMembersToDestClasses;     // number of members to be sent to other classes   
+        public int[] NumOfMembersToDestClasses { get => _numOfMembersToDestClasses; }
         public bool ShouldBeProcessed { get; set; }     // if it should be decided how many members to send to other classes 
         public bool MembersWaitingToDepart { get; set; } // if there are members waiting to be sent to other classes 
         public OneDimTrajectory ClassStat { get; set; }
@@ -34,16 +36,6 @@ namespace APACElib
             MembersWaitingToDepart = false;
         }
 
-        // Properties
-
-        public int[] DestinationClasseIDs
-        {
-            get { return _destinationClasseIDs; }
-        }
-        public int[] NumOfMembersToDestClasses
-        {
-            get { return _numOfMembersToDestClasses; }
-        }
         public virtual bool EmptyToEradicate
         {
             get { return false; }

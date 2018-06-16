@@ -57,19 +57,19 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Calibration.cs" />
-    <Compile Include="CalibrationOld.cs" />
-    <Compile Include="cAPACE.cs" />
-    <Compile Include="cClass.cs" />
+    <Compile Include="old\CalibrationOld.cs" />
+    <Compile Include="APACE.cs" />
+    <Compile Include="Class.cs" />
     <Compile Include="EconEvalClasses.cs" />
     <Compile Include="ParameterClasses.cs" />
     <Compile Include="TrajectoryClasses.cs" />
-    <Compile Include="cEpidemic.cs" />
+    <Compile Include="Epidemic.cs" />
     <Compile Include="EpiModellerClasses.cs" />
-    <Compile Include="cEvent.cs" />
-    <Compile Include="cExcelInterface.cs" />
-    <Compile Include="cFeature.cs" />
-    <Compile Include="cIntervention.cs" />
-    <Compile Include="cModelSettings.cs" />
+    <Compile Include="Event.cs" />
+    <Compile Include="ExcelInterface.cs" />
+    <Compile Include="Feature.cs" />
+    <Compile Include="Intervention.cs" />
+    <Compile Include="ModelSettings.cs" />
     <Compile Include="EpidemicControl.cs" />
     <Compile Include="DecisionRuleClasses.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
