@@ -416,68 +416,75 @@ namespace APACElib
                 Parameter thisParameter = null;
                 double par1 = 0, par2 = 0, par3 = 0, par4 = 0;
 
-                if (enumRVG == EnumRandomVariates.LinearCombination)
+                switch (enumRVG)
                 {
-                    string strPar1 = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par1));
-                    string strPar2 = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par2));
+                    case EnumRandomVariates.LinearCombination:
+                        {
+                            string strPar1 = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par1));
+                            string strPar2 = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par2));
 
-                    // remove spaces and parenthesis
-                    strPar1 = strPar1.Replace(" ", "");
-                    strPar1 = strPar1.Replace("(", "");
-                    strPar1 = strPar1.Replace(")", "");
-                    strPar2 = strPar2.Replace(" ", "");
-                    strPar2 = strPar2.Replace("(", "");
-                    strPar2 = strPar2.Replace(")", "");
-                    // convert to array
-                    string[] strParIDs = strPar1.Split(',');
-                    string[] strCoefficients = strPar2.Split(',');
-                    // convert to numbers
-                    int[] arrParIDs = Array.ConvertAll<string, int>(strParIDs, Convert.ToInt32);
-                    double[] arrCoefficients = Array.ConvertAll<string, double>(strCoefficients, Convert.ToDouble);
+                            // remove spaces and parenthesis
+                            strPar1 = strPar1.Replace(" ", "");
+                            strPar1 = strPar1.Replace("(", "");
+                            strPar1 = strPar1.Replace(")", "");
+                            strPar2 = strPar2.Replace(" ", "");
+                            strPar2 = strPar2.Replace("(", "");
+                            strPar2 = strPar2.Replace(")", "");
+                            // convert to array
+                            string[] strParIDs = strPar1.Split(',');
+                            string[] strCoefficients = strPar2.Split(',');
+                            // convert to numbers
+                            int[] arrParIDs = Array.ConvertAll<string, int>(strParIDs, Convert.ToInt32);
+                            double[] arrCoefficients = Array.ConvertAll<string, double>(strCoefficients, Convert.ToDouble);
 
-                    thisParameter = new LinearCombination(parameterID, name, arrParIDs, arrCoefficients);
-                }
-                else if (enumRVG == EnumRandomVariates.MultipleCombination)
-                {
-                    string strPar1 = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par1));
+                            thisParameter = new LinearCombination(parameterID, name, arrParIDs, arrCoefficients);
+                        }
+                        break;
+                    case EnumRandomVariates.MultipleCombination:
+                        {
+                            string strPar1 = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par1));
 
-                    // remove spaces and parenthesis
-                    strPar1 = strPar1.Replace(" ", "");
-                    strPar1 = strPar1.Replace("(", "");
-                    strPar1 = strPar1.Replace(")", "");
-                    // convert to array
-                    string[] strParIDs = strPar1.Split(',');
-                    // convert to numbers
-                    int[] arrParIDs = Array.ConvertAll<string, int>(strParIDs, Convert.ToInt32);
+                            // remove spaces and parenthesis
+                            strPar1 = strPar1.Replace(" ", "");
+                            strPar1 = strPar1.Replace("(", "");
+                            strPar1 = strPar1.Replace(")", "");
+                            // convert to array
+                            string[] strParIDs = strPar1.Split(',');
+                            // convert to numbers
+                            int[] arrParIDs = Array.ConvertAll<string, int>(strParIDs, Convert.ToInt32);
 
-                    thisParameter = new ProductParameter(parameterID, name, arrParIDs);
-                }
-                else
-                {
-                    par1 = Convert.ToDouble(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par1));
-                    par2 = Convert.ToDouble(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par2));
-                    par3 = Convert.ToDouble(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par3));
-                    par4 = Convert.ToDouble(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par4));
-                }           
+                            thisParameter = new ProductParameter(parameterID, name, arrParIDs);
+                        }
+                        break;
+                    default:
+                        {
+                            par1 = Convert.ToDouble(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par1));
+                            par2 = Convert.ToDouble(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par2));
+                            par3 = Convert.ToDouble(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par3));
+                            par4 = Convert.ToDouble(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par4));
+                        }
+                        break;
+
+                }                         
 
                 switch (enumRVG)
                 {
-                    case (EnumRandomVariates.LinearCombination):
-                    case (EnumRandomVariates.MultipleCombination):
+                    case EnumRandomVariates.LinearCombination:
+                    case EnumRandomVariates.MultipleCombination:
                         // created above
                         break;
-                    case (EnumRandomVariates.Correlated):
+                    case EnumRandomVariates.Correlated:
                         thisParameter = new CorrelatedParameter(parameterID, name, (int)par1, par2, par3);
                         break;
-                    case (EnumRandomVariates.Multiplicative):
+                    case EnumRandomVariates.Multiplicative:
                         thisParameter = new MultiplicativeParameter(parameterID, name, (int)par1, (int)par2, (bool)(par3==1));
                         break;
-                    case (EnumRandomVariates.TimeDependetLinear):
+                    case EnumRandomVariates.TimeDependetLinear:
                         {
                             thisParameter = new TimeDependetLinear(parameterID, name, (int)par1, (int)par2, par3, par4);
                         }
                         break;
-                    case (EnumRandomVariates.TimeDependetOscillating):
+                    case EnumRandomVariates.TimeDependetOscillating:
                         {
                             thisParameter = new TimeDependetOscillating(parameterID, name, (int)par1, (int)par2, (int)par3, (int)par4);
                         }

@@ -32,7 +32,7 @@ namespace APACE
         {
             this.btnConnect = new System.Windows.Forms.Button();
             this.btnRun = new System.Windows.Forms.Button();
-            this.chbIfMakeExcelFileVisible = new System.Windows.Forms.CheckBox();
+            this.chbIfMakeExcelFileInVisible = new System.Windows.Forms.CheckBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.btnShowExcel = new System.Windows.Forms.Button();
@@ -66,13 +66,13 @@ namespace APACE
             // 
             // chbIfMakeExcelFileVisible
             // 
-            this.chbIfMakeExcelFileVisible.AutoSize = true;
-            this.chbIfMakeExcelFileVisible.Location = new System.Drawing.Point(23, 172);
-            this.chbIfMakeExcelFileVisible.Name = "chbIfMakeExcelFileVisible";
-            this.chbIfMakeExcelFileVisible.Size = new System.Drawing.Size(154, 17);
-            this.chbIfMakeExcelFileVisible.TabIndex = 3;
-            this.chbIfMakeExcelFileVisible.Text = "Make spreadsheet invisible";
-            this.chbIfMakeExcelFileVisible.UseVisualStyleBackColor = true;
+            this.chbIfMakeExcelFileInVisible.AutoSize = true;
+            this.chbIfMakeExcelFileInVisible.Location = new System.Drawing.Point(23, 172);
+            this.chbIfMakeExcelFileInVisible.Name = "chbIfMakeExcelFileVisible";
+            this.chbIfMakeExcelFileInVisible.Size = new System.Drawing.Size(154, 17);
+            this.chbIfMakeExcelFileInVisible.TabIndex = 3;
+            this.chbIfMakeExcelFileInVisible.Text = "Make spreadsheet invisible";
+            this.chbIfMakeExcelFileInVisible.UseVisualStyleBackColor = true;
             // 
             // groupBox1
             // 
@@ -148,7 +148,7 @@ namespace APACE
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(333, 240);
             this.Controls.Add(this.groupBox1);
-            this.Controls.Add(this.chbIfMakeExcelFileVisible);
+            this.Controls.Add(this.chbIfMakeExcelFileInVisible);
             this.Controls.Add(this.groupBox2);
             this.Name = "Form1";
             this.Text = "APACE";
@@ -165,7 +165,7 @@ namespace APACE
 
         private System.Windows.Forms.Button btnConnect;
         private System.Windows.Forms.Button btnRun;
-        private System.Windows.Forms.CheckBox chbIfMakeExcelFileVisible;
+        private System.Windows.Forms.CheckBox chbIfMakeExcelFileInVisible;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.Label lblStatus;

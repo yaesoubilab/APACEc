@@ -47,10 +47,10 @@ namespace APACE
             //myAPACE.SaveExcelFile();
 
             // check the visibility of the model
-            if (this.chbIfMakeExcelFileVisible.Checked == true)
-                myAPACE.ExcelIntface.Visible = true;
-            else
+            if (this.chbIfMakeExcelFileInVisible.Checked == true)
                 myAPACE.ExcelIntface.Visible = false;
+            else
+                myAPACE.ExcelIntface.Visible = true;
 
             // run the model
             myAPACE.Run();
