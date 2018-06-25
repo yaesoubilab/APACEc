@@ -54,7 +54,7 @@ namespace APACElib
             {
                 // update time depedent parameters 
                 foreach (Parameter thisParameter in Parameters.Where(p => p.ShouldBeUpdatedByTime))
-                    SampleThisParameter(ref rng, thisParameter, time);
+                    SampleThisParameter(rng, thisParameter, time);
                 
                 // update transmission dynamic matrix if necessary
                 if (ThereAreTimeDepParms_tranmission)
@@ -103,16 +103,16 @@ namespace APACElib
             }
         }
 
-        public void SampleAllParameters(ref RNG rng, double time)
+        public void SampleAllParameters(RNG rng, double time)
         {
             // sample from parameters
             ParameterValues = new double[Parameters.Count];
             foreach (Parameter thisParameter in Parameters)
-                SampleThisParameter(ref rng, thisParameter, time);
+                SampleThisParameter(rng, thisParameter, time);
         }
 
         // Sample this parameter
-        private void SampleThisParameter(ref RNG rng, Parameter thisPar, double time)
+        private void SampleThisParameter(RNG rng, Parameter thisPar, double time)
         {
             switch (thisPar.Type)
             {
@@ -193,6 +193,17 @@ namespace APACElib
                         double a3 = ParameterValues[thisTimeDepedentOscillatingPar.a3ParID];
 
                         ParameterValues[thisPar.ID] = thisTimeDepedentOscillatingPar.Sample(time, a0, a1, a2, a3);
+                    }
+                    break;
+
+                // comorbidity disutility
+                case Parameter.EnumType.ComorbidityDisutility:
+                    {
+                        ComorbidityDisutility thisComorbidDisutility = thisPar as ComorbidityDisutility;
+                        double v1 = ParameterValues[thisComorbidDisutility.Par1ID];
+                        double v2 = ParameterValues[thisComorbidDisutility.Par2ID];
+
+                        ParameterValues[thisPar.ID] = thisComorbidDisutility.Sample(v1, v2);
                     }
                     break;
             }

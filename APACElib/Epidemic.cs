@@ -276,7 +276,7 @@ namespace APACElib
             UpdateEpiTimeIndex();
 
             // resample parameters 
-            _paramManager.SampleAllParameters(ref _rng, 0);
+            _paramManager.SampleAllParameters(_rng, 0);
             
             // reset force of infection manager 
             FOIModel.Reset();
@@ -416,6 +416,7 @@ namespace APACElib
                 Parameter thisParameter = null;
                 double par1 = 0, par2 = 0, par3 = 0, par4 = 0;
 
+                // read parameter values
                 switch (enumRVG)
                 {
                     case EnumRandomVariates.LinearCombination:
@@ -464,7 +465,6 @@ namespace APACElib
                             par4 = Convert.ToDouble(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par4));
                         }
                         break;
-
                 }                         
 
                 switch (enumRVG)
@@ -480,14 +480,13 @@ namespace APACElib
                         thisParameter = new MultiplicativeParameter(parameterID, name, (int)par1, (int)par2, (bool)(par3==1));
                         break;
                     case EnumRandomVariates.TimeDependetLinear:
-                        {
-                            thisParameter = new TimeDependetLinear(parameterID, name, (int)par1, (int)par2, par3, par4);
-                        }
+                        thisParameter = new TimeDependetLinear(parameterID, name, (int)par1, (int)par2, par3, par4);
                         break;
                     case EnumRandomVariates.TimeDependetOscillating:
-                        {
-                            thisParameter = new TimeDependetOscillating(parameterID, name, (int)par1, (int)par2, (int)par3, (int)par4);
-                        }
+                        thisParameter = new TimeDependetOscillating(parameterID, name, (int)par1, (int)par2, (int)par3, (int)par4);
+                        break;
+                    case EnumRandomVariates.ComorbidityDisutility:
+                        thisParameter = new ComorbidityDisutility(parameterID, name, (int)par1, (int)par2);
                         break;
                     default:
                         thisParameter = new IndependetParameter(parameterID, name, enumRVG, par1, par2, par3, par4);
