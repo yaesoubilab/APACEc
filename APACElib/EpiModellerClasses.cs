@@ -163,7 +163,6 @@ namespace APACElib
                 // rstore calibration results
                 foreach (Epidemic epi in _epidemics)
                     Calibration.AddCalibSummary(epi);
-
             }
 
             // finalize calibration

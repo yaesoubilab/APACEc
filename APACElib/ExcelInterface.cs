@@ -358,7 +358,7 @@ namespace APACElib
         }
         public Array GetTableOfConditions()
         {
-            return GetTableOfCells("Conditions", "baseFeatures", (int)enumConditionsColumns.ConditionsConclusions);
+            return GetTableOfCells("Conditions", "baseConditions", (int)enumConditionsColumns.ConditionsConclusions);
         }
 
 
@@ -641,11 +641,11 @@ namespace APACElib
 
         public int GetNumOfTrajsInParallelForCalibr()
         {
-            return (int)(double)GetCellValue("General Settings", "numOfSimulationsRunInParallelForCalibration");
+            return (int)(double)GetCellValue("General Settings", "numOfParallelSimsForCalibration");
         }
         public int GetNumOfTrajsToSimForCalibr()
         {
-            return (int)(double)GetCellValue("General Settings", "initialNumberOfTrajectoriesForCalibration");
+            return (int)(double)GetCellValue("General Settings", "numOfFeasibleTrajsForCalibration");
         }
 
         public bool GetIfUseCurrentHistoryToCalibr()

@@ -452,8 +452,8 @@ namespace APACElib
         public Boolean DisplayInSimOutput { get; }
         public PrevalenceTimeSeries TimeSeries { get; set; }    // treating all ratio stat as prevalence
         public ObsBasedStat AveragePrevalenceStat { get; set; }
-        public double ratio { get; private set; }
-        public int denom { get; private set; }
+        public double Ratio { get; private set; }
+        public int Denom { get; private set; }
 
         public EnumType Type { get; set; }
         
@@ -475,16 +475,16 @@ namespace APACElib
             switch (strType)
             {
                 case "Incidence/Incidence":
-                    Type = RatioTrajectory.EnumType.IncidenceOverIncidence;
+                    Type = EnumType.IncidenceOverIncidence;
                     break;
                 case "Accumulated Incidence/Accumulated Incidence":
-                    Type = RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence;
+                    Type = EnumType.AccumulatedIncidenceOverAccumulatedIncidence;
                     break;
                 case "Prevalence/Prevalence":
-                    Type = RatioTrajectory.EnumType.PrevalenceOverPrevalence;
+                    Type = EnumType.PrevalenceOverPrevalence;
                     break;
                 case "Incidence/Prevalence":
-                    Type = RatioTrajectory.EnumType.IncidenceOverPrevalence;
+                    Type = EnumType.IncidenceOverPrevalence;
                     break;
             }
 
@@ -502,48 +502,55 @@ namespace APACElib
 
         public bool Add(int simIndex, List<SumTrajectory> sumTrajectories)
         {
-            ratio = double.NaN;
-            denom = -1;
+            Ratio = double.NaN;
+            Denom = -1;
             bool ifFeasiableRangesViolated = false;
 
             switch (Type)
             {
                 case EnumType.PrevalenceOverPrevalence:
                     {
-                        denom = sumTrajectories[DenominatorSpecialStatID].Prevalence;
-                        ratio = (double)sumTrajectories[NominatorSpecialStatID].Prevalence
-                            / denom;
+                        Denom = sumTrajectories[DenominatorSpecialStatID].Prevalence;
+                        Ratio = (double)sumTrajectories[NominatorSpecialStatID].Prevalence
+                            / Denom;
                     }
                     break;
                 case EnumType.IncidenceOverIncidence:
                     {
                         double denom = sumTrajectories[DenominatorSpecialStatID].GetLastRecording();
                         if (denom is double.NaN || denom == 0)
-                            ratio = double.NaN;
+                            Ratio = double.NaN;
                         else
                         {
-                            this.denom = (int)denom;
-                            ratio = (double)sumTrajectories[NominatorSpecialStatID].GetLastRecording()
-                                / this.denom;
+                            Denom = (int)denom;
+                            Ratio = (double)sumTrajectories[NominatorSpecialStatID].GetLastRecording()
+                                / Denom;
                         }
                     }
                     break;
                 case EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
                     {
-                        denom = sumTrajectories[DenominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp;
-                        ratio = (double)sumTrajectories[NominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp
-                            / denom;
+                        Denom = sumTrajectories[DenominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp;
+                        Ratio = (double)sumTrajectories[NominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp
+                            / Denom;
+                    }
+                    break;
+                case EnumType.IncidenceOverPrevalence:
+                    {
+                        Denom = sumTrajectories[DenominatorSpecialStatID].Prevalence;
+                        Ratio = (double)sumTrajectories[NominatorSpecialStatID].GetLastRecording()
+                                / Denom;
                     }
                     break;
             }
 
-            TimeSeries.Record(ratio);
+            TimeSeries.Record(Ratio);
             if (simIndex >= _warmUpSimIndex && AveragePrevalenceStat != null)
-                AveragePrevalenceStat.Record(ratio);
+                AveragePrevalenceStat.Record(Ratio);
 
             if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
             {
-                if (ratio < CalibInfo.LowFeasibleRange || ratio > CalibInfo.UpFeasibleRange)
+                if (Ratio < CalibInfo.LowFeasibleRange || Ratio > CalibInfo.UpFeasibleRange)
                     ifFeasiableRangesViolated = true;
             }
 
@@ -560,7 +567,7 @@ namespace APACElib
         public void Reset()
         {
             TimeSeries.Reset();
-            ratio = double.NaN;
+            Ratio = double.NaN;
             if (Type == EnumType.PrevalenceOverPrevalence)
                 AveragePrevalenceStat.Reset();
         }
@@ -681,14 +688,14 @@ namespace APACElib
             else if (!(_ratioTraj is null))
             {
                 // check if there is noise (less than 100% of the denominator is sampled in reality)
-                if (_noise_percOfDemoninatorSampled < 0.99999 && !(_ratioTraj.ratio is double.NaN))
+                if (_noise_percOfDemoninatorSampled < 0.99999 && !(_ratioTraj.Ratio is double.NaN))
                 {
-                    double mean = _ratioTraj.ratio;
+                    double mean = _ratioTraj.Ratio;
                     if (mean > 0)
                     {
                         double stDev = Math.Sqrt(mean * (1 - mean));
                         Normal noiseModel = new Normal("Noise model", 0,
-                            stDev / Math.Sqrt(_noise_percOfDemoninatorSampled * _ratioTraj.denom));
+                            stDev / Math.Sqrt(_noise_percOfDemoninatorSampled * _ratioTraj.Denom));
                         double noise = noiseModel.SampleContinuous(rnd);
                         value = Math.Min(Math.Max(mean + noise, 0), 1);
                     }
@@ -696,7 +703,7 @@ namespace APACElib
                         value = 0;
                 }
                 else
-                    value = _ratioTraj.ratio;
+                    value = _ratioTraj.Ratio;
             }
 
             _timeSeries.Record(value);

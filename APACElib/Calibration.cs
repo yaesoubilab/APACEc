@@ -372,7 +372,7 @@ namespace APACElib
                 {
                     double simPrev = sumTrajs[IndexOfSumStat_Prev].PrevalenceTimeSeries.Recordings[i-1];
                     double simInc = sumTrajs[IndexOfSumStat_Incd].IncidenceTimeSeries.Recordings[i-1];
-                    double p = simInc / simPrev;
+                    double p = Math.Min(simInc / simPrev, 1);
 
                     // pdf of binomial calcualted at x = observation
                     LnL = MathNet.Numerics.Distributions.Binomial.PMFLn(p, (int)simPrev, (int)info.Obs[i].Value);
