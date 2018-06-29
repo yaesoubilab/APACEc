@@ -634,51 +634,51 @@ namespace APACElib
         }
 
         // get simulation iteration outcomes
-        public void GetIndvEpidemicOutcomes(ref string[] strIterationOutcomes, ref double[][] arrIterationOutcomes)
+        public void GetIndvEpidemicOutcomes(ref string[] strItrOutcomeLabels, ref double[][] itrOutcomes)
         {
             // header
-            strIterationOutcomes = new string[4];
-            strIterationOutcomes[0] = "RNG Seed";
-            strIterationOutcomes[1] = "DALY";
-            strIterationOutcomes[2] = "Total Cost";
-            strIterationOutcomes[3] = "Annual Cost";
+            strItrOutcomeLabels = new string[4];
+            strItrOutcomeLabels[0] = "RNG Seed";
+            strItrOutcomeLabels[1] = "DALY";
+            strItrOutcomeLabels[2] = "Total Cost";
+            strItrOutcomeLabels[3] = "Annual Cost";
 
             foreach (ObsBasedStat thisObs in IncidenceStats)
-                SupportFunctions.AddToEndOfArray(ref strIterationOutcomes, thisObs.Name);
+                SupportFunctions.AddToEndOfArray(ref strItrOutcomeLabels, thisObs.Name);
 
             foreach (ObsBasedStat thisObs in PrevalenceStats)
-                SupportFunctions.AddToEndOfArray(ref strIterationOutcomes, thisObs.Name);
+                SupportFunctions.AddToEndOfArray(ref strItrOutcomeLabels, thisObs.Name);
 
             foreach (ObsBasedStat thisObs in RatioStats)
-                SupportFunctions.AddToEndOfArray(ref strIterationOutcomes, thisObs.Name);
+                SupportFunctions.AddToEndOfArray(ref strItrOutcomeLabels, thisObs.Name);
 
             // individual observations 
-            arrIterationOutcomes = new double[_nSim][];
+            itrOutcomes = new double[_nSim][];
             for (int i = 0; i < _nSim; i++)
             {
-                arrIterationOutcomes[i] = new double[strIterationOutcomes.Length];
-                arrIterationOutcomes[i][0] = RNDSeeds[i];
-                arrIterationOutcomes[i][1] = DALYs[i];
-                arrIterationOutcomes[i][2] = Costs[i];
-                arrIterationOutcomes[i][3] = AnnualCosts[i];
+                itrOutcomes[i] = new double[strItrOutcomeLabels.Length];
+                itrOutcomes[i][0] = RNDSeeds[i];
+                itrOutcomes[i][1] = DALYs[i];
+                itrOutcomes[i][2] = Costs[i];
+                itrOutcomes[i][3] = AnnualCosts[i];
             }
             int colIndex = 0;
             foreach (ObsBasedStat thisObs in IncidenceStats)
             {
                 for (int i = 0; i < _nSim; i++)
-                    arrIterationOutcomes[i][4 + colIndex] = thisObs.Observations[i];
+                    itrOutcomes[i][4 + colIndex] = thisObs.Observations[i];
                 ++colIndex;
             }
             foreach (ObsBasedStat thisObs in PrevalenceStats)
             {
                 for (int i = 0; i < _nSim; i++)
-                    arrIterationOutcomes[i][4 + colIndex] = thisObs.Observations[i];
+                    itrOutcomes[i][4 + colIndex] = thisObs.Observations[i];
                 ++colIndex;
             }
             foreach (ObsBasedStat thisObs in RatioStats)
             {
                 for (int i = 0; i < _nSim; i++)
-                    arrIterationOutcomes[i][4 + colIndex] = thisObs.Observations[i];
+                    itrOutcomes[i][4 + colIndex] = thisObs.Observations[i];
                 ++colIndex;
             }
         }

@@ -77,8 +77,8 @@ namespace APACElib
         public virtual void UpdateInfectivityParams(double[] arrSampledParameterValues) { }
         // update the probability of success
         public virtual void UpdateProbOfSuccess(double[] arrSampledParameters) { }
-        // select this intervention combination 
-        public virtual void UpdateIntrvnCombination(int[] interventionCombination) {}
+        // add active events
+        public virtual void AddActiveEvents(int[] interventionCombination) {}
         // update transmission rates affecting this class
         public virtual void UpdateTransmissionRates(double[] transmissionRatesByPathogens) { }
         // send out members
@@ -201,8 +201,8 @@ namespace APACElib
         // update rates of epidemic independent processes associated to this class
         public override void UpdateRatesOfBirthAndEpiIndpEvents(double[] values)
         {
-            foreach (Event thisEvent in _events.Where(e => e.IDOfRateParameter > 0))
-                thisEvent.UpdateRate(values[thisEvent.IDOfRateParameter]);
+            foreach (Event e in _events.Where(e => e.IDOfRateParameter > 0))
+                e.UpdateRate(values[e.IDOfRateParameter]);
         }        
 
         // update transmission rates affecting this class
@@ -213,8 +213,8 @@ namespace APACElib
                 thisEvent.UpdateRate(transmissionRatesByPathogen[thisEvent.IDOfPathogenToGenerate]);
         }
 
-        // select an intervention combination
-        public override void UpdateIntrvnCombination(int[] interventionCombination)
+        // add active events
+        public override void AddActiveEvents(int[] interventionCombination)
         {
             // check if active processes should be updated
             if (_currentInterventionCombination != null && _currentInterventionCombination.SequenceEqual(interventionCombination))
@@ -235,7 +235,7 @@ namespace APACElib
                 // add the events that are activated                
                 if (interventionCombination[e.IDOfActivatingIntervention] == 1)
                 {
-                    if ( e is Event_EpidemicDependent)
+                    if (e is Event_EpidemicDependent)
                         _isEpiDependentEventActive = true;
                     _activeEvents.Add(e);
                 }

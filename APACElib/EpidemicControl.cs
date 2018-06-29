@@ -233,7 +233,7 @@ namespace APACElib
             InterventionsInEffect = new int[_decisionMaker.NumOfInterventions];
         }
 
-        public void Update(int epiTimeIndex, bool toInitialize, ref List<Class> classes)
+        public void MakeADecision(int epiTimeIndex, bool toInitialize, ref List<Class> classes)
         {
             // request for a decision
             if (toInitialize)
@@ -274,11 +274,21 @@ namespace APACElib
 
                 //_decisionMaker.UpdateNextEpiTimeIndexToChangeInterventionsInEffect();
 
+                //// update interventions that are in effect for each class
+                //foreach (Class thisClass in classes)
+                //    thisClass.UpdateIntrvnCombination(InterventionsInEffect);
+            }
+        }
+
+        public void AddActiveEvents(int epiTimeIndex, ref List<Class> classes)
+        {
+            if (epiTimeIndex == _decisionMaker.EpiTimeIndexToChangeIntervetionsInEffect)
+            {
                 // update interventions that are in effect for each class
                 foreach (Class thisClass in classes)
-                    thisClass.UpdateIntrvnCombination(InterventionsInEffect);
+                    thisClass.AddActiveEvents(InterventionsInEffect);
             }
-        }    
+        }
     }
 
     public class ADP

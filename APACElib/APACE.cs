@@ -182,14 +182,30 @@ namespace APACElib
         // run experiments
         private void RunExperiments()
         {
-            int epidemicModelIndex = 0;
-            double[][] simulationSummaryOutcomes = new double[0][];
-            string[] simulationIterations_lables = new string[0];
-            double[][] simulationIterations_objFunction = new double[0][];
-            double[][] simulationIterations_otherOutcomes = new double[0][];
+            int epiModelIdx = 0;
+            double[][] simSummaryOutcomes = new double[0][];
+            string[] simItrOutcomeLabels = new string[0];
+            List<string> simItrScenarioNames = new List<string>();
+            double[][] simItrVarAndObjFunValues = new double[0][];
+            double[][] simItrOutcomes = new double[0][];
 
+            // read variable names
+            ExcelIntface.ActivateSheet("Experimental Designs");
+            int firstRow = ExcelIntface.RowIndex("baseExperimentalDesignsVariableValues");
+            int firstCol = ExcelIntface.ColIndex("baseExperimentalDesignsVariableValues") + 1;
+            int lastRow = firstRow;
+            int lastCol = ExcelIntface.ColIndex("baseExperimentalDesignsVariableValues", ExcelInteractorLib.ExcelInteractor.enumRangeDirection.RightEnd);
+            string[] varNames = ExcelIntface.ReadStringRangeFromActiveSheet(firstRow, firstCol, lastRow, lastCol);
+            
             // read designs
             double[,] experimentDesigns = ExcelIntface.GetExperimentalDesignMatrix();
+
+            // read scenario names
+            firstRow = ExcelIntface.RowIndex("baseExperimentalDesigns") + 1;
+            firstCol = ExcelIntface.ColIndex("baseExperimentalDesigns");
+            lastRow = ExcelIntface.RowIndex("baseExperimentalDesigns", ExcelInteractorLib.ExcelInteractor.enumRangeDirection.DownEnd);
+            lastCol = firstCol;
+            string[] scenarioNames = ExcelIntface.ReadStringRangeFromActiveSheet(firstRow, firstCol, lastRow, lastCol);
 
             // build epidemic modelers            
             _epidemicModellers.Clear();
@@ -209,79 +225,78 @@ namespace APACElib
                 ExcelIntface.Recalculate();
                 // read model settings
                 _modelSettings.ReadSettings(ref _excelInterface);
-
                 // create and epidemic modeler
                 EpidemicModeller thisEpidemicModeller = new EpidemicModeller(designIndex, ref _excelInterface, ref _modelSettings);
                 // don't store epidemic trajectories
                 thisEpidemicModeller.StoreEpiTrajsForExcelOutput(false);
-
                 // run the simulation
                 thisEpidemicModeller.SimulateEpidemics();
 
                 #endregion
 
                 // concatenate simulation summary statistics 
-                simulationSummaryOutcomes = SupportFunctions.ConcatJaggedArray(simulationSummaryOutcomes, ExtractSimulationOutcomes(thisEpidemicModeller));
-                //simulationSummaryOutcomes.Concat(ExtractSimulationOutcomes(thisEpidemicModeller));
+                simSummaryOutcomes = SupportFunctions.ConcatJaggedArray(simSummaryOutcomes, ExtractSimSummaryOutcomes(thisEpidemicModeller));
 
                 // simulation iterations
                 // first read variable values and the objective function samples
-                double[][] thisSimulationIterations_objFunction = new double[_modelSettings.NumOfSimItrs][];
+                double[][] thisSimItrVarAndObjFunValues = new double[_modelSettings.NumOfSimItrs][];
                 for (int simItr = 0; simItr < _modelSettings.NumOfSimItrs; simItr++)
                 {
-                    thisSimulationIterations_objFunction[simItr] = new double[numOfVars + 1]; // 1 for the objective function 
-
+                    thisSimItrVarAndObjFunValues[simItr] = new double[numOfVars + 1]; // 1 for the objective function 
+                    // scenario name
+                    simItrScenarioNames.Add(scenarioNames[designIndex]);
                     // this design
                     for (int varIndex = 0; varIndex < numOfVars; varIndex++)
-                        thisSimulationIterations_objFunction[simItr][varIndex] = experimentDesigns[epidemicModelIndex, varIndex];
+                        thisSimItrVarAndObjFunValues[simItr][varIndex] = experimentDesigns[epiModelIdx, varIndex];
                     // objective function
                     if (_modelSettings.ObjectiveFunction == EnumObjectiveFunction.MaximizeNHB)
-                        thisSimulationIterations_objFunction[simItr][numOfVars + 0]
+                        thisSimItrVarAndObjFunValues[simItr][numOfVars + 0]
                             = -thisEpidemicModeller.SimSummary.DALYs[simItr] - thisEpidemicModeller.SimSummary.Costs[simItr] 
                             / Math.Max(_modelSettings.WTPForHealth, SupportProcedures.minimumWTPforHealth);
                     else
-                        thisSimulationIterations_objFunction[simItr][numOfVars + 0]
+                        thisSimItrVarAndObjFunValues[simItr][numOfVars + 0]
                             = -_modelSettings.WTPForHealth* thisEpidemicModeller.SimSummary.DALYs[simItr] 
                             - thisEpidemicModeller.SimSummary.Costs[simItr];
 
                 }
-                // then read the other outcomes samples
-                double[][] thisSimulationItreration_otherOutcomes = new double[0][];
+                // then read the outcomes 
+                double[][] thisSimItrOutcomes = new double[0][];
                 thisEpidemicModeller.SimSummary.GetIndvEpidemicOutcomes(
-                    ref simulationIterations_lables, 
-                    ref thisSimulationItreration_otherOutcomes);
+                    ref simItrOutcomeLabels, 
+                    ref thisSimItrOutcomes);
 
                 // concatenate
-                simulationIterations_objFunction = SupportFunctions.ConcatJaggedArray(
-                    simulationIterations_objFunction, 
-                    thisSimulationIterations_objFunction
+                simItrVarAndObjFunValues = SupportFunctions.ConcatJaggedArray(
+                    simItrVarAndObjFunValues, 
+                    thisSimItrVarAndObjFunValues
                     );
-                simulationIterations_otherOutcomes = SupportFunctions.ConcatJaggedArray(
-                    simulationIterations_otherOutcomes, 
-                    thisSimulationItreration_otherOutcomes);
+                simItrOutcomes = SupportFunctions.ConcatJaggedArray(
+                    simItrOutcomes, 
+                    thisSimItrOutcomes);
 
-                ++epidemicModelIndex;
+                ++epiModelIdx;
             }
 
             // report summary statistics
-            ExcelIntface.ReportSimulationOutcomes(
+            ExcelIntface.ReportSummaryOutcomes(
                 "Experimental Designs", "baseExperimentalDesignsResults",
                 SupportFunctions.ConvertJaggedArrayToRegularArray(
-                    simulationSummaryOutcomes, 6), 
+                    simSummaryOutcomes, 6), 
                 _modelSettings.ObjectiveFunction
                 );
 
             // report outcomes for each run for each design
-            ExcelIntface.ReportExperimentalDesignSimulationOutcomes(
-                numOfVars,
-                SupportFunctions.ConvertJaggedArrayToRegularArray(
-                    simulationIterations_objFunction, 
-                    numOfVars + 1), 
-                _modelSettings.ObjectiveFunction,
-                simulationIterations_lables, 
-                SupportFunctions.ConvertJaggedArrayToRegularArray(
-                    simulationIterations_otherOutcomes, 
-                    simulationIterations_otherOutcomes[0].Length)
+            ExcelIntface.ReportSAReplicationOutcomes(
+                strVarNames: varNames,
+                strSimItrOutcomeLabels: simItrOutcomeLabels,
+                strScenarios: simItrScenarioNames.ToArray(),
+                varAndObjFuncValues: SupportFunctions.ConvertJaggedArrayToRegularArray(
+                    simItrVarAndObjFunValues,
+                    numOfVars + 1),
+                simItrOutcomes: SupportFunctions.ConvertJaggedArrayToRegularArray(
+                    simItrOutcomes,
+                    simItrOutcomes[0].Length),
+                objectiveFunction: _modelSettings.ObjectiveFunction
                     );
         }
 
@@ -525,7 +540,7 @@ namespace APACElib
         //    }
         //}
         // extract simulation outcomes from this epidemic modeler
-        private double[][] ExtractSimulationOutcomes(EpidemicModeller epidemicModeller)
+        private double[][] ExtractSimSummaryOutcomes(EpidemicModeller epidemicModeller)
         {
             double[][] thisSimulationOutcomes = new double[1][];
             thisSimulationOutcomes[0] = new double[6];
@@ -702,7 +717,7 @@ namespace APACElib
         private void ReportCalibrationResult()
         {
             ExcelIntface.ReportCalibrationResults(
-                _epidemicModeller.Calibration.TimeUsed,
+                _epidemicModeller.Timer.TimePassed/60,
                 _epidemicModeller.Calibration.NumOfDiscardedTrajs,
                 _epidemicModeller.Calibration.ResultsForExcel.SimItrs.ToArray(),
                 _epidemicModeller.Calibration.ResultsForExcel.RndSeeds.ToArray(),
@@ -775,7 +790,7 @@ namespace APACElib
                 adpOptParameterDesigns = SupportFunctions.ConcatJaggedArray(adpOptParameterDesigns, thisAdpOptParameterDesigns);
 
                 // simulation outcomes
-                adpSASimulationOutcomes = SupportFunctions.ConcatJaggedArray(adpSASimulationOutcomes, ExtractSimulationOutcomes(thisEpiModeller));
+                adpSASimulationOutcomes = SupportFunctions.ConcatJaggedArray(adpSASimulationOutcomes, ExtractSimSummaryOutcomes(thisEpiModeller));
 
                 // simulation iterations
                 double[][] thisSimulationIterations = new double[_modelSettings.NumOfSimItrs][];

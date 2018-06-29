@@ -1776,7 +1776,7 @@ namespace APACElib
             #endregion
 
             // finally report simulation outcomes
-            ReportSimulationOutcomes("Dynamic Policy Optimizaion", "baseADPSASimulationOutcomes", simulationOutcomes, objectiveFunction);
+            ReportSummaryOutcomes("Dynamic Policy Optimizaion", "baseADPSASimulationOutcomes", simulationOutcomes, objectiveFunction);
         }
         // report ADP computation time
         public void ReportADPComputationTimes(string[] strMeasures, double[,] statistics)
@@ -1873,99 +1873,95 @@ namespace APACElib
             #endregion
 
             // finally report simulation outcomes
-            ReportSimulationOutcomes("Static Policy Optimization", "baseStaticPolicySimulationOutcomes", simulationOutcomes, objectiveFunction);
+            ReportSummaryOutcomes("Static Policy Optimization", "baseStaticPolicySimulationOutcomes", simulationOutcomes, objectiveFunction);
         }
         // report simulation outcomes for adp or static optimization
-        public void ReportSimulationOutcomes(string sheetName, string baseCellname, double[,] simulationOutcomes, EnumObjectiveFunction objectiveFunction)
+        public void ReportSummaryOutcomes(string sheetName, string baseCellname, double[,] simulationOutcomes, EnumObjectiveFunction objectiveFunction)
         {
             int firstCol, lastCol;
             // clear sheet 
-            base.ActivateSheet(sheetName);
-            firstCol = base.ColIndex(baseCellname);
-            lastCol = base.ColIndex(baseCellname, enumRangeDirection.RightEnd);
-            base.ClearAll(base.RowIndex(baseCellname), firstCol, base.LastRowWithDataInThisColumn(firstCol), lastCol);
+            ActivateSheet(sheetName);
+            firstCol = ColIndex(baseCellname);
+            lastCol = ColIndex(baseCellname, enumRangeDirection.RightEnd);
+            ClearAll(RowIndex(baseCellname), firstCol, LastRowWithDataInThisColumn(firstCol), lastCol);
 
             // make headers
-            base.WriteToCell("E[Obj]", baseCellname, 0, (int)enumSimulationOutcomesOffsets.E_ObjectiveFunction);
-            base.WriteToCell("StDev[Obj]", baseCellname, 0, (int)enumSimulationOutcomesOffsets.stDev_ObjectiveFunction);
-            base.WriteToCell("E[Health]", baseCellname, 0, (int)enumSimulationOutcomesOffsets.E_health);
-            base.WriteToCell("StDev[Health]", baseCellname, 0, (int)enumSimulationOutcomesOffsets.stDev_health);
-            base.WriteToCell("E[Cost]", baseCellname, 0, (int)enumSimulationOutcomesOffsets.E_cost);
-            base.WriteToCell("StDev[Cost]", baseCellname, 0, (int)enumSimulationOutcomesOffsets.stDev_cost);
-            base.Align(baseCellname, 0, 0, enumRangeDirection.RightEnd, enumAlignment.Center);
-            base.AddABorder(baseCellname, 0, 0, enumRangeDirection.RightEnd, enumBorder.Bottom);
-            base.WrapText(baseCellname, 0, 0, enumRangeDirection.RightEnd);            
+            WriteToCell("E[Obj]", baseCellname, 0, (int)enumSimulationOutcomesOffsets.E_ObjectiveFunction);
+            WriteToCell("StDev[Obj]", baseCellname, 0, (int)enumSimulationOutcomesOffsets.stDev_ObjectiveFunction);
+            WriteToCell("E[Health]", baseCellname, 0, (int)enumSimulationOutcomesOffsets.E_health);
+            WriteToCell("StDev[Health]", baseCellname, 0, (int)enumSimulationOutcomesOffsets.stDev_health);
+            WriteToCell("E[Cost]", baseCellname, 0, (int)enumSimulationOutcomesOffsets.E_cost);
+            WriteToCell("StDev[Cost]", baseCellname, 0, (int)enumSimulationOutcomesOffsets.stDev_cost);
+            Align(baseCellname, 0, 0, enumRangeDirection.RightEnd, enumAlignment.Center);
+            AddABorder(baseCellname, 0, 0, enumRangeDirection.RightEnd, enumBorder.Bottom);
+            WrapText(baseCellname, 0, 0, enumRangeDirection.RightEnd);            
 
             // write the data
-            base.WriteToMatrix(simulationOutcomes, baseCellname, 1, 0);
-            int thisCol = base.ColIndex(baseCellname, enumRangeDirection.RightEnd) + 1;
-            base.ClearContent(base.RowIndex(baseCellname), thisCol, base.LastRowWithDataInThisColumn(thisCol), thisCol);
+            WriteToMatrix(simulationOutcomes, baseCellname, 1, 0);
+            int thisCol = ColIndex(baseCellname, enumRangeDirection.RightEnd) + 1;
+            ClearContent(RowIndex(baseCellname), thisCol, LastRowWithDataInThisColumn(thisCol), thisCol);
 
             // formattings
-            base.AlignAMatrix(base.RowIndex(baseCellname) + 1, base.ColIndex(baseCellname), enumAlignment.Center);
+            AlignAMatrix(RowIndex(baseCellname) + 1, ColIndex(baseCellname), enumAlignment.Center);
             if (objectiveFunction == EnumObjectiveFunction.MaximizeNMB)
             {
-                base.FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.E_ObjectiveFunction, enumRangeDirection.DownEnd, "$#,000");
-                base.FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.stDev_ObjectiveFunction, enumRangeDirection.DownEnd, "$#,000");
+                FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.E_ObjectiveFunction, enumRangeDirection.DownEnd, "$#,000");
+                FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.stDev_ObjectiveFunction, enumRangeDirection.DownEnd, "$#,000");
             }
             else
             {
-                base.FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.E_ObjectiveFunction, enumRangeDirection.DownEnd, "#,000");
-                base.FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.stDev_ObjectiveFunction, enumRangeDirection.DownEnd, "#,000");
+                FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.E_ObjectiveFunction, enumRangeDirection.DownEnd, "#,000");
+                FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.stDev_ObjectiveFunction, enumRangeDirection.DownEnd, "#,000");
             }
-            base.FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.E_health, enumRangeDirection.DownEnd, "#,000");
-            base.FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.stDev_health, enumRangeDirection.DownEnd, "#,000");
-            base.FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.E_cost, enumRangeDirection.DownEnd, "$#,000");
-            base.FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.stDev_cost, enumRangeDirection.DownEnd, "$#,000");
+            FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.E_health, enumRangeDirection.DownEnd, "#,000");
+            FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.stDev_health, enumRangeDirection.DownEnd, "#,000");
+            FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.E_cost, enumRangeDirection.DownEnd, "$#,000");
+            FormatNumber(baseCellname, 1, (int)enumSimulationOutcomesOffsets.stDev_cost, enumRangeDirection.DownEnd, "$#,000");
         }
         // report experimental design simulation outcomes
-        public void ReportExperimentalDesignSimulationOutcomes
-            (int numOfVariables, double[,] simulationIterationSummaryOutcomes, EnumObjectiveFunction objectiveFunction, 
-            string[] simItrerationOutcomes_detailedLables, double[,] simulationIteration_detailedOutcomes)
+        public void ReportSAReplicationOutcomes
+            (string[] strVarNames,             // variable names
+            string[] strSimItrOutcomeLabels,   // lables of simulation outcomes
+            string[] strScenarios,             // names of scenarios for all replications
+            double[,] varAndObjFuncValues,  // values of variables and objective function
+            double[,] simItrOutcomes,       // values of simulation outcomes accross all replications
+            EnumObjectiveFunction objectiveFunction)    // objective function 
         {
             // clear all
-            int firstCol = base.ColIndex("baseExperimetalDesignSimOutcomes");
-            base.ClearAll(base.RowIndex("baseExperimetalDesignSimOutcomes"), firstCol,
-                base.LastRowWithDataInThisColumn(base.ColIndex("baseExperimetalDesignSimOutcomes")), base.LastColumnWithData());
-
-            // find variable names
-            string[] varNames = new string[numOfVariables];
-            for(int i = 1; i<= numOfVariables; i++)
-                varNames[i-1] = "Var " + i;
+            int firstRow = RowIndex("baseExperimetalDesignSimOutcomes");
+            int firstCol = ColIndex("baseExperimetalDesignSimOutcomes");
+            ClearAll(firstRow, firstCol, LastRowWithDataInThisColumn(ColIndex("baseExperimetalDesignSimOutcomes")), LastColumnWithData());
 
             // create headers
-            base.WriteToRow(varNames, "baseExperimetalDesignSimOutcomes", 0, 0);
-            base.WriteToCell("Objective Function", "baseExperimetalDesignSimOutcomes", 0, numOfVariables + 0);
-            base.WriteToRow(simItrerationOutcomes_detailedLables, "baseExperimetalDesignSimOutcomes", 0, numOfVariables + 1);
-
-            //base.WriteToCell("Health", "baseExperimetalDesignSimOutcomes", 0, numOfVariables + 1);
-            //base.WriteToCell("Cost", "baseExperimetalDesignSimOutcomes", 0, numOfVariables + 2);
-            //base.WriteToCell("Annual Cost", "baseExperimetalDesignSimOutcomes", 0, numOfVariables + 3);
-            base.Align("baseExperimetalDesignSimOutcomes", 0, 0, enumRangeDirection.RightEnd, enumAlignment.Center);
-            base.AddABorder("baseExperimetalDesignSimOutcomes", 0, 0, enumRangeDirection.RightEnd, enumBorder.Bottom);
-            base.WrapText("baseExperimetalDesignSimOutcomes", 0, 0, enumRangeDirection.RightEnd);
+            int numOfVars = strVarNames.Length;
+            WriteToCell("Scenario", "baseExperimetalDesignSimOutcomes");
+            WriteToRow(strVarNames, "baseExperimetalDesignSimOutcomes", 0, 1);
+            WriteToCell("Objective Function", "baseExperimetalDesignSimOutcomes", 0, numOfVars + 1);
+            WriteToRow(strSimItrOutcomeLabels, "baseExperimetalDesignSimOutcomes", 0, numOfVars + 2);
+            // formate headers
+            Align("baseExperimetalDesignSimOutcomes", 0, 0, enumRangeDirection.RightEnd, enumAlignment.Center);
+            AddABorder("baseExperimetalDesignSimOutcomes", 0, 0, enumRangeDirection.RightEnd, enumBorder.Bottom);
+            WrapText("baseExperimetalDesignSimOutcomes", 0, 0, enumRangeDirection.RightEnd);
 
             // write the results
-            base.WriteToMatrix(simulationIterationSummaryOutcomes, "baseExperimetalDesignSimOutcomes", 1, 0);
-            base.WriteToMatrix(simulationIteration_detailedOutcomes, "baseExperimetalDesignSimOutcomes", 1, numOfVariables + 1);
+            WriteToColumn(strScenarios, "baseExperimetalDesignSimOutcomes", 1, 0); 
+            WriteToMatrix(varAndObjFuncValues, "baseExperimetalDesignSimOutcomes", 1, 1);
+            WriteToMatrix(simItrOutcomes, "baseExperimetalDesignSimOutcomes", 1, numOfVars + 2);
 
-            int thisCol = base.ColIndex("baseExperimetalDesignSimOutcomes") + numOfVariables + 1 + simItrerationOutcomes_detailedLables.Length;
-            base.ClearContent(base.RowIndex("baseExperimetalDesignSimOutcomes"), thisCol , base.LastRowWithDataInThisColumn(thisCol), thisCol);
+            //int thisCol = ColIndex("baseExperimetalDesignSimOutcomes") + numOfVars + 1 + strSimItrOutcomeLabels.Length;
+            //ClearContent(RowIndex("baseExperimetalDesignSimOutcomes"), thisCol , LastRowWithDataInThisColumn(thisCol), thisCol);
 
-            // formattings
-            #region
             // align
-            base.AlignAMatrix(base.RowIndex("baseExperimetalDesignSimOutcomes") + 1, base.ColIndex("baseExperimetalDesignSimOutcomes"), enumAlignment.Center);            
+            AlignAMatrix(RowIndex("baseExperimetalDesignSimOutcomes") + 1, ColIndex("baseExperimetalDesignSimOutcomes")+1, enumAlignment.Center);            
 
             // format simulation iterations
             if (objectiveFunction == EnumObjectiveFunction.MaximizeNMB)
-                base.FormatNumber("baseExperimetalDesignSimOutcomes", 1, numOfVariables + 0, enumRangeDirection.DownEnd, "$#,000");
+                FormatNumber("baseExperimetalDesignSimOutcomes", 1, numOfVars + 1, enumRangeDirection.DownEnd, "$#,000");
             else
-                base.FormatNumber("baseExperimetalDesignSimOutcomes", 1, numOfVariables + 0, enumRangeDirection.DownEnd, "#,000");
-            base.FormatNumber("baseExperimetalDesignSimOutcomes", 1, numOfVariables + 2, enumRangeDirection.DownEnd, "#,000");
-            base.FormatNumber("baseExperimetalDesignSimOutcomes", 1, numOfVariables + 3, enumRangeDirection.DownEnd, "$#,000");
-            base.FormatNumber("baseExperimetalDesignSimOutcomes", 1, numOfVariables + 4, enumRangeDirection.DownEnd, "$#,000");
-            #endregion
+                FormatNumber("baseExperimetalDesignSimOutcomes", 1, numOfVars + 1, enumRangeDirection.DownEnd, "#,000");
+            FormatNumber("baseExperimetalDesignSimOutcomes", 1, numOfVars + 3, enumRangeDirection.DownEnd, "#,000");
+            FormatNumber("baseExperimetalDesignSimOutcomes", 1, numOfVars + 4, enumRangeDirection.DownEnd, "$#,000");
+            FormatNumber("baseExperimetalDesignSimOutcomes", 1, numOfVars + 5, enumRangeDirection.DownEnd, "$#,000");
         }
         // report real-time decision making results
         public void ReportEvaluatingRealTimeDecisionMaking(int[] hypotheticalEpidemicsIterations, int[] hypotheticalEpidemicsRNDSeeds, double[] wtpForHealthValuesHypotheticalEpidemics,

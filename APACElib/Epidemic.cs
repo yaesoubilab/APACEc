@@ -131,16 +131,6 @@ namespace APACElib
                 // update history
                 ifFeasibleRangesViolated = EpiHist.Update(_simTimeIndex, _epiTimeIndex, false, _rng);
 
-                // make decisions if decision is not predetermined and announce the new decisions (may not necessarily go into effect)
-                _monitorOfIntrvsInEffect.Update(_epiTimeIndex, false, ref _classes);
-
-                // update the effect of chance in time dependent parameter value
-                _paramManager.UpdateTimeDepParams(_rng, _simTimeIndex * _modelSets.DeltaT, _classes);
-
-                // Update recorded trajectories to report to the Excel file
-                if (StoreEpiTrajsForExcelOutput)
-                    EpiHist.Record(_simTimeIndex, _epiTimeIndex, false);                
-
                 // check if this is has been a feasible trajectory for calibration
                 if (ModelUse == EnumModelUse.Calibration && ifFeasibleRangesViolated)
                 {
@@ -148,8 +138,21 @@ namespace APACElib
                     return acceptableTrajectory;
                 }
 
+                // make decisions if decision is not predetermined and announce the new decisions (may not necessarily go into effect)
+                _monitorOfIntrvsInEffect.MakeADecision(_epiTimeIndex, false, ref _classes);
+
+                // update the effect of chance in time dependent parameter value
+                _paramManager.UpdateTimeDepParams(_rng, _simTimeIndex * _modelSets.DeltaT, _classes);
+
                 // update transmission rates
                 FOIModel.UpdateTransmissionRates(_simTimeIndex, _monitorOfIntrvsInEffect.InterventionsInEffect, ref _classes);
+
+                // Update recorded trajectories to report to the Excel file
+                if (StoreEpiTrajsForExcelOutput)
+                    EpiHist.Record(_simTimeIndex, _epiTimeIndex, false);                
+
+                // add active events
+                _monitorOfIntrvsInEffect.AddActiveEvents(_epiTimeIndex, ref _classes);
 
                 // send transfer class members                    
                 TransferClassMembers();
@@ -293,7 +296,7 @@ namespace APACElib
             EpidemicCostHealth.Reset();
 
             // update decisions
-            _monitorOfIntrvsInEffect.Update(0, true, ref _classes);
+            _monitorOfIntrvsInEffect.MakeADecision(0, true, ref _classes);
 
             // calculate contact matrices
             FOIModel.CalculateContactMatrices();
@@ -305,6 +308,9 @@ namespace APACElib
                 thisClass.UpdateProbOfSuccess(_paramManager.ParameterValues);
                 thisClass.Reset();
             }
+
+            // implement decisions
+            _monitorOfIntrvsInEffect.AddActiveEvents(_epiTimeIndex, ref _classes);
 
             // reset epidemic history 
             EpiHist.Reset();       
