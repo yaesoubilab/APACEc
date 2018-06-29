@@ -309,7 +309,8 @@ namespace APACElib
             StrMeasureOfFit = Convert.ToString(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.MeasureOfFit));
             StrLikelihood = Convert.ToString(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Likelihood));
             StrLikelihoodParam = Convert.ToString(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.LikelihoodParam));
-            IfCheckWithinFeasibleRange = SupportFunctions.ConvertYesNoToBool(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfCheckWithinFeasibleRange).ToString());
+            if (IfIncludedInCalibration)
+                IfCheckWithinFeasibleRange = SupportFunctions.ConvertYesNoToBool(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfCheckWithinFeasibleRange).ToString());
             if (IfCheckWithinFeasibleRange)
             {
                 FeasibleMin = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FeasibleRange_minimum));

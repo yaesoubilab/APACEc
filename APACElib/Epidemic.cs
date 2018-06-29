@@ -447,7 +447,7 @@ namespace APACElib
                             thisParameter = new LinearCombination(parameterID, name, arrParIDs, arrCoefficients);
                         }
                         break;
-                    case EnumRandomVariates.MultipleCombination:
+                    case EnumRandomVariates.Product:
                         {
                             string strPar1 = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par1));
 
@@ -476,7 +476,7 @@ namespace APACElib
                 switch (enumRVG)
                 {
                     case EnumRandomVariates.LinearCombination:
-                    case EnumRandomVariates.MultipleCombination:
+                    case EnumRandomVariates.Product:
                         // created above
                         break;
                     case EnumRandomVariates.Correlated:

@@ -99,7 +99,7 @@ namespace APACElib
             }
         }
 
-        public double GetEquivalentAnnualCost(double annualDiscountRate, int currentYear, int warmUpYear)
+        public double GetEquivalentAnnualCost(double annualDiscountRate, int warmUpYear, int currentYear)
         {
             if (annualDiscountRate == 0)
                 return TotalDisountedCost / (currentYear - warmUpYear);

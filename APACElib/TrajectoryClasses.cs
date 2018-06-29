@@ -722,7 +722,7 @@ namespace APACElib
     }
 
     // abstract class to manage what the simulation outputs to the Excel file
-    public abstract class OutputTrajs
+    public abstract class ExcelOutputTrajs
     {
         protected int _simRepIndex;
         protected double _deltaT;
@@ -739,7 +739,7 @@ namespace APACElib
         public double[][] SimPrevalenceOutputs { get; protected set; }
         public int[][] InterventionCombinations { get; protected set; }
 
-        public OutputTrajs(
+        public ExcelOutputTrajs(
             int simRepIndex,
             double deltaT,
             ref DecisionMaker decisionMaker,
@@ -793,14 +793,14 @@ namespace APACElib
     }
 
     // simulation output trajectories to be written in the Excel file
-    public class OutputTrajs_Sim : OutputTrajs
+    public class ExcelOutputTrajs_Sim : ExcelOutputTrajs
     {
         private int _nDeltaTInSimOutputInterval;
         private List<Class> _classes;
         private List<SumTrajectory> _sumTrajectories;
         private List<RatioTrajectory> _ratioTrajectories;
 
-        public OutputTrajs_Sim(
+        public ExcelOutputTrajs_Sim(
             int simReplication, 
             double deltaT,
             int nDeltaTInSimOutputInterval,
@@ -927,13 +927,13 @@ namespace APACElib
     }
 
     // surveyed output trajectories to be written in the Excel file
-    public class OutputTrajs_Surveyed : OutputTrajs
+    public class ExcelOutputTrajs_Surveyed : ExcelOutputTrajs
     {
         private int _nDeltaTInObsInterval;
         List<SurveyedIncidenceTrajectory> _surveyIncidenceTrajs;
         List<SurveyedPrevalenceTrajectory> _surveyPrevalenceTrajs;
 
-        public OutputTrajs_Surveyed(
+        public ExcelOutputTrajs_Surveyed(
             int simReplication,
             double deltaT,
             int nDeltaTInObsInterval,
@@ -1018,8 +1018,8 @@ namespace APACElib
         public List<SurveyedPrevalenceTrajectory> SurveyedPrevalenceTrajs { get => _survPrevalenceTrajs; set => _survPrevalenceTrajs = value; }
         
         // all trajectories prepared for simulation output 
-        public OutputTrajs_Sim SimOutputTrajs { get; private set; }
-        public OutputTrajs_Surveyed SurveyedOutputTrajs { get; private set; }
+        public ExcelOutputTrajs_Sim SimOutputTrajs { get; private set; }
+        public ExcelOutputTrajs_Surveyed SurveyedOutputTrajs { get; private set; }
 
         // features and conditions
         public List<Feature> Features { set; get; } = new List<Feature>();
@@ -1040,7 +1040,7 @@ namespace APACElib
             ref List<Class> classes,
             bool extractOutputHeaders)
         {
-            SimOutputTrajs = new OutputTrajs_Sim(
+            SimOutputTrajs = new ExcelOutputTrajs_Sim(
                ID,
                deltaT,
                nDeltaTinSimOutputInterval,
@@ -1049,7 +1049,7 @@ namespace APACElib
                ref _sumTrajs,
                ref _ratioTraj,
                extractOutputHeaders);
-            SurveyedOutputTrajs = new OutputTrajs_Surveyed(
+            SurveyedOutputTrajs = new ExcelOutputTrajs_Surveyed(
                 ID,
                 deltaT,
                 nDeltaTInObsInterval,

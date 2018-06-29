@@ -18,7 +18,7 @@ namespace APACElib
         private int _nextEpiTimeIndexToMakeDecision; // next epidemic time index to make a decision       
         public int DecisionIntervalIndex { get; set; } // index of the current decision interval
         public int EpiTimeIndexToStartDecisionMaking { get; set; }
-        public int EpiTimeIndexToChangeIntervetionsInEffect { get; set; } = 0; // epidemic time index to change the interventions that are in effect
+        public int EpiTimeIndexToChangeIntervetionsInEffect { get; set; } = int.MaxValue; // epidemic time index to change the interventions that are in effect
         private int[][] _presetDecisionsOverDecisionsPeriods; // prespecified decisions
 
         public int[] CurrentDecision { get; set; } = new int[0];   // array of 0 and 1 to represent which action is on or off
@@ -41,21 +41,6 @@ namespace APACElib
             Interventions.Add(action);
             ++NumOfInterventions;
         }
-
-        // update after all interventions are added
-        //public void UpdateAfterAllInterventionsAdded()
-        //{
-        //    DefaultDecision = new int[Interventions.Count];
-        //    CurrentDecision = new int[Interventions.Count];
-
-        //    // make sure the default intervention is on
-        //    foreach (Intervention intervention in Interventions
-        //        .Where(s => s.Type == EnumInterventionType.Default))
-        //    {
-        //        DefaultDecision[intervention.Index] = 1;
-        //        CurrentDecision[intervention.Index] = 1;
-        //    }
-        //}
 
         // update parameters
         public void UpdateParameters(ParameterManager parManager, double deltaT)
@@ -246,16 +231,19 @@ namespace APACElib
             {
                 foreach (Intervention a in _decisionMaker.Interventions)
                 {
-                    // the default intervention is always in effect
-                    if (a.Type == EnumInterventionType.Default)
-                        InterventionsInEffect[a.Index] = 1;
-                    else
+                    //the default intervention is always in effect
+                    //if (a.Type == EnumInterventionType.Default)
+                    //{
+                    //    InterventionsInEffect[a.Index] = 1;
+                    //    a.EpiTimeIndexToTurnOff = int.MaxValue;
+                    //    a.EpiTimeIndexToGoIntoEffect = int.MaxValue;
+                    //}
+                    //else
                     {
                         // if this intervention is going into effect
                         if (InterventionsInEffect[a.Index] == 0 && a.EpiTimeIndexToGoIntoEffect <= epiTimeIndex)
                         {
                             InterventionsInEffect[a.Index] = 1;
-
                             // find when it should be turned off
                             a.EpiTimeIndexToTurnOff = a.FindEpiTimeIndexToTurnOff(epiTimeIndex);
                             a.EpiTimeIndexToGoIntoEffect = int.MaxValue;
