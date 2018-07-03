@@ -84,9 +84,16 @@ namespace APACElib
             {
                 if (simIndex > _currentSimIndex)
                 {
-                    TotalDisountedCost += _deltaTCost / Math.Pow(1 + _deltaTDiscountRate, simIndex - _warmUpSimIndex);
-                    TotalDiscountedDALY += _deltaTDALY / Math.Pow(1 + _deltaTDiscountRate, simIndex - _warmUpSimIndex);
-
+                    if (_deltaTDiscountRate <= 0)
+                    {
+                        TotalDisountedCost += _deltaTCost;
+                        TotalDiscountedDALY += _deltaTDALY;
+                    }
+                    else
+                    {
+                        TotalDisountedCost += _deltaTCost / Math.Pow(1 + _deltaTDiscountRate, simIndex - _warmUpSimIndex);
+                        TotalDiscountedDALY += _deltaTDALY / Math.Pow(1 + _deltaTDiscountRate, simIndex - _warmUpSimIndex);
+                    }
                     _currentSimIndex = simIndex;
                     _deltaTCost = deltaTCost;
                     _deltaTDALY = deltaTDALY;
