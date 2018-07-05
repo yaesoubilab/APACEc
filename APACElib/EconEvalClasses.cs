@@ -7,6 +7,7 @@ using SimulationLib;
 
 namespace APACElib
 {
+    // class for collecting cost and health outcomes over deltaT
     public class DeltaTCostHealth
     {
         public double DeltaTCost { get; set; }
@@ -28,18 +29,20 @@ namespace APACElib
             Parameter disabilityWeightPerUnitOfTime = null,
             Parameter costPerUnitOfTime = null)
         {            
-            // find if cost and health outcomes should be collected
             _ifCollecting = true;
             _deltaT = deltaT;
             _warmUpSimIndex = warmUpSimIndex;
+            // store parameters
             _DALYPerNewMember = DALYPerNewMember;
             _costPerNewMember = costPerNewMember;
             if (disabilityWeightPerUnitOfTime is null)
-                _disabilityWeightPerUnitOfTime = new IndependetParameter(0, "dummy", RandomVariateLib.EnumRandomVariates.Constant, 0, 0, 0, 0);
+                _disabilityWeightPerUnitOfTime 
+                    = new IndependetParameter(0, "dummy", RandomVariateLib.EnumRandomVariates.Constant, 0, 0, 0, 0);
             else
                 _disabilityWeightPerUnitOfTime = disabilityWeightPerUnitOfTime;
             if (costPerUnitOfTime is null)
-                _costPerUnitOfTime = new IndependetParameter(0, "dummy", RandomVariateLib.EnumRandomVariates.Constant, 0, 0, 0, 0);
+                _costPerUnitOfTime 
+                    = new IndependetParameter(0, "dummy", RandomVariateLib.EnumRandomVariates.Constant, 0, 0, 0, 0);
             else
                 _costPerUnitOfTime = disabilityWeightPerUnitOfTime;
         }
@@ -60,6 +63,7 @@ namespace APACElib
         }
     }
 
+    // class for collecting discounted cost and health outcomes over the epidemic
     public class EpidemicCostHealth
     {
         public double TotalDisountedCost { get; set; }
@@ -82,15 +86,19 @@ namespace APACElib
         {
             if (simIndex >= _warmUpSimIndex)
             {
+                // if we have moved to a new deltaT
                 if (simIndex > _currentSimIndex)
                 {
+                    // discount health and cost outcomes over the past deltaT
                     UpdateDiscountedOutcomes(simIndex);
                     _currentSimIndex = simIndex;
+                    // reset the accumulated cost and health outcomes (over the next deltaT)
                     _deltaTCost = deltaTCost;
                     _deltaTDALY = deltaTDALY;
                 }
                 else
                 {
+                    // accumulate health and cost outcomes over the current deltaT
                     _deltaTCost += deltaTCost;
                     _deltaTDALY += deltaTDALY;
                 }
