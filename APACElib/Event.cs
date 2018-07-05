@@ -12,14 +12,16 @@ namespace APACElib
     // Process
     public abstract class Event
     {
-        protected string _name;
-        protected int _ID;
-        protected int _IDOfActivatingIntervention;
-        protected int _IDOfDestinationClass;
-        protected int _IDOfRateParameter = - 1;  // -1 for transmission rate and >=0 for birth and epidemic indepedent events
-        public int IDOfRateParameter { get=> _IDOfRateParameter; }  
+        public string Name { get; }
+        public int ID { get; }
+        public int IDOfActivatingIntervention { get; }
+        public int IDOfDestinationClass { get; }
+        public int IDOfRateParameter { get; protected set; } = -1;  // -1 for transmission rate and >=0 for birth and epidemic indepedent events
+
         protected double _rate;
 
+        public double Rate { get => _rate; }
+        public virtual int IDOfPathogenToGenerate { get { return -1; } }
         public int MembersOutOverPastDeltaT { get; set; }
 
         public enum EumType
@@ -30,40 +32,19 @@ namespace APACElib
         }
 
         // Instantiation
-        public Event(string name, int ID, int IDOfActivatingIntervention, int IDOfDestinationClass)
+        public Event(string name, int id, int idOfActivatingIntervention, int idOfDestinationClass)
         {            
-            _name = name;
-            _ID = ID;
-            _IDOfActivatingIntervention = IDOfActivatingIntervention;
-            _IDOfDestinationClass = IDOfDestinationClass;
+            Name = name;
+            ID = id;
+            IDOfActivatingIntervention = idOfActivatingIntervention;
+            IDOfDestinationClass = idOfDestinationClass;
         }
-        
-        // Properties   
-        public int ID
-        {
-            get{return _ID;}
-        }
-        public int IDOfActivatingIntervention
-        {
-            get { return _IDOfActivatingIntervention; }
-        }
-        public int IDOfDestinationClass
-        {
-            get { return _IDOfDestinationClass; }
-        }
-        public double Rate
-        {
-            get { return _rate; }
-        }
-        public virtual int IDOfPathogenToGenerate
-        { get { return -1; } }
 
         // update birth, transmission or other  rates
         public void UpdateRate(double value)
         {
             _rate = value;
         }
-               
     }
 
     public class Event_Birth : Event
@@ -77,7 +58,7 @@ namespace APACElib
             int IDOfDestinationClass)
             : base(name, ID, IDOfActivatingIntervention,IDOfDestinationClass)
         {
-            _IDOfRateParameter = IDOfRateParameter;
+            this.IDOfRateParameter = IDOfRateParameter;
         }
     }
 
@@ -113,9 +94,8 @@ namespace APACElib
             int IDOfDestinationClass)
             : base(name, ID, IDOfActivatingIntervention, IDOfDestinationClass)
         {
-            _IDOfRateParameter = IDOfRateParameter;
+            this.IDOfRateParameter = IDOfRateParameter;
         }
-
     }        
    
 }

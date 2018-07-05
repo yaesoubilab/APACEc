@@ -250,15 +250,17 @@ namespace APACElib
                         thisClass.ClassStat.DeltaCostHealthCollector.DeltaTCost,
                         thisClass.ClassStat.DeltaCostHealthCollector.DeltaTDALY);
                 }
+                // collect cost and health outcomes of summation statistics 
                 foreach (SumClassesTrajectory thisSumTraj in EpiHist.SumTrajs.Where(s => !(s.DeltaCostHealthCollector is null)))
                     EpidemicCostHealth.Add(
                         _simTimeIndex,
                         thisSumTraj.DeltaCostHealthCollector.DeltaTCost,
                         thisSumTraj.DeltaCostHealthCollector.DeltaTDALY);
-
+                // collect cost and health outcomes of decisions
                 EpidemicCostHealth.Add(_simTimeIndex, DecisionMaker.CostOverThisDecisionPeriod, 0);
                 DecisionMaker.CostOverThisDecisionPeriod = 0;
 
+                // if simulation has ended, calcualte the discounted outcomes from the current deltaT
                 if (ifEndOfSim)
                     EpidemicCostHealth.UpdateDiscountedOutcomes(_simTimeIndex);
             }
