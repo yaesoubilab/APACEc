@@ -84,16 +84,7 @@ namespace APACElib
             {
                 if (simIndex > _currentSimIndex)
                 {
-                    if (_deltaTDiscountRate <= 0)
-                    {
-                        TotalDisountedCost += _deltaTCost;
-                        TotalDiscountedDALY += _deltaTDALY;
-                    }
-                    else
-                    {
-                        TotalDisountedCost += _deltaTCost / Math.Pow(1 + _deltaTDiscountRate, simIndex - _warmUpSimIndex);
-                        TotalDiscountedDALY += _deltaTDALY / Math.Pow(1 + _deltaTDiscountRate, simIndex - _warmUpSimIndex);
-                    }
+                    UpdateDiscountedOutcomes(simIndex);
                     _currentSimIndex = simIndex;
                     _deltaTCost = deltaTCost;
                     _deltaTDALY = deltaTDALY;
@@ -103,6 +94,20 @@ namespace APACElib
                     _deltaTCost += deltaTCost;
                     _deltaTDALY += deltaTDALY;
                 }
+            }
+        }
+        
+        public void UpdateDiscountedOutcomes(int simIndex)
+        {
+            if (_deltaTDiscountRate <= 0)
+            {
+                TotalDisountedCost += _deltaTCost;
+                TotalDiscountedDALY += _deltaTDALY;
+            }
+            else
+            {
+                TotalDisountedCost += _deltaTCost / Math.Pow(1 + _deltaTDiscountRate, simIndex - _warmUpSimIndex);
+                TotalDiscountedDALY += _deltaTDALY / Math.Pow(1 + _deltaTDiscountRate, simIndex - _warmUpSimIndex);
             }
         }
 

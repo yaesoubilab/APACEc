@@ -131,6 +131,9 @@ namespace APACElib
                 // update history
                 ifFeasibleRangesViolated = EpiHist.Update(_simTimeIndex, _epiTimeIndex, false, _rng);
 
+                // update cost and health outcomes
+                UpdateCostAndHealthOutcomes(false);
+
                 // check if this is has been a feasible trajectory for calibration
                 if (ModelUse == EnumModelUse.Calibration && ifFeasibleRangesViolated)
                 {
@@ -168,8 +171,12 @@ namespace APACElib
                 if (_epiTimeIndex > timeIndexToStop || StoppedDueToEradication == true)
                 {
                     toStop = true;
-                    // update recorded trajectories 
-                    EpiHist.Update(_simTimeIndex, _epiTimeIndex, true, _rng);
+                    
+                    // update history
+                    ifFeasibleRangesViolated =  EpiHist.Update(_simTimeIndex, _epiTimeIndex, true, _rng);
+                    // update cost and health outcomes
+                    UpdateCostAndHealthOutcomes(true);
+
                     if (StoreEpiTrajsForExcelOutput)
                         EpiHist.Record(_simTimeIndex, _epiTimeIndex, true);
 
@@ -227,7 +234,11 @@ namespace APACElib
                         break;
                     }
             } // end of while (membersWaitingToBeTransferred)
+        }
 
+        // update cost and health outcomes
+        private void UpdateCostAndHealthOutcomes(bool ifEndOfSim)
+        {
             // update costs and health outcomes
             if (ModelUse != EnumModelUse.Calibration)
             {
@@ -240,6 +251,9 @@ namespace APACElib
                 }
                 EpidemicCostHealth.Add(_simTimeIndex, DecisionMaker.CostOverThisDecisionPeriod, 0);
                 DecisionMaker.CostOverThisDecisionPeriod = 0;
+
+                if (ifEndOfSim)
+                    EpidemicCostHealth.UpdateDiscountedOutcomes(_simTimeIndex);
             }
         }
         
