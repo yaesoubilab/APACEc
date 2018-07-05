@@ -36,7 +36,7 @@ namespace APACElib
         }
     }
 
-    // thereshold based decision rule
+    // condition-based decision rule
     public class DecisionRule_ConditionBased : DecisionRule
     {
         private List<Condition> _conditions;
@@ -78,19 +78,6 @@ namespace APACElib
         }
     }
 
-    // threshold-based decision rule 
-    //public class DecionRule_ThresholdBased : DecisionRule
-    //{
-    //    private double _threshold = 0;
-    //    private int _duration_nOfTimeIndices = 0;
-
-    //    public DecionRule_ThresholdBased(double threshold, int duration_nOfTimeIndices)
-    //    {
-    //        _threshold = threshold;
-    //        _duration_nOfTimeIndices = duration_nOfTimeIndices;
-    //    }
-    //}
-
     // interval-based decision rule 
     public class DecionRule_IntervalBased : DecisionRule
     {
@@ -111,8 +98,6 @@ namespace APACElib
         {
         }
     }
-
-
 
     public class IntervalBasedStaticPolicy
     {
@@ -145,4 +130,7 @@ namespace APACElib
             get { return _numOfDecisionPointsToUseInterventions; }
         }
     }
+
+
+
 }

@@ -15,7 +15,6 @@ namespace APACElib
         public double Min { get; private set; }
         public double Max { get; private set; }
         
-        // Instantiation
         public Feature(string name, int index)
         {
             Name = name;
@@ -125,122 +124,6 @@ namespace APACElib
             }
         }
     }
-
-
-
-
-    //public class Feature_DefinedOnNewClassMembers : Feature
-    //{       
-    //    int _classID;        
-        
-    //    // feature definition for incidence
-    //    public Feature_DefinedOnNewClassMembers(string name, int featureID, EnumFeatureType featureType, int classID)
-    //        : base(name, featureID, featureType)
-    //    {   
-    //        _classID = classID;
-    //    }
-    //    // feature definition for incidence and prediction
-    //    public Feature_DefinedOnNewClassMembers(string name, int featureID, EnumFeatureType featureType, int classID, int numOfObsPeriodsForFuturePrediction)
-    //        : base(name, featureID, featureType)
-    //    {            
-    //        _classID = classID;
-    //        _numOfObsPeriodsForFuturePrediction = numOfObsPeriodsForFuturePrediction;
-    //    }
-
-    //    // Properties
-    //    public int ClassID
-    //    {
-    //        get{return _classID;}
-    //    }                
-    //}
-     
-    //public class Feature_DefinedOnSummationStatistics : Feature
-    //{
-    //    int _sumStatisticsID;
-
-    //    // feature definition for incidence
-    //    public Feature_DefinedOnSummationStatistics(string name, int featureID, EnumFeatureType featureType, int sumStatisticsID)
-    //        : base(name, featureID, featureType)
-    //    {
-    //        _sumStatisticsID = sumStatisticsID;
-    //    }
-    //    // feature definition for incidence and prediction
-    //    public Feature_DefinedOnSummationStatistics(string name, int featureID, EnumFeatureType featureType, int sumStatisticsID, int numOfObsPeriodsForFuturePrediction)
-    //        : base(name, featureID, featureType)
-    //    {
-    //        _sumStatisticsID = sumStatisticsID;
-    //        _numOfObsPeriodsForFuturePrediction = numOfObsPeriodsForFuturePrediction;
-    //    }
-
-    //    // Properties
-    //    public int SumStatisticsID
-    //    {
-    //        get{return _sumStatisticsID;}
-    //    }
-    //}
-
-    //public class Feature_DefinedOnResources : Feature
-    //{
-    //    // ***** resource features only return the current availability of each resource
-
-    //    int _resourceID;
-
-    //    // Instantiation
-    //    public Feature_DefinedOnResources(string name, int featureID, int resourceID) 
-    //        : base(name, featureID)
-    //    {
-    //        _resourceID = resourceID;
-    //    }
-
-    //    // Properties
-    //    public int ResourceID
-    //    {
-    //        get { return _resourceID; }
-    //    }
-    //}
-
-    //public class Feature_NumOfDecisoinPeriodsOverWhichThisInterventionWasUsed : Feature
-    //{
-    //    int _interventionID;
-
-    //    // Instantiaion
-    //    public Feature_NumOfDecisoinPeriodsOverWhichThisInterventionWasUsed(string name, int featureID, int interventionID)
-    //        : base(name, featureID)
-    //    {
-    //        _interventionID = interventionID;
-    //    }
-
-    //    // Properties
-    //    public int InterventionID
-    //    {
-    //        get { return _interventionID; }
-    //    }
-    //}
-
-    //public class Feature_InterventionOnOffStatus : Feature
-    //{
-    //    int _interventionID;
-    //    int _previousObservationPeriodToObserveOnOffValue;
-
-    //    // Instantiaion
-    //    public Feature_InterventionOnOffStatus(string name, int featureID, int interventionID, int previousObservationPeriodToObserveOnOffValue)
-    //        : base(name, featureID)
-    //    {
-    //        _interventionID = interventionID;
-    //        _previousObservationPeriodToObserveOnOffValue = previousObservationPeriodToObserveOnOffValue;
-    //    }
-
-    //    // Properties
-    //    public int InterventionID
-    //    {
-    //        get { return _interventionID; }
-    //    }
-    //    public int PreviousObservationPeriodToObserveOnOffValue
-    //    {
-    //        get { return _previousObservationPeriodToObserveOnOffValue; }
-    //    }
-    //}
-
     
     public abstract class Condition
     {

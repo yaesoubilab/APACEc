@@ -6,7 +6,6 @@ using ComputationLib;
 
 namespace APACElib
 {
-    // Simulation and Optimization
     public enum EnumMarkOfEpidemicStartTime : int
     {
         TimeZero = 1,
@@ -54,7 +53,19 @@ namespace APACElib
         HarmonicStepSize_a = 1,
         EpsilonGreedy_beta = 2,
     }
-    
+    public enum EnumAndOr
+    {
+        And = 0,
+        Or = 1,
+    }
+    public enum EnumSign
+    {
+        e = 0,
+        l = 1,
+        q = 2,
+        le = 3,
+        qe = 4
+    }
     public enum enumIntervalBasedStaticPolicySetting : int
     {
         StartTime = 0,
@@ -67,29 +78,12 @@ namespace APACElib
         Threshold = 2,
         NumOfDecisionPeriodsToUse = 3,
     }
-    // performance 
     public enum enumTimes : int
     {
         StartSimulationAPolicy = 0,
         EndOfBuildModelFromSpreadsheet = 1,
         End = 2,
     }
-
-    public enum EnumAndOr
-    {
-        And = 0,
-        Or = 1,
-    }
-
-    public enum EnumSign
-    {
-        e = 0,
-        l = 1,
-        q = 2, 
-        le = 3, 
-        qe = 4
-    }
-
 
     // Public procedures
     public static class SupportProcedures
@@ -249,6 +243,7 @@ namespace APACElib
     }   
     
 
+    // class to collect computation time of a task
     public class Timer
     {
         // simulation run time
@@ -266,6 +261,7 @@ namespace APACElib
         }
     }
 
+    // class to store setup information that are common between sum and ratio statistics
     public class CommonSumRatioStatistics
     {
         public int ID { get; }

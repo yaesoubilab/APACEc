@@ -20,7 +20,6 @@ namespace APACElib
         private ArrayList _epidemicModellers = new ArrayList();
 
         // computation time
-        #region Variable Definition
         private double _actualTimeUsedToFindAllDynamicPolicies; // considering several ADP parameter designs
         private ObsBasedStat _obsTotalSimulationTimeToEvaluateOneStaticPolicy = new ObsBasedStat("");
         private ObsBasedStat _obsTimeUsedToFindOneStaticPolicy = new ObsBasedStat("");
@@ -37,7 +36,6 @@ namespace APACElib
         private ObsBasedStat _obsRealTimeSimulation_dynamicOptimization_totalOptimizationTime = new ObsBasedStat("");
         private ObsBasedStat _obsRealTimeSimulation_dynamicOptimization_totalCalibrationTimeOverAverageSimulationTime = new ObsBasedStat("");
         private ObsBasedStat _obsRealTimeSimulation_dynamicOptimization_totalOptimizationTimeOverAverageSimulationTime = new ObsBasedStat("");
-        #endregion
 
         // connect to the excel interface
         public void ConnectToExcelInteface()
@@ -182,14 +180,13 @@ namespace APACElib
         // run experiments
         private void RunExperiments()
         {
-            int epiModelIdx = 0;
-            double[][] simSummaryOutcomes = new double[0][];
-            string[] simItrOutcomeLabels = new string[0];
-            List<string> simItrScenarioNames = new List<string>();
-            double[][] simItrVarAndObjFunValues = new double[0][];
-            double[][] simItrOutcomes = new double[0][];
+            double[][] mainSimOutcomes = new double[0][];   // cost, health, and objective function
+            string[] simItrOutcomeLabels = new string[0];   // labels of all simulation outcomes
+            List<string> simItrScenarioNames = new List<string>();  // list of scenario names
+            double[][] simItrVarAndObjFunValues = new double[0][];  // variables and objective function for all simulation runs and scenarios 
+            double[][] simItrOutcomes = new double[0][];    
 
-            // read variable names
+            // read model variable names to perform senstivity analysis on
             ExcelIntface.ActivateSheet("Experimental Designs");
             int firstRow = ExcelIntface.RowIndex("baseExperimentalDesignsVariableValues");
             int firstCol = ExcelIntface.ColIndex("baseExperimentalDesignsVariableValues") + 1;
@@ -211,17 +208,15 @@ namespace APACElib
             _epidemicModellers.Clear();
             int numOfDesigns = experimentDesigns.GetLength(0);
             int numOfVars = experimentDesigns.GetLength(1);
-
             for (int designIndex = 0; designIndex < numOfDesigns; designIndex++)
             {
-                #region read a design, and build and run the epidemic model 
                 // find the design
                 double[] thisDesign = new double[numOfVars];
                 for (int varIndex = 0; varIndex < numOfVars; varIndex++)
                     thisDesign[varIndex] = experimentDesigns[designIndex, varIndex];
                 // write back the design
                 ExcelIntface.WriteADesign(thisDesign);
-                // recalculate
+                // recalculate Excel worksheet
                 ExcelIntface.Recalculate();
                 // read model settings
                 _modelSettings.ReadSettings(ref _excelInterface);
@@ -232,10 +227,8 @@ namespace APACElib
                 // run the simulation
                 thisEpidemicModeller.SimulateEpidemics();
 
-                #endregion
-
-                // concatenate simulation summary statistics 
-                simSummaryOutcomes = SupportFunctions.ConcatJaggedArray(simSummaryOutcomes, ExtractSimSummaryOutcomes(thisEpidemicModeller));
+                // concatenate main simulation outcomes (cost, health, and objective function) 
+                mainSimOutcomes = SupportFunctions.ConcatJaggedArray(mainSimOutcomes, ExtractMainSimOutcomes(thisEpidemicModeller));
 
                 // simulation iterations
                 // first read variable values and the objective function samples
@@ -247,7 +240,7 @@ namespace APACElib
                     simItrScenarioNames.Add(scenarioNames[designIndex]);
                     // this design
                     for (int varIndex = 0; varIndex < numOfVars; varIndex++)
-                        thisSimItrVarAndObjFunValues[simItr][varIndex] = experimentDesigns[epiModelIdx, varIndex];
+                        thisSimItrVarAndObjFunValues[simItr][varIndex] = experimentDesigns[designIndex, varIndex];
                     // objective function
                     if (_modelSettings.ObjectiveFunction == EnumObjectiveFunction.MaximizeNHB)
                         thisSimItrVarAndObjFunValues[simItr][numOfVars + 0]
@@ -259,7 +252,7 @@ namespace APACElib
                             - thisEpidemicModeller.SimSummary.Costs[simItr];
 
                 }
-                // then read the outcomes 
+                // then read the all simulation outcomes 
                 double[][] thisSimItrOutcomes = new double[0][];
                 thisEpidemicModeller.SimSummary.GetIndvEpidemicOutcomes(
                     ref simItrOutcomeLabels, 
@@ -273,15 +266,13 @@ namespace APACElib
                 simItrOutcomes = SupportFunctions.ConcatJaggedArray(
                     simItrOutcomes, 
                     thisSimItrOutcomes);
-
-                ++epiModelIdx;
             }
 
             // report summary statistics
             ExcelIntface.ReportSummaryOutcomes(
                 "Experimental Designs", "baseExperimentalDesignsResults",
                 SupportFunctions.ConvertJaggedArrayToRegularArray(
-                    simSummaryOutcomes, 6), 
+                    mainSimOutcomes, 6), 
                 _modelSettings.ObjectiveFunction
                 );
 
@@ -539,8 +530,9 @@ namespace APACElib
         //        thisHarmonicStepSize_a += _harmonicRule_a_step;
         //    }
         //}
-        // extract simulation outcomes from this epidemic modeler
-        private double[][] ExtractSimSummaryOutcomes(EpidemicModeller epidemicModeller)
+
+        // extract main simulation outcomes (cost, health and objecstive function) from this epidemic modeler
+        private double[][] ExtractMainSimOutcomes(EpidemicModeller epidemicModeller)
         {
             double[][] thisSimulationOutcomes = new double[1][];
             thisSimulationOutcomes[0] = new double[6];
@@ -790,7 +782,7 @@ namespace APACElib
                 adpOptParameterDesigns = SupportFunctions.ConcatJaggedArray(adpOptParameterDesigns, thisAdpOptParameterDesigns);
 
                 // simulation outcomes
-                adpSASimulationOutcomes = SupportFunctions.ConcatJaggedArray(adpSASimulationOutcomes, ExtractSimSummaryOutcomes(thisEpiModeller));
+                adpSASimulationOutcomes = SupportFunctions.ConcatJaggedArray(adpSASimulationOutcomes, ExtractMainSimOutcomes(thisEpiModeller));
 
                 // simulation iterations
                 double[][] thisSimulationIterations = new double[_modelSettings.NumOfSimItrs][];

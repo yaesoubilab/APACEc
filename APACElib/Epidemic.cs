@@ -242,6 +242,7 @@ namespace APACElib
             // update costs and health outcomes
             if (ModelUse != EnumModelUse.Calibration)
             {
+                // collect cost and health outcomes of classes
                 foreach (Class thisClass in Classes.Where(s => !(s.ClassStat.DeltaCostHealthCollector is null)))
                 {
                     EpidemicCostHealth.Add(
@@ -249,6 +250,12 @@ namespace APACElib
                         thisClass.ClassStat.DeltaCostHealthCollector.DeltaTCost,
                         thisClass.ClassStat.DeltaCostHealthCollector.DeltaTDALY);
                 }
+                foreach (SumClassesTrajectory thisSumTraj in EpiHist.SumTrajs.Where(s => !(s.DeltaCostHealthCollector is null)))
+                    EpidemicCostHealth.Add(
+                        _simTimeIndex,
+                        thisSumTraj.DeltaCostHealthCollector.DeltaTCost,
+                        thisSumTraj.DeltaCostHealthCollector.DeltaTDALY);
+
                 EpidemicCostHealth.Add(_simTimeIndex, DecisionMaker.CostOverThisDecisionPeriod, 0);
                 DecisionMaker.CostOverThisDecisionPeriod = 0;
 

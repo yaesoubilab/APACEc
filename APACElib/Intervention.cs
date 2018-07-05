@@ -129,19 +129,6 @@ namespace APACElib
             EpiTimeIndexToGoIntoEffect = int.MaxValue;
             EpiTimeIndexLastTurnedOn = int.MaxValue;
             EpiTimeIndexLastTurnedOff = int.MaxValue;
-
-            //// find the time to go into effect
-            //if (Type == EnumInterventionType.Default)
-            //{
-            //    EpiTimeIndexToTurnOn = int.MinValue;
-            //    EpiTimeIndexLastTurnedOn = int.MinValue;
-            //    EpiTimeIndexToGoIntoEffect = int.MinValue;
-            //    EpiTimeIndexToTurnOff = int.MaxValue;
-            //}
-            //else
-            //{
-                
-            //}
         }
         
     }

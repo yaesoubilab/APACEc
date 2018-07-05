@@ -56,7 +56,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Calibration.cs" />
+    <Compile Include="CalibrationClasses.cs" />
     <Compile Include="old\CalibrationOld.cs" />
     <Compile Include="APACE.cs" />
     <Compile Include="Class.cs" />
@@ -67,11 +67,11 @@
     <Compile Include="EpiModellerClasses.cs" />
     <Compile Include="Event.cs" />
     <Compile Include="ExcelInterface.cs" />
-    <Compile Include="Feature.cs" />
+    <Compile Include="FeaturesAndConditions.cs" />
     <Compile Include="Intervention.cs" />
     <Compile Include="ModelSettings.cs" />
     <Compile Include="EpidemicControl.cs" />
-    <Compile Include="DecisionRuleClasses.cs" />
+    <Compile Include="DecisionMakingClasses.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ResourceClasses.cs" />
     <Compile Include="Support.cs" />
