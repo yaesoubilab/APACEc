@@ -707,7 +707,7 @@ namespace APACElib
             arrComputationStatistics = new double[2, 3];
 
             #region summary statistics
-            strSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.TotalDALY - 1] = "Total discounted health measure";
+            strSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.TotalDALY - 1] = "Total discounted DALY";
             strSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.TotalCost - 1] = "Total discounted cost";
             strSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.AnnualCost - 1] = "Total annual cost";
             strSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.NHB - 1] = "Total discounted net health benefit";

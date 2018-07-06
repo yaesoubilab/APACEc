@@ -126,7 +126,7 @@ namespace APACElib
             else
                 return annualDiscountRate * TotalDisountedCost / (1 - Math.Pow(1 + annualDiscountRate, -(currentYear - warmUpYear)));
         }
-        public double GetEquivalentAnnualDALY(double annualDiscountRate, int currentYear, int warmUpYear)
+        public double GetEquivalentAnnualDALY(double annualDiscountRate, int warmUpYear, int currentYear)
         {
             if (annualDiscountRate == 0)
                 return TotalDiscountedDALY / (currentYear - warmUpYear);
@@ -140,7 +140,12 @@ namespace APACElib
         }
         public double GetDiscountedNHB(double wtp)
         {
-            return -TotalDisountedCost / wtp - TotalDiscountedDALY;
+            double value = 0;
+            if (wtp > 0)
+                value = -TotalDisountedCost / wtp - TotalDiscountedDALY;
+            else
+                value = double.MinValue;
+            return value;
         }
 
         public void Reset()
