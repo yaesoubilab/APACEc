@@ -68,8 +68,8 @@ namespace APACElib
                 if (ThereAreTimeDepParms_diseaseProgression)
                 {
                     // update rates associated with each class and their initial size
-                    foreach (Class thisClass in classes)
-                        thisClass.UpdateRatesOfBirthAndEpiIndpEvents(ParameterValues);
+                    //foreach (Class thisClass in classes)
+                    //    thisClass.UpdateRatesOfBirthAndEpiIndpEvents(ParameterValues);
                 }
 
                 // update value of splitting class parameters

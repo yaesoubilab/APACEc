@@ -36,41 +36,20 @@ namespace APACElib
             MembersWaitingToDepart = false;
         }
 
-        public virtual bool EmptyToEradicate
-        {
-            get { return false; }
-        }
-        public virtual int InitialMemebersParID
-        {
-            get { return 0; }
-        }
-        public virtual int RowIndexInContactMatrix
-        {
-            get { return 0; }
-        }
-        public virtual double[] SusceptibilityValues
-        {
-            get { return new double[0]; }
-        }
-        public virtual double[] InfectivityValues
-        {
-            get { return new double[0]; }
-        }
-        public virtual int[] ResourcesConsumed
-        {
-            get { return new int[0]; }
-        }
-        public virtual bool IsEpiDependentEventActive
-        {
-            get { return false; }
-        }
+        public virtual bool EmptyToEradicate => false;
+        public virtual int InitialMemebersParID => 0;
+        public virtual int RowIndexInContactMatrix => 0;
+        public virtual double[] SusceptibilityValues => new double[0];
+        public virtual double[] InfectivityValues => new double[0];
+        public virtual int[] ResourcesConsumed => new int[0];
+        public virtual bool IsEpiDependentEventActive => false;
       
         //  add new member
         public virtual void AddNewMembers(int numOfNewMembers) { }
         // update the initial number of members
         public virtual void UpdateInitialNumOfMembers(int sampledValue) { }
         // update rates of epidemic independent processes associated to this class
-        public virtual void UpdateRatesOfBirthAndEpiIndpEvents(double[] updatedParameterValues) { }
+        //public virtual void UpdateRatesOfBirthAndEpiIndpEvents(double[] updatedParameterValues) { }
         // update susceptibility values
         public virtual void UpdateSusceptibilityParams(double[] arrSampledParameterValues) { }
         // update infectivity values
@@ -112,37 +91,17 @@ namespace APACElib
         private int[] _currentInterventionCombination;
 
         public Class_Normal(int ID, string name)
-            : base(ID, name)
-        {
-        }
+            : base(ID, name){}
 
-        public override int InitialMemebersParID
-        {
-            get { return _initialMembersParID; }
-        }
-        public override bool EmptyToEradicate
-        {
-            get { return _emptyToEradicate; }
-        }
+        public override int InitialMemebersParID => _initialMembersParID;
+        public override bool EmptyToEradicate => _emptyToEradicate;
         // transmission 
         public int[] SusceptibilityParIDs { get; private set; }
         public int[] InfectivityParIDs { get; private set; }
-        public override double[] SusceptibilityValues
-        {
-            get { return _susceptibilityValues; }
-        }
-        public override double[] InfectivityValues
-        {
-            get { return _infectivityValues; }
-        }
-        public override int RowIndexInContactMatrix
-        {
-            get { return _rowIndexInContactMatrix; }
-        }
-        public override bool IsEpiDependentEventActive
-        {
-            get{return _isEpiDependentEventActive;}
-        }
+        public override double[] SusceptibilityValues => _susceptibilityValues;
+        public override double[] InfectivityValues => _infectivityValues;
+        public override int RowIndexInContactMatrix => _rowIndexInContactMatrix;
+        public override bool IsEpiDependentEventActive => _isEpiDependentEventActive;
 
         // add an event
         public void AddAnEvent(Event e)
@@ -198,13 +157,6 @@ namespace APACElib
             for (int i = 0; i < InfectivityParIDs.Length; i++)
                 _infectivityValues[i] = Math.Max(0, values[InfectivityParIDs[i]]);
         }
-        // update rates of epidemic independent processes associated to this class
-        public override void UpdateRatesOfBirthAndEpiIndpEvents(double[] values)
-        {
-            foreach (Event e in _events.Where(e => e.IDOfRateParameter > 0))
-                e.UpdateRate(values[e.IDOfRateParameter]);
-        }        
-
         // update transmission rates affecting this class
         public override void UpdateTransmissionRates(double[] transmissionRatesByPathogen)
         {
@@ -380,9 +332,7 @@ namespace APACElib
         
         // Properties
         public Class_Splitting(int ID, string name)
-            : base(ID, name)
-        {
-        }
+            : base(ID, name) {}
 
         // Properties
         public int ParIDOfProbOfSuccess { get; private set; }
@@ -473,15 +423,10 @@ namespace APACElib
 
         // Properties
         public Class_ResourceMonitor(int ID, string name)
-            : base(ID, name)
-        {
-        }
+            : base(ID, name){ }
 
         // Properties        
-        public override int[] ResourcesConsumed
-        {
-            get { return _arrResourcesConsumed; }
-        }
+        public override int[] ResourcesConsumed => _arrAvailableResources;
        
         // add a resource rule
         public void SetUp(int resourceIDToCheckAvailability, double resourceUnitsConsumedPerArrival, int destinationClassIDGivenSuccess, int destinationClassIDGivenFailure)

@@ -16,14 +16,12 @@ namespace APACElib
         public int ID { get; }
         public int IDOfActivatingIntervention { get; }
         public int IDOfDestinationClass { get; }
-        public int IDOfRateParameter { get; protected set; } = -1;  // -1 for transmission rate and >=0 for birth and epidemic indepedent events
-
+        protected Parameter _rateParam = null; // null for transmission rate and not null for birth and epidemic indepedent events
         protected double _rate;
 
-        public double Rate { get => _rate; }
-        public virtual int IDOfPathogenToGenerate { get { return -1; } }
+        public virtual double Rate => 0;
+        public virtual int IDOfPathogenToGenerate => -1;
         public int MembersOutOverPastDeltaT { get; set; }
-
         public enum EumType
         {
             Birth = 1,
@@ -40,11 +38,8 @@ namespace APACElib
             IDOfDestinationClass = idOfDestinationClass;
         }
 
-        // update birth, transmission or other  rates
-        public void UpdateRate(double value)
-        {
-            _rate = value;
-        }
+        // update transmission
+        public virtual void UpdateRate(double value){}
     }
 
     public class Event_Birth : Event
@@ -54,12 +49,14 @@ namespace APACElib
             string name, 
             int ID, 
             int IDOfActivatingIntervention, 
-            int IDOfRateParameter, 
+            Parameter rateParameter, 
             int IDOfDestinationClass)
             : base(name, ID, IDOfActivatingIntervention,IDOfDestinationClass)
         {
-            this.IDOfRateParameter = IDOfRateParameter;
+            _rateParam = rateParameter;
         }
+
+        public override double Rate => _rateParam.Value;
     }
 
     public class Event_EpidemicDependent : Event
@@ -81,6 +78,12 @@ namespace APACElib
         public override int IDOfPathogenToGenerate
         { get { return _IDOfPathogenToGenerate; } }
 
+        public override double Rate => _rate;
+        public override void UpdateRate(double value)
+        {
+            _rate = value;
+        }
+
     } 
 
     public class Event_EpidemicIndependent : Event
@@ -90,12 +93,13 @@ namespace APACElib
             string name, 
             int ID, 
             int IDOfActivatingIntervention, 
-            int IDOfRateParameter, 
+            Parameter rateParameter, 
             int IDOfDestinationClass)
             : base(name, ID, IDOfActivatingIntervention, IDOfDestinationClass)
         {
-            this.IDOfRateParameter = IDOfRateParameter;
+            _rateParam = rateParameter;
         }
-    }        
-   
+
+        public override double Rate => _rateParam.Value;
+    }   
 }

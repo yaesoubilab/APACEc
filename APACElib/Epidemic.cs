@@ -327,7 +327,7 @@ namespace APACElib
             // update rates associated with each class and their initial size
             foreach (Class thisClass in Classes)
             {
-                thisClass.UpdateRatesOfBirthAndEpiIndpEvents(_paramManager.ParameterValues);
+                //thisClass.UpdateRatesOfBirthAndEpiIndpEvents(_paramManager.ParameterValues);
                 thisClass.UpdateProbOfSuccess(_paramManager.ParameterValues);
                 thisClass.Reset();
             }
@@ -889,7 +889,7 @@ namespace APACElib
                         {
                             int IDOfRateParameter = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfRateParameter));
                             // create the event
-                            Event_Birth thisEvent_Birth = new Event_Birth(name, ID, IDOfActivatingIntervention, IDOfRateParameter, IDOfDestinationClass);
+                            Event_Birth thisEvent_Birth = new Event_Birth(name, ID, IDOfActivatingIntervention, _paramManager.Parameters[IDOfRateParameter], IDOfDestinationClass);
                             _events.Add(thisEvent_Birth);
                         }
                         break;
@@ -897,7 +897,7 @@ namespace APACElib
                         {
                             int IDOfRateParameter = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfRateParameter));
                             // create the process
-                            Event_EpidemicIndependent thisEvent_EpidemicIndependent = new Event_EpidemicIndependent(name, ID, IDOfActivatingIntervention, IDOfRateParameter, IDOfDestinationClass);
+                            Event_EpidemicIndependent thisEvent_EpidemicIndependent = new Event_EpidemicIndependent(name, ID, IDOfActivatingIntervention, _paramManager.Parameters[IDOfRateParameter], IDOfDestinationClass);
                             _events.Add(thisEvent_EpidemicIndependent);
 
                             // check if the rate parameter is time dependent
