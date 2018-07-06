@@ -10,7 +10,7 @@ namespace APACElib
 {
     public abstract class TimeSeries
     {
-        public List<double> Recordings { get; set; } = new List<double>();
+        public List<double?> Recordings { get; set; } = new List<double?>();
         protected int _nRecordingsInThisPeriod = 0;
         protected int _nRecodingsInEachPeriod;
 
@@ -19,21 +19,21 @@ namespace APACElib
             _nRecodingsInEachPeriod = nRecodingsInEachPeriod;
         }
 
-        public abstract void Record(double value);
+        public abstract void Record(double? value);
 
         /// <returns> the last period recording </returns>
-        public double GetLastRecording()
+        public double? GetLastRecording()
         {
             if (Recordings.Count == 0)
-                return double.NaN;
+                return null;
             else
                 return Recordings.Last();
         }
         /// <returns> the last period observations when there is a delay </returns>
-        public double GetLastRecording(int nPeriodDelay)
+        public double? GetLastRecording(int nPeriodDelay)
         {
             if (Recordings.Count < nPeriodDelay)
-                return double.NaN;
+                return null;
             else
                 return Recordings[Recordings.Count - nPeriodDelay - 1];
         }
@@ -47,7 +47,7 @@ namespace APACElib
         {
         }
 
-        public override void Record(double value)
+        public override void Record(double? value)
         {
             // find if a new element should be added to the list
             if (_nRecordingsInThisPeriod % _nRecodingsInEachPeriod == 0)
@@ -66,7 +66,7 @@ namespace APACElib
         public override void Reset()
         {
             Recordings.Clear();
-            //ObsList.Add(0); // 0 added for the interval 0
+            Recordings.Add(null); // 0 added for the interval 0
             _nRecordingsInThisPeriod = 0;
         }
     }
@@ -77,7 +77,7 @@ namespace APACElib
         {
         }
 
-        public override void Record(double value)
+        public override void Record(double? value)
         {
             // find if a new element should be added to the list
             if (_nRecordingsInThisPeriod % _nRecodingsInEachPeriod == 0)
@@ -166,7 +166,7 @@ namespace APACElib
 
             // average prevalence
             if (CollectPrevalenceStats)
-                    AveragePrevalenceStat.Record(Prevalence);
+                AveragePrevalenceStat.Record(Prevalence);
 
             // time series
             if (!(IncidenceTimeSeries is null) && simIndex>0)
@@ -285,22 +285,18 @@ namespace APACElib
 
         public abstract bool Add(int simIndex, ref List<Class> classes, ref List<Event> events);
 
-        public double GetLastRecording()
+        public double? GetLastRecording()
         {
-            double value = 0;
             switch (Type)
             {
                 case EnumType.Incidence:
-                    value = IncidenceTimeSeries.GetLastRecording();
-                    break;
+                    return IncidenceTimeSeries.GetLastRecording();
                 case EnumType.AccumulatingIncident:
-                    value = AccumulatedIncidenceAfterWarmUp;
-                    break;
+                    return AccumulatedIncidenceAfterWarmUp;
                 case EnumType.Prevalence:
-                    value = PrevalenceTimeSeries.GetLastRecording();
-                    break;
+                    return PrevalenceTimeSeries.GetLastRecording();
             }
-            return value;
+            return null;
         }
 
         // convert sum formula into the array of class IDs or event IDs
@@ -452,7 +448,7 @@ namespace APACElib
         public Boolean DisplayInSimOutput { get; }
         public PrevalenceTimeSeries TimeSeries { get; set; }    // treating all ratio stat as prevalence
         public ObsBasedStat AveragePrevalenceStat { get; set; }
-        public double Ratio { get; private set; }
+        public double? Ratio { get; private set; } = null;
         public int Denom { get; private set; }
 
         public EnumType Type { get; set; }
@@ -502,7 +498,6 @@ namespace APACElib
 
         public bool Add(int simIndex, List<SumTrajectory> sumTrajectories)
         {
-            Ratio = double.NaN;
             Denom = -1;
             bool ifFeasiableRangesViolated = false;
 
@@ -517,15 +512,15 @@ namespace APACElib
                     break;
                 case EnumType.IncidenceOverIncidence:
                     {
-                        double denom = sumTrajectories[DenominatorSpecialStatID].GetLastRecording();
-                        if (denom is double.NaN || denom == 0)
-                            Ratio = double.NaN;
-                        else
+                        double? denom = sumTrajectories[DenominatorSpecialStatID].GetLastRecording();
+                        if (denom.HasValue)
                         {
                             Denom = (int)denom;
                             Ratio = (double)sumTrajectories[NominatorSpecialStatID].GetLastRecording()
                                 / Denom;
                         }
+                        else
+                            Ratio = null;
                     }
                     break;
                 case EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
@@ -538,15 +533,19 @@ namespace APACElib
                 case EnumType.IncidenceOverPrevalence:
                     {
                         Denom = sumTrajectories[DenominatorSpecialStatID].Prevalence;
-                        Ratio = (double)sumTrajectories[NominatorSpecialStatID].GetLastRecording()
+                        double? incidence = sumTrajectories[NominatorSpecialStatID].GetLastRecording();
+                        if (incidence.HasValue)
+                            Ratio = incidence.Value
                                 / Denom;
+                        else
+                            Ratio = null;
                     }
                     break;
             }
 
             TimeSeries.Record(Ratio);
             if (simIndex >= _warmUpSimIndex && AveragePrevalenceStat != null)
-                AveragePrevalenceStat.Record(Ratio);
+                AveragePrevalenceStat.Record(Ratio.Value);
 
             if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
             {
@@ -601,7 +600,8 @@ namespace APACElib
         }
 
         public abstract void Update(int epiTimeIndex, RNG rnd);
-        public abstract double GetLastObs(int epiTimeIndex);
+        public abstract double? GetLastObs(int epiTimeIndex);
+        public abstract double? GetIncrementalChange(int epiTimeIndex);
     }
 
     // a surveyed incidence trajectory
@@ -640,13 +640,18 @@ namespace APACElib
 
             _timeSeries.Record(value);
         }
-        public override double GetLastObs(int epiTimeIndex)
+        public override double? GetLastObs(int epiTimeIndex)
         {
-            double value = -1;
             if (epiTimeIndex > _nDeltaTsObsPeriod * _nObsPeriodsDelay)
-                value = _timeSeries.GetLastRecording(_nObsPeriodsDelay);
+                return _timeSeries.GetLastRecording(_nObsPeriodsDelay);
+            return null;
+        }
+        public override double? GetIncrementalChange(int epiTimeIndex)
+        {
+            if (epiTimeIndex > _nDeltaTsObsPeriod * (_nObsPeriodsDelay+1))
+                return _timeSeries.GetLastRecording(_nObsPeriodsDelay) - _timeSeries.GetLastRecording(_nObsPeriodsDelay+1);
 
-            return value;
+            return null;
         }
         public void Reset()
         {
@@ -682,15 +687,15 @@ namespace APACElib
 
         public override void Update(int epiTimeIndex, RNG rnd)
         {
-            double value = 0;
+            double? value = null;
             if (!(_sumClassesTraj is null))
                 value = _sumClassesTraj.Prevalence;
             else if (!(_ratioTraj is null))
             {
                 // check if there is noise (less than 100% of the denominator is sampled in reality)
-                if (_noise_percOfDemoninatorSampled < 0.99999 && !(_ratioTraj.Ratio is double.NaN))
+                if (_noise_percOfDemoninatorSampled < 0.99999 && _ratioTraj.Ratio.HasValue && !(_ratioTraj.Ratio is double.NaN))
                 {
-                    double mean = _ratioTraj.Ratio;
+                    double mean = _ratioTraj.Ratio.Value;
                     if (mean > 0)
                     {
                         double stDev = Math.Sqrt(mean * (1 - mean));
@@ -708,12 +713,17 @@ namespace APACElib
 
             _timeSeries.Record(value);
         }
-        public override double GetLastObs(int epiTimeIndex)
+        public override double? GetLastObs(int epiTimeIndex)
         {
-            double value = -1;
             if (epiTimeIndex >= _nDeltaTsObsPeriod * _nObsPeriodsDelay)
-                value = _timeSeries.GetLastRecording(_nObsPeriodsDelay);
-            return value;
+                return _timeSeries.GetLastRecording(_nObsPeriodsDelay);
+            return null;
+        }
+        public override double? GetIncrementalChange(int epiTimeIndex)
+        {
+            if (epiTimeIndex >= _nDeltaTsObsPeriod * (_nObsPeriodsDelay+1))
+                return _timeSeries.GetLastRecording(_nObsPeriodsDelay) - _timeSeries.GetLastRecording(_nObsPeriodsDelay+1);
+            return null;
         }
         public void Reset()
         {
@@ -967,8 +977,7 @@ namespace APACElib
             thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = epiTimeIndex * _deltaT;
 
             foreach (SurveyedIncidenceTrajectory incdTraj in _surveyIncidenceTrajs.Where(i => i.DisplayInSimOut))
-                thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = 
-                    SupportProcedures.ReplaceNaNWith(incdTraj.GetLastObs(epiTimeIndex), -1);
+                thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = incdTraj.GetLastObs(epiTimeIndex).GetValueOrDefault(-1);
 
             foreach (SurveyedPrevalenceTrajectory prevTraj in _surveyPrevalenceTrajs.Where(i => i.DisplayInSimOut))
                 thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = 

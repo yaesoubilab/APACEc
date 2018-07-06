@@ -608,13 +608,13 @@ namespace APACElib
                 switch (ratioTraj.Type)
                 {
                     case RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
-                        RatioStats[ratioStatIndex].Record(ratioTraj.TimeSeries.GetLastRecording(), simItr);
+                        RatioStats[ratioStatIndex].Record(ratioTraj.TimeSeries.GetLastRecording().GetValueOrDefault(-1), simItr);
                         break;
                     case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
                         RatioStats[ratioStatIndex].Record(ratioTraj.AveragePrevalenceStat.Mean, simItr);
                         break;
                     case RatioTrajectory.EnumType.IncidenceOverIncidence:
-                        RatioStats[ratioStatIndex].Record(ratioTraj.TimeSeries.Recordings.Average(), simItr);
+                        RatioStats[ratioStatIndex].Record((double)ratioTraj.TimeSeries.Recordings.Average(), simItr);
                         break;
                 }
                 ++ratioStatIndex;

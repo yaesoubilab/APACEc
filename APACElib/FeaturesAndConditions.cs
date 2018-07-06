@@ -11,7 +11,7 @@ namespace APACElib
     {
         public string Name { get; private set; }
         public int Index { get; private set; }
-        public double Value { get; protected set; }
+        public double? Value { get; protected set; }
         public double Min { get; private set; }
         public double Max { get; private set; }
         
@@ -28,9 +28,9 @@ namespace APACElib
         protected void UpdateMinMax()
         {
             if (Value > Max)
-                Max = Value;
+                Max = Value.GetValueOrDefault();
             if (Value < Min)
-                Min = Value;
+                Min = Value.GetValueOrDefault();
         }
     }
 
@@ -187,12 +187,12 @@ namespace APACElib
                         for (int i = 0; i < _featureIDs.Length; i++)
                         {
                             // if one does not 
-                            if (!(SupportProcedures.ValueOfComparison(
-                                _features[_featureIDs[i]].Value, _signs[i], _thresholds[i]))
-                                )
+                            if (!_features[_featureIDs[i]].Value.HasValue)
+                                return false;
+                            else if (!SupportProcedures.ValueOfComparison(
+                                _features[_featureIDs[i]].Value.Value, _signs[i], _thresholds[i]))                                
                             {
-                                result = false;
-                                break;
+                                return false;
                             }
                         }
                     }
@@ -203,8 +203,10 @@ namespace APACElib
                         for (int i = 0; i < _featureIDs.Length; i++)
                         {
                             // if one is within
-                            if (SupportProcedures.ValueOfComparison(
-                                _features[_featureIDs[i]].Value, _signs[i], _thresholds[i]))
+
+                            if (_features[_featureIDs[i]].Value.HasValue && 
+                                SupportProcedures.ValueOfComparison(
+                                    _features[_featureIDs[i]].Value.Value, _signs[i], _thresholds[i]))
                             {
                                 result = true;
                                 break;

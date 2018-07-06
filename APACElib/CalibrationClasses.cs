@@ -332,7 +332,7 @@ namespace APACElib
                 // if an observation is recorded
                 if (info.Obs[i].HasValue)
                 {
-                    double simValue = sumTrajs[IndexOfSumStat_Prev].PrevalenceTimeSeries.Recordings[i];
+                    double simValue = sumTrajs[IndexOfSumStat_Prev].PrevalenceTimeSeries.Recordings[i].Value;
                     double stDev = info.LikelihoodParam[i].Value * simValue / 3; // measurement error * simulated prevalence
 
                     // pdf of normal calcualted at x = observation
@@ -370,8 +370,8 @@ namespace APACElib
                 // if an observation is recorded
                 if (info.Obs[i].HasValue)
                 {
-                    double simPrev = sumTrajs[IndexOfSumStat_Prev].PrevalenceTimeSeries.Recordings[i-1];
-                    double simInc = sumTrajs[IndexOfSumStat_Incd].IncidenceTimeSeries.Recordings[i-1];
+                    double simPrev = sumTrajs[IndexOfSumStat_Prev].PrevalenceTimeSeries.Recordings[i-1].Value;
+                    double simInc = sumTrajs[IndexOfSumStat_Incd].IncidenceTimeSeries.Recordings[i-1].Value;
                     double p = Math.Min(simInc / simPrev, 1);
 
                     // pdf of binomial calcualted at x = observation
@@ -408,8 +408,8 @@ namespace APACElib
                 // if an observation is recorded
                 if (info.Obs[i].HasValue)
                 {
-                    double simNomin = sumTrajs[IndexOfSumStat_PrevNomin].PrevalenceTimeSeries.Recordings[i];
-                    double simDenomin = sumTrajs[IndexOfSumStat_PrevDenom].PrevalenceTimeSeries.Recordings[i];
+                    double simNomin = sumTrajs[IndexOfSumStat_PrevNomin].PrevalenceTimeSeries.Recordings[i].Value;
+                    double simDenomin = sumTrajs[IndexOfSumStat_PrevDenom].PrevalenceTimeSeries.Recordings[i].Value;
                     double simPrev = simNomin / simDenomin;
                     int obs = (int)(info.Obs[i].Value * info.LikelihoodParam[i].Value);
 
