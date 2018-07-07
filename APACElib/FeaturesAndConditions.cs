@@ -84,8 +84,7 @@ namespace APACElib
                     break;
 
                 case EnumFeatureType.Slope:
-                    // TODO: implement slope
-                    Value = 0;
+                    Value = _surveyedTraj.GetIncrementalChange(epiTimeIndex);
                     break;
             }
 

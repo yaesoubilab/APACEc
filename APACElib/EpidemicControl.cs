@@ -231,40 +231,27 @@ namespace APACElib
             {
                 foreach (Intervention a in _decisionMaker.Interventions)
                 {
-                    //the default intervention is always in effect
-                    //if (a.Type == EnumInterventionType.Default)
-                    //{
-                    //    InterventionsInEffect[a.Index] = 1;
-                    //    a.EpiTimeIndexToTurnOff = int.MaxValue;
-                    //    a.EpiTimeIndexToGoIntoEffect = int.MaxValue;
-                    //}
-                    //else
+                    // if this intervention is going into effect
+                    if (InterventionsInEffect[a.Index] == 0 && a.EpiTimeIndexToGoIntoEffect <= epiTimeIndex)
                     {
-                        // if this intervention is going into effect
-                        if (InterventionsInEffect[a.Index] == 0 && a.EpiTimeIndexToGoIntoEffect <= epiTimeIndex)
-                        {
-                            InterventionsInEffect[a.Index] = 1;
-                            // find when it should be turned off
-                            a.EpiTimeIndexToTurnOff = a.FindEpiTimeIndexToTurnOff(epiTimeIndex);
-                            a.EpiTimeIndexToGoIntoEffect = int.MaxValue;
-                        }
-                        // if this intervention is being lifted
-                        else if (InterventionsInEffect[a.Index] == 1 && a.EpiTimeIndexToTurnOff <= epiTimeIndex)
-                        {
-                            InterventionsInEffect[a.Index] = 0;
+                        InterventionsInEffect[a.Index] = 1;
+                        // find when it should be turned off
+                        a.EpiTimeIndexToTurnOff = a.FindEpiTimeIndexToTurnOff(epiTimeIndex);
+                        a.EpiTimeIndexToGoIntoEffect = int.MaxValue;
+                    }
+                    // if this intervention is being lifted
+                    else if (InterventionsInEffect[a.Index] == 1 && a.EpiTimeIndexToTurnOff <= epiTimeIndex)
+                    {
+                        InterventionsInEffect[a.Index] = 0;
 
-                            a.EpiTimeIndexToTurnOn = int.MaxValue;
-                            a.EpiTimeIndexToGoIntoEffect = int.MaxValue;
-                            a.EpiTimeIndexToTurnOff = int.MaxValue;
-                        }
+                        a.EpiTimeIndexToTurnOn = int.MaxValue;
+                        a.EpiTimeIndexToGoIntoEffect = int.MaxValue;
+                        a.EpiTimeIndexToTurnOff = int.MaxValue;
                     }
                 }
 
-                //_decisionMaker.UpdateNextEpiTimeIndexToChangeInterventionsInEffect();
-
-                //// update interventions that are in effect for each class
-                //foreach (Class thisClass in classes)
-                //    thisClass.UpdateIntrvnCombination(InterventionsInEffect);
+                // add active events to classes
+                AddActiveEvents(epiTimeIndex, ref classes);
             }
         }
 

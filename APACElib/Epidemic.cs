@@ -152,9 +152,6 @@ namespace APACElib
                     // make decisions if decision is not predetermined and announce the new decisions (may not necessarily go into effect)
                     _monitorOfIntrvsInEffect.MakeADecision(_epiTimeIndex, false, ref _classes);
 
-                // add active events
-                _monitorOfIntrvsInEffect.AddActiveEvents(_epiTimeIndex, ref _classes);
-
                 // update the effect of chance in time dependent parameter value
                 _paramManager.UpdateTimeDepParams(_rng, _simTimeIndex * _modelSets.DeltaT, _classes);
 
@@ -329,13 +326,9 @@ namespace APACElib
             // update rates associated with each class and their initial size
             foreach (Class thisClass in Classes)
             {
-                //thisClass.UpdateRatesOfBirthAndEpiIndpEvents(_paramManager.ParameterValues);
                 thisClass.UpdateProbOfSuccess(_paramManager.ParameterValues);
                 thisClass.Reset();
             }
-
-            // implement decisions
-            //_monitorOfIntrvsInEffect.AddActiveEvents(_epiTimeIndex, ref _classes);
 
             // reset epidemic history 
             EpiHist.Reset();       
