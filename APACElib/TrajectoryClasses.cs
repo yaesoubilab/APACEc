@@ -1121,6 +1121,9 @@ namespace APACElib
             // update features
             foreach (Feature f in Features)
                 f.Update(epiTimeIndex);
+            // update conditions
+            foreach (Condition c in Conditions)
+                c.Update(epiTimeIndex);
 
             return ifFeasibleRangesViolated;
         }

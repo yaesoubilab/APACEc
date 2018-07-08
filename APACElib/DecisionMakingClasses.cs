@@ -55,10 +55,10 @@ namespace APACElib
         {
             int value = currentSwitchStatus;
             // if to turn on
-            if (currentSwitchStatus == 0 && _conditions[_conditionIDToTurnOn].GetValue(epiTimeIndex))
+            if (currentSwitchStatus == 0 && _conditions[_conditionIDToTurnOn].Value)
                 value = 1;
             // if to turn off
-            else if (currentSwitchStatus == 1 && _conditions[_conditionIDToTurnOff].GetValue(epiTimeIndex))
+            else if (currentSwitchStatus == 1 && _conditions[_conditionIDToTurnOff].Value)
                 value = 0;
 
             return value;

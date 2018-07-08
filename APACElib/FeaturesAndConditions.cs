@@ -127,21 +127,22 @@ namespace APACElib
     public abstract class Condition
     {
         public int ID { get; }
+        public bool Value { get; protected set; }
         public Condition(int id)
         {
             ID = id;
         }
 
-        public abstract bool GetValue(int epiTimeIndex);
+        public abstract void Update(int epiTimeIndex);
     }
 
     public class Condition_AlwaysTrue : Condition
     {
         public Condition_AlwaysTrue(int id) : base(id) { }
 
-        public override bool GetValue(int epiTimeIndex)
+        public override void Update(int epiTimeIndex)
         {
-            return true;
+            Value = true;
         }
     }
 
@@ -149,9 +150,9 @@ namespace APACElib
     {
         public Condition_AlwaysFalse(int id) : base(id) { }
 
-        public override bool GetValue(int epiTimeIndex)
+        public override void Update(int epiTimeIndex)
         {
-            return false;
+            Value = false;
         }
     }
 
@@ -181,7 +182,7 @@ namespace APACElib
                 _andOr = EnumAndOr.Or;
         }
 
-        public override bool GetValue(int epiTimeIndex)
+        public override void Update(int epiTimeIndex)
         {
             bool result = false;
 
@@ -193,12 +194,11 @@ namespace APACElib
                         for (int i = 0; i < _featureIDs.Length; i++)
                         {
                             // if one does not 
-                            if (!_features[_featureIDs[i]].Value.HasValue)
-                                return false;
-                            else if (!SupportProcedures.ValueOfComparison(
-                                _features[_featureIDs[i]].Value.Value, _signs[i], _thresholds[i]))                                
+                            if (_features[_featureIDs[i]].Value.HasValue &&
+                                !SupportProcedures.ValueOfComparison(
+                                    _features[_featureIDs[i]].Value.Value, _signs[i], _thresholds[i]))                                
                             {
-                                return false;
+                                result = false;
                             }
                         }
                     }
@@ -209,7 +209,6 @@ namespace APACElib
                         for (int i = 0; i < _featureIDs.Length; i++)
                         {
                             // if one is within
-
                             if (_features[_featureIDs[i]].Value.HasValue && 
                                 SupportProcedures.ValueOfComparison(
                                     _features[_featureIDs[i]].Value.Value, _signs[i], _thresholds[i]))
@@ -222,7 +221,7 @@ namespace APACElib
                     break;
             }
 
-            return result;
+            Value = result;
         }
     }
 
@@ -246,7 +245,7 @@ namespace APACElib
                 _andOr = EnumAndOr.Or;
         }
 
-        public override bool GetValue(int epiTimeIndex)
+        public override void Update(int epiTimeIndex)
         {
             bool results = false; 
 
@@ -258,7 +257,7 @@ namespace APACElib
                         for (int i = 0; i < _conditionIDs.Length; i++)
                         {
                             // if one conditions is not satisfied
-                            if (_conditions[_conditionIDs[i]].GetValue(epiTimeIndex) == false)
+                            if (_conditions[_conditionIDs[i]].Value == false)
                             {
                                 results = false;
                                 break;
@@ -272,7 +271,7 @@ namespace APACElib
                         for (int i = 0; i < _conditionIDs.Length; i++)
                         {
                             // if one is satisifed
-                            if (_conditions[_conditionIDs[i]].GetValue(epiTimeIndex) == true)
+                            if (_conditions[_conditionIDs[i]].Value == true)
                             {
                                 results = true;
                                 break;
@@ -281,7 +280,7 @@ namespace APACElib
                     }
                     break;
             }
-            return results;
+            Value = results;
         }
     }
 }
