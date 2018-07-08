@@ -126,8 +126,10 @@ namespace APACElib
     
     public abstract class Condition
     {
-        public Condition()
+        public int ID { get; }
+        public Condition(int id)
         {
+            ID = id;
         }
 
         public abstract bool GetValue(int epiTimeIndex);
@@ -135,6 +137,8 @@ namespace APACElib
 
     public class Condition_AlwaysTrue : Condition
     {
+        public Condition_AlwaysTrue(int id) : base(id) { }
+
         public override bool GetValue(int epiTimeIndex)
         {
             return true;
@@ -143,6 +147,8 @@ namespace APACElib
 
     public class Condition_AlwaysFalse : Condition
     {
+        public Condition_AlwaysFalse(int id) : base(id) { }
+
         public override bool GetValue(int epiTimeIndex)
         {
             return false;
@@ -158,11 +164,12 @@ namespace APACElib
         private EnumAndOr _andOr = EnumAndOr.And;
 
         public Condition_OnFeatures(
+            int id,
             List<Feature> features,
             string strFeatureIDs,
             string strSigns,
             string strTheresholds,
-            string strConclusions): base()
+            string strConclusions): base(id)
         {
             _features = features;
             _featureIDs = SupportProcedures.ConvertStringToIntArray(strFeatureIDs);
@@ -226,9 +233,10 @@ namespace APACElib
         private EnumAndOr _andOr = EnumAndOr.And;
 
         public Condition_OnConditions(
+            int id,
             List<Condition> conditions,
             string strConditions,
-            string strConclusions): base()
+            string strConclusions): base(id)
         {
             _conditions = conditions;
             _conditionIDs = SupportProcedures.ConvertStringToIntArray(strConditions);

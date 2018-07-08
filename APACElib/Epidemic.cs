@@ -1290,21 +1290,21 @@ namespace APACElib
                             string strSigns = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureSigns));
                             string strThresholds = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureThresholds));
                             string strConclusion = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureConclusion));
-                            EpiHist.Conditions.Add(new Condition_OnFeatures(EpiHist.Features, strFeatureIDs, strSigns, strThresholds, strConclusion));
+                            EpiHist.Conditions.Add(new Condition_OnFeatures(id, EpiHist.Features, strFeatureIDs, strSigns, strThresholds, strConclusion));
                         }
                         break;
                     case "Conditions":
                         {
                             string strConditions = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.Conditions));
                             string strConclusion = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.ConditionsConclusions));
-                            EpiHist.Conditions.Add(new Condition_OnConditions(EpiHist.Conditions, strConditions, strConditions));
+                            EpiHist.Conditions.Add(new Condition_OnConditions(id, EpiHist.Conditions, strConditions, strConclusion));
                         }
                         break;
                     case "Always True":
-                        EpiHist.Conditions.Add(new Condition_AlwaysTrue());
+                        EpiHist.Conditions.Add(new Condition_AlwaysTrue(id));
                         break;
                     case "Always False":
-                        EpiHist.Conditions.Add(new Condition_AlwaysFalse());
+                        EpiHist.Conditions.Add(new Condition_AlwaysFalse(id));
                         break;
                 }
             }
