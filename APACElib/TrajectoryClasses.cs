@@ -43,12 +43,16 @@ namespace APACElib
 
     public class IncidenceTimeSeries: TimeSeries
     {
+        // Assumption: The first observation is null that represent the observation during the obseration period right before time 0. 
         public IncidenceTimeSeries(int nOfRecodingsInEachPeriod):base(nOfRecodingsInEachPeriod)
         {
         }
 
         public override void Record(double? value)
         {
+            // keep adding the entered values to the last observation until enought recordings are gathered,
+            // then add a new element to the list of recordings
+
             // find if a new element should be added to the list
             if (_nRecordingsInThisPeriod % _nRecodingsInEachPeriod == 0)
             {
@@ -66,7 +70,7 @@ namespace APACElib
         public override void Reset()
         {
             Recordings.Clear();
-            Recordings.Add(null); // 0 added for the interval 0
+            Recordings.Add(null); // first observation is always null (see above)
             _nRecordingsInThisPeriod = 0;
         }
     }
@@ -446,11 +450,10 @@ namespace APACElib
         public int NominatorSpecialStatID { get; }
         public int DenominatorSpecialStatID { get; }
         public Boolean DisplayInSimOutput { get; }
-        public PrevalenceTimeSeries TimeSeries { get; set; }    // treating all ratio stat as prevalence
+        public PrevalenceTimeSeries TimeSeries { get; set; }    // treating all ratio statistics as prevalence
         public ObsBasedStat AveragePrevalenceStat { get; set; }
         public double? Ratio { get; private set; } = null;
-        public int Denom { get; private set; }
-
+        public int Denom { get; private set; }  // denominator value
         public EnumType Type { get; set; }
         
         int _warmUpSimIndex;
@@ -543,10 +546,14 @@ namespace APACElib
                     break;
             }
 
+            // record the ratio
             TimeSeries.Record(Ratio);
+
+            // collect avergae prevalence statistics
             if (simIndex >= _warmUpSimIndex && AveragePrevalenceStat != null)
                 AveragePrevalenceStat.Record(Ratio.Value);
-
+            
+            // check if within feasible range
             if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
             {
                 if (Ratio < CalibInfo.LowFeasibleRange || Ratio > CalibInfo.UpFeasibleRange)
@@ -687,13 +694,13 @@ namespace APACElib
 
         public override void Update(int epiTimeIndex, RNG rnd)
         {
-            double? value = null;
+            double? obsValue = null;
             if (!(_sumClassesTraj is null))
-                value = _sumClassesTraj.Prevalence;
+                obsValue = _sumClassesTraj.Prevalence;
             else if (!(_ratioTraj is null))
             {
                 // check if there is noise (less than 100% of the denominator is sampled in reality)
-                if (_noise_percOfDemoninatorSampled < 0.99999 && _ratioTraj.Ratio.HasValue && !(_ratioTraj.Ratio is double.NaN))
+                if (_noise_percOfDemoninatorSampled < 0.9999999 && _ratioTraj.Ratio.HasValue && !(_ratioTraj.Ratio is double.NaN))
                 {
                     double mean = _ratioTraj.Ratio.Value;
                     if (mean > 0)
@@ -702,16 +709,16 @@ namespace APACElib
                         Normal noiseModel = new Normal("Noise model", 0,
                             stDev / Math.Sqrt(_noise_percOfDemoninatorSampled * _ratioTraj.Denom));
                         double noise = noiseModel.SampleContinuous(rnd);
-                        value = Math.Min(Math.Max(mean + noise, 0), 1);
+                        obsValue = Math.Min(Math.Max(mean + noise, 0), 1);
                     }
                     else
-                        value = 0;
+                        obsValue = 0;
                 }
                 else
-                    value = _ratioTraj.Ratio;
+                    obsValue = _ratioTraj.Ratio;
             }
 
-            _timeSeries.Record(value);
+            _timeSeries.Record(obsValue);
         }
         public override double? GetLastObs(int epiTimeIndex)
         {
@@ -846,7 +853,7 @@ namespace APACElib
             {
                 if (thisClass.ShowIncidence)
                     thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = 
-                        SupportProcedures.ReplaceNaNWith(thisClass.ClassStat.IncidenceTimeSeries.GetLastRecording(), -1);
+                        thisClass.ClassStat.IncidenceTimeSeries.GetLastRecording().GetValueOrDefault(-1);
                 if (thisClass.ShowPrevalence)
                     thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = thisClass.ClassStat.Prevalence;
                 if (thisClass.ShowAccumIncidence)
@@ -860,7 +867,7 @@ namespace APACElib
                 {
                     case SumTrajectory.EnumType.Incidence:
                             thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = 
-                                SupportProcedures.ReplaceNaNWith(thisSumTraj.IncidenceTimeSeries.GetLastRecording(), -1);
+                                thisSumTraj.IncidenceTimeSeries.GetLastRecording().GetValueOrDefault(-1);
                         break;
                     case SumTrajectory.EnumType.AccumulatingIncident:
                         thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = thisSumTraj.AccumulatedIncidence;
@@ -873,7 +880,8 @@ namespace APACElib
             }
             // ratio statistics
             foreach (RatioTrajectory thisRatioTraj in _ratioTrajectories.Where(s => s.DisplayInSimOutput))
-                thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = SupportProcedures.ReplaceNaNWith(thisRatioTraj.TimeSeries.GetLastRecording(), -1);
+                thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = 
+                    SupportProcedures.ReplaceNaNWith(thisRatioTraj.TimeSeries.GetLastRecording(), -1);  // could get nan if denominator is 0 or null for simIndex = 0
 
             // find next time index to store trajectories
             _nextTimeIndexToStore += _nDeltaTInSimOutputInterval;
