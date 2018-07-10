@@ -183,7 +183,7 @@ namespace APACElib
                     UpdateCostAndHealthOutcomes(true);
 
                     if (StoreEpiTrajsForExcelOutput)
-                        EpiHist.Record(_simTimeIndex, _epiTimeIndex, true);
+                        // EpiHist.Record(_simTimeIndex, _epiTimeIndex, true);
 
                     // find if it is an acceptable trajectory
                     acceptableTrajectory = true;
