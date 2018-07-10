@@ -182,7 +182,7 @@ namespace APACElib
                     // update cost and health outcomes
                     UpdateCostAndHealthOutcomes(true);
 
-                    if (StoreEpiTrajsForExcelOutput)
+                    //if (StoreEpiTrajsForExcelOutput)
                         // EpiHist.Record(_simTimeIndex, _epiTimeIndex, true);
 
                     // find if it is an acceptable trajectory
@@ -368,7 +368,8 @@ namespace APACElib
             // decision maker
             _decisionMaker = new DecisionMaker(
                 _modelSets.EpidemicTimeIndexToStartDecisionMaking,
-                _modelSets.NumOfDeltaT_inDecisionInterval);
+                _modelSets.NumOfDeltaT_inDecisionInterval, 
+                EpiHist.Conditions);
             // add parameters
             AddParameters(modelSettings.ParametersSheet);
             // add pathogens

@@ -96,7 +96,8 @@ namespace APACElib
     {
         private enum EnumFeatureType
         {
-            IfEventSwitchedOff = 0,
+            IfEverSwitchedOff = 0,
+            IfEverSwitchedOn = 1
         }
 
         private Intervention _intervention; // pointer
@@ -107,8 +108,13 @@ namespace APACElib
             switch (strFeatureType)
             {
                 case "If Ever Switched Off":
-                    _featureType = EnumFeatureType.IfEventSwitchedOff;
+                    _featureType = EnumFeatureType.IfEverSwitchedOff;
                     break;
+                case "If Ever Switched On":
+                    _featureType = EnumFeatureType.IfEverSwitchedOn;
+                    break;
+                default:
+                    throw new Exception("Invalid value for feature type defined on intervention.");
             }
             _intervention = intervention;
         }
@@ -117,8 +123,11 @@ namespace APACElib
         {
             switch (_featureType)
             {
-                case EnumFeatureType.IfEventSwitchedOff:
+                case EnumFeatureType.IfEverSwitchedOff:
                     Value = Convert.ToDouble(_intervention.IfEverTurnedOffBefore);
+                    break;
+                case EnumFeatureType.IfEverSwitchedOn:
+                    Value = Convert.ToDouble(_intervention.IfEverTurnedOnBefore);
                     break;
             }
         }
@@ -199,6 +208,7 @@ namespace APACElib
                                     _features[_featureIDs[i]].Value.Value, _signs[i], _thresholds[i]))                                
                             {
                                 result = false;
+                                break;
                             }
                         }
                     }

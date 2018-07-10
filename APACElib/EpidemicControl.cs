@@ -12,6 +12,7 @@ namespace APACElib
     public class DecisionMaker
     {
         public List<Intervention> Interventions { get; set; } = new List<Intervention>();
+        private List<Condition> _conditions;
         public int NumOfInterventions { get; set; } = 0;
 
         private readonly int _nOfDeltaTsInADecisionInterval; // number of time steps in a decision interval
@@ -26,12 +27,13 @@ namespace APACElib
         public double CostOverThisDecisionPeriod { get; set; } = 0; // cost actions and decision making
         
         // Instantiation
-        public DecisionMaker(int epiTimeIndexToStartDecisionMaking, int nOfDeltaTsInADecisionInterval)
+        public DecisionMaker(int epiTimeIndexToStartDecisionMaking, int nOfDeltaTsInADecisionInterval, List<Condition> conditions)
         {
             EpiTimeIndexToStartDecisionMaking = epiTimeIndexToStartDecisionMaking;
             _nextEpiTimeIndexToMakeDecision = 0;
             _nOfDeltaTsInADecisionInterval = nOfDeltaTsInADecisionInterval;
             DecisionIntervalIndex = 0;
+            _conditions = conditions;
         }
 
         // add a decision
@@ -62,6 +64,10 @@ namespace APACElib
             int[] newDecision = new int[NumOfInterventions];
             CurrentDecision = new int[NumOfInterventions];
 
+            // update conditions
+            foreach (Condition c in _conditions)
+                c.Update(epiTimeIndex);
+
             // check if decisions are not prespecified
             if (_presetDecisionsOverDecisionsPeriods == null)
             {
@@ -85,6 +91,10 @@ namespace APACElib
             // if next decision point is reached
             if (epiTimeIndex != _nextEpiTimeIndexToMakeDecision)
                 return; // no change in decision 
+
+            // update conditions
+            foreach (Condition c in _conditions)
+                c.Update(epiTimeIndex);
 
             int[] newDecision = new int[NumOfInterventions];
 
