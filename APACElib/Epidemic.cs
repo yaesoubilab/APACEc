@@ -1215,6 +1215,38 @@ namespace APACElib
                                                     );
                                             }
                                             break;
+                                        case RatioTrajectory.EnumType.IncidenceOverIncidence:
+                                            {
+                                                EpiHist.SumTrajs[rt.NominatorSpecialStatID].AddTimeSeries(
+                                                    collectIncidence: true,
+                                                    collectPrevalence: false,
+                                                    collectAccumIncidence: false,
+                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                                    );
+                                                EpiHist.SumTrajs[rt.DenominatorSpecialStatID].AddTimeSeries(
+                                                    collectIncidence: true,
+                                                    collectPrevalence: false,
+                                                    collectAccumIncidence: false,
+                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                                    );
+                                            }
+                                            break;
+                                        case RatioTrajectory.EnumType.IncidenceOverPrevalence:
+                                            {
+                                                EpiHist.SumTrajs[rt.NominatorSpecialStatID].AddTimeSeries(
+                                                    collectIncidence: true,
+                                                    collectPrevalence: false,
+                                                    collectAccumIncidence: false,
+                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                                    );
+                                                EpiHist.SumTrajs[rt.DenominatorSpecialStatID].AddTimeSeries(
+                                                    collectIncidence: false,
+                                                    collectPrevalence: true,
+                                                    collectAccumIncidence: false,
+                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                                    );
+                                            }
+                                            break;
                                     }                                
                                 }
                                 break;

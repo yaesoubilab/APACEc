@@ -590,8 +590,8 @@ namespace APACElib
                 // get the index of observation periods
                 int numOfObsPeriods = (int)(_modelSettings.TimeIndexToStop/ _modelSettings.NumOfDeltaT_inObservationPeriod);
                 int[] obsPeriodIndex = new int[numOfObsPeriods];
-                for (int i = 0; i <= numOfObsPeriods; i++)
-                    obsPeriodIndex[i] = i;
+                for (int i = 0; i < numOfObsPeriods; i++)
+                    obsPeriodIndex[i] = i+1;
 
                 // set up the epidemic history sheet
                 ExcelIntface.SetupEpidemicHistoryWorksheet(strObsHeader, obsPeriodIndex); 
