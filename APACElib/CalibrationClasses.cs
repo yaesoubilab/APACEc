@@ -114,12 +114,15 @@ namespace APACElib
                             switch (rt.CalibInfo.LikelihoodFunc)
                             {
                                 case SpecialStatCalibrInfo.EnumLikelihoodFunc.Binomial:
-                                    _likelihoodTSs.Add(
-                                        new LikelihoodTS_BinomialPrev(
-                                            _obsHist[calibTargIdx],
-                                            rt.NominatorSpecialStatID,
-                                            rt.DenominatorSpecialStatID)
-                                        );
+                                    {
+                                        //TODO: complete based on ratio type 
+                                        _likelihoodTSs.Add(
+                                            new LikelihoodTS_BinomialPrevOverPrev(
+                                                _obsHist[calibTargIdx],
+                                                rt.NominatorSpecialStatID,
+                                                rt.DenominatorSpecialStatID)
+                                            );
+                                    }
                                     break;
                                 case SpecialStatCalibrInfo.EnumLikelihoodFunc.Multinomial:
                                     break;
@@ -299,14 +302,12 @@ namespace APACElib
     /// </summary>
     public abstract class LikelihoodTimeSeries
     {
-        protected ObsAndLikelihoodParams info;
-        protected double LnL = 0;
-        protected int n = 0;
-        protected double sumLnL = 0;
+        protected ObsAndLikelihoodParams _info;
+
 
         public LikelihoodTimeSeries(ObsAndLikelihoodParams obsAndLikelihoodParams)
         {
-            info = obsAndLikelihoodParams;
+            _info = obsAndLikelihoodParams;
         }
         public abstract double LnLikelihood(List<SumTrajectory> sumTrajs, List<RatioTrajectory> ratioTrajs);
     }
@@ -326,17 +327,20 @@ namespace APACElib
 
         public override double LnLikelihood(List<SumTrajectory> sumTrajs, List<RatioTrajectory> ratioTrajs)
         {
-            sumLnL = 0; n = 0;
+            double LnL = 0;
+            int n = 0;
+            double sumLnL = 0;
+
             // go over calibration observations
-            for (int i = 0; i<info.Obs.Count; i++)
+            for (int i = 0; i<_info.Obs.Count; i++)
                 // if an observation is recorded
-                if (info.Obs[i].HasValue)
+                if (_info.Obs[i].HasValue)
                 {
                     double simValue = sumTrajs[IndexOfSumStat_Prev].PrevalenceTimeSeries.Recordings[i].Value;
-                    double stDev = info.LikelihoodParam[i].Value * simValue / 3; // measurement error * simulated prevalence
+                    double stDev = _info.LikelihoodParam[i].Value * simValue / 3; // measurement error * simulated prevalence
 
                     // pdf of normal calcualted at x = observation
-                    LnL = MathNet.Numerics.Distributions.Normal.PDFLn(simValue, stDev, info.Obs[i].Value);
+                    LnL = MathNet.Numerics.Distributions.Normal.PDFLn(simValue, stDev, _info.Obs[i].Value);
                     ++n;
                     sumLnL += LnL;
                 }
@@ -364,18 +368,21 @@ namespace APACElib
 
         public override double LnLikelihood(List<SumTrajectory> sumTrajs, List<RatioTrajectory> ratioTrajs)
         {
-            sumLnL = 0; n = 0;
+            double LnL = 0;
+            int n = 0;
+            double sumLnL = 0;
+
             // go over calibration observations
-            for (int i = 0; i < info.Obs.Count; i++)
+            for (int i = 0; i < _info.Obs.Count; i++)
                 // if an observation is recorded
-                if (info.Obs[i].HasValue)
+                if (_info.Obs[i].HasValue)
                 {
                     double simPrev = sumTrajs[IndexOfSumStat_Prev].PrevalenceTimeSeries.Recordings[i-1].Value;
                     double simInc = sumTrajs[IndexOfSumStat_Incd].IncidenceTimeSeries.Recordings[i-1].Value;
                     double p = Math.Min(simInc / simPrev, 1);
 
                     // pdf of binomial calcualted at x = observation
-                    LnL = MathNet.Numerics.Distributions.Binomial.PMFLn(p, (int)simPrev, (int)info.Obs[i].Value);
+                    LnL = MathNet.Numerics.Distributions.Binomial.PMFLn(p, (int)simPrev, (int)_info.Obs[i].Value);
                     ++n;
                     sumLnL += LnL;
                 }
@@ -384,34 +391,58 @@ namespace APACElib
     }
 
     /// <summary>
-    /// class to calculate ln(likelihood) of an observed time-series when prevalence observations follow binomial distributions
+    /// class to calculate ln(likelihood) of an observed time-series when ratio observations follow binomial distributions
     /// </summary>
-    public class LikelihoodTS_BinomialPrev : LikelihoodTimeSeries
+    public abstract class LikelihoodTS_BinomialRatio : LikelihoodTimeSeries
     {
-        public int IndexOfSumStat_PrevNomin { get; }
-        public int IndexOfSumStat_PrevDenom { get; }
+        public int IndexOfSumStat_Nominator { get; }
+        public int IndexOfSumStat_Denominator { get; }
 
-        public LikelihoodTS_BinomialPrev(ObsAndLikelihoodParams calibObsAndLikelihoodParams,
-            int indexOfSumStat_PrevNomin,
-            int indexOfSumStat_PrevDenom)
+        public LikelihoodTS_BinomialRatio(ObsAndLikelihoodParams calibObsAndLikelihoodParams,
+            int indexOfSumStat_Nominator,
+            int indexOfSumStat_Denominator)
             : base(calibObsAndLikelihoodParams)
         {
-            IndexOfSumStat_PrevNomin = indexOfSumStat_PrevNomin;
-            IndexOfSumStat_PrevDenom = indexOfSumStat_PrevDenom;
+            IndexOfSumStat_Nominator = indexOfSumStat_Nominator;
+            IndexOfSumStat_Denominator = indexOfSumStat_Denominator;
         }
 
-        public override double LnLikelihood(List<SumTrajectory> sumTrajs, List<RatioTrajectory> ratioTrajs)
+        //public override double LnLikelihood(List<SumTrajectory> sumTrajs, List<RatioTrajectory> ratioTrajs)
+        //{
+        //    _sumLnL = 0; _n = 0;
+        //    // go over calibration observations
+        //    for (int i = 0; i < _info.Obs.Count; i++)
+        //        // if an observation is recorded
+        //        if (_info.Obs[i].HasValue)
+        //        {
+        //            double simNomin = sumTrajs[IndexOfSumStat_Nominator].PrevalenceTimeSeries.Recordings[i].Value;
+        //            double simDenomin = sumTrajs[IndexOfSumStat_Denominator].PrevalenceTimeSeries.Recordings[i].Value;
+        //            double simPrev = simNomin / simDenomin;
+        //            int obs = (int)(_info.Obs[i].Value * _info.LikelihoodParam[i].Value);
+
+        //            // pdf of binomial calcualted at x = observation
+        //            _LnL = MathNet.Numerics.Distributions.Binomial.PMFLn(simPrev, (int)simDenomin, obs);
+        //            ++_n;
+        //            _sumLnL += _LnL;
+        //        }
+        //    return _sumLnL / _n;
+        //}
+
+        protected double LnLBionomial(List<double?> nominRecordings, List<double?> denomRecordings)
         {
-            sumLnL = 0; n = 0;
+            double LnL = 0;
+            int n = 0;
+            double sumLnL = 0;
+
             // go over calibration observations
-            for (int i = 0; i < info.Obs.Count; i++)
+            for (int i = 0; i < _info.Obs.Count; i++)
                 // if an observation is recorded
-                if (info.Obs[i].HasValue)
+                if (_info.Obs[i].HasValue)
                 {
-                    double simNomin = sumTrajs[IndexOfSumStat_PrevNomin].PrevalenceTimeSeries.Recordings[i].Value;
-                    double simDenomin = sumTrajs[IndexOfSumStat_PrevDenom].PrevalenceTimeSeries.Recordings[i].Value;
+                    double simNomin = nominRecordings[i].Value;
+                    double simDenomin = denomRecordings[i].Value;
                     double simPrev = simNomin / simDenomin;
-                    int obs = (int)(info.Obs[i].Value * info.LikelihoodParam[i].Value);
+                    int obs = (int)(_info.Obs[i].Value * _info.LikelihoodParam[i].Value);
 
                     // pdf of binomial calcualted at x = observation
                     LnL = MathNet.Numerics.Distributions.Binomial.PMFLn(simPrev, (int)simDenomin, obs);
@@ -419,6 +450,54 @@ namespace APACElib
                     sumLnL += LnL;
                 }
             return sumLnL / n;
+        }
+    }
+
+    public class LikelihoodTS_BinomialPrevOverPrev : LikelihoodTS_BinomialRatio
+    {
+        public LikelihoodTS_BinomialPrevOverPrev(ObsAndLikelihoodParams calibObsAndLikelihoodParams,
+            int indexOfSumStat_PrevNomin,
+            int indexOfSumStat_PrevDenom)
+            : base(calibObsAndLikelihoodParams, indexOfSumStat_PrevNomin, indexOfSumStat_PrevDenom)
+        { }  
+
+        public override double LnLikelihood(List<SumTrajectory> sumTrajs, List<RatioTrajectory> ratioTrajs)
+        {
+            return LnLBionomial(
+                sumTrajs[IndexOfSumStat_Nominator].PrevalenceTimeSeries.Recordings,
+                sumTrajs[IndexOfSumStat_Denominator].PrevalenceTimeSeries.Recordings);
+        }
+    }
+
+    public class LikelihoodTS_BinomialIncdOverIncd : LikelihoodTS_BinomialRatio
+    {
+        public LikelihoodTS_BinomialIncdOverIncd(ObsAndLikelihoodParams calibObsAndLikelihoodParams,
+            int indexOfSumStat_IncdNomin,
+            int indexOfSumStat_IncdDenom)
+            : base(calibObsAndLikelihoodParams, indexOfSumStat_IncdNomin, indexOfSumStat_IncdDenom)
+        { }
+
+        public override double LnLikelihood(List<SumTrajectory> sumTrajs, List<RatioTrajectory> ratioTrajs)
+        {
+            return LnLBionomial(
+                sumTrajs[IndexOfSumStat_Nominator].IncidenceTimeSeries.Recordings,
+                sumTrajs[IndexOfSumStat_Denominator].IncidenceTimeSeries.Recordings);
+        }
+    }
+
+    public class LikelihoodTS_BinomialIncdOverPrev : LikelihoodTS_BinomialRatio
+    {
+        public LikelihoodTS_BinomialIncdOverPrev(ObsAndLikelihoodParams calibObsAndLikelihoodParams,
+            int indexOfSumStat_IncdNomin,
+            int indexOfSumStat_PrevDenom)
+            : base(calibObsAndLikelihoodParams, indexOfSumStat_IncdNomin, indexOfSumStat_PrevDenom)
+        { }
+
+        public override double LnLikelihood(List<SumTrajectory> sumTrajs, List<RatioTrajectory> ratioTrajs)
+        {
+            return LnLBionomial(
+                sumTrajs[IndexOfSumStat_Nominator].IncidenceTimeSeries.Recordings,
+                sumTrajs[IndexOfSumStat_Denominator].PrevalenceTimeSeries.Recordings);
         }
     }
 
