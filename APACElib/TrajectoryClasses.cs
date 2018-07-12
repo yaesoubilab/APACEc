@@ -38,6 +38,11 @@ namespace APACElib
                 return Recordings[Recordings.Count - nPeriodDelay - 1];
         }
 
+        public bool IfFinishedRecordingInThisPeriod()
+        {
+            return (_nRecordingsInThisPeriod == _nRecodingsInEachPeriod);
+        }
+
         public abstract void Reset();
     }
 
@@ -450,11 +455,13 @@ namespace APACElib
         public int NominatorSpecialStatID { get; }
         public int DenominatorSpecialStatID { get; }
         public Boolean DisplayInSimOutput { get; }
-        public PrevalenceTimeSeries TimeSeries { get; set; }    // treating all ratio statistics as prevalence
+        public PrevalenceTimeSeries PrevTimeSeries { get; set; } 
+        public IncidenceTimeSeries IncdTimeSeries { get; set; }
         public ObsBasedStat AveragePrevalenceStat { get; set; }
         public double? Ratio { get; private set; } = null;
         public int Denom { get; private set; }  // denominator value
         public EnumType Type { get; set; }
+        public bool RatioUpdated { get; private set; }
         
         int _warmUpSimIndex;
 
@@ -493,7 +500,19 @@ namespace APACElib
             DenominatorSpecialStatID = arrRatio[1];
             _warmUpSimIndex = warmUpSimIndex;
 
-            TimeSeries = new PrevalenceTimeSeries(nDeltaTInAPeriod);
+            switch (Type)
+            {
+                case EnumType.PrevalenceOverPrevalence:
+                case EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
+                    PrevTimeSeries = new PrevalenceTimeSeries(nDeltaTInAPeriod);
+                    break;
+
+                case EnumType.IncidenceOverIncidence:
+                case EnumType.IncidenceOverPrevalence:
+                    IncdTimeSeries = new IncidenceTimeSeries(1);
+                    break;
+            }
+            
             
             if (Type == EnumType.PrevalenceOverPrevalence)
                 AveragePrevalenceStat = new ObsBasedStat("Average prevalence");
@@ -511,19 +530,29 @@ namespace APACElib
                         Denom = sumTrajectories[DenominatorSpecialStatID].Prevalence;
                         Ratio = (double)sumTrajectories[NominatorSpecialStatID].Prevalence
                             / Denom;
+                        // record the ratio
+                        PrevTimeSeries.Record(Ratio);
                     }
                     break;
                 case EnumType.IncidenceOverIncidence:
                     {
-                        double? denom = sumTrajectories[DenominatorSpecialStatID].GetLastRecording();
-                        if (denom.HasValue)
+                        if (sumTrajectories[DenominatorSpecialStatID].IncidenceTimeSeries.IfFinishedRecordingInThisPeriod())
                         {
-                            Denom = (int)denom;
-                            Ratio = (double)sumTrajectories[NominatorSpecialStatID].GetLastRecording()
-                                / Denom;
+                            double? denom = sumTrajectories[DenominatorSpecialStatID].GetLastRecording();
+                            if (denom.HasValue)
+                            {
+                                Denom = (int)denom;
+                                Ratio = (double)sumTrajectories[NominatorSpecialStatID].GetLastRecording()
+                                    / Denom;
+                            }
+                            else
+                                Ratio = null;
+                            // record the ratio
+                            IncdTimeSeries.Record(Ratio);
+                            RatioUpdated = true;
                         }
                         else
-                            Ratio = null;
+                            RatioUpdated = false;
                     }
                     break;
                 case EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
@@ -531,23 +560,30 @@ namespace APACElib
                         Denom = sumTrajectories[DenominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp;
                         Ratio = (double)sumTrajectories[NominatorSpecialStatID].AccumulatedIncidenceAfterWarmUp
                             / Denom;
+                        // record the ratio
+                        PrevTimeSeries.Record(Ratio);
                     }
                     break;
                 case EnumType.IncidenceOverPrevalence:
                     {
-                        Denom = sumTrajectories[DenominatorSpecialStatID].Prevalence;
-                        double? incidence = sumTrajectories[NominatorSpecialStatID].GetLastRecording();
-                        if (incidence.HasValue)
-                            Ratio = incidence.Value
-                                / Denom;
+                        if (sumTrajectories[NominatorSpecialStatID].IncidenceTimeSeries.IfFinishedRecordingInThisPeriod())
+                        {
+                            Denom = sumTrajectories[DenominatorSpecialStatID].Prevalence;
+                            double? incidence = sumTrajectories[NominatorSpecialStatID].GetLastRecording();
+                            if (incidence.HasValue)
+                                Ratio = incidence.Value
+                                    / Denom;
+                            else
+                                Ratio = null;
+                            // record the ratio
+                            IncdTimeSeries.Record(Ratio);
+                            RatioUpdated = true;
+                        }
                         else
-                            Ratio = null;
+                            RatioUpdated = false;
                     }
                     break;
-            }
-
-            // record the ratio
-            TimeSeries.Record(Ratio);
+            }           
 
             // collect avergae prevalence statistics
             if (simIndex >= _warmUpSimIndex && AveragePrevalenceStat != null)
@@ -572,7 +608,10 @@ namespace APACElib
 
         public void Reset()
         {
-            TimeSeries.Reset();
+            if (!(PrevTimeSeries is null))
+                PrevTimeSeries.Reset();
+            if (!(IncdTimeSeries is null))
+                IncdTimeSeries.Reset();
             Ratio = double.NaN;
             if (Type == EnumType.PrevalenceOverPrevalence)
                 AveragePrevalenceStat.Reset();
@@ -617,6 +656,7 @@ namespace APACElib
         private IncidenceTimeSeries _timeSeries;
         private SumClassesTrajectory _sumClassesTraj;
         private SumEventTrajectory _sumEventsTraj;
+        private RatioTrajectory _ratioTrajectory;
 
         public SurveyedIncidenceTrajectory(
             int id,
@@ -625,13 +665,19 @@ namespace APACElib
             bool firstObsMarksStartOfEpidemic,
             SumClassesTrajectory sumClassesTrajectory,
             SumEventTrajectory sumEventTrajectory,
+            RatioTrajectory ratioTrajectory,
             int nDeltaTsObsPeriod,
             int nDeltaTsDelayed) 
             : base(id, name, displayInSimOutput, firstObsMarksStartOfEpidemic, nDeltaTsObsPeriod, nDeltaTsDelayed)
         {
             _sumClassesTraj = sumClassesTrajectory;
             _sumEventsTraj = sumEventTrajectory;
-            _timeSeries = new IncidenceTimeSeries(nDeltaTsObsPeriod);
+            _ratioTrajectory = ratioTrajectory;
+
+            if (!(_ratioTrajectory is null))
+                _timeSeries = new IncidenceTimeSeries(1);
+            else
+                _timeSeries = new IncidenceTimeSeries(nDeltaTsObsPeriod);
         }
 
         public override void Update(int epiTimeIndex, RNG rnd)
@@ -639,13 +685,25 @@ namespace APACElib
             if (epiTimeIndex == 0)
                 return;
 
-            double value = 0;
+            double? value = 0;
             if (!(_sumClassesTraj is null))
+            {
                 value = _sumClassesTraj.NumOfNewMembersOverPastPeriod;
+                _timeSeries.Record(value);
+            }
             else if (!(_sumEventsTraj is null))
+            {
                 value = _sumEventsTraj.NumOfNewMembersOverPastPeriod;
-
-            _timeSeries.Record(value);
+                _timeSeries.Record(value);
+            }
+            else if (!(_ratioTrajectory is null))
+            {
+                if (_ratioTrajectory.RatioUpdated)
+                {
+                    value = _ratioTrajectory.IncdTimeSeries.GetLastRecording();
+                    _timeSeries.Record(value);
+                }
+            }            
         }
         public override double? GetLastObs(int epiTimeIndex)
         {
@@ -880,8 +938,25 @@ namespace APACElib
             }
             // ratio statistics
             foreach (RatioTrajectory thisRatioTraj in _ratioTrajectories.Where(s => s.DisplayInSimOutput))
-                thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = 
-                    SupportProcedures.ReplaceNaNWith(thisRatioTraj.TimeSeries.GetLastRecording(), -1);  // could get nan if denominator is 0 or null for simIndex = 0
+            {
+                switch (thisRatioTraj.Type)
+                {
+                    case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
+                    case RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
+                        {
+                            thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] =
+                                SupportProcedures.ReplaceNaNWith(thisRatioTraj.PrevTimeSeries.GetLastRecording(), -1);  // could get nan if denominator is 0 or null for simIndex = 0
+                        }
+                        break;
+                    case RatioTrajectory.EnumType.IncidenceOverIncidence:
+                    case RatioTrajectory.EnumType.IncidenceOverPrevalence:
+                        {
+                            thisIncidenceOutputs[0][colIndexIncidenceOutputs++] =
+                                SupportProcedures.ReplaceNaNWith(thisRatioTraj.IncdTimeSeries.GetLastRecording(), -1);
+                        }
+                        break;
+                }
+            }
 
             // find next time index to store trajectories
             _nextTimeIndexToStore += _nDeltaTInSimOutputInterval;
@@ -938,8 +1013,23 @@ namespace APACElib
             // ratio statistics
             foreach (RatioTrajectory thisRatioTaj in _ratioTrajectories.Where(s => s.DisplayInSimOutput))
             {
-                if (storeHeaders) PrevalenceOutputsHeader.Add(thisRatioTaj.Name);
-                ++NumOfPrevalenceOutputsToReport;
+                switch (thisRatioTaj.Type)
+                {
+                    case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
+                    case RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
+                        {
+                            if (storeHeaders)PrevalenceOutputsHeader.Add(thisRatioTaj.Name);
+                            ++NumOfPrevalenceOutputsToReport;
+                        }
+                        break;
+                    case RatioTrajectory.EnumType.IncidenceOverIncidence:
+                    case RatioTrajectory.EnumType.IncidenceOverPrevalence:
+                        {
+                            if (storeHeaders) IncidenceOutputsHeader.Add(thisRatioTaj.Name);
+                            ++NumOfIncidenceOutputsToReport;
+                        }
+                        break;
+                }
             }
         }
     }
@@ -1157,8 +1247,14 @@ namespace APACElib
         public void Clean()
         {
             // to fee up memory
-            SumTrajs = new List<SumTrajectory>();
-            RatioTrajs = new List<RatioTrajectory>();
+            _sumTrajs.Clear();
+            _ratioTraj.Clear();
+            _survIncidenceTrajs.Clear();
+            _survPrevalenceTrajs.Clear();
+            SimOutputTrajs.Reset();
+            SurveyedOutputTrajs.Reset();
+            Features.Clear();
+            Conditions.Clear();
         }
     }
 

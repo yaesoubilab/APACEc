@@ -142,8 +142,10 @@ namespace APACElib
                     // find the likeligood of this simulation 
                     if (epi.SeedProducedAcceptibleTraj != -1)
                         Calibration.CalculateLnL(epi);
+                    // clean this simulation
+                    epi.CleanMemory();
                     // store calibration summary
-                    Calibration.AddCalibSummary(epi);
+                    Calibration.AddCalibSummary(epi);                    
                 }
             else // using parallel processing
             {
@@ -159,6 +161,8 @@ namespace APACElib
                     // find the likeligood of this simulation 
                     if (epi.SeedProducedAcceptibleTraj != -1)
                         Calibration.CalculateLnL(epi);
+                    // clean this simulation
+                    epi.CleanMemory();
                 });
                 // rstore calibration results
                 foreach (Epidemic epi in _epidemics)
@@ -277,11 +281,8 @@ namespace APACElib
         // change the status of storing epidemic trajectories
         public void StoreEpiTrajsForExcelOutput(bool yesOrNo)
         {
-            if (_modelSet.UseParallelComputing)
-                foreach (Epidemic thisEpidemic in _epidemics)
-                    thisEpidemic.StoreEpiTrajsForExcelOutput = yesOrNo;
-            else
-                _parentEpidemic.StoreEpiTrajsForExcelOutput = yesOrNo;
+            foreach (Epidemic thisEpidemic in _epidemics)
+                thisEpidemic.StoreEpiTrajsForExcelOutput = yesOrNo;
         }
 
         // add policy related settings
@@ -608,13 +609,13 @@ namespace APACElib
                 switch (ratioTraj.Type)
                 {
                     case RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
-                        RatioStats[ratioStatIndex].Record(ratioTraj.TimeSeries.GetLastRecording().GetValueOrDefault(-1), simItr);
+                        RatioStats[ratioStatIndex].Record(ratioTraj.PrevTimeSeries.GetLastRecording().GetValueOrDefault(-1), simItr);
                         break;
                     case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
                         RatioStats[ratioStatIndex].Record(ratioTraj.AveragePrevalenceStat.Mean, simItr);
                         break;
                     case RatioTrajectory.EnumType.IncidenceOverIncidence:
-                        RatioStats[ratioStatIndex].Record((double)ratioTraj.TimeSeries.Recordings.Average(), simItr);
+                        RatioStats[ratioStatIndex].Record((double)ratioTraj.IncdTimeSeries.Recordings.Average(), simItr);
                         break;
                 }
                 ++ratioStatIndex;

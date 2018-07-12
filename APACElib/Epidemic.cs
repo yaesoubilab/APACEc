@@ -20,7 +20,7 @@ namespace APACElib
         
         // public model entities
         public DecisionMaker DecisionMaker { get => _decisionMaker; }
-        public ParameterManager ParamManager { get => _paramManager; } 
+        public ParameterManager ParamManager { get => _paramManager; }  
         public ForceOfInfectionModel FOIModel { get; set; }
         public List<Class> Classes { get => _classes; }
         private List<Class> _classes = new List<Class>();
@@ -45,10 +45,24 @@ namespace APACElib
         public int SeedProducedAcceptibleTraj { get; private set; }
         public int SeedsDiscarded { get; private set; }
 
-        // Instantiation
         public Epidemic(int id)
         {
             ID = id;
+        }
+
+        public void CleanMemory()
+        {
+            _decisionMaker = null;
+            _paramManager.Parameters.Clear();
+            _paramManager = null;
+            FOIModel = null;
+            _classes.Clear();
+            _classes = null;
+            _events.Clear();
+            _events = null;
+            EpiHist.Clean();
+            EpiHist = null;
+            EpidemicCostHealth = null;
         }
         
         // Simulate one trajectory (parameters will be sampled)
@@ -1006,6 +1020,7 @@ namespace APACElib
                                         firstObsMarksStartOfEpidemic: info.FirstObsMarksEpiStart,
                                         sumClassesTrajectory: thisSumClassTraj,
                                         sumEventTrajectory: null,
+                                        ratioTrajectory: null,
                                         nDeltaTsObsPeriod: _modelSets.NumOfDeltaT_inObservationPeriod, 
                                         nDeltaTsDelayed: info.NDeltaTDelayed)
                                         );
@@ -1064,6 +1079,7 @@ namespace APACElib
                                         info.FirstObsMarksEpiStart,
                                         null,
                                         thisSumEventTraj,
+                                        null,
                                         _modelSets.NumOfDeltaT_inObservationPeriod,
                                         info.NDeltaTDelayed)
                                         );
@@ -1172,18 +1188,40 @@ namespace APACElib
                 // add the survey 
                 if (info.SurveillanceDataAvailable)
                 {
-                    EpiHist.SurveyedPrevalenceTrajs.Add(
-                        new SurveyedPrevalenceTrajectory(
-                            info.ID,
-                            info.Name,
-                            info.IfDisplay,
-                            info.FirstObsMarksEpiStart,
-                            null,
-                            thisRatioTraj,
-                            _modelSets.NumOfDeltaT_inObservationPeriod,
-                            info.NDeltaTDelayed,
-                            info.SurveillanceNoise)
-                            );
+                    switch (thisRatioTraj.Type)
+                    {
+                        case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
+                        case RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
+                            EpiHist.SurveyedPrevalenceTrajs.Add(
+                                new SurveyedPrevalenceTrajectory(
+                                    info.ID,
+                                    info.Name,
+                                    info.IfDisplay,
+                                    info.FirstObsMarksEpiStart,
+                                    null,
+                                    thisRatioTraj,
+                                    _modelSets.NumOfDeltaT_inObservationPeriod,
+                                    info.NDeltaTDelayed,
+                                    info.SurveillanceNoise)
+                                    );
+                            break;
+                        case RatioTrajectory.EnumType.IncidenceOverIncidence:
+                        case RatioTrajectory.EnumType.IncidenceOverPrevalence:
+                            EpiHist.SurveyedIncidenceTrajs.Add(
+                                new SurveyedIncidenceTrajectory(
+                                    info.ID,
+                                    info.Name,
+                                    info.IfDisplay,
+                                    info.FirstObsMarksEpiStart,
+                                    null,
+                                    null,
+                                    thisRatioTraj,
+                                    _modelSets.NumOfDeltaT_inObservationPeriod,
+                                    info.NDeltaTDelayed)
+                                );
+                            break;
+                    }
+                    
                 }
             }
 
