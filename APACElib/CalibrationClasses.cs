@@ -153,6 +153,7 @@ namespace APACElib
                         }
                         break;
                 }
+                ++calibTargIdx;
             }
         }
 
@@ -464,11 +465,17 @@ namespace APACElib
                 {
                     double simNomin = nominRecordings[i].Value;
                     double simDenomin = denomRecordings[i].Value;
-                    double simPrev = simNomin / simDenomin;
-                    int obs = (int)(_info.Obs[i].Value * _info.LikelihoodParam[i].Value);
+                    // if the simulated ratio is a valid number
+                    if (simDenomin > 0)
+                    {
+                        double simRatio = Math.Min(simNomin / simDenomin, 1);
+                        int obs = (int)(_info.Obs[i].Value * _info.LikelihoodParam[i].Value);
 
-                    // pdf of binomial calcualted at x = observation
-                    LnL = MathNet.Numerics.Distributions.Binomial.PMFLn(simPrev, (int)simDenomin, obs);
+                        // pdf of binomial calcualted at x = observation
+                        LnL = MathNet.Numerics.Distributions.Binomial.PMFLn(simRatio, (int)simDenomin, obs);
+                    }                    
+                    else //
+                        LnL = Math.Log(double.Epsilon);
                     ++n;
                     sumLnL += LnL;
                 }

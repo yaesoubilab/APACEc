@@ -173,7 +173,7 @@ namespace APACElib
                 UpdateEpiTimeIndex();
 
                 // check if stopping rules are satisfied 
-                if (_epiTimeIndex > timeIndexToStop || StoppedDueToEradication == true)
+                if (_epiTimeIndex >= timeIndexToStop || StoppedDueToEradication == true)
                 {
                     toStop = true;
                     
@@ -182,8 +182,8 @@ namespace APACElib
                     // update cost and health outcomes
                     UpdateCostAndHealthOutcomes(true);
 
-                    //if (StoreEpiTrajsForExcelOutput)
-                        // EpiHist.Record(_simTimeIndex, _epiTimeIndex, true);
+                    if (StoreEpiTrajsForExcelOutput)
+                        EpiHist.Record(_simTimeIndex, _epiTimeIndex, true);
 
                     // find if it is an acceptable trajectory
                     acceptableTrajectory = true;
