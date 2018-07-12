@@ -133,7 +133,7 @@ namespace APACElib
             EpidemicTimeIndexToStartDecisionMaking = (int)(excelInterface.GetTimeToStartDecisionMaking()/DeltaT);
             MarkOfEpidemicStartTime = excelInterface.GetMarkOfEpidemicStartTime();
             WarmUpPeriodSimTIndex = (int)(excelInterface.GetWarmUpPeriod() / DeltaT);
-            TimeIndexToStop = (int)(excelInterface.GetTimeToStop() / DeltaT);
+            TimeIndexToStop = (int)( Math.Round(excelInterface.GetTimeToStop() / DeltaT, 0));
             EpidemicConditionTimeIndex = (int)(excelInterface.GetEpidemicConditionTime() / DeltaT);
             DecisionRule = excelInterface.GetDecisionRule();
             IfShowSimulatedTrajs = excelInterface.GetIfToShowSimulationTrajectories();
