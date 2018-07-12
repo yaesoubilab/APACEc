@@ -115,13 +115,36 @@ namespace APACElib
                             {
                                 case SpecialStatCalibrInfo.EnumLikelihoodFunc.Binomial:
                                     {
-                                        //TODO: complete based on ratio type 
-                                        _likelihoodTSs.Add(
-                                            new LikelihoodTS_BinomialPrevOverPrev(
-                                                _obsHist[calibTargIdx],
-                                                rt.NominatorSpecialStatID,
-                                                rt.DenominatorSpecialStatID)
-                                            );
+                                        // the binomial likelihood is set up based on the ration statistics type:
+                                        switch (rt.Type)
+                                        {
+                                            case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
+                                                _likelihoodTSs.Add(
+                                                    new LikelihoodTS_BinomialPrevOverPrev(
+                                                        _obsHist[calibTargIdx],
+                                                        rt.NominatorSpecialStatID,
+                                                        rt.DenominatorSpecialStatID)
+                                                        );
+                                                break;
+                                            case RatioTrajectory.EnumType.IncidenceOverIncidence:
+                                                _likelihoodTSs.Add(
+                                                    new LikelihoodTS_BinomialIncdOverIncd(
+                                                        _obsHist[calibTargIdx],
+                                                        rt.NominatorSpecialStatID,
+                                                        rt.DenominatorSpecialStatID)
+                                                        );
+                                                break;
+                                            case RatioTrajectory.EnumType.IncidenceOverPrevalence:
+                                                _likelihoodTSs.Add(
+                                                    new LikelihoodTS_BinomialIncdOverPrev(
+                                                        _obsHist[calibTargIdx],
+                                                        rt.NominatorSpecialStatID,
+                                                        rt.DenominatorSpecialStatID)
+                                                        );
+                                                break;
+                                            case RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
+                                                break;
+                                        }                                        
                                     }
                                     break;
                                 case SpecialStatCalibrInfo.EnumLikelihoodFunc.Multinomial:

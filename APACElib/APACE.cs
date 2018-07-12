@@ -587,11 +587,11 @@ namespace APACElib
                     strObsHeader[1, 2 * j + 1] = "Likelihood Parameters";
                 }
 
-                // get the index of observation periods
+                // get the index of observation periods 
                 int numOfObsPeriods = (int)(_modelSettings.TimeIndexToStop/ _modelSettings.NumOfDeltaT_inObservationPeriod);
-                int[] obsPeriodIndex = new int[numOfObsPeriods];
-                for (int i = 0; i < numOfObsPeriods; i++)
-                    obsPeriodIndex[i] = i+1;
+                int[] obsPeriodIndex = new int[numOfObsPeriods+1]; // (note that we also include the 0th observation period)
+                for (int i = 0; i < numOfObsPeriods+1; i++)
+                    obsPeriodIndex[i] = i;
 
                 // set up the epidemic history sheet
                 ExcelIntface.SetupEpidemicHistoryWorksheet(strObsHeader, obsPeriodIndex); 
