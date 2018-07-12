@@ -1075,7 +1075,8 @@ namespace APACElib
             thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = epiTimeIndex * _deltaT;
 
             foreach (SurveyedIncidenceTrajectory incdTraj in _surveyIncidenceTrajs.Where(i => i.DisplayInSimOut))
-                thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = incdTraj.GetLastObs(epiTimeIndex).GetValueOrDefault(-1);
+                thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = 
+                    SupportProcedures.ReplaceNaNWith(incdTraj.GetLastObs(epiTimeIndex), -1);
 
             foreach (SurveyedPrevalenceTrajectory prevTraj in _surveyPrevalenceTrajs.Where(i => i.DisplayInSimOut))
                 thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = 

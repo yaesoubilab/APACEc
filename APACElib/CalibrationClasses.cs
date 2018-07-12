@@ -472,7 +472,7 @@ namespace APACElib
                         int obs = (int)(_info.Obs[i].Value * _info.LikelihoodParam[i].Value);
 
                         // pdf of binomial calcualted at x = observation
-                        LnL = MathNet.Numerics.Distributions.Binomial.PMFLn(simRatio, (int)simDenomin, obs);
+                        LnL = MathNet.Numerics.Distributions.Binomial.PMFLn(simRatio, (int)_info.LikelihoodParam[i].Value, obs);
                     }                    
                     else //
                         LnL = Math.Log(double.Epsilon);
