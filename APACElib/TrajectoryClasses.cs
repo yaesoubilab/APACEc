@@ -760,17 +760,9 @@ namespace APACElib
                 // check if there is noise (less than 100% of the denominator is sampled in reality)
                 if (_noise_percOfDemoninatorSampled < 0.9999999 && _ratioTraj.Ratio.HasValue && !(_ratioTraj.Ratio is double.NaN))
                 {
-                    double mean = _ratioTraj.Ratio.Value;
-                    if (mean > 0)
-                    {
-                        double stDev = Math.Sqrt(mean * (1 - mean));
-                        Normal noiseModel = new Normal("Noise model", 0,
-                            stDev / Math.Sqrt(_noise_percOfDemoninatorSampled * _ratioTraj.Denom));
-                        double noise = noiseModel.SampleContinuous(rnd);
-                        obsValue = Math.Min(Math.Max(mean + noise, 0), 1);
-                    }
-                    else
-                        obsValue = 0;
+                    RatioNoiseModel noiseModel = new RatioNoiseModel(
+                        _ratioTraj.Ratio.Value, _ratioTraj.Denom, _noise_percOfDemoninatorSampled);
+                    obsValue = noiseModel.GetAnObservation(rnd);
                 }
                 else
                     obsValue = _ratioTraj.Ratio;

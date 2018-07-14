@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using ComputationLib;
+using RandomVariateLib;
 
 namespace APACElib
 {
@@ -326,6 +327,34 @@ namespace APACElib
                 fourierWeights[(int)CalibrationTargetOld.enumFourierSimilarityMeasures.Max]
                     = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Weight_FourierMax));
             }
+        }
+    }
+
+    public class RatioNoiseModel
+    {
+        private double _simRatio;
+        private Normal _noiseModel;
+
+        public RatioNoiseModel(double simRatio, double denomValue, double percOfDenomSampled)
+        {
+            _simRatio = simRatio;
+            if (_simRatio > 0)
+            {
+                double stDev = Math.Sqrt(_simRatio * (1 - _simRatio));
+                _noiseModel = new Normal("Noise model", 0,
+                    stDev / Math.Sqrt(percOfDenomSampled * denomValue));               
+            }
+        }
+
+        public double GetAnObservation(RNG rnd)
+        {
+            if (_simRatio > 0)
+            {
+                double noise = _noiseModel.SampleContinuous(rnd);
+                return Math.Min(Math.Max(_simRatio + noise, 0), 1);
+            }
+            else
+                return 0;
         }
     }
 }
