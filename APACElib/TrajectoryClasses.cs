@@ -627,6 +627,7 @@ namespace APACElib
         protected int _nDeltaTsObsPeriod; // number of deltaT's in an observation period 
         protected int _nObsPeriodsDelay;  // number of observation periods delayed      
         protected int _noiseParValue; // value of the noise parameter
+        protected double _noise_percOfDemoninatorSampled;
         public bool FirstObsMarksStartOfEpidemic { get; private set; }
 
         public SurveyedTrajectory(
@@ -656,7 +657,7 @@ namespace APACElib
         private IncidenceTimeSeries _timeSeries;
         private SumClassesTrajectory _sumClassesTraj;
         private SumEventTrajectory _sumEventsTraj;
-        private RatioTrajectory _ratioTrajectory;
+        private RatioTrajectory _ratioTraj;
 
         public SurveyedIncidenceTrajectory(
             int id,
@@ -667,14 +668,16 @@ namespace APACElib
             SumEventTrajectory sumEventTrajectory,
             RatioTrajectory ratioTrajectory,
             int nDeltaTsObsPeriod,
-            int nDeltaTsDelayed) 
+            int nDeltaTsDelayed,
+            double noise_percOfDemoninatorSampled) 
             : base(id, name, displayInSimOutput, firstObsMarksStartOfEpidemic, nDeltaTsObsPeriod, nDeltaTsDelayed)
         {
             _sumClassesTraj = sumClassesTrajectory;
             _sumEventsTraj = sumEventTrajectory;
-            _ratioTrajectory = ratioTrajectory;
+            _ratioTraj = ratioTrajectory;
+            _noise_percOfDemoninatorSampled = noise_percOfDemoninatorSampled;
 
-            if (!(_ratioTrajectory is null))
+            if (!(_ratioTraj is null))
                 _timeSeries = new IncidenceTimeSeries(1);
             else
                 _timeSeries = new IncidenceTimeSeries(nDeltaTsObsPeriod);
@@ -685,25 +688,36 @@ namespace APACElib
             if (epiTimeIndex == 0)
                 return;
 
-            double? value = 0;
+            double? obsValue = null;
             if (!(_sumClassesTraj is null))
             {
-                value = _sumClassesTraj.NumOfNewMembersOverPastPeriod;
-                _timeSeries.Record(value);
+                obsValue = _sumClassesTraj.NumOfNewMembersOverPastPeriod;
+                _timeSeries.Record(obsValue);
             }
             else if (!(_sumEventsTraj is null))
             {
-                value = _sumEventsTraj.NumOfNewMembersOverPastPeriod;
-                _timeSeries.Record(value);
+                obsValue = _sumEventsTraj.NumOfNewMembersOverPastPeriod;
+                _timeSeries.Record(obsValue);
             }
-            else if (!(_ratioTrajectory is null))
+            else if (!(_ratioTraj is null))
             {
-                if (_ratioTrajectory.RatioUpdated)
+                if (_ratioTraj.RatioUpdated)
                 {
-                    value = _ratioTrajectory.IncdTimeSeries.GetLastRecording();
-                    _timeSeries.Record(value);
+                    // check if there is noise (less than 100% of the denominator is sampled in reality)
+                    if (_noise_percOfDemoninatorSampled < 0.9999999 
+                        && _ratioTraj.Ratio.HasValue 
+                        && !(_ratioTraj.Ratio is double.NaN))
+                    {
+                        RatioNoiseModel noiseModel = new RatioNoiseModel(
+                            _ratioTraj.Ratio.Value, _ratioTraj.Denom, _noise_percOfDemoninatorSampled);
+                        obsValue = noiseModel.GetAnObservation(rnd);
+                    }
+                    else
+                        obsValue = _ratioTraj.IncdTimeSeries.GetLastRecording();
+
+                    _timeSeries.Record(obsValue);
                 }
-            }            
+            }
         }
         public override double? GetLastObs(int epiTimeIndex)
         {
@@ -724,13 +738,12 @@ namespace APACElib
         }
     }
 
-    // a surveryed prevalence trajectory (ratio statistics are considered a prevalence measure)
+    // a surveryed prevalence trajectory
     public class SurveyedPrevalenceTrajectory : SurveyedTrajectory
     {
         private PrevalenceTimeSeries _timeSeries;
         private SumClassesTrajectory _sumClassesTraj;   // reference to the summation statistics
         private RatioTrajectory _ratioTraj;             // reference to the ratio statistics
-        private double _noise_percOfDemoninatorSampled; 
 
         public SurveyedPrevalenceTrajectory(
             int id,

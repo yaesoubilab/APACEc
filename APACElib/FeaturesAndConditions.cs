@@ -58,7 +58,7 @@ namespace APACElib
 
         private EnumFeatureType _featureType;
         private SurveyedTrajectory _surveyedTraj; // pointer 
-        private double _par;
+        //private double _par;
 
         public Feature_SpecialStats(string name, int featureID, string strFeatureType, SurveyedTrajectory surveyedTraj, double par) 
             : base(name, featureID)

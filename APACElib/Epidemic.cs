@@ -1022,7 +1022,8 @@ namespace APACElib
                                         sumEventTrajectory: null,
                                         ratioTrajectory: null,
                                         nDeltaTsObsPeriod: _modelSets.NumOfDeltaT_inObservationPeriod, 
-                                        nDeltaTsDelayed: info.NDeltaTDelayed)
+                                        nDeltaTsDelayed: info.NDeltaTDelayed,
+                                        noise_percOfDemoninatorSampled: 1)
                                         );
                                 break;
                             case SumTrajectory.EnumType.AccumulatingIncident:
@@ -1081,7 +1082,8 @@ namespace APACElib
                                         thisSumEventTraj,
                                         null,
                                         _modelSets.NumOfDeltaT_inObservationPeriod,
-                                        info.NDeltaTDelayed)
+                                        info.NDeltaTDelayed, 
+                                        noise_percOfDemoninatorSampled: 1)
                                         );
                                 break;
                             case SumTrajectory.EnumType.AccumulatingIncident:
@@ -1217,7 +1219,8 @@ namespace APACElib
                                     null,
                                     thisRatioTraj,
                                     _modelSets.NumOfDeltaT_inObservationPeriod,
-                                    info.NDeltaTDelayed)
+                                    info.NDeltaTDelayed,
+                                    info.SurveillanceNoise)
                                 );
                             break;
                     }
