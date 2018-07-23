@@ -31,6 +31,7 @@ namespace APACElib
         public Timer Timer { get; private set; } = new Timer();
         
         RNG _rng;
+        RNG _rngNoise;
         private DecisionMaker _decisionMaker;
         private ParameterManager _paramManager;
         private MonitorOfInterventionsInEffect _monitorOfIntrvsInEffect;
@@ -143,7 +144,7 @@ namespace APACElib
             while (!toStop)
             {
                 // update epidemic history
-                ifFeasibleRangesViolated = EpiHist.Update(_simTimeIndex, _epiTimeIndex, false, _rng);
+                ifFeasibleRangesViolated = EpiHist.Update(_simTimeIndex, _epiTimeIndex, false, _rngNoise);
 
                 // update cost and health outcomes
                 UpdateCostAndHealthOutcomes(false);
@@ -313,6 +314,7 @@ namespace APACElib
         {
             // reset the rnd object
             _rng = new RNG(seed);
+            _rngNoise = new RNG(seed + 1);
 
             // reset time
             _simTimeIndex = 0;
