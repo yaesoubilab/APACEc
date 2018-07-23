@@ -252,7 +252,7 @@ namespace APACElib
                             - thisEpidemicModeller.SimSummary.Costs[simItr];
 
                 }
-                // then read the all simulation outcomes 
+                // then read all simulation outcomes 
                 double[][] thisSimItrOutcomes = new double[0][];
                 thisEpidemicModeller.SimSummary.GetIndvEpidemicOutcomes(
                     ref simItrOutcomeLabels, 
