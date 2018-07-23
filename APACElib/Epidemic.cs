@@ -67,7 +67,7 @@ namespace APACElib
         }
         
         // Simulate one trajectory (parameters will be sampled)
-        public void SimulateUntilOneAcceptibleTrajFound(int timeIndexToStop, int rndSeed = 0, int maxTries = 5000)
+        public void SimulateUntilOneAcceptibleTrajFound(int timeIndexToStop, int rndSeed = 0, int maxTries = 100000)
         {
             int tries = 0;
             int seed = 0;
