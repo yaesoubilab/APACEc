@@ -29,7 +29,8 @@ namespace APACElib
         public EpidemicCostHealth EpidemicCostHealth { get; set; }
         public double LnL { get; set; } // likelihood
         public Timer Timer { get; private set; } = new Timer();
-        
+
+        public int InitialSeed { get; set; }
         RNG _rng;
         RNG _rngNoise;
         private DecisionMaker _decisionMaker;
@@ -67,15 +68,15 @@ namespace APACElib
         }
         
         // Simulate one trajectory (parameters will be sampled)
-        public void SimulateUntilOneAcceptibleTrajFound(int timeIndexToStop, int rndSeed = 0, int maxTries = 100000)
+        public void SimulateUntilOneAcceptibleTrajFound(int timeIndexToStop, int maxTries = 100000)
         {
             int tries = 0;
             int seed = 0;
-            RNG seedGenerator = new RNG(ID);
-            if (rndSeed == 0)
+            RNG seedGenerator = new RNG(ID);            
+            if (InitialSeed == 0)
                 seed = seedGenerator.Next();
             else
-                seed = rndSeed;            
+                seed = InitialSeed;            
 
             SeedProducedAcceptibleTraj = -1;
             SeedsDiscarded = 0;
