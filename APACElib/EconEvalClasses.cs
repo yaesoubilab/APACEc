@@ -44,15 +44,23 @@ namespace APACElib
                 _costPerUnitOfTime 
                     = new IndependetParameter(0, "dummy", RandomVariateLib.EnumRandomVariates.Constant, 0, 0, 0, 0);
             else
-                _costPerUnitOfTime = disabilityWeightPerUnitOfTime;
+                _costPerUnitOfTime = costPerUnitOfTime;
         }
 
         public void Update(int simIndex, double prevalence, double incidence)
         {
-            if (_ifCollecting && simIndex >= _warmUpSimIndex)
+            if (_ifCollecting)
             {
-                DeltaTCost = _costPerNewMember.Value * incidence + _costPerUnitOfTime.Value * _deltaT * prevalence;
-                DeltaTDALY = _DALYPerNewMember.Value * incidence + _disabilityWeightPerUnitOfTime.Value * _deltaT * prevalence;
+                if (simIndex >= _warmUpSimIndex)
+                {
+                    DeltaTCost = _costPerNewMember.Value * incidence;
+                    DeltaTDALY = _DALYPerNewMember.Value * incidence;
+                }
+                if (simIndex >= _warmUpSimIndex + 1)
+                {
+                    DeltaTCost += _costPerUnitOfTime.Value * _deltaT * prevalence;
+                    DeltaTDALY += _disabilityWeightPerUnitOfTime.Value * _deltaT * prevalence;
+                }
             }
         }
 

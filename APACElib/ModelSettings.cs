@@ -139,7 +139,7 @@ namespace APACElib
             IfShowSimulatedTrajs = excelInterface.GetIfToShowSimulationTrajectories();
             
             AnnualDiscountRate = excelInterface.GetAnnualInterestRate();
-            DeltaTDiscountRate = AnnualDiscountRate / DeltaT;
+            DeltaTDiscountRate = AnnualDiscountRate * DeltaT;
             WTPForHealth = excelInterface.GetWTPForHealth();
 
             // read RND seeds if necessary

@@ -119,6 +119,7 @@ namespace APACElib
 
         public int NumOfNewMembersOverPastPeriod { get; set; }
         public int Prevalence { get; set; }
+        private int _prevalencePastDeltaT = 0;
         public int AccumulatedIncidence { get; set; }
         public int AccumulatedIncidenceAfterWarmUp { get; set; }
         
@@ -165,6 +166,8 @@ namespace APACElib
 
         public void CollectEndOfDeltaTStats(int simIndex)
         {
+            double avePrevalence = (Prevalence + _prevalencePastDeltaT) / 2;
+
             // accumulated incidence
             if (CollectAccumIncidenceStats)
             {
@@ -174,8 +177,8 @@ namespace APACElib
             }
 
             // average prevalence
-            if (CollectPrevalenceStats)
-                AveragePrevalenceStat.Record(Prevalence);
+            if (CollectPrevalenceStats && simIndex >= _warmUpSimIndex+1)
+                AveragePrevalenceStat.Record(avePrevalence);
 
             // time series
             if (!(IncidenceTimeSeries is null) && simIndex>0)
@@ -187,7 +190,10 @@ namespace APACElib
 
             // cost and health outcomes
             if (!(DeltaCostHealthCollector is null))
-                DeltaCostHealthCollector.Update(simIndex, Prevalence, NumOfNewMembersOverPastPeriod);
+                DeltaCostHealthCollector.Update(simIndex, avePrevalence, NumOfNewMembersOverPastPeriod);
+
+            // store the current prevalence
+            _prevalencePastDeltaT = Prevalence;
         }
 
         public void Reset()
