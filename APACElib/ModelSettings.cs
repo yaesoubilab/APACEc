@@ -37,7 +37,8 @@ namespace APACElib
         public bool UseParallelComputing { get; set; }
         public int MaxDegreeOfParallelism { get; set; }
         public int FirstRNGSeed { get; set; }
-        public int DistanceBtwRNGSeeds { get; set; }
+        public int ScenarioSeed { get; set; }
+        public int EpiTimeIndexToChangeSeed { get; set; }
         public EnumSimRNDSeedsSource SimRNDSeedsSource { get; set; } = EnumSimRNDSeedsSource.StartFrom0;
         public int[] RndSeeds { get; set; }
         public double[] RndSeedsGoodnessOfFit { get; set; }
@@ -118,23 +119,25 @@ namespace APACElib
                     break;
             }
 
+            DeltaT = excelInterface.GetTimeStep();
+
             UseParallelComputing = excelInterface.IsUsingParallelComputing();
             MaxDegreeOfParallelism = excelInterface.GetMaxDegreeOfParallelism();
             FirstRNGSeed = excelInterface.GetFirstRNGSeed();
-            DistanceBtwRNGSeeds = excelInterface.GetDistanceBtwRNGSeeds();
+            ScenarioSeed = excelInterface.GetScenarioSeed();
+            EpiTimeIndexToChangeSeed = (int)(Math.Round(excelInterface.GetEpiTimeIndexToChangeSeed() / DeltaT,0));
             NumOfSimItrs = excelInterface.GetNumberOfSimulationIterations();
             SimRNDSeedsSource = excelInterface.GetSimulationRNDSeedsSource();
-
-            DeltaT = excelInterface.GetTimeStep();
+            
             NumOfDeltaT_inDecisionInterval = excelInterface.GetNumDeltaTDecisionInterval();
             NumOfDeltaT_inSimOutputInterval = excelInterface.GetNumDeltaTSimulationOutputInterval();
             NumOfDeltaT_inObservationPeriod = excelInterface.GetNumDeltaTObservationPeriod();
 
             EpidemicTimeIndexToStartDecisionMaking = (int)(excelInterface.GetTimeToStartDecisionMaking()/DeltaT);
             MarkOfEpidemicStartTime = excelInterface.GetMarkOfEpidemicStartTime();
-            WarmUpPeriodSimTIndex = (int)(excelInterface.GetWarmUpPeriod() / DeltaT);
-            TimeIndexToStop = (int)( Math.Round(excelInterface.GetTimeToStop() / DeltaT, 0));
-            EpidemicConditionTimeIndex = (int)(excelInterface.GetEpidemicConditionTime() / DeltaT);
+            WarmUpPeriodSimTIndex = (int)(Math.Round(excelInterface.GetWarmUpPeriod() / DeltaT,0));
+            TimeIndexToStop = (int)(Math.Round(excelInterface.GetTimeToStop() / DeltaT, 0));
+            EpidemicConditionTimeIndex = (int)(Math.Round(excelInterface.GetEpidemicConditionTime() / DeltaT,0));
             DecisionRule = excelInterface.GetDecisionRule();
             IfShowSimulatedTrajs = excelInterface.GetIfToShowSimulationTrajectories();
             

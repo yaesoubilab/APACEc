@@ -417,9 +417,13 @@ namespace APACElib
         {
             return (int)(double)GetCellValue("General Settings", "firstRNGSeed");
         }
-        public int GetDistanceBtwRNGSeeds()
+        public int GetScenarioSeed()
         {
-            return (int)(double)GetCellValue("General Settings", "distanceBtwRNGSeeds");
+            return (int)(double)GetCellValue("General Settings", "scenarioSeed");
+        }
+        public double GetEpiTimeIndexToChangeSeed()
+        {
+            return (double)GetCellValue("General Settings", "epiTimeChangeSeed");
         }
         public int GetNumDeltaTSimulationOutputInterval()
         {

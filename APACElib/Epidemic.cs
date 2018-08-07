@@ -31,8 +31,9 @@ namespace APACElib
         public Timer Timer { get; private set; } = new Timer();
 
         public int InitialSeed { get; set; }
-        RNG _rng;
+        RNG _rng;        
         RNG _rngNoise;
+        int _newSeed;
         private DecisionMaker _decisionMaker;
         private ParameterManager _paramManager;
         private MonitorOfInterventionsInEffect _monitorOfIntrvsInEffect;
@@ -156,6 +157,10 @@ namespace APACElib
                     acceptableTrajectory = false;
                     return acceptableTrajectory;
                 }
+
+                // if warm-up period has ended
+                if (_epiTimeIndex == _modelSets.EpiTimeIndexToChangeSeed)
+                    _rng = new RNG(_newSeed);
 
                 // make decisions
                 if (_simTimeIndex == 0)
@@ -315,7 +320,9 @@ namespace APACElib
         {
             // reset the rnd object
             _rng = new RNG(seed);
-            _rngNoise = new RNG(seed + 1);
+            _rngNoise = new RNG(_rng.Next());
+            int[] seeds = (new RNG(_rng.Next())).NextInt32s(_modelSets.ScenarioSeed+1);
+            _newSeed = seeds.Last();
 
             // reset time
             _simTimeIndex = 0;
