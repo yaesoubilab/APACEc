@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using RandomVariateLib;
-using SimulationLib;
 using ComputationLib;
 
 namespace APACElib
@@ -459,16 +458,16 @@ namespace APACElib
                 string name = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Name));
                 bool updateAtEachTimeStep = SupportFunctions.ConvertYesNoToBool(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.UpdateAtEachTimeStep).ToString());
                 string distribution = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Distribution));
-                EnumRandomVariates enumRVG = RandomVariateLib.SupportProcedures.ConvertToEnumRVG(distribution);
+                Parameter.EnumType enumParameterType = Parameter.FindParameterType(distribution);
                 bool includedInCalibration = SupportFunctions.ConvertYesNoToBool(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.IncludedInCalibration).ToString());
 
                 Parameter thisParameter = null;
                 double par1 = 0, par2 = 0, par3 = 0, par4 = 0;
 
                 // read parameter values
-                switch (enumRVG)
+                switch (enumParameterType)
                 {
-                    case EnumRandomVariates.LinearCombination:
+                    case Parameter.EnumType.LinearCombination:
                         {
                             string strPar1 = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par1));
                             string strPar2 = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par2));
@@ -490,7 +489,7 @@ namespace APACElib
                             thisParameter = new LinearCombination(parameterID, name, arrParIDs, arrCoefficients);
                         }
                         break;
-                    case EnumRandomVariates.Product:
+                    case Parameter.EnumType.Product:
                         {
                             string strPar1 = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par1));
 
@@ -516,29 +515,33 @@ namespace APACElib
                         break;
                 }                         
 
-                switch (enumRVG)
+                // build parameters
+                switch (enumParameterType)
                 {
-                    case EnumRandomVariates.LinearCombination:
-                    case EnumRandomVariates.Product:
+                    case Parameter.EnumType.LinearCombination:
+                    case Parameter.EnumType.Product:
                         // created above
                         break;
-                    case EnumRandomVariates.Correlated:
+                    case Parameter.EnumType.Correlated:
                         thisParameter = new CorrelatedParameter(parameterID, name, (int)par1, par2, par3);
                         break;
-                    case EnumRandomVariates.Multiplicative:
+                    case Parameter.EnumType.Multiplicative:
                         thisParameter = new MultiplicativeParameter(parameterID, name, (int)par1, (int)par2, (bool)(par3==1));
                         break;
-                    case EnumRandomVariates.TimeDependetLinear:
+                    case Parameter.EnumType.TimeDependetLinear:
                         thisParameter = new TimeDependetLinear(parameterID, name, (int)par1, (int)par2, par3, par4);
                         break;
-                    case EnumRandomVariates.TimeDependetOscillating:
+                    case Parameter.EnumType.TimeDependetOscillating:
                         thisParameter = new TimeDependetOscillating(parameterID, name, (int)par1, (int)par2, (int)par3, (int)par4);
                         break;
-                    case EnumRandomVariates.ComorbidityDisutility:
+                    case Parameter.EnumType.ComorbidityDisutility:
                         thisParameter = new ComorbidityDisutility(parameterID, name, (int)par1, (int)par2);
                         break;
-                    default:
-                        thisParameter = new IndependetParameter(parameterID, name, enumRVG, par1, par2, par3, par4);
+                    default: // indepedent
+                        {
+                            EnumRandomVariates enumRVG = RandomVariateLib.SupportProcedures.ConvertToEnumRVG(distribution);
+                            thisParameter = new IndependetParameter(parameterID, name, enumRVG, par1, par2, par3, par4);
+                        }
                         break;
                 }
 

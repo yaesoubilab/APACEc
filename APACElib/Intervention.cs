@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using RandomVariateLib;
 using ComputationLib;
-using SimulationLib;
 
 namespace APACElib
 {

@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ComputationLib;
-using SimulationLib;
 using RandomVariateLib;
 
 namespace APACElib
@@ -62,14 +61,6 @@ namespace APACElib
                     //CalculateTransmissionMatrix();
                     // update transmission rates
                     //UpdateTransmissionRates();
-                }
-
-                // update event rates if necessary
-                if (ThereAreTimeDepParms_diseaseProgression)
-                {
-                    // update rates associated with each class and their initial size
-                    //foreach (Class thisClass in classes)
-                    //    thisClass.UpdateRatesOfBirthAndEpiIndpEvents(ParameterValues);
                 }
 
                 // update value of splitting class parameters
