@@ -459,7 +459,7 @@ namespace APACElib
             double sumLnL = 0;
 
             // go over calibration observations
-            for (int i = 0; i < _info.Obs.Count; i++)
+            for (int i = 0; i < nominRecordings.Count; i++) // _info.Obs
                 // if an observation is recorded
                 if (_info.Obs[i].HasValue)
                 {
