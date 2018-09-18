@@ -632,7 +632,7 @@ namespace APACElib
         protected int _nDeltaTsObsPeriod; // number of deltaT's in an observation period 
         protected int _nObsPeriodsDelay;  // number of observation periods delayed      
         protected int _noiseParValue; // value of the noise parameter
-        protected double _noise_percOfDemoninatorSampled;
+        protected double _noise_nOfDemoninatorSampled;
         public bool FirstObsMarksStartOfEpidemic { get; private set; }
 
         public SurveyedTrajectory(
@@ -674,13 +674,13 @@ namespace APACElib
             RatioTrajectory ratioTrajectory,
             int nDeltaTsObsPeriod,
             int nDeltaTsDelayed,
-            double noise_percOfDemoninatorSampled) 
+            double noise_nOfDemoninatorSampled) 
             : base(id, name, displayInSimOutput, firstObsMarksStartOfEpidemic, nDeltaTsObsPeriod, nDeltaTsDelayed)
         {
             _sumClassesTraj = sumClassesTrajectory;
             _sumEventsTraj = sumEventTrajectory;
             _ratioTraj = ratioTrajectory;
-            _noise_percOfDemoninatorSampled = noise_percOfDemoninatorSampled;
+            _noise_nOfDemoninatorSampled = noise_nOfDemoninatorSampled;
 
             if (!(_ratioTraj is null))
                 _timeSeries = new IncidenceTimeSeries(1);
@@ -708,13 +708,12 @@ namespace APACElib
             {
                 if (_ratioTraj.RatioUpdated)
                 {
-                    // check if there is noise (less than 100% of the denominator is sampled in reality)
-                    if (_noise_percOfDemoninatorSampled < 0.9999999 
+                    // check if there is noise (0 implies that all are sampled)
+                    if (_noise_nOfDemoninatorSampled > 0
                         && _ratioTraj.Ratio.HasValue 
                         && !(_ratioTraj.Ratio is double.NaN))
                     {
-                        RatioNoiseModel noiseModel = new RatioNoiseModel(
-                            _ratioTraj.Ratio.Value, _ratioTraj.Denom, _noise_percOfDemoninatorSampled);
+                        RatioNoiseModel noiseModel = new RatioNoiseModel(_ratioTraj.Ratio.Value, _noise_nOfDemoninatorSampled);
                         obsValue = noiseModel.GetAnObservation(rnd);
                     }
                     else
@@ -765,7 +764,7 @@ namespace APACElib
             _sumClassesTraj = sumClassesTrajectory;
             _ratioTraj = ratioTrajectory;
             _timeSeries = new PrevalenceTimeSeries(nDeltaTsObsPeriod);
-            _noise_percOfDemoninatorSampled = noise_percOfDemoninatorSampled;
+            _noise_nOfDemoninatorSampled = noise_percOfDemoninatorSampled;
         }
 
         public override void Update(int epiTimeIndex, RNG rnd)
@@ -775,11 +774,10 @@ namespace APACElib
                 obsValue = _sumClassesTraj.Prevalence;
             else if (!(_ratioTraj is null))
             {
-                // check if there is noise (less than 100% of the denominator is sampled in reality)
-                if (_noise_percOfDemoninatorSampled < 0.9999999 && _ratioTraj.Ratio.HasValue && !(_ratioTraj.Ratio is double.NaN))
+                // check if there is noise (0 implies that all is sampled)
+                if (_noise_nOfDemoninatorSampled > 0 && _ratioTraj.Ratio.HasValue && !(_ratioTraj.Ratio is double.NaN))
                 {
-                    RatioNoiseModel noiseModel = new RatioNoiseModel(
-                        _ratioTraj.Ratio.Value, _ratioTraj.Denom, _noise_percOfDemoninatorSampled);
+                    RatioNoiseModel noiseModel = new RatioNoiseModel(_ratioTraj.Ratio.Value, _noise_nOfDemoninatorSampled);
                     obsValue = noiseModel.GetAnObservation(rnd);
                 }
                 else

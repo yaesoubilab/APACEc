@@ -1036,7 +1036,7 @@ namespace APACElib
                                         ratioTrajectory: null,
                                         nDeltaTsObsPeriod: _modelSets.NumOfDeltaT_inObservationPeriod, 
                                         nDeltaTsDelayed: info.NDeltaTDelayed,
-                                        noise_percOfDemoninatorSampled: 1)
+                                        noise_nOfDemoninatorSampled: 1)
                                         );
                                 break;
                             case SumTrajectory.EnumType.AccumulatingIncident:
@@ -1096,7 +1096,7 @@ namespace APACElib
                                         null,
                                         _modelSets.NumOfDeltaT_inObservationPeriod,
                                         info.NDeltaTDelayed, 
-                                        noise_percOfDemoninatorSampled: 1)
+                                        noise_nOfDemoninatorSampled: 1)
                                         );
                                 break;
                             case SumTrajectory.EnumType.AccumulatingIncident:

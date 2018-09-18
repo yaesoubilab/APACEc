@@ -335,14 +335,13 @@ namespace APACElib
         private double _simRatio;
         private Normal _noiseModel;
 
-        public RatioNoiseModel(double simRatio, double denomValue, double percOfDenomSampled)
+        public RatioNoiseModel(double simRatio, double OfDenomSampled)
         {
             _simRatio = simRatio;
             if (_simRatio > 0)
             {
                 double stDev = Math.Sqrt(_simRatio * (1 - _simRatio));
-                _noiseModel = new Normal("Noise model", 0,
-                    stDev / Math.Sqrt(percOfDenomSampled * denomValue));               
+                _noiseModel = new Normal("Noise model", 0, stDev / Math.Sqrt(OfDenomSampled));               
             }
         }
 
