@@ -199,6 +199,10 @@ namespace APACElib
                     
                     // update history
                     ifFeasibleRangesViolated =  EpiHist.Update(_simTimeIndex, _epiTimeIndex, true, _rng);
+                    // find if required minimum thresholds are hit
+                    if (EpiHist.FindIfMinThresholdsHit() != true)
+                        ifFeasibleRangesViolated = true;
+
                     // update cost and health outcomes
                     UpdateCostAndHealthOutcomes(true);
 
@@ -1118,7 +1122,14 @@ namespace APACElib
                 // update calibraton infor
                 if (_modelSets.ModelUse == EnumModelUse.Calibration && info.IfIncludedInCalibration)
                     EpiHist.SumTrajs.Last().CalibInfo = 
-                        new SpecialStatCalibrInfo(info.StrMeasureOfFit, info.StrLikelihood, info.StrLikelihoodParam, info.IfCheckWithinFeasibleRange, info.FeasibleMin, info.FeasibleMax);
+                        new SpecialStatCalibrInfo(
+                            info.StrMeasureOfFit, 
+                            info.StrLikelihood, 
+                            info.StrLikelihoodParam, 
+                            info.IfCheckWithinFeasibleRange, 
+                            info.FeasibleMin, 
+                            info.FeasibleMax, 
+                            info.FeasibleMinThreshodToHit);
                 
             }
 

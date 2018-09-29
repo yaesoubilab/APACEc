@@ -171,12 +171,14 @@ namespace APACElib
             Weight_FourierStDev = 25,
             Weight_FourierMin = 26,
             Weight_FourierMax = 27,
+
             IfCheckWithinFeasibleRange = 28,
             FeasibleRange_minimum = 29,
             FeasibleRange_maximum = 30,
+            FeasibleRange_hitMinimumThreshold = 31,
 
-            NewMember_FeatureType = 32,
-            NewMember_NumOfPastObsPeriodsToStore = 33,
+            NewMember_FeatureType = 33,
+            NewMember_NumOfPastObsPeriodsToStore = 34   ,
         }        
         public enum enumFeaturesColumns : int
         {

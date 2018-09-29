@@ -42,6 +42,11 @@ namespace APACElib
             return (_nRecordingsInThisPeriod == _nRecodingsInEachPeriod);
         }
 
+        public double GetMaxRecordedValue()
+        {
+            return Recordings.Max(r=>r.GetValueOrDefault(0));
+        }
+
         public abstract void Reset();
     }
 
@@ -313,6 +318,20 @@ namespace APACElib
             return null;
         }
 
+        public double GetMaxRecordedValue()
+        {
+            switch (Type)
+            {
+                case EnumType.Incidence:
+                    return IncidenceTimeSeries.GetMaxRecordedValue();
+                case EnumType.AccumulatingIncident:
+                    return AccumulatedIncidenceAfterWarmUp;
+                case EnumType.Prevalence:
+                    return PrevalenceTimeSeries.GetMaxRecordedValue();
+            }
+            return 0;
+        }
+
         // convert sum formula into the array of class IDs or event IDs
         protected int[] ConvertSumFormulaToArrayOfIDs(string formula)
         {
@@ -355,8 +374,8 @@ namespace APACElib
 
                         if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
                         {
-                            if (AccumulatedIncidenceAfterWarmUp < CalibInfo.LowFeasibleRange 
-                                || AccumulatedIncidenceAfterWarmUp > CalibInfo.UpFeasibleRange)
+                            if (AccumulatedIncidenceAfterWarmUp < CalibInfo.FeasibleRangeMin 
+                                || AccumulatedIncidenceAfterWarmUp > CalibInfo.FeasibleRangeMax)
                                 ifFeasiableRangesViolated = true;
                         }
                     }
@@ -373,8 +392,8 @@ namespace APACElib
                          
                         if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
                         {
-                            if (IncidenceTimeSeries.GetLastRecording() < CalibInfo.LowFeasibleRange
-                                || IncidenceTimeSeries.GetLastRecording() > CalibInfo.UpFeasibleRange)
+                            if (IncidenceTimeSeries.GetLastRecording() < CalibInfo.FeasibleRangeMin
+                                || IncidenceTimeSeries.GetLastRecording() > CalibInfo.FeasibleRangeMax)
                                 ifFeasiableRangesViolated = true;
                         }
                     }
@@ -388,8 +407,8 @@ namespace APACElib
 
                         if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
                         {
-                            if (Prevalence < CalibInfo.LowFeasibleRange
-                                || Prevalence > CalibInfo.UpFeasibleRange)
+                            if (Prevalence < CalibInfo.FeasibleRangeMin
+                                || Prevalence > CalibInfo.FeasibleRangeMax)
                                 ifFeasiableRangesViolated = true;
                         }
                     }
@@ -434,8 +453,8 @@ namespace APACElib
             // check for feasibility
             if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
             {
-                if (IncidenceTimeSeries.GetLastRecording() < CalibInfo.LowFeasibleRange ||
-                    IncidenceTimeSeries.GetLastRecording() > CalibInfo.LowFeasibleRange)
+                if (IncidenceTimeSeries.GetLastRecording() < CalibInfo.FeasibleRangeMin ||
+                    IncidenceTimeSeries.GetLastRecording() > CalibInfo.FeasibleRangeMin)
                     ifFeasiableRangesViolated = true;
             }
 
@@ -516,11 +535,25 @@ namespace APACElib
                 case EnumType.IncidenceOverPrevalence:
                     IncdTimeSeries = new IncidenceTimeSeries(1);
                     break;
-            }
-            
+            }            
             
             if (Type == EnumType.PrevalenceOverPrevalence)
                 AveragePrevalenceStat = new ObsBasedStat("Average prevalence");
+        }
+
+        public double GetMaxRecordedValue()
+        {
+            switch (Type)
+            {
+                case EnumType.PrevalenceOverPrevalence:
+                case EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
+                    return PrevTimeSeries.GetMaxRecordedValue();
+
+                case EnumType.IncidenceOverIncidence:
+                case EnumType.IncidenceOverPrevalence:
+                    return IncdTimeSeries.GetMaxRecordedValue();
+            }
+            return 0;
         }
 
         public bool Add(int simIndex, List<SumTrajectory> sumTrajectories)
@@ -597,7 +630,7 @@ namespace APACElib
             // check if within feasible range
             if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
             {
-                if (Ratio < CalibInfo.LowFeasibleRange || Ratio > CalibInfo.UpFeasibleRange)
+                if (Ratio < CalibInfo.FeasibleRangeMin || Ratio > CalibInfo.FeasibleRangeMax)
                     ifFeasiableRangesViolated = true;
             }
 
@@ -1230,6 +1263,25 @@ namespace APACElib
                 f.Update(epiTimeIndex);
 
             return ifFeasibleRangesViolated;
+        }
+
+        public bool FindIfMinThresholdsHit()
+        {
+            bool ifMinThresholdsHit = true; // assuming all thresholds are hit
+
+            // update summation statistics
+            foreach (SumTrajectory thisSumTaj in SumTrajs.Where(s => s.CalibInfo.IfCheckWithinFeasibleRange))
+                if (thisSumTaj.CalibInfo.FeasibleMinThresholdToHit>0)
+                    if (thisSumTaj.GetMaxRecordedValue() < thisSumTaj.CalibInfo.FeasibleMinThresholdToHit)
+                        return false;
+
+            // update ratio statistics
+            foreach (RatioTrajectory ratioTraj in RatioTrajs.Where(s => s.CalibInfo.IfCheckWithinFeasibleRange))
+                if (ratioTraj.CalibInfo.FeasibleMinThresholdToHit > 0)
+                    if (ratioTraj.GetMaxRecordedValue() < ratioTraj.CalibInfo.FeasibleMinThresholdToHit)
+                        return false;
+
+            return ifMinThresholdsHit;
         }
 
         public void Record(int simTimeIndex, int epiTimeIndex, bool endOfSim)

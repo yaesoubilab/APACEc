@@ -278,6 +278,7 @@ namespace APACElib
         public bool IfCheckWithinFeasibleRange { get; }
         public double FeasibleMin { get; }
         public double FeasibleMax { get; }
+        public double FeasibleMinThreshodToHit { get; }
         
         public CommonSumRatioStatistics(Array sheet, int rowIndex)
         {
@@ -308,6 +309,7 @@ namespace APACElib
             {
                 FeasibleMin = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FeasibleRange_minimum));
                 FeasibleMax = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FeasibleRange_maximum));
+                FeasibleMinThreshodToHit = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FeasibleRange_hitMinimumThreshold));
             }
 
             // fourier

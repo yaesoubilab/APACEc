@@ -235,8 +235,9 @@ namespace APACElib
         public EnumLikelihoodFunc LikelihoodFunc { get; }
         public int? LikelihoodParam { get; }
         public bool IfCheckWithinFeasibleRange { get; } = false;
-        public double LowFeasibleRange { get; }
-        public double UpFeasibleRange { get; }
+        public double FeasibleRangeMin { get; }
+        public double FeasibleRangeMax { get; }
+        public double FeasibleMinThresholdToHit { get; }
 
         public SpecialStatCalibrInfo(
             string measureOfFit,
@@ -244,7 +245,8 @@ namespace APACElib
             string likelihoodParam = "",
             bool ifCheckWithinFeasibleRange = false, 
             double lowFeasibleBound = 0, 
-            double upFeasibleBound = double.MaxValue)
+            double upFeasibleBound = double.MaxValue,
+            double minThresholdToHit = 0)
         {
             switch (measureOfFit)
             {
@@ -289,8 +291,9 @@ namespace APACElib
             }
 
             IfCheckWithinFeasibleRange = ifCheckWithinFeasibleRange;
-            LowFeasibleRange = lowFeasibleBound;
-            UpFeasibleRange = upFeasibleBound;
+            FeasibleRangeMin = lowFeasibleBound;
+            FeasibleRangeMax = upFeasibleBound;
+            FeasibleMinThresholdToHit = minThresholdToHit;
         }
 
     }
