@@ -1270,14 +1270,14 @@ namespace APACElib
             bool ifMinThresholdsHit = true; // assuming all thresholds are hit
 
             // update summation statistics
-            foreach (SumTrajectory thisSumTaj in SumTrajs.Where(s => s.CalibInfo.IfCheckWithinFeasibleRange))
-                if (thisSumTaj.CalibInfo.FeasibleMinThresholdToHit>0)
+            foreach (SumTrajectory thisSumTaj in SumTrajs.Where(s => s.CalibInfo != null))
+                if (thisSumTaj.CalibInfo.IfCheckWithinFeasibleRange && thisSumTaj.CalibInfo.FeasibleMinThresholdToHit>0)
                     if (thisSumTaj.GetMaxRecordedValue() < thisSumTaj.CalibInfo.FeasibleMinThresholdToHit)
                         return false;
 
             // update ratio statistics
-            foreach (RatioTrajectory ratioTraj in RatioTrajs.Where(s => s.CalibInfo.IfCheckWithinFeasibleRange))
-                if (ratioTraj.CalibInfo.FeasibleMinThresholdToHit > 0)
+            foreach (RatioTrajectory ratioTraj in RatioTrajs.Where(s => s.CalibInfo != null))
+                if (ratioTraj.CalibInfo.IfCheckWithinFeasibleRange && ratioTraj.CalibInfo.FeasibleMinThresholdToHit > 0)
                     if (ratioTraj.GetMaxRecordedValue() < ratioTraj.CalibInfo.FeasibleMinThresholdToHit)
                         return false;
 

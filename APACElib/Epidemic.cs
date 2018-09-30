@@ -1206,7 +1206,13 @@ namespace APACElib
                 // set up calibration
                 if (_modelSets.ModelUse == EnumModelUse.Calibration && info.IfIncludedInCalibration)
                     thisRatioTraj.CalibInfo = new SpecialStatCalibrInfo(
-                        info.StrMeasureOfFit, info.StrLikelihood, info.StrLikelihoodParam, info.IfCheckWithinFeasibleRange, info.FeasibleMin, info.FeasibleMax);
+                        info.StrMeasureOfFit, 
+                        info.StrLikelihood, 
+                        info.StrLikelihoodParam, 
+                        info.IfCheckWithinFeasibleRange, 
+                        info.FeasibleMin, 
+                        info.FeasibleMax, 
+                        info.FeasibleMinThreshodToHit);
 
                 // add the ratio statistics
                 EpiHist.RatioTrajs.Add(thisRatioTraj);
