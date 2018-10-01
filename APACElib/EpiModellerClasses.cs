@@ -133,7 +133,7 @@ namespace APACElib
                     // build the epidemic model
                     epi.BuildModel(ref _modelSet);
                     // toggle to calibration
-                    ToggleAnEpidemicTo(epi, EnumModelUse.Calibration, EnumEpiDecisions.PredeterminedSequence, false);
+                    ToggleAnEpidemicTo(epi, EnumModelUse.Calibration, _modelSet.DecisionRule, false);
                     // simulate            
                     epi.SimulateUntilOneAcceptibleTrajFound(_modelSet.TimeIndexToStop);
                     // find the likeligood of this simulation 
@@ -303,11 +303,6 @@ namespace APACElib
         {
             foreach (Epidemic thisEpidemic in _epidemics)
                 ToggleAnEpidemicTo(thisEpidemic, modelUse, decisionRule, reportEpiTrajsToExcel);
-
-            //// toggle each epidemic
-            //if (_modelSet.UseParallelComputing)                
-            //else
-            //    ToggleAnEpidemicTo(_parentEpidemic, modelUse, decisionRule, reportEpiTrajsToExcel);
         }
         // toggle one epidemic
         private void ToggleAnEpidemicTo(Epidemic thisEpidemic, EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool reportEpiTrajsToExcel)
@@ -325,7 +320,8 @@ namespace APACElib
                     break;
                 case EnumModelUse.Calibration:
                     {
-                        thisEpidemic.DecisionMaker.AddPrespecifiedDecisionsOverDecisionsPeriods(_modelSet.PrespecifiedSequenceOfInterventions);
+                        if (decisionRule == EnumEpiDecisions.PredeterminedSequence)
+                            thisEpidemic.DecisionMaker.AddPrespecifiedDecisionsOverDecisionsPeriods(_modelSet.PrespecifiedSequenceOfInterventions);
                     }
                     break;
                 case EnumModelUse.Optimization:

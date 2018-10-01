@@ -566,8 +566,7 @@ namespace APACElib
         // set up observation worksheet
         private void ReadObservedHistory()
         {
-            if (!(_modelSettings.ModelUse == EnumModelUse.Calibration|| 
-                    _modelSettings.DecisionRule == EnumEpiDecisions.PredeterminedSequence))
+            if (!(_modelSettings.ModelUse == EnumModelUse.Calibration)) // _modelSettings.DecisionRule == EnumEpiDecisions.PredeterminedSequence
                 return;
 
             // check if current epidemic history can be used if not get the history from the user
