@@ -210,8 +210,6 @@ namespace APACElib
         private int FindNextEpiTimeIndexToChangeInterventionsInEffect()
         {
             int minT = int.MaxValue;  // minimum t so far
-            int tOff = int.MaxValue;
-            int tEffect = int.MaxValue;
             foreach (Intervention a in Interventions)
             {
                 //if (CurrentDecision[a.Index] == 0)
