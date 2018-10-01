@@ -58,7 +58,7 @@ namespace APACElib
         public int ParIDDelayToGoIntoEffectOnceTurnedOn { get; set; }
         public int NumOfTimeIndeciesDelayedToGoIntoEffect { get; set; } = 0; // delay after turned on
 
-        public int EpiTimeIndexToTurnOn { get; set; }
+        //public int EpiTimeIndexToTurnOn { get; set; }
         public int EpiTimeIndexToGoIntoEffect { get; set; }
         public int EpiTimeIndexToTurnOff { get; set; }
         public int EpiTimeIndexLastTurnedOn { get; set; }
@@ -120,10 +120,11 @@ namespace APACElib
         public void Reset()
         {
             IfEverTurnedOnBefore = false;
+            IfEverTurnedOffBefore = false;
             NumOfSwitchesOccured = 0;
             NumOfDecisionPeriodsUsedOver = 0;
 
-            EpiTimeIndexToTurnOn = int.MaxValue;
+            //EpiTimeIndexToTurnOn = int.MaxValue;
             EpiTimeIndexToTurnOff = int.MaxValue;
             EpiTimeIndexToGoIntoEffect = int.MaxValue;
             EpiTimeIndexLastTurnedOn = int.MaxValue;

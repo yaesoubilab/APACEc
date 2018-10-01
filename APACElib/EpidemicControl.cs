@@ -144,16 +144,22 @@ namespace APACElib
                     // if turning on
                     if (CurrentDecision[i] == 0 && newDecision[i] == 1) {
                         a.IfEverTurnedOnBefore = true;
-                        a.EpiTimeIndexLastTurnedOn = epiTimeIndex;
+                        a.IfEverTurnedOffBefore = a.IfEverTurnedOffBefore; // unchanged
+
                         a.EpiTimeIndexToGoIntoEffect = epiTimeIndex + a.NumOfTimeIndeciesDelayedToGoIntoEffect;
                         a.EpiTimeIndexToTurnOff = int.MaxValue;
+                        a.EpiTimeIndexLastTurnedOn = epiTimeIndex;
+                        a.EpiTimeIndexLastTurnedOff = int.MaxValue;
                     }
                     // if the intervention is turning off
                     else if (CurrentDecision[i] == 1 && newDecision[i] == 0) {
+                        a.IfEverTurnedOnBefore = a.IfEverTurnedOnBefore; //unchagned
                         a.IfEverTurnedOffBefore = true;
-                        a.EpiTimeIndexLastTurnedOff = epiTimeIndex;
-                        a.EpiTimeIndexToTurnOff = epiTimeIndex;
+
                         a.EpiTimeIndexToGoIntoEffect = int.MaxValue;
+                        a.EpiTimeIndexToTurnOff = epiTimeIndex;
+                        a.EpiTimeIndexLastTurnedOn = a.EpiTimeIndexLastTurnedOn; //unchanged
+                        a.EpiTimeIndexLastTurnedOff = epiTimeIndex;
                     }
                     // if the intervention remains off
                     else if (CurrentDecision[i] == 0)
@@ -184,10 +190,10 @@ namespace APACElib
             }
         }
 
-        public void UpdateNextEpiTimeIndexToChangeInterventionsInEffect()
-        {
-            EpiTimeIndexToChangeIntervetionsInEffect = FindNextEpiTimeIndexToChangeInterventionsInEffect();
-        }
+        //public void UpdateNextEpiTimeIndexToChangeInterventionsInEffect()
+        //{
+        //    EpiTimeIndexToChangeIntervetionsInEffect = FindNextEpiTimeIndexToChangeInterventionsInEffect();
+        //}
 
         public void Reset()
         {
@@ -203,17 +209,19 @@ namespace APACElib
         // find next epidemic time index when an intervention effect changes
         private int FindNextEpiTimeIndexToChangeInterventionsInEffect()
         {
-            int tIndex = int.MaxValue;
-            int temp;
+            int minT = int.MaxValue;  // minimum t so far
+            int tOff = int.MaxValue;
+            int tEffect = int.MaxValue;
             foreach (Intervention a in Interventions)
             {
-                //if (a.Type != EnumInterventionType.Default)
-                //{
-                    temp = Math.Min(a.EpiTimeIndexToTurnOff, a.EpiTimeIndexToGoIntoEffect);
-                    tIndex = Math.Min(temp, tIndex);
-                //}
+                //if (CurrentDecision[a.Index] == 0)
+                //    tEffect = ;
+                //else
+                //    tOff = ;
+
+                minT = Math.Min(Math.Min(a.EpiTimeIndexToGoIntoEffect, a.EpiTimeIndexToTurnOff), minT);
             }
-            return tIndex;
+            return minT;
         }
     }
 
@@ -246,15 +254,13 @@ namespace APACElib
                     {
                         InterventionsInEffect[a.Index] = 1;
                         // find when it should be turned off
-                        a.EpiTimeIndexToTurnOff = a.FindEpiTimeIndexToTurnOff(epiTimeIndex);
+                        //a.EpiTimeIndexToTurnOff = a.FindEpiTimeIndexToTurnOff(epiTimeIndex);
                         a.EpiTimeIndexToGoIntoEffect = int.MaxValue;
                     }
                     // if this intervention is being lifted
                     else if (InterventionsInEffect[a.Index] == 1 && a.EpiTimeIndexToTurnOff <= epiTimeIndex)
                     {
                         InterventionsInEffect[a.Index] = 0;
-
-                        a.EpiTimeIndexToTurnOn = int.MaxValue;
                         a.EpiTimeIndexToGoIntoEffect = int.MaxValue;
                         a.EpiTimeIndexToTurnOff = int.MaxValue;
                     }
@@ -273,6 +279,11 @@ namespace APACElib
                 foreach (Class thisClass in classes)
                     thisClass.AddActiveEvents(InterventionsInEffect);
             }
+        }
+
+        public void Reset()
+        {
+            InterventionsInEffect = new int[_decisionMaker.NumOfInterventions];
         }
     }
 

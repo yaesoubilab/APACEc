@@ -200,7 +200,7 @@ namespace APACElib
                     // update history
                     ifFeasibleRangesViolated =  EpiHist.Update(_simTimeIndex, _epiTimeIndex, true, _rng);
                     // find if required minimum thresholds are hit
-                    if (EpiHist.FindIfMinThresholdsHit() != true)
+                    if (EpiHist.FindIfMinThresholdsHit() == false)
                         ifFeasibleRangesViolated = true;
 
                     // update cost and health outcomes
@@ -211,7 +211,9 @@ namespace APACElib
 
                     // find if it is an acceptable trajectory
                     acceptableTrajectory = true;
-                    if (_epiTimeIndex < _modelSets.EpidemicConditionTimeIndex)
+                    if (ifFeasibleRangesViolated)
+                        acceptableTrajectory = false;
+                    else if (_epiTimeIndex < _modelSets.EpidemicConditionTimeIndex)
                         acceptableTrajectory = false;
                 }
             } 
@@ -342,6 +344,7 @@ namespace APACElib
             // update intervention information 
             DecisionMaker.UpdateParameters(_paramManager, _modelSets.DeltaT);
             DecisionMaker.Reset();
+            _monitorOfIntrvsInEffect.Reset();
 
             // reset the number of people in each compartment
             foreach (Class thisClass in Classes)
