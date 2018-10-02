@@ -613,8 +613,6 @@ namespace APACElib
     }
 }
 
-
-
 //// find the on/off switching type
 //                switch (thisIntervention.OnOffSwitchSetting)
 //                {
