@@ -89,7 +89,8 @@ namespace APACElib
                     x0: x0);
 
                 // export results
-                optimizer.ExportResultsToCSV("wtp-" + wtp + ".csv");
+                if (modelSets.OptmzSets.IfExportResults)
+                    optimizer.ExportResultsToCSV("wtp-" + wtp + ".csv");
 
                 // use this xStar as the intial variable for the next wtp
                 x0 = optimizer.XStar;
