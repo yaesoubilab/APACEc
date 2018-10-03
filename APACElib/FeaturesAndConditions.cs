@@ -191,6 +191,11 @@ namespace APACElib
                 _andOr = EnumAndOr.Or;
         }
 
+        public void UpdateThresholds(double[] values)
+        {
+            _thresholds = (double[])values.Clone();
+        }
+
         public override void Update(int epiTimeIndex)
         {
             bool result = false;

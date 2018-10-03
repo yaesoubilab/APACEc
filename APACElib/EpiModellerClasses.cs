@@ -15,9 +15,9 @@ namespace APACElib
         public int ID { get; private set; }
         private ModelSettings _modelSet;
         public ModelSettings ModelSettings { get => _modelSet; }
-        private RNDSeedGenerator _seedGenerator;
+        public RNDSeedGenerator SeedGenerator { get; set; }
         private Epidemic _parentEpidemic;
-        private List<Epidemic> _epidemics = new List<Epidemic>();
+        public List<Epidemic> Epidemics { get; set; } = new List<Epidemic>();
         public Epidemic ParentEpidemic { get => _parentEpidemic; }        
         public ModelInfo ModelInfo { get; private set; }
         public SimSummary SimSummary { get; private set; }
@@ -47,6 +47,7 @@ namespace APACElib
             switch (_modelSet.ModelUse)
             {
                 case EnumModelUse.Simulation:
+                case EnumModelUse.Optimization:
                     numOfEpidemics = _modelSet.NumOfSimItrs;
                     break;
                 case EnumModelUse.Calibration:
@@ -59,33 +60,106 @@ namespace APACElib
                     break;
             }
             // create the epi models
-            _epidemics.Clear();
+            Epidemics.Clear();
             for (int id = 0; id < numOfEpidemics; id++)                
-                _epidemics.Add(new Epidemic(id));            
-        }
+                Epidemics.Add(new Epidemic(id));
 
-        // simulate several epidemics
-        public void SimulateEpidemics()
-        {
+            // create a rnd seed generator 
+            SeedGenerator = new RNDSeedGenerator(_modelSet, _rng);
+
             // simulatoin summary
             SimSummary = new SimSummary(ref _modelSet, ref _parentEpidemic);
+        }
+
+        // build epidemics (without simulating)
+        public void BuildEpidemics()
+        {
+            // use parallel computing? 
+            if (!_modelSet.UseParallelComputing)
+            {
+                //int seed = 0;
+                foreach (Epidemic epi in Epidemics)
+                {
+                    // build the parent epidemic model
+                    epi.BuildModel(ref _modelSet);
+                }
+            }
+            else // (_modelSettings.UseParallelComputing == true)
+            {
+                //int seed = 0;
+                Parallel.ForEach(Epidemics, epi =>
+                {
+                    // build the parent epidemic model
+                    epi.BuildModel(ref _modelSet);
+                });
+            }
+        }
+
+        // simulate epidemics (epidemics must have been built)
+        public void SimulateEpidemics()
+        {
+            // assign the initial seed of each epidemic
+            SeedGenerator.ResampleSeeds();
+            foreach (Epidemic epi in Epidemics)
+                epi.InitialSeed = SeedGenerator.FindRNDSeed(epi.ID);
+
+            // reset simulation summary
             SimSummary.Reset();
 
             // simulation time
             Timer = new Timer();
             Timer.Start();
 
-            // create a rnd seed generator 
-            _seedGenerator = new RNDSeedGenerator(_modelSet, _rng);
+            // use parallel computing? 
+            if (!_modelSet.UseParallelComputing)
+            {
+                //int seed = 0;
+                foreach (Epidemic epi in Epidemics)
+                {
+                    // simulate
+                    epi.SimulateUntilOneAcceptibleTrajFound(_modelSet.TimeIndexToStop);
+                    // store epidemic trajectories and outcomes
+                    SimSummary.Add(epi, epi.ID);
+                }
+            }
+            else // (_modelSettings.UseParallelComputing == true)
+            {
+                //int seed = 0;
+                Parallel.ForEach(Epidemics, epi =>
+                {
+                    // simulate
+                    epi.SimulateUntilOneAcceptibleTrajFound(_modelSet.TimeIndexToStop);
+                });
+
+                // store epidemic trajectories and outcomes
+                foreach (Epidemic thisEpidemic in Epidemics)
+                    SimSummary.Add(thisEpidemic, thisEpidemic.ID);
+            }
+            // simulation run time
+            Timer.Stop();
+            SimSummary.TimeToSimulateAllEpidemics = Timer.TimePassed;
+        }
+
+        // build and simulate several epidemics
+        public void BuildAndSimulateEpidemics()
+        {
+            // reset simulation summary
+            SimSummary.Reset();
+
+            // simulation time
+            Timer = new Timer();
+            Timer.Start();
+
             // assign the initial seed of each epidemic
-            foreach (Epidemic epi in _epidemics)
-                epi.InitialSeed = _seedGenerator.FindRNDSeed(epi.ID);
+            SeedGenerator.ResampleSeeds();
+            foreach (Epidemic epi in Epidemics)
+                epi.InitialSeed = SeedGenerator.FindRNDSeed(epi.ID);
 
             // use parallel computing? 
             if (!_modelSet.UseParallelComputing)
             {
                 //int seed = 0;
-                foreach (Epidemic epi in _epidemics)
+                foreach (Epidemic epi in Epidemics)
                 {
                     // build the parent epidemic model
                     epi.BuildModel(ref _modelSet);
@@ -98,7 +172,7 @@ namespace APACElib
             else // (_modelSettings.UseParallelComputing == true)
             {
                 //int seed = 0;
-                Parallel.ForEach(_epidemics, epi =>
+                Parallel.ForEach(Epidemics, epi =>
                 {
                     // build the parent epidemic model
                     epi.BuildModel(ref _modelSet);
@@ -107,7 +181,7 @@ namespace APACElib
                 });
 
                 // store epidemic trajectories and outcomes
-                foreach (Epidemic thisEpidemic in _epidemics)
+                foreach (Epidemic thisEpidemic in Epidemics)
                     SimSummary.Add(thisEpidemic, thisEpidemic.ID);
             }
             // simulation run time
@@ -128,7 +202,7 @@ namespace APACElib
 
             // use parallel computing? 
             if (_modelSet.UseParallelComputing == false)
-                foreach(Epidemic epi in _epidemics)
+                foreach(Epidemic epi in Epidemics)
                 {
                     // build the epidemic model
                     epi.BuildModel(ref _modelSet);
@@ -147,7 +221,7 @@ namespace APACElib
             else // using parallel processing
             {
                 // simulate and calculate likelihood
-                Parallel.ForEach(_epidemics, epi =>
+                Parallel.ForEach(Epidemics, epi =>
                 {
                     // build the epidemic model
                     epi.BuildModel(ref _modelSet);
@@ -162,7 +236,7 @@ namespace APACElib
                     epi.CleanMemory();
                 });
                 // rstore calibration results
-                foreach (Epidemic epi in _epidemics)
+                foreach (Epidemic epi in Epidemics)
                     Calibration.AddCalibSummary(epi);
             }
 
@@ -173,19 +247,24 @@ namespace APACElib
             Timer.Stop();
         }
 
+        public void Optimize()
+        {
+
+        }
+
         // simulate the optimal dynamic policy
         public void SimulateTheOptimalDynamicPolicy(int numOfSimulationIterations, int timeIndexToStop, int warmUpPeriodIndex, bool storeEpidemicTrajectories)
         {
             // toggle to simulation
             ToggleModellerTo(EnumModelUse.Simulation, EnumEpiDecisions.SpecifiedByPolicy, storeEpidemicTrajectories);            
             // simulate epidemic (sequential)
-            SimulateEpidemics();
+            BuildAndSimulateEpidemics();
         }
 
         // change the status of storing epidemic trajectories
         public void StoreEpiTrajsForExcelOutput(bool yesOrNo)
         {
-            foreach (Epidemic thisEpidemic in _epidemics)
+            foreach (Epidemic thisEpidemic in Epidemics)
                 thisEpidemic.StoreEpiTrajsForExcelOutput = yesOrNo;
         }
 
@@ -243,7 +322,7 @@ namespace APACElib
         {
             if (_modelSet.UseParallelComputing)
             {
-                Parallel.ForEach(_epidemics.Cast<object>(), thisEpidemic =>
+                Parallel.ForEach(Epidemics.Cast<object>(), thisEpidemic =>
                 {
                     // q-function coefficients
                     //((Epidemic)thisEpidemic).UpdateQFunctionCoefficients(qFunctionCoefficients);
@@ -301,7 +380,7 @@ namespace APACElib
         // toggle modeller to different operation
         public void ToggleModellerTo(EnumModelUse modelUse, EnumEpiDecisions decisionRule, bool reportEpiTrajsToExcel)
         {
-            foreach (Epidemic thisEpidemic in _epidemics)
+            foreach (Epidemic thisEpidemic in Epidemics)
                 ToggleAnEpidemicTo(thisEpidemic, modelUse, decisionRule, reportEpiTrajsToExcel);
         }
         // toggle one epidemic
@@ -735,54 +814,74 @@ namespace APACElib
     public class RNDSeedGenerator
     {
         ModelSettings _modelSet;
-        Discrete _discreteDist;
+        private int[] _seeds;
         private int[] _sampledSeeds;
+        private RNG _rng;
 
         public RNDSeedGenerator(ModelSettings modelSet, RNG rng)
         {
             _modelSet = modelSet;
+            _rng = rng;
+            
+            // read all available seeds
+            if (_modelSet.SimRNDSeedsSource == EnumSimRNDSeedsSource.RandomUnweighted ||
+                _modelSet.SimRNDSeedsSource == EnumSimRNDSeedsSource.RandomWeighted ||
+                _modelSet.SimRNDSeedsSource == EnumSimRNDSeedsSource.Prespecified)
+                _seeds = (int[])_modelSet.RndSeeds.Clone();
+        }
 
-            // reset the rnd object            
-            if (_modelSet.SimRNDSeedsSource == EnumSimRNDSeedsSource.Weighted)
+        public void ResampleSeeds()
+        {
+            int nOfSeeds = _modelSet.RndSeeds.Length;            
+            _sampledSeeds = new int[_modelSet.NumOfSimItrs];
+
+            switch (_modelSet.SimRNDSeedsSource)
             {
-                // read weights of rnd seeds
-                int n = _modelSet.RndSeeds.Length;
-                double[] arrProb = new double[n];
-                for (int i = 0; i < n; i++)
-                    arrProb[i] = _modelSet.RndSeedsGoodnessOfFit[i];
+                case EnumSimRNDSeedsSource.StartFrom0:
+                    {
+                        // _sampledSeeds will remain 0 and the seeds will be determined when simulation starts
+                    }
+                    break;
+                case EnumSimRNDSeedsSource.Prespecified:
+                    {
+                        for (int i = 0; i < _modelSet.NumOfSimItrs; i++)
+                            _sampledSeeds[i] = _seeds[i];
+                    }
+                    break;
+                case EnumSimRNDSeedsSource.RandomUnweighted:
+                    {
+                        DiscreteUniform uniformDiscreteDist = new DiscreteUniform("Uniform discrete distribution over RND seeds", 0, nOfSeeds - 1);
+                        // re-sample seeds
+                        for (int i = 0; i < _modelSet.NumOfSimItrs; i++)
+                            _sampledSeeds[i] = _modelSet.RndSeeds[uniformDiscreteDist.SampleDiscrete(_rng)];
+                    }
+                    break;
+                case EnumSimRNDSeedsSource.RandomWeighted:
+                    {
+                        // read weights of rnd seeds                
+                        double[] arrProb = new double[nOfSeeds];
+                        for (int i = 0; i < nOfSeeds; i++)
+                            arrProb[i] = _modelSet.RndSeedsGoodnessOfFit[i];
 
-                // normalize the weights 
-                double sum = arrProb.Sum();
-                for (int i = 0; i < n; i++)
-                    arrProb[i] = arrProb[i] / sum;
+                        // normalize the weights 
+                        double sum = arrProb.Sum();
+                        for (int i = 0; i < nOfSeeds; i++)
+                            arrProb[i] = arrProb[i] / sum;
 
-                // define the sampling object
-                _discreteDist = new Discrete("Discrete distribution over RND seeds", arrProb);
-
-                // re-sample seeds
-                _sampledSeeds = new int[_modelSet.NumOfSimItrs];
-                for (int i = 0; i < _modelSet.NumOfSimItrs; i++)
-                    _sampledSeeds[i] = _modelSet.RndSeeds[_discreteDist.SampleDiscrete(rng)];
-            }
-            else if (_modelSet.SimRNDSeedsSource == EnumSimRNDSeedsSource.Prespecified)
-                _sampledSeeds = (int[])_modelSet.RndSeeds.Clone();
+                        // define the sampling object
+                        Discrete discreteDist = new Discrete("Discrete distribution over RND seeds", arrProb);
+                        // re-sample seeds
+                        for (int i = 0; i < _modelSet.NumOfSimItrs; i++)
+                            _sampledSeeds[i] = _modelSet.RndSeeds[discreteDist.SampleDiscrete(_rng)];
+                    }
+                    break;
+            }                                 
         }
 
         // find the RND seed for this iteration
         public int FindRNDSeed(int simItr)
-        {
-            int r = 0;
-            switch (_modelSet.SimRNDSeedsSource)
-            {
-                case EnumSimRNDSeedsSource.StartFrom0:
-                    r = 0;
-                    break;
-                case EnumSimRNDSeedsSource.Prespecified:
-                case EnumSimRNDSeedsSource.Weighted:
-                    r = _sampledSeeds[simItr];
-                    break;
-            }
-            return r;
+        {            
+            return _sampledSeeds[simItr];
         }
     }
 }

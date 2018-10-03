@@ -19,7 +19,7 @@ namespace APACElib
             Simulate = 1,
             Calibrate = 2,
             OptimizeTheDynamicPolicy = 3,
-            OptimizeTheStaticPolicy = 4,
+            Optimize = 4,
             RunExperiments = 5,
             SimulateDecisionMakingDuringEpidemics = 6,
         }        
@@ -230,7 +230,7 @@ namespace APACElib
             InterventionID = 3,
             FirstObservedOutcome = 4,
         }
-        public enum enumCalibrationColumns : int
+        public enum EnumCalibrationColumns : int
         {
             SimulationItr = 2,
             RandomSeed = 3,
@@ -395,8 +395,8 @@ namespace APACElib
                 case "Optimize the Dynamic Policy":
                     whatToDo = enumWhatToDo.OptimizeTheDynamicPolicy;
                     break;
-                case "Optimize the Static Policy":
-                    whatToDo = enumWhatToDo.OptimizeTheStaticPolicy;
+                case "Optimize":
+                    whatToDo = enumWhatToDo.Optimize;
                     break;
                 case "Run experiments":
                     whatToDo = enumWhatToDo.RunExperiments;
@@ -447,8 +447,7 @@ namespace APACElib
         {
             return (double)GetCellValue("General Settings", "WTPForHealth");
         }
-
-        
+                
         public int GetNumberOfSimulationIterations()
         {
             return (int)(double)GetCellValue("General Settings", "numOfIterations");
@@ -481,56 +480,9 @@ namespace APACElib
         {
             return (double)GetCellValue("General Settings", "timeToStartDecisionMaking");
         }
-      
+
         #endregion
-
-        #region static policy optimization settings
-        
-        public EnumStaticPolicyOptimizationMethod GetStaticPolicyOptimizationMethod()
-        {
-            EnumStaticPolicyOptimizationMethod value = EnumStaticPolicyOptimizationMethod.FullFactorialEvaluation;
-            switch (GetCellValue("General Settings", "staticPolicyOptimizationMethod").ToString())
-            {
-                case "Full Factorial Evaluation":
-                    value = EnumStaticPolicyOptimizationMethod.FullFactorialEvaluation;
-                    break;
-                case "Stochastic Optimization":
-                    value = EnumStaticPolicyOptimizationMethod.StochasticOptimization;
-                    break;                
-            }
-            return value;
-        }
-        public int GetNumOfIterationsForOptimizingStaticPolicies()
-        {
-            return (int)(double)GetCellValue("General Settings", "numOfIterationsForOptimizingStaticPolicies");            
-        }
-        public int GetNumOfSimsInEachIterationForStaticPolicyOpt()
-        {
-            return (int)(double)GetCellValue("General Settings", "numOfSimsInEachIterationForStaticPolicyOpt");
-        }
-        public int GetDegreeOfPolyFunctionForStochasticApproximation()
-        {
-            return (int)(double)GetCellValue("General Settings", "degreeOfPolyFunctionForStochasticApproximation");            
-        }        
-
-        public double GetIntervalBasedPolicy_LastTimeToUseIntervention()
-        {
-            return (double)GetCellValue("General Settings", "latestTimeToUseStaticPolicyIntervention");
-        }
-        public int GetIntervalBasedPolicy_NumOfDecisionPeriodsToUse()
-        {
-            return (int)(double)GetCellValue("General Settings", "numOfObsPeriodToContinouslyUseThisIntervention");
-        }
-
-        public int GetThresholdBasedPolicy_MaximumNumOfDecisionPeriodsToUse()
-        {
-            return (int)(double)GetCellValue("General Settings", "maxDurationToUseAnIntervention");
-        }
-        public int GetThresholdBasedPolicy_MaximumValueOfThresholds()
-        {
-            return (int)(double)GetCellValue("General Settings", "maxValueOfThreshold");
-        }
-        #endregion
+               
         
         #region dynamic policy optimization settings
         public int GetNumOfADPIterations()
@@ -578,19 +530,6 @@ namespace APACElib
         public int GetNumOfHiddenNeurons()
         {
             return (int)(double)GetCellValue("General Settings", "numOfNeurons");
-        }
-
-        public double GetWTPForHealth_min()
-        {
-            return (double)GetCellValue("General Settings", "wtpMin");
-        }
-        public double GetWTPForHealth_max()
-        {
-            return (double)GetCellValue("General Settings", "wtpMax");
-        }
-        public double GetWTPForHealth_step()
-        {
-            return (double)GetCellValue("General Settings", "wtpStep");
         }
         public double GetHarmonicRule_a()
         {
@@ -720,78 +659,6 @@ namespace APACElib
 
         #endregion
 
-        #region simulating adaptive decision making
-
-        public int GetNumOfEpidemicsToSimulatiedaptiveDecisionMaking()
-        {
-            return (int)(double)GetCellValue("General Settings", "numOfEpidemicsToSimulateAdaptiveDecisionMaking");
-        }
-        public enumWhenToCalibrate GetWhenToCalibrate()
-        {
-            enumWhenToCalibrate whenToCalibrate = enumWhenToCalibrate.OnceFirstTimeDecisionsShouldBeMade;
-            switch (GetCellValue("General Settings", "whenToCalibrate").ToString())
-            {
-                case "Once first time decisions should be made":
-                    whenToCalibrate = enumWhenToCalibrate.OnceFirstTimeDecisionsShouldBeMade;
-                    break;
-                case "On every time decisions should be made":
-                    whenToCalibrate = enumWhenToCalibrate.OnEveryTimeDecisionsShouldBeMade;
-                    break;
-                case "When model is untuned when decisions should be made":
-                    whenToCalibrate = enumWhenToCalibrate.WhenModelIsUntunedWhenDecisionsShouldBeMade;
-                    break;
-            }
-            return whenToCalibrate;               
-        }
-        // get random seeds
-        public EnumSimRNDSeedsSource GetSourceOfRNGSeedsForRealTimeDecisionMaking()
-        {
-            EnumSimRNDSeedsSource simulationRNDSeedsSource = EnumSimRNDSeedsSource.StartFrom0;
-            switch (GetCellValue("General Settings", "sourceOfRNGSeedsForRealTimeDecisionMaking").ToString())
-            {
-                case "Start from 0":
-                    simulationRNDSeedsSource = EnumSimRNDSeedsSource.StartFrom0;
-                    break;
-                case "Prespecified Sequence":
-                    simulationRNDSeedsSource = EnumSimRNDSeedsSource.Prespecified;
-                    break;
-            }
-            return simulationRNDSeedsSource;
-        }
-        public int GetFirstRNGSeedOfRealEpidemic()
-        {
-            return (int)(double)GetCellValue("General Settings", "firstRNGSeedOfRealEpidemic");
-        }
-        public enumPoliciesToSimulateInRealTime GetPoliciesToSimulateInRealTime()
-        {
-            enumPoliciesToSimulateInRealTime policiesToSimulateInRealTime = enumPoliciesToSimulateInRealTime.StaticAndDynamic;
-
-            switch (GetCellValue("General Settings", "realTimeSimulationPolicies").ToString())
-            {
-                case "Static Policy":
-                    policiesToSimulateInRealTime = enumPoliciesToSimulateInRealTime.Static;
-                    break;
-                case "Dynamic Policy":
-                    policiesToSimulateInRealTime = enumPoliciesToSimulateInRealTime.Dynamic;
-                    break;
-                case "Static and Dynamic Policies":
-                    policiesToSimulateInRealTime = enumPoliciesToSimulateInRealTime.StaticAndDynamic;
-                    break;
-            }
-            return policiesToSimulateInRealTime;
-        }
-        public int[] GetRNDSeedsForSimulatingRealTimeDecisions()
-        {
-            base.ActivateSheet("Simulating Decision Making");
-            int firstRow = base.RowIndex("baseSimulatingDecisionMaking") + 1;
-            int colIndex = base.ColIndex("baseSimulatingDecisionMaking") + (int)enumSimulatingRealTimeDecisionMakingOffsets.RNDSeeds;
-            int lastRow = base.LastRowWithDataInThisColumn(colIndex);
-
-            return SupportFunctions.ConvertArrayToInt(ReadRangeFromActiveSheet(firstRow, colIndex, lastRow));
-                //base.ReadRangeFromActiveSheet("baseSimulatingDecisionMaking", 1, (int)enumSimulatingRealTimeDecisionMakingOffsets.RNDSeeds, ExcelInteractorLib.ExcelInteractor.enumRangeDirection.DownEnd));
-        }
-        #endregion
-
         #region experimental designs
 
         // get experimental design matrix
@@ -842,8 +709,11 @@ namespace APACElib
                 case "Prespecified Sequence":
                     simulationRNDSeedsSource = EnumSimRNDSeedsSource.Prespecified;
                     break;
-                case "Weighted Prespecified Sequence":
-                    simulationRNDSeedsSource = EnumSimRNDSeedsSource.Weighted;
+                case "Random Unweighted":
+                    simulationRNDSeedsSource = EnumSimRNDSeedsSource.RandomUnweighted;
+                    break;
+                case "Random Weighted":
+                    simulationRNDSeedsSource = EnumSimRNDSeedsSource.RandomWeighted;
                     break;
             }
             return simulationRNDSeedsSource;
@@ -1016,10 +886,13 @@ namespace APACElib
         // get RND seeds
         public int[] GetRNDSeeds(int n)
         {
-            base.ActivateSheet("Calibration");
+            ActivateSheet("Calibration");
             return SupportFunctions.ConvertArrayToInt(
-                base.ReadRangeFromActiveSheet(3, (int)ExcelInterface.enumCalibrationColumns.RandomSeed, 2 + n)
-                //base.ReadRangeFromActiveSheet(3, (int)ExcelInterface.enumCalibrationColumns.RandomSeed, base.LastRowWithDataInThisColumn((int)ExcelInterface.enumCalibrationColumns.RandomSeed))
+                //base.ReadRangeFromActiveSheet(3, (int)ExcelInterface.enumCalibrationColumns.RandomSeed, 2 + n)
+                ReadRangeFromActiveSheet(
+                    3, 
+                    (int)EnumCalibrationColumns.RandomSeed, 
+                    LastRowWithDataInThisColumn((int)EnumCalibrationColumns.RandomSeed))
                 );
      
             //return SupportFunctions.ConvertArrayToInt(base.ReadRangeFromActiveSheet(3, (int)ExcelInterface.enumCalibrationColumns.RandomSeed, ExcelInteractorLib.ExcelInteractor.enumRangeDirection.DownEnd));
@@ -1028,7 +901,7 @@ namespace APACElib
         public double[] GetGoodnessOfFitForRNDSeeds(int n)
         {
             base.ActivateSheet("Calibration");
-            return base.ReadRangeFromActiveSheet(3, (int)ExcelInterface.enumCalibrationColumns.GoodnessOfFit_overal, 2 + n);
+            return base.ReadRangeFromActiveSheet(3, (int)ExcelInterface.EnumCalibrationColumns.GoodnessOfFit_overal, 2 + n);
             //return base.ReadRangeFromActiveSheet(3, (int)ExcelInterface.enumCalibrationColumns.GoodnessOfFit_overal, ExcelInteractorLib.ExcelInteractor.enumRangeDirection.DownEnd);
         }
         // get Q-function coefficients estimates
@@ -1420,12 +1293,12 @@ namespace APACElib
 
             // setup the header definitions
             rowIndex = 2;
-            WriteToCell("Simulation Iteration", rowIndex, (int)enumCalibrationColumns.SimulationItr);
-            WriteToCell("Random Seed", rowIndex, (int)enumCalibrationColumns.RandomSeed);
-            WriteToCell("Goodness of Fit", rowIndex, (int)enumCalibrationColumns.GoodnessOfFit_overal);
+            WriteToCell("Simulation Iteration", rowIndex, (int)EnumCalibrationColumns.SimulationItr);
+            WriteToCell("Random Seed", rowIndex, (int)EnumCalibrationColumns.RandomSeed);
+            WriteToCell("Goodness of Fit", rowIndex, (int)EnumCalibrationColumns.GoodnessOfFit_overal);
 
             // formate the header
-            colIndex = (int)enumCalibrationColumns.SimulationItr;
+            colIndex = (int)EnumCalibrationColumns.SimulationItr;
             Align(rowIndex, colIndex, enumRangeDirection.RightEnd, enumAlignment.Center);
             MakeBold(rowIndex, colIndex, enumRangeDirection.RightEnd);
             WrapText(rowIndex, colIndex, enumRangeDirection.RightEnd);
@@ -1436,13 +1309,13 @@ namespace APACElib
                 // write results
                 ++rowIndex;
                 // simulation iterations
-                WriteToColumn(SupportFunctions.ConvertArrayToDouble(simItrs), rowIndex, (int)enumCalibrationColumns.SimulationItr);
+                WriteToColumn(SupportFunctions.ConvertArrayToDouble(simItrs), rowIndex, (int)EnumCalibrationColumns.SimulationItr);
                 // rnd seeds
-                WriteToColumn(SupportFunctions.ConvertArrayToDouble(rndSeeds), rowIndex, (int)enumCalibrationColumns.RandomSeed);
+                WriteToColumn(SupportFunctions.ConvertArrayToDouble(rndSeeds), rowIndex, (int)EnumCalibrationColumns.RandomSeed);
                 // goodness of fit
-                WriteToColumn(probs, rowIndex, (int)enumCalibrationColumns.GoodnessOfFit_overal);
+                WriteToColumn(probs, rowIndex, (int)EnumCalibrationColumns.GoodnessOfFit_overal);
                 // align
-                AlignAMatrix(rowIndex - 1, (int)enumCalibrationColumns.SimulationItr, enumAlignment.Center);
+                AlignAMatrix(rowIndex - 1, (int)EnumCalibrationColumns.SimulationItr, enumAlignment.Center);
             }
         }
 
@@ -1473,14 +1346,14 @@ namespace APACElib
             
             // setup the header definitions
             rowIndex = 2;
-            base.WriteToCell("Simulation Iteration", rowIndex, (int)enumCalibrationColumns.SimulationItr);
-            base.WriteToCell("Random Seed", rowIndex, (int)enumCalibrationColumns.RandomSeed);
-            base.WriteToCell("Goodness of Fit", rowIndex, (int)enumCalibrationColumns.GoodnessOfFit_overal);
+            base.WriteToCell("Simulation Iteration", rowIndex, (int)EnumCalibrationColumns.SimulationItr);
+            base.WriteToCell("Random Seed", rowIndex, (int)EnumCalibrationColumns.RandomSeed);
+            base.WriteToCell("Goodness of Fit", rowIndex, (int)EnumCalibrationColumns.GoodnessOfFit_overal);
             // goodness of fit names
             //for (int j = 0; j < namesOfCalibrationTargets.Length; j++)
             //    base.WriteToCell("Goodness of Fit | " + namesOfCalibrationTargets[j], rowIndex, (int)enumCalibrationColumns.GoodnessOfFit_overal + 1 + j);
             // names of parameters
-            colIndex = (int)enumCalibrationColumns.GoodnessOfFit_overal + 1; //+ namesOfCalibrationTargets.Length;
+            colIndex = (int)EnumCalibrationColumns.GoodnessOfFit_overal + 1; //+ namesOfCalibrationTargets.Length;
             //base.WriteToRow(namesOfParameters, rowIndex, colIndex);
 
             // names of observations with nonzero weights
@@ -1488,7 +1361,7 @@ namespace APACElib
             base.WriteToRow(namesOfSimOutsWithNonZeroWeights, rowIndex, colIndex);
             
             // formate the header
-            colIndex = (int)enumCalibrationColumns.SimulationItr;
+            colIndex = (int)EnumCalibrationColumns.SimulationItr;
             base.Align(rowIndex, colIndex, ExcelInteractor.enumRangeDirection.RightEnd, ExcelInteractor.enumAlignment.Center);
             base.MakeBold(rowIndex, colIndex, ExcelInteractor.enumRangeDirection.RightEnd);
             base.WrapText(rowIndex, colIndex, ExcelInteractor.enumRangeDirection.RightEnd);
@@ -1499,9 +1372,9 @@ namespace APACElib
                 // write results
                 ++rowIndex;
                 // simulation iterations
-                base.WriteToColumn(SupportFunctions.ConvertArrayToDouble(calibrationItrs), rowIndex, (int)enumCalibrationColumns.SimulationItr);
+                base.WriteToColumn(SupportFunctions.ConvertArrayToDouble(calibrationItrs), rowIndex, (int)EnumCalibrationColumns.SimulationItr);
                 // rnd seeds
-                base.WriteToColumn(SupportFunctions.ConvertArrayToDouble(calibrationRNDSeeds), rowIndex, (int)enumCalibrationColumns.RandomSeed);
+                base.WriteToColumn(SupportFunctions.ConvertArrayToDouble(calibrationRNDSeeds), rowIndex, (int)EnumCalibrationColumns.RandomSeed);
                 // goodness of fit
                 //base.WriteToMatrix(goodnessOfFitValues, rowIndex, (int)enumCalibrationColumns.GoodnessOfFit_overal);
                 // parameter values
@@ -1512,7 +1385,7 @@ namespace APACElib
                 base.WriteToMatrix(matrixOfSelectedSimObs, rowIndex, colIndex);
 
                 // aligm
-                base.AlignAMatrix(rowIndex - 1, (int)enumCalibrationColumns.SimulationItr, ExcelInteractor.enumAlignment.Center);
+                base.AlignAMatrix(rowIndex - 1, (int)EnumCalibrationColumns.SimulationItr, ExcelInteractor.enumAlignment.Center);
             }
         }
         // set up q-function worksheet
@@ -1819,6 +1692,25 @@ namespace APACElib
                rowIndex + strMeasures.Length, (int)enumSimulationStatisticsColumns.StError + 1,
                "#,##0.00");
         }
+
+        // report the results of optimization
+        public void ReportOptimization(double[,] results)
+        {
+            // clear sheet        
+            ActivateSheet("Optimization");
+            int lastCol = base.ColIndex("baseOptimizationResults", enumRangeDirection.RightEnd);
+            ClearAll(
+                RowIndex("baseOptimizationResults")+1, 
+                ColIndex("baseOptimizationResults"),
+                LastRowWithDataInThisColumn(base.ColIndex("baseOptimizationResults")), 
+                lastCol
+                );
+
+            WriteToMatrix(results, "baseOptimizationResults", 1, 0);
+            AlignAMatrix(base.RowIndex("baseOptimizationResults"), base.ColIndex("baseOptimizationResults"), enumAlignment.Center);
+        }
+
+
         // report the results of static policy optimization
         public void ReportStaticPolicyOptimization(double[] WTPs, string[,] staticPolicies, 
             double[,] simulationOutcomes, double[,] simulationIterations, EnumObjectiveFunction objectiveFunction)
@@ -2100,7 +1992,7 @@ namespace APACElib
         // Private Subs 
         #region Private subs
         // get cell value
-        private object GetCellValue(string sheetName, string cellName)//, enumCellValueType cellValueType)
+        public object GetCellValue(string sheetName, string cellName)//, enumCellValueType cellValueType)
         {
             base.ActivateSheet(sheetName);
             return base.ReadCellFromActiveSheet(cellName);            

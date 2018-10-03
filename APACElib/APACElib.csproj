@@ -61,6 +61,7 @@
     <Compile Include="APACE.cs" />
     <Compile Include="Class.cs" />
     <Compile Include="EconEvalClasses.cs" />
+    <Compile Include="OptimizationClasses.cs" />
     <Compile Include="ParameterClasses.cs" />
     <Compile Include="TrajectoryClasses.cs" />
     <Compile Include="Epidemic.cs" />

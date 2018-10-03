@@ -10,6 +10,8 @@ namespace APACElib
 {
     public class ModelSettings
     {
+        public OptimizationSettings OptmzSets { get; private set;}
+
         private double[][,] _baseContactMatrices = new double[0][,]; //[pathogen ID][group i, group j]
         private int[][][,] _percentChangeInContactMatricesParIDs = new int[0][][,]; //[intervention ID][pathogen ID][group i, group j]
         public double DeltaT { get; set; }
@@ -52,9 +54,7 @@ namespace APACElib
         public double[] QFunctionCoefficientsInitialValues { get; set; }
         public EnumObjectiveFunction ObjectiveFunction { get; set; }
         public int NumOfSimRunsToBackPropogate { get; set; }
-        public double WtpForHealth_min { get; set; }
-        public double WtpForHealth_max { get; set; }
-        public double WtpForHealth_step { get; set; }
+
         public double HarmonicRule_a { get; set; }
         public double HarmonicRule_a_min { get; set; }
         public double HarmonicRule_a_max { get; set; }
@@ -110,7 +110,7 @@ namespace APACElib
                 case ExcelInterface.enumWhatToDo.OptimizeTheDynamicPolicy:
                     ModelUse = EnumModelUse.Optimization;
                     break;
-                case ExcelInterface.enumWhatToDo.OptimizeTheStaticPolicy:
+                case ExcelInterface.enumWhatToDo.Optimize:
                     ModelUse = EnumModelUse.Optimization;
                     break;
                 case ExcelInterface.enumWhatToDo.RunExperiments:
@@ -152,9 +152,10 @@ namespace APACElib
                     case EnumSimRNDSeedsSource.StartFrom0:
                         break;
                     case EnumSimRNDSeedsSource.Prespecified:
+                    case EnumSimRNDSeedsSource.RandomUnweighted:
                         RndSeeds = excelInterface.GetRNDSeeds(NumOfSimItrs);
                         break;
-                    case EnumSimRNDSeedsSource.Weighted:
+                    case EnumSimRNDSeedsSource.RandomWeighted:
                         {
                             RndSeeds = excelInterface.GetRNDSeeds(NumOfSimItrs);
                             RndSeedsGoodnessOfFit = excelInterface.GetGoodnessOfFitForRNDSeeds(NumOfSimItrs);
@@ -186,8 +187,13 @@ namespace APACElib
                 ReadPastActions(ref excelInterface);
         }
 
-        // read feature and approximation related settings
+        // read optimization settings
         public void ReadOptimizationSettings(ref ExcelInterface excelInterface)
+        {
+            OptmzSets = new OptimizationSettings(ref excelInterface);
+        }
+            // read feature and approximation related settings
+            public void ReadADPOptimizationSettings(ref ExcelInterface excelInterface)
         {
             string strQFunctionApproximationMethod = excelInterface.GetQFunctionApproximationMethod();
             switch (strQFunctionApproximationMethod)
@@ -219,10 +225,6 @@ namespace APACElib
 
             NumOfIntervalsToDescretizeFeatures = excelInterface.GetnumOfIntervalsToDescretizeFeatures();
 
-            WtpForHealth_min = excelInterface.GetWTPForHealth_min();
-            WtpForHealth_max = excelInterface.GetWTPForHealth_max();
-            WtpForHealth_step = excelInterface.GetWTPForHealth_step();
-
             HarmonicRule_a_min = excelInterface.GetHarmonicRule_a_min();
             HarmonicRule_a_max = excelInterface.GetHarmonicRule_a_max();
             HarmonicRule_a_step = excelInterface.GetHarmonicRule_a_step();
@@ -230,16 +232,6 @@ namespace APACElib
             EpsilonGreedy_beta_min = excelInterface.GetEpsilonGreedy_beta_min();
             EpsilonGreedy_beta_max = excelInterface.GetEpsilonGreedy_beta_max();
             EpsilonGreedy_beta_step = excelInterface.GetEpsilonGreedy_beta_step();
-
-            // static policy settings
-            StaticPolicyOptimizationMethod = excelInterface.GetStaticPolicyOptimizationMethod();
-            NumOfIterationsToOptimizeStaticPolicies = excelInterface.GetNumOfIterationsForOptimizingStaticPolicies();
-            NumOfSimsInEachIterationForStaticPolicyOpt = excelInterface.GetNumOfSimsInEachIterationForStaticPolicyOpt();
-            DegreeOfPolyFunctionForStochasticApproximation = excelInterface.GetDegreeOfPolyFunctionForStochasticApproximation();
-            IntervalBasedPolicy_lastTimeToUseIntervention = excelInterface.GetIntervalBasedPolicy_LastTimeToUseIntervention();
-            IntervalBasedPolicy_numOfDecisionPeriodsToUse = excelInterface.GetIntervalBasedPolicy_NumOfDecisionPeriodsToUse();
-            ThresholdBasedPolicy_MaximumNumOfDecisionPeriodsToUse = excelInterface.GetThresholdBasedPolicy_MaximumNumOfDecisionPeriodsToUse();
-            ThresholdBasedPolicy_MaximumValueOfThresholds = excelInterface.GetThresholdBasedPolicy_MaximumValueOfThresholds();
         }
 
         // read the contact matrices
@@ -276,33 +268,59 @@ namespace APACElib
         // set up ADP parameter designs
         public void SetUpADPParameterDesigns()
         {
-            AdpParameterDesigns = new double[0][];
-            double thisWTPForHealth, thisHarmonicStepSize_a, thisEpsilonGreedy_beta;
+            //AdpParameterDesigns = new double[0][];
+            //double thisWTPForHealth, thisHarmonicStepSize_a, thisEpsilonGreedy_beta;
 
-            thisWTPForHealth = WtpForHealth_min;
-            while (thisWTPForHealth <= WtpForHealth_max)
-            {
-                thisHarmonicStepSize_a = HarmonicRule_a_min;
-                while (thisHarmonicStepSize_a <= HarmonicRule_a_max)
-                {
-                    thisEpsilonGreedy_beta = EpsilonGreedy_beta_min;
-                    while (thisEpsilonGreedy_beta <= EpsilonGreedy_beta_max)
-                    {
-                        double[][] thisDesign = new double[1][];
-                        thisDesign[0] = new double[3];
-                        // design
-                        thisDesign[0][(int)enumADPParameter.WTPForHealth] = thisWTPForHealth;
-                        thisDesign[0][(int)enumADPParameter.HarmonicStepSize_a] = thisHarmonicStepSize_a;
-                        thisDesign[0][(int)enumADPParameter.EpsilonGreedy_beta] = thisEpsilonGreedy_beta;
-                        // add design
-                        AdpParameterDesigns = SupportFunctions.ConcatJaggedArray(AdpParameterDesigns, thisDesign);
+            //thisWTPForHealth = WTP_min;
+            //while (thisWTPForHealth <= WTP_max)
+            //{
+            //    thisHarmonicStepSize_a = HarmonicRule_a_min;
+            //    while (thisHarmonicStepSize_a <= HarmonicRule_a_max)
+            //    {
+            //        thisEpsilonGreedy_beta = EpsilonGreedy_beta_min;
+            //        while (thisEpsilonGreedy_beta <= EpsilonGreedy_beta_max)
+            //        {
+            //            double[][] thisDesign = new double[1][];
+            //            thisDesign[0] = new double[3];
+            //            // design
+            //            thisDesign[0][(int)enumADPParameter.WTPForHealth] = thisWTPForHealth;
+            //            thisDesign[0][(int)enumADPParameter.HarmonicStepSize_a] = thisHarmonicStepSize_a;
+            //            thisDesign[0][(int)enumADPParameter.EpsilonGreedy_beta] = thisEpsilonGreedy_beta;
+            //            // add design
+            //            AdpParameterDesigns = SupportFunctions.ConcatJaggedArray(AdpParameterDesigns, thisDesign);
 
-                        thisEpsilonGreedy_beta += EpsilonGreedy_beta_step;
-                    }
-                    thisHarmonicStepSize_a += HarmonicRule_a_step;
-                }
-                thisWTPForHealth += WtpForHealth_step;
-            }
+            //            thisEpsilonGreedy_beta += EpsilonGreedy_beta_step;
+            //        }
+            //        thisHarmonicStepSize_a += HarmonicRule_a_step;
+            //    }
+            //    thisWTPForHealth += WTP_step;
+            //}
+        }
+    }
+
+    
+    public class OptimizationSettings
+    {
+        public int NOfIterations { get; }
+        public double[] X0 { get; }
+        public double DerivativeStep { get; }
+        public bool IfExportResults { get; }
+        public double StepSize_a { get; }
+        public double WTP_min { get; }
+        public double WTP_max { get; }
+        public double WTP_step { get; }
+
+        public OptimizationSettings(ref ExcelInterface excelInterface)
+        {            
+            NOfIterations = (int)excelInterface.GetCellValue("General Settings", "numOfOptIterations");
+            string strX0 = excelInterface.GetCellValue("General Settings", "initialX").ToString();
+            X0 =Array.ConvertAll(strX0.Split(','), Convert.ToDouble);
+            DerivativeStep = (double)excelInterface.GetCellValue("General Settings", "derivativeStep");
+            IfExportResults = SupportFunctions.ConvertYesNoToBool(excelInterface.GetCellValue("General Settings", "ifExportOptResults").ToString());
+            StepSize_a = (double)excelInterface.GetCellValue("General Settings", "stepSize_a");
+            WTP_min = (double) excelInterface.GetCellValue("General Settings", "wtpMin");
+            WTP_max = (double) excelInterface.GetCellValue("General Settings", "wtpMax");
+            WTP_step = (double) excelInterface.GetCellValue("General Settings", "wtpStep");
         }
     }
 }

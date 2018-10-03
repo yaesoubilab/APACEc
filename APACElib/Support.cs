@@ -16,7 +16,8 @@ namespace APACElib
     {
         StartFrom0 = 1,
         Prespecified = 2,
-        Weighted = 3,
+        RandomUnweighted = 3,
+        RandomWeighted = 4,
     }
     public enum enumFeatureCombinations
     {

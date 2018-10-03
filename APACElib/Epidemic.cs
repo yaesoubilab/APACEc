@@ -200,7 +200,7 @@ namespace APACElib
                     // update history
                     ifFeasibleRangesViolated =  EpiHist.Update(_simTimeIndex, _epiTimeIndex, true, _rng);
                     // find if required minimum thresholds are hit
-                    if (EpiHist.FindIfMinThresholdsHit() == false)
+                    if (_modelSets.ModelUse == EnumModelUse.Calibration && EpiHist.FindIfMinThresholdsHit() == false)
                         ifFeasibleRangesViolated = true;
 
                     // update cost and health outcomes

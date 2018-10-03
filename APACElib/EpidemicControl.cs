@@ -12,7 +12,7 @@ namespace APACElib
     public class DecisionMaker
     {
         public List<Intervention> Interventions { get; set; } = new List<Intervention>();
-        private List<Condition> _conditions;
+        public List<Condition> Conditions { get; set; }
         public int NumOfInterventions { get; set; } = 0;
 
         private readonly int _nOfDeltaTsInADecisionInterval; // number of time steps in a decision interval
@@ -33,7 +33,7 @@ namespace APACElib
             _nextEpiTimeIndexToMakeDecision = 0;
             _nOfDeltaTsInADecisionInterval = nOfDeltaTsInADecisionInterval;
             DecisionIntervalIndex = 0;
-            _conditions = conditions;
+            Conditions = conditions;
         }
 
         // add a decision
@@ -65,7 +65,7 @@ namespace APACElib
             CurrentDecision = new int[NumOfInterventions];
 
             // update conditions
-            foreach (Condition c in _conditions)
+            foreach (Condition c in Conditions)
                 c.Update(epiTimeIndex);
 
             // check if decisions are not prespecified
@@ -93,7 +93,7 @@ namespace APACElib
                 return; // no change in decision 
 
             // update conditions
-            foreach (Condition c in _conditions)
+            foreach (Condition c in Conditions)
                 c.Update(epiTimeIndex);
 
             int[] newDecision = new int[NumOfInterventions];
