@@ -99,7 +99,7 @@ namespace APACElib
                     // minimize
                     optimizer.Minimize(
                         maxItrs: modelSets.OptmzSets.NOfItrs,
-                        lastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
+                        nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
                         x0: x0);
 
                     // export results
