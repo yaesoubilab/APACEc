@@ -119,7 +119,7 @@ namespace APACElib
                 x0 = xStar;
 
                 // store results
-                double[] result = new double[3 + NUM_OF_VARIABLES]; // 1 for wtp, 1 for fStar, 1 for a0
+                double[] result = new double[NUM_OF_VARIABLES + 3]; // 1 for wtp, 1 for fStar, 1 for a0
                 result[0] = wtp;
                 result[1] = aStar;
                 result[2] = fStar;
@@ -131,7 +131,7 @@ namespace APACElib
 
         public double[,] GetSummary()
         {
-            double[,] results = new double[Summary.Count, NUM_OF_VARIABLES + 1];
+            double[,] results = new double[Summary.Count, NUM_OF_VARIABLES + 3];
 
             for (int i = 0; i < Summary.Count; i++)
                 for (int j = 0; j < NUM_OF_VARIABLES + 3; j++)
