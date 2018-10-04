@@ -72,7 +72,7 @@ namespace APACElib
             Vector<double> x0 = Vector<double>.Build.DenseOfArray(arrX0);
 
             for (double wtp = modelSets.OptmzSets.WTP_min; 
-                wtp < modelSets.OptmzSets.WTP_max; 
+                wtp <= modelSets.OptmzSets.WTP_max; 
                 wtp += modelSets.OptmzSets.WTP_step)
             {
 

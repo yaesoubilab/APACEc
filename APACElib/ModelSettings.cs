@@ -312,7 +312,7 @@ namespace APACElib
 
         public OptimizationSettings(ref ExcelInterface excelInterface)
         {            
-            NOfIterations = (int)excelInterface.GetCellValue("General Settings", "numOfOptIterations");
+            NOfIterations = (int)(double)excelInterface.GetCellValue("General Settings", "numOfOptIterations");
             string strX0 = excelInterface.GetCellValue("General Settings", "initialX").ToString();
             X0 =Array.ConvertAll(strX0.Split(','), Convert.ToDouble);
             DerivativeStep = (double)excelInterface.GetCellValue("General Settings", "derivativeStep");
