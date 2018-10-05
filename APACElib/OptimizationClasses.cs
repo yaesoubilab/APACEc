@@ -97,8 +97,8 @@ namespace APACElib
                     // create a stochastic approximation object
                     StochasticApproximation optimizer = new StochasticApproximation(
                         simModel: new GonorrheaEpiModeller(epiModeller, wtp),
-                        derivativeStep: modelSets.OptmzSets.DerivativeStep,
-                        stepSize: new StepSize(a: a)
+                        stepSize_Df: new StepSize_Df(c:modelSets.OptmzSets.DerivativeStep),
+                        stepSize_a: new StepSize_a(a: a)
                         );
 
                     // minimize
