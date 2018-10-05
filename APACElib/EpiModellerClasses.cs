@@ -65,7 +65,7 @@ namespace APACElib
                 Epidemics.Add(new Epidemic(id));
 
             // create a rnd seed generator 
-            SeedGenerator = new RNDSeedGenerator(_modelSet, _rng);
+            SeedGenerator = new RNDSeedGenerator(_modelSet);
 
             // simulatoin summary
             SimSummary = new SimSummary(ref _modelSet, ref _parentEpidemic);
@@ -101,7 +101,7 @@ namespace APACElib
             // assign the initial seed of each epidemic
             if (ifResampleSeeds)
             {
-                SeedGenerator.ResampleSeeds();
+                SeedGenerator.ResampleSeeds(_rng);
                 foreach (Epidemic epi in Epidemics)
                     epi.InitialSeed = SeedGenerator.FindRNDSeed(epi.ID);
             }
@@ -154,7 +154,7 @@ namespace APACElib
             Timer.Start();
 
             // assign the initial seed of each epidemic
-            SeedGenerator.ResampleSeeds();
+            SeedGenerator.ResampleSeeds(_rng);
             foreach (Epidemic epi in Epidemics)
                 epi.InitialSeed = SeedGenerator.FindRNDSeed(epi.ID);
 
@@ -190,6 +190,12 @@ namespace APACElib
             // simulation run time
             Timer.Stop();
             SimSummary.TimeToSimulateAllEpidemics = Timer.TimePassed;
+        }
+
+        // reset rng
+        public void ResetRNG()
+        {
+            _rng = new RNG(0);
         }
 
         // calibrate
@@ -336,8 +342,7 @@ namespace APACElib
                 // q-function coefficients
                 //_parentEpidemic.UpdateQFunctionCoefficients(qFunctionCoefficients);
             }
-        }   
-          
+        } 
         
         // set up optimization 
         public void SetUpOptimization(
@@ -819,13 +824,10 @@ namespace APACElib
         ModelSettings _modelSet;
         private int[] _seeds;
         private int[] _sampledSeeds;
-        private RNG _rng;
 
-        public RNDSeedGenerator(ModelSettings modelSet, RNG rng)
+        public RNDSeedGenerator(ModelSettings modelSet)
         {
             _modelSet = modelSet;
-            _rng = rng;
-            
             // read all available seeds
             if (_modelSet.SimRNDSeedsSource == EnumSimRNDSeedsSource.RandomUnweighted ||
                 _modelSet.SimRNDSeedsSource == EnumSimRNDSeedsSource.RandomWeighted ||
@@ -833,7 +835,7 @@ namespace APACElib
                 _seeds = (int[])_modelSet.RndSeeds.Clone();
         }
 
-        public void ResampleSeeds()
+        public void ResampleSeeds(RNG rng)
         {
             int nOfSeeds = _modelSet.RndSeeds.Length;            
             _sampledSeeds = new int[_modelSet.NumOfSimItrs];
@@ -856,7 +858,7 @@ namespace APACElib
                         DiscreteUniform uniformDiscreteDist = new DiscreteUniform("Uniform discrete distribution over RND seeds", 0, nOfSeeds - 1);
                         // re-sample seeds
                         for (int i = 0; i < _modelSet.NumOfSimItrs; i++)
-                            _sampledSeeds[i] = _modelSet.RndSeeds[uniformDiscreteDist.SampleDiscrete(_rng)];
+                            _sampledSeeds[i] = _modelSet.RndSeeds[uniformDiscreteDist.SampleDiscrete(rng)];
                     }
                     break;
                 case EnumSimRNDSeedsSource.RandomWeighted:
@@ -875,7 +877,7 @@ namespace APACElib
                         Discrete discreteDist = new Discrete("Discrete distribution over RND seeds", arrProb);
                         // re-sample seeds
                         for (int i = 0; i < _modelSet.NumOfSimItrs; i++)
-                            _sampledSeeds[i] = _modelSet.RndSeeds[discreteDist.SampleDiscrete(_rng)];
+                            _sampledSeeds[i] = _modelSet.RndSeeds[discreteDist.SampleDiscrete(rng)];
                     }
                     break;
             }                                 

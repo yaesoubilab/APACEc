@@ -10,7 +10,7 @@ namespace APACElib
 {
     public class GonorrheaEpiModeller : SimModel
     {
-        const double PENALTY = 10e8;
+        const double PENALTY = 10e10;
         private double _wtp = 0;
 
         public EpidemicModeller EpiModeller { get; private set; }
@@ -61,6 +61,11 @@ namespace APACElib
             objValue += _wtp* EpiModeller.SimSummary.DALYStat.Mean + EpiModeller.SimSummary.CostStat.Mean;
                        
             return objValue;
+        }
+
+        public override void ResetSeedAtItr0()
+        {
+            EpiModeller.ResetRNG();
         }
     }
 
