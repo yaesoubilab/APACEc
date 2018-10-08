@@ -389,7 +389,7 @@ namespace APACElib
         // subs to create model
         #region subs to create model  
         // create the model
-        public void BuildModel(ref ModelSettings modelSettings, bool extractOutputHeaders = false)
+        public void BuildModel(ModelSettings modelSettings, bool extractOutputHeaders = false)
         {
             // model settings
             _modelSets = modelSettings;

@@ -27,14 +27,14 @@ namespace APACElib
         RNG _rng = new RNG(0);
 
         // Instantiation
-        public EpidemicModeller(int ID, ref ExcelInterface excelInterface, ref ModelSettings modelSettings)
+        public EpidemicModeller(int ID, ExcelInterface excelInterface, ModelSettings modelSettings)
         {
             this.ID = ID;
             _modelSet = modelSettings;
 
             // build a parent epidemic model 
             _parentEpidemic = new Epidemic(0);
-            _parentEpidemic.BuildModel(ref _modelSet, true);
+            _parentEpidemic.BuildModel(_modelSet, true);
 
             // read contact matrices
             _modelSet.ReadContactMatrices(ref excelInterface, _parentEpidemic.FOIModel.NumOfIntrvnAffectingContacts);
@@ -81,7 +81,7 @@ namespace APACElib
                 foreach (Epidemic epi in Epidemics)
                 {
                     // build the parent epidemic model
-                    epi.BuildModel(ref _modelSet);
+                    epi.BuildModel(_modelSet);
                 }
             }
             else // (_modelSettings.UseParallelComputing == true)
@@ -90,7 +90,7 @@ namespace APACElib
                 Parallel.ForEach(Epidemics, epi =>
                 {
                     // build the parent epidemic model
-                    epi.BuildModel(ref _modelSet);
+                    epi.BuildModel(_modelSet);
                 });
             }
         }
@@ -165,7 +165,7 @@ namespace APACElib
                 foreach (Epidemic epi in Epidemics)
                 {
                     // build the parent epidemic model
-                    epi.BuildModel(ref _modelSet);
+                    epi.BuildModel(_modelSet);
                     // simulate
                     epi.SimulateUntilOneAcceptibleTrajFound(_modelSet.TimeIndexToStop);
                     // store epidemic trajectories and outcomes
@@ -178,7 +178,7 @@ namespace APACElib
                 Parallel.ForEach(Epidemics, epi =>
                 {
                     // build the parent epidemic model
-                    epi.BuildModel(ref _modelSet);
+                    epi.BuildModel(_modelSet);
                     // simulate
                     epi.SimulateUntilOneAcceptibleTrajFound(_modelSet.TimeIndexToStop);
                 });
@@ -214,7 +214,7 @@ namespace APACElib
                 foreach(Epidemic epi in Epidemics)
                 {
                     // build the epidemic model
-                    epi.BuildModel(ref _modelSet);
+                    epi.BuildModel(_modelSet);
                     // toggle to calibration
                     ToggleAnEpidemicTo(epi, EnumModelUse.Calibration, _modelSet.DecisionRule, false);
                     // simulate            
@@ -233,7 +233,7 @@ namespace APACElib
                 Parallel.ForEach(Epidemics, epi =>
                 {
                     // build the epidemic model
-                    epi.BuildModel(ref _modelSet);
+                    epi.BuildModel(_modelSet);
                     // toggle to calibration
                     ToggleAnEpidemicTo(epi, EnumModelUse.Calibration, EnumEpiDecisions.PredeterminedSequence, false);
                     // simulate            
