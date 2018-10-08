@@ -214,7 +214,7 @@ namespace APACElib
                 foreach(Epidemic epi in Epidemics)
                 {
                     // build the epidemic model
-                    epi.BuildModel(_modelSet);
+                    epi.BuildModel(_modelSet); 
                     // toggle to calibration
                     ToggleAnEpidemicTo(epi, EnumModelUse.Calibration, _modelSet.DecisionRule, false);
                     // simulate            
