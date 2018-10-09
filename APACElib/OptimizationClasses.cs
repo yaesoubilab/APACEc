@@ -86,50 +86,68 @@ namespace APACElib
                 wtp <= modelSets.OptmzSets.WTP_max; 
                 wtp += modelSets.OptmzSets.WTP_step)
             {
+                // create a stochastic approximation object
+                MultiStochasticApproximation multOptimizer = new MultiStochasticApproximation(
+                    simModel: new GonorrheaEpiModeller(epiModeller, wtp),
+                    stepSize_as: modelSets.OptmzSets.StepSize_as,
+                    stepSize_cs: modelSets.OptmzSets.DerivativeStep_cs
+                    );
 
-                // find the a value that minimizes f
-                double fStar = double.MaxValue;
-                Vector<double> xStar = Vector<double>.Build.Dense(x0.Count);
-                double aStar = 0;
+                // minimize 
+                multOptimizer.Minimize(
+                    maxItrs: modelSets.OptmzSets.NOfItrs,
+                    nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
+                    x0: x0,
+                    ifParallel: false// modelSets.UseParallelComputing
+                    );
 
-                foreach (double a in modelSets.OptmzSets.StepSize_as)
-                {
-                    // create a stochastic approximation object
-                    StochasticApproximation optimizer = new StochasticApproximation(
-                        simModel: new GonorrheaEpiModeller(epiModeller, wtp),
-                        stepSize_Df: new StepSize_Df(c:modelSets.OptmzSets.DerivativeStep),
-                        stepSize_a: new StepSize_a(a: a)
-                        );
+                // export results
+                if (modelSets.OptmzSets.IfExportResults)
+                    multOptimizer.ExportResultsToCSV("wtp" + wtp + "-");
 
-                    // minimize
-                    optimizer.Minimize(
-                        maxItrs: modelSets.OptmzSets.NOfItrs,
-                        nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
-                        x0: x0);
+                //// find the a value that minimizes f
+                //double fStar = double.MaxValue;
+                //Vector<double> xStar = Vector<double>.Build.Dense(x0.Count);
+                //double aStar = 0;
 
-                    // export results
-                    if (modelSets.OptmzSets.IfExportResults)
-                        optimizer.ExportResultsToCSV("wtp" + wtp + "-a" + a + ".csv");
+                //foreach (double a in modelSets.OptmzSets.StepSize_as)
+                //{
+                //    // create a stochastic approximation object
+                //    StochasticApproximation optimizer = new StochasticApproximation(
+                //        simModel: new GonorrheaEpiModeller(epiModeller, wtp),
+                //        stepSize_Df: new StepSize_Df(c0:modelSets.OptmzSets.DerivativeStep_cs),
+                //        stepSize_a: new StepSize_a(a0: a)
+                //        );
+
+                //    // minimize
+                //    optimizer.Minimize(
+                //        maxItrs: modelSets.OptmzSets.NOfItrs,
+                //        nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
+                //        x0: x0);
+
+                //    // export results
+                //    if (modelSets.OptmzSets.IfExportResults)
+                //        optimizer.ExportResultsToCSV("wtp" + wtp + "-a" + a + ".csv");
                     
-                    // if this a led to the minimum f
-                    if (optimizer.fStar < fStar)
-                    {
-                        fStar = optimizer.fStar;
-                        xStar = optimizer.xStar;
-                        aStar = a;
-                    }
-                }
+                //    // if this a led to the minimum f
+                //    if (optimizer.fStar < fStar)
+                //    {
+                //        fStar = optimizer.fStar;
+                //        xStar = optimizer.xStar;
+                //        aStar = a;
+                //    }
+                //}
 
                 // use this xStar as the intial variable for the next wtp
-                x0 = xStar;
+                x0 = multOptimizer.xStar;
 
                 // store results
                 double[] result = new double[NUM_OF_VARIABLES + 3]; // 1 for wtp, 1 for fStar, 1 for a0
                 result[0] = wtp;
-                result[1] = aStar;
-                result[2] = fStar;
-                result[3] = xStar[0];
-                result[4] = xStar[1];
+                result[1] = multOptimizer.aStar;
+                result[2] = multOptimizer.fStar;
+                result[3] = multOptimizer.xStar[0];
+                result[4] = multOptimizer.xStar[1];
                 Summary.Add(result);
             }
         }

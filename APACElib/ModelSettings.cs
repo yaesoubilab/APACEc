@@ -303,11 +303,11 @@ namespace APACElib
     {
         public int NOfItrs { get; }
         public int NOfLastItrsToAverage { get; }
-        public double[] X0 { get; }
-        public double DerivativeStep { get; }
+        public double[] X0 { get; }        
         public bool IfExportResults { get; }
 
         public double[] StepSize_as { get; }
+        public double[] DerivativeStep_cs { get; }
         public double WTP_min { get; }
         public double WTP_max { get; }
         public double WTP_step { get; }
@@ -320,12 +320,14 @@ namespace APACElib
             string strX0 = excelInterface.GetCellValue("General Settings", "initialX").ToString();
             X0 =Array.ConvertAll(strX0.Split(','), Convert.ToDouble);
 
-            DerivativeStep = (double)excelInterface.GetCellValue("General Settings", "derivativeStep");
             IfExportResults = SupportFunctions.ConvertYesNoToBool(excelInterface.GetCellValue("General Settings", "ifExportOptResults").ToString());
 
             string strAs = excelInterface.GetCellValue("General Settings", "stepSize_as").ToString();
             StepSize_as = Array.ConvertAll(strAs.Split(','), Convert.ToDouble);
 
+            string strCs = excelInterface.GetCellValue("General Settings", "derivativeStep").ToString();
+            DerivativeStep_cs = Array.ConvertAll(strCs.Split(','), Convert.ToDouble);
+                      
             WTP_min = (double) excelInterface.GetCellValue("General Settings", "wtpMin");
             WTP_max = (double) excelInterface.GetCellValue("General Settings", "wtpMax");
             WTP_step = (double) excelInterface.GetCellValue("General Settings", "wtpStep");

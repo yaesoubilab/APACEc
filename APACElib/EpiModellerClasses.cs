@@ -114,7 +114,7 @@ namespace APACElib
             Timer.Start();
 
             // use parallel computing? 
-            if (!_modelSet.UseParallelComputing)
+            if (!_modelSet.UseParallelComputing || Epidemics.Count == 1)
             {
                 //int seed = 0;
                 foreach (Epidemic epi in Epidemics)
