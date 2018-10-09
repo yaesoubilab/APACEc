@@ -219,6 +219,7 @@ namespace APACElib
                     ToggleAnEpidemicTo(epi, EnumModelUse.Calibration, _modelSet.DecisionRule, false);
                     // simulate            
                     epi.SimulateUntilOneAcceptibleTrajFound(_modelSet.TimeIndexToStop);
+
                     // find the likeligood of this simulation 
                     if (epi.SeedProducedAcceptibleTraj != -1)
                         Calibration.CalculateLnL(epi);
@@ -235,7 +236,7 @@ namespace APACElib
                     // build the epidemic model
                     epi.BuildModel(_modelSet);
                     // toggle to calibration
-                    ToggleAnEpidemicTo(epi, EnumModelUse.Calibration, EnumEpiDecisions.PredeterminedSequence, false);
+                    ToggleAnEpidemicTo(epi, EnumModelUse.Calibration, _modelSet.DecisionRule, false);
                     // simulate            
                     epi.SimulateUntilOneAcceptibleTrajFound(_modelSet.TimeIndexToStop);
                     // find the likeligood of this simulation 
@@ -836,8 +837,7 @@ namespace APACElib
         }
 
         public void ResampleSeeds(RNG rng)
-        {
-            int nOfSeeds = _modelSet.RndSeeds.Length;            
+        {                        
             _sampledSeeds = new int[_modelSet.NumOfSimItrs];
 
             switch (_modelSet.SimRNDSeedsSource)
@@ -855,7 +855,9 @@ namespace APACElib
                     break;
                 case EnumSimRNDSeedsSource.RandomUnweighted:
                     {
-                        DiscreteUniform uniformDiscreteDist = new DiscreteUniform("Uniform discrete distribution over RND seeds", 0, nOfSeeds - 1);
+                        int nOfSeeds = _modelSet.RndSeeds.Length;
+                        DiscreteUniform uniformDiscreteDist 
+                            = new DiscreteUniform("Uniform discrete distribution over RND seeds", 0, nOfSeeds - 1);
                         // re-sample seeds
                         for (int i = 0; i < _modelSet.NumOfSimItrs; i++)
                             _sampledSeeds[i] = _modelSet.RndSeeds[uniformDiscreteDist.SampleDiscrete(rng)];
@@ -863,6 +865,8 @@ namespace APACElib
                     break;
                 case EnumSimRNDSeedsSource.RandomWeighted:
                     {
+                        int nOfSeeds = _modelSet.RndSeeds.Length;
+
                         // read weights of rnd seeds                
                         double[] arrProb = new double[nOfSeeds];
                         for (int i = 0; i < nOfSeeds; i++)

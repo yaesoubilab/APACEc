@@ -560,6 +560,7 @@ namespace APACElib
         {
             Denom = -1;
             bool ifFeasiableRangesViolated = false;
+            RatioUpdated = false;
 
             switch (Type)
             {
@@ -570,6 +571,7 @@ namespace APACElib
                             / Denom;
                         // record the ratio
                         PrevTimeSeries.Record(Ratio);
+                        RatioUpdated = true;
                     }
                     break;
                 case EnumType.IncidenceOverIncidence:
@@ -588,9 +590,7 @@ namespace APACElib
                             // record the ratio
                             IncdTimeSeries.Record(Ratio);
                             RatioUpdated = true;
-                        }
-                        else
-                            RatioUpdated = false;
+                        }                        
                     }
                     break;
                 case EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
@@ -600,6 +600,7 @@ namespace APACElib
                             / Denom;
                         // record the ratio
                         PrevTimeSeries.Record(Ratio);
+                        RatioUpdated = true;
                     }
                     break;
                 case EnumType.IncidenceOverPrevalence:
@@ -617,8 +618,6 @@ namespace APACElib
                             IncdTimeSeries.Record(Ratio);
                             RatioUpdated = true;
                         }
-                        else
-                            RatioUpdated = false;
                     }
                     break;
             }           
@@ -628,7 +627,7 @@ namespace APACElib
                 AveragePrevalenceStat.Record(Ratio.Value);
             
             // check if within feasible range
-            if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
+            if (!(CalibInfo is null) && RatioUpdated==true && CalibInfo.IfCheckWithinFeasibleRange)
             {
                 if (Ratio < CalibInfo.FeasibleRangeMin || Ratio > CalibInfo.FeasibleRangeMax)
                     ifFeasiableRangesViolated = true;

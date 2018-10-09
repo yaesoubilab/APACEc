@@ -33,6 +33,7 @@ namespace APACElib
         RNG _rng;        
         RNG _rngNoise;
         int _newSeed;
+        public List<int> TestedSeeds { get; set; } = new List<int>();
         private DecisionMaker _decisionMaker;
         private ParameterManager _paramManager;
         private MonitorOfInterventionsInEffect _monitorOfIntrvsInEffect;
@@ -72,9 +73,9 @@ namespace APACElib
         {
             int tries = 0;
             int seed = 0;
-            RNG seedGenerator = new RNG(ID);            
+            RNG seedGenerator = new RNG(ID);
             if (InitialSeed == 0)
-                seed = seedGenerator.Next();
+                seed = 1000 * ID; // seedGenerator.Next();
             else
                 seed = InitialSeed;            
 
@@ -84,6 +85,9 @@ namespace APACElib
             Timer.Start();       // reset the timer 
             while (!acceptableTrajFound && tries <= maxTries)// && seed <= stopSeed)
             {
+                // record the tested seeds
+                TestedSeeds.Add(seed);
+
                 // reset for another simulation
                 ResetForAnotherSimulation(seed);
                 // simulate
@@ -95,7 +99,7 @@ namespace APACElib
                 else
                 {
                     //++seed;
-                    seed = seedGenerator.Next();
+                    seed += 1; // = seedGenerator.Next();
                     ++tries;
                     ++SeedsDiscarded;
                 }
