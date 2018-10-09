@@ -72,16 +72,21 @@ namespace APACElib
         public void SimulateUntilOneAcceptibleTrajFound(int timeIndexToStop, int maxTries = 100000)
         {
             int tries = 0;
-            int seed = 0;
-            RNG seedGenerator = new RNG(ID);
-            if (InitialSeed == 0)
-                seed = seedGenerator.Next();
-            else
-                seed = InitialSeed;            
-
             SeedProducedAcceptibleTraj = -1;
             SeedsDiscarded = 0;
             bool acceptableTrajFound = false;
+
+            // identify the first seed to try
+            int seed = 0;
+            RNG seedGenerator = new RNG(ID);
+            // if the first seed is not specified
+            if (InitialSeed == 0)
+                // get a new seed
+                seed = seedGenerator.Next();
+            else
+                // otherwise, use the specified seed
+                seed = InitialSeed;           
+            
             Timer.Start();       // reset the timer 
             while (!acceptableTrajFound && tries <= maxTries)// && seed <= stopSeed)
             {
@@ -98,8 +103,7 @@ namespace APACElib
                 }
                 else
                 {
-                    //++seed;
-                    seed = seedGenerator.Next();
+                    seed = seedGenerator.Next(); // next seed
                     ++tries;
                     ++SeedsDiscarded;
                 }
