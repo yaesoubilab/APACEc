@@ -75,7 +75,7 @@ namespace APACElib
             int seed = 0;
             RNG seedGenerator = new RNG(ID);
             if (InitialSeed == 0)
-                seed = 1000 * ID; // seedGenerator.Next();
+                seed = seedGenerator.Next();
             else
                 seed = InitialSeed;            
 
@@ -99,7 +99,7 @@ namespace APACElib
                 else
                 {
                     //++seed;
-                    seed += 1; // = seedGenerator.Next();
+                    seed = seedGenerator.Next();
                     ++tries;
                     ++SeedsDiscarded;
                 }
