@@ -37,7 +37,7 @@ namespace APACElib
                 }
                 else if (x[i] > 0.5)
                 {
-                    objValue += PENALTY * Math.Pow(x[i]-1, 2);
+                    objValue += PENALTY * Math.Pow(x[i]-0.5, 2);
                     x[i] = 1;
                 } 
             }
