@@ -98,45 +98,12 @@ namespace APACElib
                     maxItrs: modelSets.OptmzSets.NOfItrs,
                     nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
                     x0: x0,
-                    ifParallel: false// modelSets.UseParallelComputing
+                    ifParallel: false // the parallel version doesn't work. // modelSets.UseParallelComputing
                     );
 
                 // export results
                 if (modelSets.OptmzSets.IfExportResults)
                     multOptimizer.ExportResultsToCSV("wtp" + wtp + "-");
-
-                //// find the a value that minimizes f
-                //double fStar = double.MaxValue;
-                //Vector<double> xStar = Vector<double>.Build.Dense(x0.Count);
-                //double aStar = 0;
-
-                //foreach (double a in modelSets.OptmzSets.StepSize_as)
-                //{
-                //    // create a stochastic approximation object
-                //    StochasticApproximation optimizer = new StochasticApproximation(
-                //        simModel: new GonorrheaEpiModeller(epiModeller, wtp),
-                //        stepSize_Df: new StepSize_Df(c0:modelSets.OptmzSets.DerivativeStep_cs),
-                //        stepSize_a: new StepSize_a(a0: a)
-                //        );
-
-                //    // minimize
-                //    optimizer.Minimize(
-                //        maxItrs: modelSets.OptmzSets.NOfItrs,
-                //        nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
-                //        x0: x0);
-
-                //    // export results
-                //    if (modelSets.OptmzSets.IfExportResults)
-                //        optimizer.ExportResultsToCSV("wtp" + wtp + "-a" + a + ".csv");
-                    
-                //    // if this a led to the minimum f
-                //    if (optimizer.fStar < fStar)
-                //    {
-                //        fStar = optimizer.fStar;
-                //        xStar = optimizer.xStar;
-                //        aStar = a;
-                //    }
-                //}
 
                 // use this xStar as the intial variable for the next wtp
                 x0 = multOptimizer.xStar;
