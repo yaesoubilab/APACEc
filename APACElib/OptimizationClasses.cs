@@ -28,24 +28,7 @@ namespace APACElib
             double objValue = 0;
 
             // make sure variables are in feasible range; if not, add the penalty to the objective function
-            for (int i = 0; i < x.Count; i++)
-            {
-                if (x[i] < 0)
-                {
-                    objValue += PENALTY * Math.Pow(x[i], 2);
-                    x[i] = 0;
-                }
-                else if (x[i] > 0.5)
-                {
-                    objValue += PENALTY * Math.Pow(x[i]-0.5, 2);
-                    x[i] = 1;
-                } 
-            }
-            if (x[0] < x[1])
-            {
-                objValue += PENALTY * Math.Pow(x[1] - x[0], 2);
-                x[1] = x[0];
-            }
+            objValue += MakeXFeasible(x);
 
             // update the thresholds in the epidemic modeller
             foreach (Epidemic epi in EpiModeller.Epidemics)
@@ -62,6 +45,44 @@ namespace APACElib
                        
             return objValue;
         }
+
+        public override Vector<double> GetDerivativeEstimate(Vector<double> x, double derivative_step)
+        {
+            // estimate the derivative of f at x
+            Vector<double> Df = Vector<double>.Build.Dense(x.Count());
+
+            // build epsilon matrix
+            Matrix<double> epsilonMatrix = Matrix<double>.Build.DenseDiagonal(x.Count(), derivative_step);
+
+            return Df;
+        }
+
+        private double MakeXFeasible(Vector<double> x)
+        {
+            double penalty = 0;
+            // make sure variables are in feasible range; if not, add the penalty to the objective function
+            for (int i = 0; i < x.Count; i++)
+            {
+                if (x[i] < 0)
+                {
+                    penalty += PENALTY * Math.Pow(x[i], 2);
+                    x[i] = 0;
+                }
+                else if (x[i] > 0.5)
+                {
+                    penalty += PENALTY * Math.Pow(x[i] - 0.5, 2);
+                    x[i] = 1;
+                }
+            }
+            if (x[0] < x[1])
+            {
+                penalty += PENALTY * Math.Pow(x[1] - x[0], 2);
+                x[1] = x[0];
+            }
+
+            return penalty;
+        }
+
 
         public override void ResetSeedAtItr0()
         {

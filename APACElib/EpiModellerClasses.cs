@@ -48,7 +48,7 @@ namespace APACElib
             {
                 case EnumModelUse.Simulation:
                 case EnumModelUse.Optimization:
-                    numOfEpidemics = _modelSet.NumOfSimItrs;
+                    numOfEpidemics = _modelSet.NumOfSimItrs; // * 4; // so that we can calcualte derivatives
                     break;
                 case EnumModelUse.Calibration:
                     {
