@@ -26,6 +26,7 @@ namespace APACElib
         public override double GetAReplication(Vector<double> x, bool ifResampleSeeds)
         {
             double objValue = 0;
+            double maxThreshold = 0.25;
 
             // make sure variables are in feasible range; if not, add the penalty to the objective function
             for (int i = 0; i < x.Count; i++)
@@ -35,10 +36,10 @@ namespace APACElib
                     objValue += PENALTY * Math.Pow(x[i], 2);
                     x[i] = 0;
                 }
-                else if (x[i] > 0.5)
+                else if (x[i] > maxThreshold)
                 {
-                    objValue += PENALTY * Math.Pow(x[i]-0.5, 2);
-                    x[i] = 1;
+                    objValue += PENALTY * Math.Pow(x[i]- maxThreshold, 2);
+                    x[i] = maxThreshold;
                 } 
             }
             if (x[0] < x[1])
