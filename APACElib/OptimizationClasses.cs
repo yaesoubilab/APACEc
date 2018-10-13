@@ -15,9 +15,11 @@ namespace APACElib
 
         public EpidemicModeller EpiModeller { get; private set; }
 
-        public GonorrheaEpiModeller(EpidemicModeller epiModeller, double wtp)
+        public GonorrheaEpiModeller(int id, ExcelInterface excelInterface, ModelSettings modelSets, double wtp)
         {
-            EpiModeller = epiModeller;
+            EpiModeller = new EpidemicModeller(id, excelInterface, modelSets, 
+                numOfEpis: (int)Math.Pow(2, OptimizeGonohrrea.NUM_OF_VARIABLES));
+            EpiModeller.BuildEpidemics();
             _wtp = wtp;
         }
 
@@ -54,6 +56,32 @@ namespace APACElib
             // build epsilon matrix
             Matrix<double> epsilonMatrix = Matrix<double>.Build.DenseDiagonal(x.Count(), derivative_step);
 
+            List<Vector<double>> xValues = new List<Vector<double>>();
+            xValues.Add(x - epsilonMatrix.Row(0));
+            xValues.Add(x + epsilonMatrix.Row(0));
+            xValues.Add(x - epsilonMatrix.Row(1));
+            xValues.Add(x + epsilonMatrix.Row(1));
+
+            // update the thresholds in the epidemic modeller
+            int i = 0;
+            foreach (Epidemic epi in EpiModeller.Epidemics)
+            {
+                for (int conditionIndx = 0; conditionIndx < 6; conditionIndx++)
+                    ((Condition_OnFeatures)epi.DecisionMaker.Conditions[conditionIndx])
+                        .UpdateThresholds(xValues[i].ToArray());
+            }
+
+            // simulate
+            EpiModeller.SimulateEpidemics(ifResampleSeeds:false);
+
+            double[] fValues = new double[4];
+            for (i = 0; i < 4; i++)
+                fValues[i] = _wtp * EpiModeller.Epidemics[i].EpidemicCostHealth.TotalDiscountedDALY
+                    + EpiModeller.Epidemics[i].EpidemicCostHealth.TotalDisountedCost;
+
+            Df[0] = (fValues[1] - fValues[0]) / (2 * derivative_step);
+            Df[1] = (fValues[3] - fValues[2]) / (2 * derivative_step);
+
             return Df;
         }
 
@@ -71,7 +99,7 @@ namespace APACElib
                 else if (x[i] > 0.5)
                 {
                     penalty += PENALTY * Math.Pow(x[i] - 0.5, 2);
-                    x[i] = 1;
+                    x[i] = 0.5;
                 }
             }
             if (x[0] < x[1])
@@ -92,12 +120,13 @@ namespace APACElib
 
     public class OptimizeGonohrrea
     {
-        const int NUM_OF_VARIABLES = 2;
+        public const int NUM_OF_VARIABLES = 2;
 
         public List<double[]> Summary = new List<double[]>();
 
-        public void Run(EpidemicModeller epiModeller, ModelSettings modelSets)
-        {
+        public void Run(ExcelInterface excelInterface, ModelSettings modelSets)
+        {          
+
             // initial thresholds for the initial WTP 
             double[] arrX0 = modelSets.OptmzSets.X0;
             Vector<double> x0 = Vector<double>.Build.DenseOfArray(arrX0);
@@ -107,9 +136,19 @@ namespace APACElib
                 wtp <= modelSets.OptmzSets.WTP_max; 
                 wtp += modelSets.OptmzSets.WTP_step)
             {
+
+                // build epidemic models
+                int epiID = 0;
+                List<SimModel> epiModels = new List<SimModel>();
+                foreach (double a in modelSets.OptmzSets.StepSize_as)
+                    foreach (double c in modelSets.OptmzSets.DerivativeStep_cs)
+                        epiModels.Add(
+                            new GonorrheaEpiModeller(epiID++, excelInterface, modelSets, wtp)
+                            );
+
                 // create a stochastic approximation object
-                MultiStochasticApproximation multOptimizer = new MultiStochasticApproximation(
-                    simModel: new GonorrheaEpiModeller(epiModeller, wtp),
+                ParallelStochasticApproximation multOptimizer = new ParallelStochasticApproximation(
+                    simModels: epiModels,
                     stepSize_as: modelSets.OptmzSets.StepSize_as,
                     stepSize_cs: modelSets.OptmzSets.DerivativeStep_cs
                     );
@@ -119,7 +158,8 @@ namespace APACElib
                     maxItrs: modelSets.OptmzSets.NOfItrs,
                     nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
                     x0: x0,
-                    ifParallel: false // the parallel version doesn't work. // modelSets.UseParallelComputing
+                    ifParallel: false,
+                    modelProvidesDerivatives: true
                     );
 
                 // export results

@@ -131,12 +131,8 @@ namespace APACElib
             if (_modelSettings.SimRNDSeedsSource == EnumSimRNDSeedsSource.Prespecified)
                 _modelSettings.SimRNDSeedsSource = EnumSimRNDSeedsSource.RandomUnweighted;
 
-            // create an epidemic modeler
-            _epidemicModeller = new EpidemicModeller(0, _excelInterface, _modelSettings);
-            _epidemicModeller.BuildEpidemics();
-
             OptimizeGonohrrea optimizer = new OptimizeGonohrrea();
-            optimizer.Run(_epidemicModeller, _modelSettings);
+            optimizer.Run(_excelInterface, _modelSettings);
 
             ExcelIntface.ReportOptimization(optimizer.GetSummary());
         }
