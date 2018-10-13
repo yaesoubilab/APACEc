@@ -158,7 +158,7 @@ namespace APACElib
                     maxItrs: modelSets.OptmzSets.NOfItrs,
                     nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
                     x0: x0,
-                    ifParallel: false,
+                    ifParallel: true,
                     modelProvidesDerivatives: true
                     );
 
