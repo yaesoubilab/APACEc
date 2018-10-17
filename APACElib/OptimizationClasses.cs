@@ -11,6 +11,7 @@ namespace APACElib
     public class GonorrheaEpiModeller : SimModel
     {
         const double PENALTY = 10e10;
+        const double MAX_THRESHOLD = 0.25;
         private int _seed;
         private double _wtp = 0;
 
@@ -100,12 +101,13 @@ namespace APACElib
                     penalty += PENALTY * Math.Pow(x[i], 2);
                     x[i] = 0;
                 }
-                else if (x[i] > 0.5)
+                else if (x[i] > MAX_THRESHOLD)
                 {
-                    penalty += PENALTY * Math.Pow(x[i] - 0.5, 2);
-                    x[i] = 0.5;
+                    penalty += PENALTY * Math.Pow(x[i] - MAX_THRESHOLD, 2);
+                    x[i] = MAX_THRESHOLD;
                 }
             }
+            // change in prevalence should be smaller than the prevalence threshold
             if (x[0] < x[1])
             {
                 penalty += PENALTY * Math.Pow(x[1] - x[0], 2);
