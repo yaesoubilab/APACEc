@@ -27,7 +27,7 @@ namespace APACElib
         RNG _rng = new RNG(0);
 
         // Instantiation
-        public EpidemicModeller(int ID, ExcelInterface excelInterface, ModelSettings modelSettings)
+        public EpidemicModeller(int ID, ExcelInterface excelInterface, ModelSettings modelSettings, int numOfEpis = -1)
         {
             this.ID = ID;
             _modelSet = modelSettings;
@@ -47,8 +47,10 @@ namespace APACElib
             switch (_modelSet.ModelUse)
             {
                 case EnumModelUse.Simulation:
-                case EnumModelUse.Optimization:
                     numOfEpidemics = _modelSet.NumOfSimItrs;
+                    break;
+                case EnumModelUse.Optimization:
+                    numOfEpidemics = numOfEpis; 
                     break;
                 case EnumModelUse.Calibration:
                     {
@@ -193,9 +195,9 @@ namespace APACElib
         }
 
         // reset rng
-        public void ResetRNG()
+        public void ResetRNG(int seed = 0)
         {
-            _rng = new RNG(0);
+            _rng = new RNG(seed);
         }
 
         // calibrate
