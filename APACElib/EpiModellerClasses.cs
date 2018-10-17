@@ -195,9 +195,9 @@ namespace APACElib
         }
 
         // reset rng
-        public void ResetRNG()
+        public void ResetRNG(int seed = 0)
         {
-            _rng = new RNG(0);
+            _rng = new RNG(seed);
         }
 
         // calibrate

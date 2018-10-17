@@ -11,15 +11,19 @@ namespace APACElib
     public class GonorrheaEpiModeller : SimModel
     {
         const double PENALTY = 10e10;
+        private int _seed;
         private double _wtp = 0;
 
         public EpidemicModeller EpiModeller { get; private set; }
 
         public GonorrheaEpiModeller(int id, ExcelInterface excelInterface, ModelSettings modelSets, double wtp)
         {
+            _seed = id; // rnd seed used to reset the seed of this epidemic modeller
+
             EpiModeller = new EpidemicModeller(id, excelInterface, modelSets, 
                 numOfEpis: (int)Math.Pow(2, OptimizeGonohrrea.NUM_OF_VARIABLES));
             EpiModeller.BuildEpidemics();
+
             _wtp = wtp;
         }
 
@@ -114,7 +118,7 @@ namespace APACElib
 
         public override void ResetSeedAtItr0()
         {
-            EpiModeller.ResetRNG();
+            EpiModeller.ResetRNG(seed: _seed);
         }
     }
 
@@ -132,13 +136,13 @@ namespace APACElib
             Vector<double> x0 = Vector<double>.Build.DenseOfArray(arrX0);
 
             // for all wtp values
+            int epiID = 0;
             for (double wtp = modelSets.OptmzSets.WTP_min; 
                 wtp <= modelSets.OptmzSets.WTP_max; 
                 wtp += modelSets.OptmzSets.WTP_step)
             {
 
-                // build epidemic models
-                int epiID = 0;
+                // build epidemic models                
                 List<SimModel> epiModels = new List<SimModel>();
                 foreach (double a in modelSets.OptmzSets.StepSize_as)
                     foreach (double c in modelSets.OptmzSets.DerivativeStep_cs)
