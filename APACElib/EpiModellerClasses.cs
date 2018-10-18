@@ -103,7 +103,7 @@ namespace APACElib
             // assign the initial seed of each epidemic
             if (ifResampleSeeds)
             {
-                SeedGenerator.ResampleSeeds(_rng);
+                SeedGenerator.ResampleSeeds(_rng, Epidemics.Count);
                 foreach (Epidemic epi in Epidemics)
                     epi.InitialSeed = SeedGenerator.FindRNDSeed(epi.ID);
             }
@@ -156,7 +156,7 @@ namespace APACElib
             Timer.Start();
 
             // assign the initial seed of each epidemic
-            SeedGenerator.ResampleSeeds(_rng);
+            SeedGenerator.ResampleSeeds(_rng, Epidemics.Count);
             foreach (Epidemic epi in Epidemics)
                 epi.InitialSeed = SeedGenerator.FindRNDSeed(epi.ID);
 
@@ -838,9 +838,9 @@ namespace APACElib
                 _seeds = (int[])_modelSet.RndSeeds.Clone();
         }
 
-        public void ResampleSeeds(RNG rng)
+        public void ResampleSeeds(RNG rng, int numOfEpidemics)
         {                        
-            _sampledSeeds = new int[_modelSet.NumOfSimItrs];
+            _sampledSeeds = new int[numOfEpidemics];
 
             switch (_modelSet.SimRNDSeedsSource)
             {
@@ -851,7 +851,7 @@ namespace APACElib
                     break;
                 case EnumSimRNDSeedsSource.Prespecified:
                     {
-                        for (int i = 0; i < _modelSet.NumOfSimItrs; i++)
+                        for (int i = 0; i < numOfEpidemics; i++)
                             _sampledSeeds[i] = _seeds[i];
                     }
                     break;
@@ -861,7 +861,7 @@ namespace APACElib
                         DiscreteUniform uniformDiscreteDist 
                             = new DiscreteUniform("Uniform discrete distribution over RND seeds", 0, nOfSeeds - 1);
                         // re-sample seeds
-                        for (int i = 0; i < _modelSet.NumOfSimItrs; i++)
+                        for (int i = 0; i < numOfEpidemics; i++)
                             _sampledSeeds[i] = _modelSet.RndSeeds[uniformDiscreteDist.SampleDiscrete(rng)];
                     }
                     break;
@@ -882,7 +882,7 @@ namespace APACElib
                         // define the sampling object
                         Discrete discreteDist = new Discrete("Discrete distribution over RND seeds", arrProb);
                         // re-sample seeds
-                        for (int i = 0; i < _modelSet.NumOfSimItrs; i++)
+                        for (int i = 0; i < numOfEpidemics; i++)
                             _sampledSeeds[i] = _modelSet.RndSeeds[discreteDist.SampleDiscrete(rng)];
                     }
                     break;

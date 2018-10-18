@@ -67,28 +67,38 @@ namespace APACElib
             // build epsilon matrix
             Matrix<double> epsilonMatrix = Matrix<double>.Build.DenseDiagonal(x.Count(), derivative_step);
 
+            // find x-values to calculate Df
             List<Vector<double>> xValues = new List<Vector<double>>();
             xValues.Add(x - epsilonMatrix.Row(0));
             xValues.Add(x + epsilonMatrix.Row(0));
             xValues.Add(x - epsilonMatrix.Row(1));
             xValues.Add(x + epsilonMatrix.Row(1));
 
-            // update the thresholds in the epidemic modeller
+            // penalize f when x is outside the feasible readon
+            double[] fValues = new double[xValues.Count];
             int i = 0;
+            for (i = 0; i < xValues.Count; i++)
+            {
+                fValues[i] = MakeXFeasible(xValues[i]);
+            }
+
+            // update the thresholds in the epidemic modeller      
+            i = 0;
             foreach (Epidemic epi in EpiModeller_Df.Epidemics)
             {
                 epi.InitialSeed = EpiModeller_f.Epidemics[0].InitialSeed;
                 for (int conditionIndx = 0; conditionIndx < 6; conditionIndx++)
                     ((Condition_OnFeatures)epi.DecisionMaker.Conditions[conditionIndx])
                         .UpdateThresholds(xValues[i].ToArray());
+                i++;
             }
 
             // simulate
             EpiModeller_Df.SimulateEpidemics(ifResampleSeeds:false);
-
-            double[] fValues = new double[4];
+        
+            // update f values
             for (i = 0; i < 4; i++)
-                fValues[i] = _wtp * EpiModeller_Df.Epidemics[i].EpidemicCostHealth.TotalDiscountedDALY
+                fValues[i] += _wtp * EpiModeller_Df.Epidemics[i].EpidemicCostHealth.TotalDiscountedDALY
                     + EpiModeller_Df.Epidemics[i].EpidemicCostHealth.TotalDisountedCost;
 
             Df[0] = (fValues[1] - fValues[0]) / (2 * derivative_step);
@@ -171,7 +181,7 @@ namespace APACElib
                     maxItrs: modelSets.OptmzSets.NOfItrs,
                     nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
                     x0: x0,
-                    ifParallel: false,
+                    ifParallel: true,
                     modelProvidesDerivatives: true
                     );
 
