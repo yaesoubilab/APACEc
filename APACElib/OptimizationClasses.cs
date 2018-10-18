@@ -15,21 +15,26 @@ namespace APACElib
         private int _seed;
         private double _wtp = 0;
 
-        public EpidemicModeller EpiModeller { get; private set; }
+        public EpidemicModeller EpiModeller_f { get; private set; } // epi modeller to estimate f
+        public EpidemicModeller EpiModeller_Df { get; private set; } // epi modeller to estimate derivatives of f
 
         public GonorrheaEpiModeller(int id, ExcelInterface excelInterface, ModelSettings modelSets, double wtp)
         {
             _seed = id; // rnd seed used to reset the seed of this epidemic modeller
 
-            EpiModeller = new EpidemicModeller(id, excelInterface, modelSets, 
+            // epi modeller with 1 epidemic to calcualte f(x)
+            EpiModeller_f = new EpidemicModeller(id, excelInterface, modelSets, numOfEpis: 1);
+            EpiModeller_f.BuildEpidemics();
+
+            // epi modeller to calcualte derivatives
+            EpiModeller_Df = new EpidemicModeller(id, excelInterface, modelSets, 
                 numOfEpis: (int)Math.Pow(2, OptimizeGonohrrea.NUM_OF_VARIABLES));
-            EpiModeller.BuildEpidemics();
+            EpiModeller_Df.BuildEpidemics();
 
             _wtp = wtp;
         }
 
         /// <param name="x"> x[0]: threshold to switch, x[1]: change in prevalence to switch  </param>
-        /// <returns></returns>
         public override double GetAReplication(Vector<double> x, bool ifResampleSeeds)
         {
             double objValue = 0;
@@ -38,21 +43,22 @@ namespace APACElib
             objValue += MakeXFeasible(x);
 
             // update the thresholds in the epidemic modeller
-            foreach (Epidemic epi in EpiModeller.Epidemics)
+            foreach (Epidemic epi in EpiModeller_f.Epidemics)
             {
                 for (int conditionIndx = 0; conditionIndx < 6; conditionIndx ++)
                     ((Condition_OnFeatures)epi.DecisionMaker.Conditions[conditionIndx]).UpdateThresholds(x.ToArray());
             }
 
             // simulate
-            EpiModeller.SimulateEpidemics(ifResampleSeeds);
+            EpiModeller_f.SimulateEpidemics(ifResampleSeeds);
 
             // calcualte net monetary benefit
-            objValue += _wtp* EpiModeller.SimSummary.DALYStat.Mean + EpiModeller.SimSummary.CostStat.Mean;
+            objValue += _wtp* EpiModeller_f.SimSummary.DALYStat.Mean + EpiModeller_f.SimSummary.CostStat.Mean;
                        
             return objValue;
         }
 
+        /// <param name="x"> x[0]: threshold to switch, x[1]: change in prevalence to switch  </param>
         public override Vector<double> GetDerivativeEstimate(Vector<double> x, double derivative_step)
         {
             // estimate the derivative of f at x
@@ -69,20 +75,21 @@ namespace APACElib
 
             // update the thresholds in the epidemic modeller
             int i = 0;
-            foreach (Epidemic epi in EpiModeller.Epidemics)
+            foreach (Epidemic epi in EpiModeller_Df.Epidemics)
             {
+                epi.InitialSeed = EpiModeller_f.Epidemics[0].InitialSeed;
                 for (int conditionIndx = 0; conditionIndx < 6; conditionIndx++)
                     ((Condition_OnFeatures)epi.DecisionMaker.Conditions[conditionIndx])
                         .UpdateThresholds(xValues[i].ToArray());
             }
 
             // simulate
-            EpiModeller.SimulateEpidemics(ifResampleSeeds:false);
+            EpiModeller_Df.SimulateEpidemics(ifResampleSeeds:false);
 
             double[] fValues = new double[4];
             for (i = 0; i < 4; i++)
-                fValues[i] = _wtp * EpiModeller.Epidemics[i].EpidemicCostHealth.TotalDiscountedDALY
-                    + EpiModeller.Epidemics[i].EpidemicCostHealth.TotalDisountedCost;
+                fValues[i] = _wtp * EpiModeller_Df.Epidemics[i].EpidemicCostHealth.TotalDiscountedDALY
+                    + EpiModeller_Df.Epidemics[i].EpidemicCostHealth.TotalDisountedCost;
 
             Df[0] = (fValues[1] - fValues[0]) / (2 * derivative_step);
             Df[1] = (fValues[3] - fValues[2]) / (2 * derivative_step);
@@ -120,7 +127,7 @@ namespace APACElib
 
         public override void ResetSeedAtItr0()
         {
-            EpiModeller.ResetRNG(seed: _seed);
+            EpiModeller_f.ResetRNG(seed: _seed);
         }
     }
 
@@ -164,7 +171,7 @@ namespace APACElib
                     maxItrs: modelSets.OptmzSets.NOfItrs,
                     nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
                     x0: x0,
-                    ifParallel: true,
+                    ifParallel: false,
                     modelProvidesDerivatives: true
                     );
 
