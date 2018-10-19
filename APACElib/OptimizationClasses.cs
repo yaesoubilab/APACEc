@@ -10,7 +10,7 @@ namespace APACElib
 {
     public class GonorrheaEpiModeller : SimModel
     {
-        const double PENALTY = 10e10;
+        const double PENALTY = 10e8;
         const double MAX_THRESHOLD = 0.25;
         private int _seed;
         private double _wtp = 0;
@@ -115,19 +115,19 @@ namespace APACElib
             {
                 if (x[i] < 0)
                 {
-                    penalty += PENALTY * Math.Pow(x[i], 2);
+                    penalty += _wtp*PENALTY * Math.Pow(x[i], 2);
                     x[i] = 0;
                 }
                 else if (x[i] > MAX_THRESHOLD)
                 {
-                    penalty += PENALTY * Math.Pow(x[i] - MAX_THRESHOLD, 2);
+                    penalty += _wtp*PENALTY * Math.Pow(x[i] - MAX_THRESHOLD, 2);
                     x[i] = MAX_THRESHOLD;
                 }
             }
             // change in prevalence should be smaller than the prevalence threshold
             if (x[0] < x[1])
             {
-                penalty += PENALTY * Math.Pow(x[1] - x[0], 2);
+                penalty += _wtp*PENALTY * Math.Pow(x[1] - x[0], 2);
                 x[1] = x[0];
             }
 
@@ -193,22 +193,23 @@ namespace APACElib
                 x0 = multOptimizer.xStar;
 
                 // store results
-                double[] result = new double[NUM_OF_VARIABLES + 3]; // 1 for wtp, 1 for fStar, 1 for a0
+                double[] result = new double[NUM_OF_VARIABLES + 4]; // 1 for wtp, 1 for fStar, 1 for a0, 1 for c0
                 result[0] = wtp;
                 result[1] = multOptimizer.aStar;
-                result[2] = multOptimizer.fStar;
-                result[3] = multOptimizer.xStar[0];
-                result[4] = multOptimizer.xStar[1];
+                result[2] = multOptimizer.cStar;
+                result[3] = multOptimizer.fStar;
+                result[4] = multOptimizer.xStar[0];
+                result[5] = multOptimizer.xStar[1];
                 Summary.Add(result);
             }
         }
 
         public double[,] GetSummary()
         {
-            double[,] results = new double[Summary.Count, NUM_OF_VARIABLES + 3];
+            double[,] results = new double[Summary.Count, NUM_OF_VARIABLES + 4];
 
             for (int i = 0; i < Summary.Count; i++)
-                for (int j = 0; j < NUM_OF_VARIABLES + 3; j++)
+                for (int j = 0; j < NUM_OF_VARIABLES + 4; j++)
                     results[i, j] = Summary[i][j];
 
             return results;
