@@ -163,7 +163,7 @@ namespace APACElib
 
                 // build epidemic models                
                 List<SimModel> epiModels = new List<SimModel>();
-                foreach (double a in modelSets.OptmzSets.StepSize_as)
+                foreach (double a in modelSets.OptmzSets.StepSize_GH_a0s)
                     foreach (double c in modelSets.OptmzSets.DerivativeStep_cs)
                         epiModels.Add(
                             new GonorrheaEpiModeller(epiID++, excelInterface, modelSets, wtp)
@@ -172,8 +172,9 @@ namespace APACElib
                 // create a stochastic approximation object
                 ParallelStochasticApproximation multOptimizer = new ParallelStochasticApproximation(
                     simModels: epiModels,
-                    stepSize_as: modelSets.OptmzSets.StepSize_as,
-                    stepSize_cs: modelSets.OptmzSets.DerivativeStep_cs
+                    stepSizeGH_a0s: modelSets.OptmzSets.StepSize_GH_a0s,
+                    stepSizeGH_bs: modelSets.OptmzSets.StepSize_GH_bs,
+                    stepSizeDf_cs: modelSets.OptmzSets.DerivativeStep_cs
                     );
 
                 // minimize 
@@ -195,7 +196,8 @@ namespace APACElib
                 // store results
                 double[] result = new double[NUM_OF_VARIABLES + 3]; // 1 for wtp, 1 for fStar, 1 for a0
                 result[0] = wtp;
-                result[1] = multOptimizer.aStar;
+                result[1] = multOptimizer.a0Star;
+                result[1] = multOptimizer.bStar;
                 result[2] = multOptimizer.fStar;
                 result[3] = multOptimizer.xStar[0];
                 result[4] = multOptimizer.xStar[1];

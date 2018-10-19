@@ -306,7 +306,8 @@ namespace APACElib
         public double[] X0 { get; }        
         public bool IfExportResults { get; }
 
-        public double[] StepSize_as { get; }
+        public double[] StepSize_GH_a0s { get; }
+        public double[] StepSize_GH_bs { get; }
         public double[] DerivativeStep_cs { get; }
         public double WTP_min { get; }
         public double WTP_max { get; }
@@ -322,8 +323,10 @@ namespace APACElib
 
             IfExportResults = SupportFunctions.ConvertYesNoToBool(excelInterface.GetCellValue("General Settings", "ifExportOptResults").ToString());
 
-            string strAs = excelInterface.GetCellValue("General Settings", "stepSize_as").ToString();
-            StepSize_as = Array.ConvertAll(strAs.Split(','), Convert.ToDouble);
+            string str_a0s = excelInterface.GetCellValue("General Settings", "stepSize_GH_a0s").ToString();
+            StepSize_GH_a0s = Array.ConvertAll(str_a0s.Split(','), Convert.ToDouble);
+            string str_bs = excelInterface.GetCellValue("General Settings", "stepSize_GH_bs").ToString();
+            StepSize_GH_bs = Array.ConvertAll(str_bs.Split(','), Convert.ToDouble);
 
             string strCs = excelInterface.GetCellValue("General Settings", "derivativeStep").ToString();
             DerivativeStep_cs = Array.ConvertAll(strCs.Split(','), Convert.ToDouble);
