@@ -8,9 +8,311 @@ using MathNet.Numerics.LinearAlgebra;
 
 namespace APACElib
 {
+
+    public class Policy
+    {
+        /// <summary>
+        /// prevalence threshold:            tau = x1*power(wtp, x2)
+        /// change in prevalence threshold:  theta = y1*power(wtp, y2)
+        /// </summary>
+
+        const double PENALTY = 10e9;
+        const double MAX_THRESHOLD = 0.5;
+
+        public Vector<double> TauParams { get; private set; }   // prevalence threshold
+        public Vector<double> ThetaParams { get; private set; } // change in prevalence threshold
+
+        public Policy()
+        {
+            TauParams = Vector<double>.Build.Dense(2);
+            ThetaParams = Vector<double>.Build.Dense(2);
+        }
+
+        public double UpdateParameters(Vector<double> paramValues)
+        {
+            return UpdateParameters(
+                tauParams: paramValues.SubVector(0, 2),
+                thetaParams: paramValues.SubVector(2, 2)
+                );
+        }
+        public double UpdateParameters(Vector<double> tauParams, Vector<double> thetaParams)
+        {
+            double penalty = 0;
+
+            if (tauParams[0] < 0)
+            {
+                penalty += PENALTY * Math.Pow(tauParams[0], 2);
+                tauParams[0] = 0;
+            }
+            else if (tauParams[0] > MAX_THRESHOLD)
+            {
+                penalty += PENALTY * Math.Pow(tauParams[0] - MAX_THRESHOLD, 2);
+                tauParams[0] = MAX_THRESHOLD;
+            }
+
+            if (thetaParams[0] < 0)
+            {
+                penalty += PENALTY * Math.Pow(thetaParams[0], 2);
+                thetaParams[0] = 0;
+            }
+            else if (thetaParams[0] > tauParams[0])
+            {
+                penalty += PENALTY * Math.Pow(thetaParams[0] - tauParams[0], 2);
+                thetaParams[0] = tauParams[0];
+            }
+
+            if (tauParams[1]>0)
+            {
+                penalty += PENALTY * Math.Pow(tauParams[0], 2);
+                tauParams[1] = 0;
+            }
+            if (thetaParams[1] > 0)
+            {
+                penalty += PENALTY * Math.Pow(thetaParams[0], 2);
+                thetaParams[1] = 0;
+            }
+
+            TauParams = tauParams.Clone();
+            ThetaParams = thetaParams.Clone();
+
+            return penalty;
+        }
+
+        public double GetPrevThreshold(double wtp)
+        {
+            return TauParams[0] * Math.Pow(wtp, TauParams[1]);
+        }
+
+        public double GetDeltaPrevThreshold(double wtp)
+        {
+            return ThetaParams[0] * Math.Pow(wtp, ThetaParams[1]);
+        }
+
+        public double[] FindTauAndTheta(double wtp)
+        {
+            double tau = GetPrevThreshold(wtp);
+            double theta = GetDeltaPrevThreshold(wtp);
+            double[] t = new double[2] { tau, theta };
+            return t;
+        }
+    }
+
+    public class GonorrheaEpiModellerV2 : SimModel
+    {
+        private int _seed;
+        private RandomVariateLib.DiscreteUniform DiscreteUniformDist;
+        private RandomVariateLib.RNG _rng;
+        private double[] _wtps;
+        private double[] fValues;
+
+        public Policy Policy { get; private set; }
+        public EpidemicModeller EpiModeller_f { get; private set; } // epi modeller to estimate f
+        public EpidemicModeller EpiModeller_Df { get; private set; } // epi modeller to estimate derivatives of f
+
+        public GonorrheaEpiModellerV2(int id, ExcelInterface excelInterface, ModelSettings modelSets, double[] wtps)
+        {
+            Policy = new Policy();
+
+            _seed = id; // rnd seed used to reset the seed of this epidemic modeller        
+            _rng = new RandomVariateLib.RNG(_seed);
+
+            // epi modeller to calcualte f and derivatives
+            EpiModeller_Df = new EpidemicModeller(id, excelInterface, modelSets,
+                numOfEpis: 1 + 2*OptimizeGonohrreaV2.NUM_OF_VARIABLES);
+            EpiModeller_Df.BuildEpidemics();
+
+            _wtps = wtps;
+            DiscreteUniformDist = new RandomVariateLib.DiscreteUniform("wtp", 0, _wtps.Count() - 1);
+        }
+
+        /// <param name="x"> x[0:1]: threshold to switch, x[2:3]: change in prevalence to switch  </param>
+        public override double GetAReplication(Vector<double> x, bool ifResampleSeeds)
+        {
+            return fValues[0];
+
+            double objValue = 0;
+            double wtp = 0;
+
+            // update the policy parameters
+            objValue += Policy.UpdateParameters(x);
+
+            // sample wtp
+            wtp = _wtps[DiscreteUniformDist.SampleDiscrete(_rng)];
+
+            // find thresholds
+            double[] t = Policy.FindTauAndTheta(wtp);
+
+            // update the thresholds in the epidemic modeller
+            foreach (Epidemic epi in EpiModeller_f.Epidemics)
+            {
+                for (int conditionIndx = 0; conditionIndx < 6; conditionIndx++)
+                    ((Condition_OnFeatures)epi.DecisionMaker.Conditions[conditionIndx]).UpdateThresholds(t);
+            }
+
+            // simulate
+            EpiModeller_f.SimulateEpidemics(ifResampleSeeds);
+
+            // calculate net monetary benefit
+            objValue += wtp * EpiModeller_f.SimSummary.DALYStat.Mean + EpiModeller_f.SimSummary.CostStat.Mean;
+
+            return objValue;
+        }
+
+        /// <param name="x"> x[0:1]: threshold to switch, x[2:3]: change in prevalence to switch  </param>
+        public override Vector<double> GetDerivativeEstimate(Vector<double> x, double derivative_step)
+        {
+            int i = 0;
+            double wtp = 0;
+
+            // derivative of f at x
+            Vector<double> Df = Vector<double>.Build.Dense(x.Count());        
+
+            // build epsilon matrix
+            Matrix<double> epsilonMatrix = Matrix<double>.Build.DenseDiagonal(x.Count(), derivative_step);
+
+            // find x-values to calculate Df
+            List<Vector<double>> xValues = new List<Vector<double>>();
+            xValues.Add(x);
+            for (i = 0; i < OptimizeGonohrreaV2.NUM_OF_VARIABLES; i++)
+            {
+                xValues.Add(x - epsilonMatrix.Row(i));
+                xValues.Add(x + epsilonMatrix.Row(i));
+            }
+
+            // sample wtp
+            wtp = _wtps[DiscreteUniformDist.SampleDiscrete(_rng)];
+
+            // update the thresholds in the epidemic modeller      
+            i = 0;
+            double[] fValues = new double[xValues.Count];
+            foreach (Epidemic epi in EpiModeller_Df.Epidemics)
+            {
+                // update the policy parameters
+                fValues[i] += Policy.UpdateParameters(xValues[i]);
+
+                // find thresholds
+                double[] t = Policy.FindTauAndTheta(wtp);
+
+                epi.InitialSeed = EpiModeller_f.Epidemics[0].InitialSeed;
+                for (int conditionIndx = 0; conditionIndx < 6; conditionIndx++)
+                    ((Condition_OnFeatures)epi.DecisionMaker.Conditions[conditionIndx])
+                        .UpdateThresholds(t);
+                i++;
+            }
+
+            // simulate
+            EpiModeller_Df.SimulateEpidemics(ifResampleSeeds: false);
+
+            // update f values
+            for (i = 0; i < EpiModeller_Df.Epidemics.Count(); i++)
+                fValues[i] += wtp * EpiModeller_Df.Epidemics[i].EpidemicCostHealth.TotalDiscountedDALY
+                    + EpiModeller_Df.Epidemics[i].EpidemicCostHealth.TotalDisountedCost;
+
+            // calculate derivatives
+            for (i = 0; i < x.Count; i++)
+            {
+                Df[i] = (fValues[2*i+2] - fValues[2*i+1]) / (2 * derivative_step);
+            }
+
+            return Df;
+        }
+
+        public override void ResetSeedAtItr0()
+        {
+            EpiModeller_f.ResetRNG(seed: _seed);
+        }
+    }
+
+    public class OptimizeGonohrreaV2
+    {
+        public const int NUM_OF_VARIABLES = 4;
+        public const int NUM_OF_THRESHOLDS = 2;
+
+        public List<double[]> Summary = new List<double[]>();
+
+        public void Run(ExcelInterface excelInterface, ModelSettings modelSets)
+        {
+
+            // initial policy parameters 
+            double[] arrX0 = modelSets.OptmzSets.X0;
+            Vector<double> x0 = Vector<double>.Build.DenseOfArray(arrX0);
+
+            // find wtp
+            List<double> wtps = new List<double>();
+            for (double wtp = modelSets.OptmzSets.WTP_min;
+                wtp <= modelSets.OptmzSets.WTP_max;
+                wtp += modelSets.OptmzSets.WTP_step)
+            {
+                wtps.Add(wtp);
+            }
+
+            // build epidemic models  
+            int epiID = 0;
+            List<SimModel> epiModels = new List<SimModel>();
+            foreach (double a0 in modelSets.OptmzSets.StepSize_GH_a0s)
+                foreach (double b in modelSets.OptmzSets.StepSize_GH_bs)
+                    foreach (double c0 in modelSets.OptmzSets.DerivativeStep_cs)
+                        epiModels.Add(
+                            new GonorrheaEpiModellerV2(epiID++, excelInterface, modelSets, wtps.ToArray())
+                            );
+
+            // create a stochastic approximation object
+            ParallelStochasticApproximation multOptimizer = new ParallelStochasticApproximation(
+                simModels: epiModels,
+                stepSizeGH_a0s: modelSets.OptmzSets.StepSize_GH_a0s,
+                stepSizeGH_bs: modelSets.OptmzSets.StepSize_GH_bs,
+                stepSizeDf_cs: modelSets.OptmzSets.DerivativeStep_cs
+                );
+
+            // minimize 
+            multOptimizer.Minimize(
+                maxItrs: modelSets.OptmzSets.NOfItrs,
+                nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
+                x0: x0,
+                ifParallel: false,
+                modelProvidesDerivatives: true
+                );
+
+            // export results
+            if (modelSets.OptmzSets.IfExportResults)
+                multOptimizer.ExportResultsToCSV("");
+
+            // store results
+            Policy policy = new Policy();
+            policy.UpdateParameters(multOptimizer.xStar);
+
+            double[] result = new double[NUM_OF_THRESHOLDS + 5]; // 1 for wtp, 1 for fStar, 1 for a0, 1 for b 1 for c0
+            foreach (double wtp in wtps)
+            {
+                result[0] = wtp;
+                result[1] = multOptimizer.a0Star;
+                result[2] = multOptimizer.bStar;
+                result[3] = multOptimizer.c0Star;
+                result[4] = multOptimizer.fStar;                
+                double[] t = policy.FindTauAndTheta(wtp);
+                result[5] = t[0];
+                result[6] = t[1];
+                Summary.Add(result);
+            }
+        }
+
+        public double[,] GetSummary()
+        {
+            double[,] results = new double[Summary.Count, NUM_OF_THRESHOLDS + 5];
+
+            for (int i = 0; i < Summary.Count; i++)
+                for (int j = 0; j < NUM_OF_THRESHOLDS + 5; j++)
+                    results[i, j] = Summary[i][j];
+
+            return results;
+        }
+    }
+
+
+
     public class GonorrheaEpiModeller : SimModel
     {
-        const double PENALTY = 10e8;
+        const double PENALTY = 10e9;
         const double MAX_THRESHOLD = 0.25;
         private int _seed;
         private double _wtp = 0;
@@ -163,11 +465,12 @@ namespace APACElib
 
                 // build epidemic models                
                 List<SimModel> epiModels = new List<SimModel>();
-                foreach (double a in modelSets.OptmzSets.StepSize_GH_a0s)
-                    foreach (double c in modelSets.OptmzSets.DerivativeStep_cs)
-                        epiModels.Add(
-                            new GonorrheaEpiModeller(epiID++, excelInterface, modelSets, wtp)
-                            );
+                foreach (double a0 in modelSets.OptmzSets.StepSize_GH_a0s)
+                    foreach (double b in modelSets.OptmzSets.StepSize_GH_bs)
+                        foreach (double c0 in modelSets.OptmzSets.DerivativeStep_cs)
+                            epiModels.Add(
+                                new GonorrheaEpiModeller(epiID++, excelInterface, modelSets, wtp)
+                                );
 
                 // create a stochastic approximation object
                 ParallelStochasticApproximation multOptimizer = new ParallelStochasticApproximation(
@@ -194,24 +497,24 @@ namespace APACElib
                 x0 = multOptimizer.xStar;
 
                 // store results
-                double[] result = new double[NUM_OF_VARIABLES + 4]; // 1 for wtp, 1 for fStar, 1 for a0, 1 for c0
+                double[] result = new double[NUM_OF_VARIABLES + 5]; // 1 for wtp, 1 for fStar, 1 for a0, 1 for b 1 for c0
                 result[0] = wtp;
                 result[1] = multOptimizer.a0Star;
-                result[1] = multOptimizer.bStar;
-                result[1] = multOptimizer.cStar;
-                result[2] = multOptimizer.fStar;
-                result[3] = multOptimizer.xStar[0];
-                result[4] = multOptimizer.xStar[1];
+                result[2] = multOptimizer.bStar;
+                result[3] = multOptimizer.c0Star;
+                result[4] = multOptimizer.fStar;
+                result[5] = multOptimizer.xStar[0];
+                result[6] = multOptimizer.xStar[1];
                 Summary.Add(result);
             }
         }
 
         public double[,] GetSummary()
         {
-            double[,] results = new double[Summary.Count, NUM_OF_VARIABLES + 4];
+            double[,] results = new double[Summary.Count, NUM_OF_VARIABLES + 5];
 
             for (int i = 0; i < Summary.Count; i++)
-                for (int j = 0; j < NUM_OF_VARIABLES + 4; j++)
+                for (int j = 0; j < NUM_OF_VARIABLES + 5; j++)
                     results[i, j] = Summary[i][j];
 
             return results;
