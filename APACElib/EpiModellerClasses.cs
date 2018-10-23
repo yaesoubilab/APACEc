@@ -97,16 +97,20 @@ namespace APACElib
             }
         }
 
+        // assign initial seed to each epidemic
+        public void AssignInitialSeeds()
+        {
+            SeedGenerator.ResampleSeeds(_rng, Epidemics.Count);
+            foreach (Epidemic epi in Epidemics)
+                epi.InitialSeed = SeedGenerator.FindRNDSeed(epi.ID);
+        }
+
         // simulate epidemics (epidemics must have been built)
         public void SimulateEpidemics(bool ifResampleSeeds = true)
         {
             // assign the initial seed of each epidemic
             if (ifResampleSeeds)
-            {
-                SeedGenerator.ResampleSeeds(_rng, Epidemics.Count);
-                foreach (Epidemic epi in Epidemics)
-                    epi.InitialSeed = SeedGenerator.FindRNDSeed(epi.ID);
-            }
+                AssignInitialSeeds();
 
             // reset simulation summary
             SimSummary.Reset();
