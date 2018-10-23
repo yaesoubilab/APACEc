@@ -16,64 +16,72 @@ namespace APACElib
         /// change in prevalence threshold:  theta = y1*power(wtp, y2)
         /// </summary>
 
-        const double PENALTY = 10e9;
         const double MAX_THRESHOLD = 0.5;
 
+        double _penalty;
         public Vector<double> TauParams { get; private set; }   // prevalence threshold
         public Vector<double> ThetaParams { get; private set; } // change in prevalence threshold
 
-        public Policy()
+        public Policy(double penalty)
         {
+            _penalty = penalty;
             TauParams = Vector<double>.Build.Dense(2);
             ThetaParams = Vector<double>.Build.Dense(2);
         }
 
-        public double UpdateParameters(Vector<double> paramValues)
+        public double UpdateParameters(Vector<double> paramValues, double wtp)
         {
             return UpdateParameters(
                 tauParams: paramValues.SubVector(0, 2),
-                thetaParams: paramValues.SubVector(2, 2)
+                thetaParams: paramValues.SubVector(2, 2),
+                wtp: wtp
                 );
         }
-        public double UpdateParameters(Vector<double> tauParams, Vector<double> thetaParams)
+        public double UpdateParameters(Vector<double> tauParams, Vector<double> thetaParams, double wtp)
         {
             double penalty = 0;
 
+            TauParams = tauParams.Clone();
+            ThetaParams = thetaParams.Clone();
+
             if (tauParams[0] < 0)
             {
-                penalty += PENALTY * Math.Pow(tauParams[0], 2);
-                tauParams[0] = 0;
+                penalty += _penalty * Math.Pow(tauParams[0], 2);
+                TauParams[0] = 0;
             }
             else if (tauParams[0] > MAX_THRESHOLD)
             {
-                penalty += PENALTY * Math.Pow(tauParams[0] - MAX_THRESHOLD, 2);
-                tauParams[0] = MAX_THRESHOLD;
+                penalty += _penalty * Math.Pow(tauParams[0] - MAX_THRESHOLD, 2);
+                TauParams[0] = MAX_THRESHOLD;
             }
 
             if (thetaParams[0] < 0)
             {
-                penalty += PENALTY * Math.Pow(thetaParams[0], 2);
-                thetaParams[0] = 0;
+                penalty += _penalty * Math.Pow(thetaParams[0], 2);
+                ThetaParams[0] = 0;
             }
             else if (thetaParams[0] > tauParams[0])
             {
-                penalty += PENALTY * Math.Pow(thetaParams[0] - tauParams[0], 2);
-                thetaParams[0] = tauParams[0];
+                penalty += _penalty * Math.Pow(thetaParams[0] - tauParams[0], 2);
+                ThetaParams[0] = TauParams[0];
             }
 
             if (tauParams[1]>0)
             {
-                penalty += PENALTY * Math.Pow(tauParams[0], 2);
-                tauParams[1] = 0;
+                penalty += _penalty * Math.Pow(tauParams[1], 2);
+                TauParams[1] = 0;
             }
             if (thetaParams[1] > 0)
             {
-                penalty += PENALTY * Math.Pow(thetaParams[0], 2);
-                thetaParams[1] = 0;
+                penalty += _penalty * Math.Pow(thetaParams[1], 2);
+                ThetaParams[1] = 0;
             }
 
-            TauParams = tauParams.Clone();
-            ThetaParams = thetaParams.Clone();
+            double tau = GetPrevThreshold(wtp);
+            double theta = GetDeltaPrevThreshold(wtp);
+            if (tau < theta)
+                penalty += _penalty * Math.Pow(theta - tau, 2);
+            
 
             return penalty;
         }
@@ -112,7 +120,7 @@ namespace APACElib
 
         public GonorrheaEpiModellerV2(int id, ExcelInterface excelInterface, ModelSettings modelSets, double[] wtps)
         {
-            Policy = new Policy();
+            Policy = new Policy(modelSets.OptmzSets.Penalty);
 
             _seed = id; // rnd seed used to reset the seed of this epidemic modeller        
             _rng = new RandomVariateLib.RNG(_seed);
@@ -156,7 +164,7 @@ namespace APACElib
             foreach (Epidemic epi in EpiModeller_Df.Epidemics)
             {
                 // update the policy parameters
-                _fValues[i] += Policy.UpdateParameters(xValues[i]);
+                _fValues[i] += Policy.UpdateParameters(xValues[i], wtp);
 
                 // find thresholds
                 double[] t = Policy.FindTauAndTheta(wtp);                
@@ -252,7 +260,7 @@ namespace APACElib
                 maxItrs: modelSets.OptmzSets.NOfItrs,
                 nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
                 x0: x0,
-                ifParallel: true,
+                ifParallel: false,
                 modelProvidesDerivatives: true
                 );
 
@@ -261,8 +269,8 @@ namespace APACElib
                 multOptimizer.ExportResultsToCSV("");
 
             // store results
-            Policy policy = new Policy();
-            policy.UpdateParameters(multOptimizer.xStar);
+            Policy policy = new Policy(modelSets.OptmzSets.Penalty);
+            policy.UpdateParameters(multOptimizer.xStar, 0);
             
             foreach (double wtp in wtps)
             {

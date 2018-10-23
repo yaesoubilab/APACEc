@@ -312,6 +312,7 @@ namespace APACElib
         public double WTP_min { get; }
         public double WTP_max { get; }
         public double WTP_step { get; }
+        public double Penalty { get; }
 
         public OptimizationSettings(ref ExcelInterface excelInterface)
         {            
@@ -334,6 +335,8 @@ namespace APACElib
             WTP_min = (double) excelInterface.GetCellValue("General Settings", "wtpMin");
             WTP_max = (double) excelInterface.GetCellValue("General Settings", "wtpMax");
             WTP_step = (double) excelInterface.GetCellValue("General Settings", "wtpStep");
+
+            Penalty = (double)excelInterface.GetCellValue("General Settings", "penalty");
         }
     }
 }
