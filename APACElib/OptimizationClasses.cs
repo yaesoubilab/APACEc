@@ -46,7 +46,6 @@ namespace APACElib
                 penalty += Penalty * Math.Pow(var - max, 2);
                 var = max;
             }
-
             return penalty;
         }
         protected double EnsureLessThan (ref double var, double upperBound)
@@ -57,7 +56,16 @@ namespace APACElib
                 penalty += Penalty * Math.Pow(var - upperBound, 2);
                 var = upperBound;
             }
-
+            return penalty;
+        }
+        protected double EnsureGreaterThan(ref double var, double lowerBound)
+        {
+            double penalty = 0;
+            if (var < lowerBound)
+            {
+                penalty += Penalty * Math.Pow(var - lowerBound, 2);
+                var = lowerBound;
+            }
             return penalty;
         }
     }
@@ -110,41 +118,38 @@ namespace APACElib
     public class PolicyPower : Policy
     {
         /// <summary>
-        /// prevalence threshold:            tau = x1*power(wtp, x2)
-        /// change in prevalence threshold:  theta = x3*power(wtp, x4)
+        /// prevalence threshold:            tau(wtp)   = tau0*power(wtp, tau1)
+        /// multiplier:                      rho(wtp)   = rho0 + rho1 * wtp   
+        /// change in prevalence threshold:  theta(wtp) = tau * rho(wtp)
         /// </summary>
 
         const double MAX_THRESHOLD = 2;
         private double[] _tauParams;
-        private double[] _thetaParams;
+        private double[] _rhoParams;
         public double[] TauParams { get => _tauParams; }   // prevalence threshold
-        public double[] ThetaParams { get => _thetaParams; } // change in prevalence threshold
+        public double[] RhoParams { get => _rhoParams; } // multiplier to get the threshold for change in prevalence
 
         public PolicyPower(double penalty) : base(penalty)
         {
             _nOfParams = 4;
-            _defaultParamValues = Vector<double>.Build.Dense(new double[4] { 0.05, 0, 0.05, 0 });
+            _defaultParamValues = Vector<double>.Build.Dense(new double[4] { 0.05, 0, 1, 0 });
             _tauParams = new double[2];
-            _thetaParams = new double[2];
+            _rhoParams = new double[2];
         }
 
         public override double UpdateParameters(Vector<double> paramValues, double wtp, bool checkFeasibility = true)
         {
             _accumPenalty = 0;
             _tauParams = paramValues.SubVector(0, 2).ToArray();
-            _thetaParams = paramValues.SubVector(2, 2).ToArray();
+            _rhoParams = paramValues.SubVector(2, 2).ToArray();
 
             if (checkFeasibility)
             {
                 _accumPenalty += base.EnsureFeasibility(ref _tauParams[0], 0, MAX_THRESHOLD);
                 _accumPenalty += base.EnsureFeasibility(ref _tauParams[1], double.MinValue, 0);
-                _accumPenalty += base.EnsureFeasibility(ref _thetaParams[0], 0, MAX_THRESHOLD);
-                _accumPenalty += base.EnsureFeasibility(ref _thetaParams[1], double.MinValue, 0);               
-
-                double tau = GetTau(wtp);
-                double theta = GetTheta(wtp);
-                if (tau < theta)
-                    _accumPenalty += Penalty * Math.Pow(theta - tau, 2);
+                _accumPenalty += base.EnsureFeasibility(ref _rhoParams[0], 0, 1);
+                _accumPenalty += base.EnsureLessThan(ref _rhoParams[1], (1- _rhoParams[0])/wtp);
+                _accumPenalty += base.EnsureGreaterThan(ref _rhoParams[1], -_rhoParams[0] / wtp);
             }
 
             return _accumPenalty;            
@@ -154,9 +159,13 @@ namespace APACElib
         {
             return _tauParams[0] * Math.Pow(wtp, _tauParams[1]);
         }
+        private double GetRho(double wtp)
+        {
+            return Math.Min(Math.Max(_rhoParams[0] + _rhoParams[1] * wtp, 0), 1);
+        }
         public override double GetTheta(double wtp)
         {
-            return _thetaParams[0] * Math.Pow(wtp, _thetaParams[1]);
+            return GetRho(wtp) * GetTau(wtp);
         }
     }
 
