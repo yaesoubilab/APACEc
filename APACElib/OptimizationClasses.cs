@@ -14,7 +14,7 @@ namespace APACElib
         protected int _nOfParams = 0;
         protected Vector<double> _defaultParamValues;
         protected double Penalty { get; }
-        protected double _penalty;
+        protected double _accumPenalty;
 
         public int NOfPolicyParameters { get => _nOfParams; }
         public Vector<double> DefaultParamValues { get => _defaultParamValues; }
@@ -38,7 +38,7 @@ namespace APACElib
             double penalty = 0;
             if (var < min)
             {
-                penalty += Penalty * Math.Pow(var - min, 2);
+                penalty += Penalty * Math.Pow(min - var, 2);
                 var = min;
             }
             else if (var > max)
@@ -84,17 +84,17 @@ namespace APACElib
 
         public override double UpdateParameters(Vector<double> paramValues, double wtp, bool checkFeasibility = true)
         {
-            _penalty = 0;
+            _accumPenalty = 0;
             _tau = paramValues[0];
             _theta = paramValues[1];
 
             if (checkFeasibility)
             {
-                _penalty += base.EnsureFeasibility(ref _tau, 0, MAX_THRESHOLD);
-                _penalty += base.EnsureFeasibility(ref _theta, 0, MAX_THRESHOLD);
-                _penalty += base.EnsureLessThan(ref _theta, _tau);
+                _accumPenalty += base.EnsureFeasibility(ref _tau, 0, MAX_THRESHOLD);
+                _accumPenalty += base.EnsureFeasibility(ref _theta, 0, MAX_THRESHOLD);
+                _accumPenalty += base.EnsureLessThan(ref _theta, _tau);
             }
-            return _penalty;
+            return _accumPenalty;
         }
 
         public override double GetTau(double wtp)
@@ -114,7 +114,7 @@ namespace APACElib
         /// change in prevalence threshold:  theta = x3*power(wtp, x4)
         /// </summary>
 
-        const double MAX_THRESHOLD = 1;
+        const double MAX_THRESHOLD = 2;
         private double[] _tauParams;
         private double[] _thetaParams;
         public double[] TauParams { get => _tauParams; }   // prevalence threshold
@@ -130,24 +130,24 @@ namespace APACElib
 
         public override double UpdateParameters(Vector<double> paramValues, double wtp, bool checkFeasibility = true)
         {
-            _penalty = 0;
+            _accumPenalty = 0;
             _tauParams = paramValues.SubVector(0, 2).ToArray();
             _thetaParams = paramValues.SubVector(2, 2).ToArray();
 
             if (checkFeasibility)
             {
-                _penalty += base.EnsureFeasibility(ref _tauParams[0], 0, MAX_THRESHOLD);
-                _penalty += base.EnsureFeasibility(ref _tauParams[1], double.MinValue, 0);
-                _penalty += base.EnsureFeasibility(ref _thetaParams[0], 0, MAX_THRESHOLD);
-                _penalty += base.EnsureFeasibility(ref _thetaParams[1], double.MinValue, 0);               
+                _accumPenalty += base.EnsureFeasibility(ref _tauParams[0], 0, MAX_THRESHOLD);
+                _accumPenalty += base.EnsureFeasibility(ref _tauParams[1], double.MinValue, 0);
+                _accumPenalty += base.EnsureFeasibility(ref _thetaParams[0], 0, MAX_THRESHOLD);
+                _accumPenalty += base.EnsureFeasibility(ref _thetaParams[1], double.MinValue, 0);               
 
                 double tau = GetTau(wtp);
                 double theta = GetTheta(wtp);
                 if (tau < theta)
-                    _penalty += Penalty * Math.Pow(theta - tau, 2);
+                    _accumPenalty += Penalty * Math.Pow(theta - tau, 2);
             }
 
-            return _penalty;            
+            return _accumPenalty;            
         }        
 
         public override double GetTau(double wtp)
@@ -222,7 +222,7 @@ namespace APACElib
             foreach (Epidemic epi in EpiModeller_Df.Epidemics)
             {
                 // update the policy parameters
-                _fValues[i] += Policy.UpdateParameters(xValues[i], wtp, (i!=0));
+                _fValues[i] += (wtp + 1) * Policy.UpdateParameters(xValues[i], wtp, (i!=0));
 
                 // find thresholds
                 double[] t = Policy.GetTauAndTheta(wtp);                
