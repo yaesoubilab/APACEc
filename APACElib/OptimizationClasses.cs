@@ -169,13 +169,13 @@ namespace APACElib
         private double[] _fValues;
         private Vector<double> _DfValues;
 
-        public PolicyPoint Policy { get; private set; }
+        public PolicyPower Policy { get; private set; }
         public EpidemicModeller EpiModeller_f { get; private set; } // epi modeller to estimate f
         public EpidemicModeller EpiModeller_Df { get; private set; } // epi modeller to estimate derivatives of f
 
         public GonorrheaEpiModellerV2(int id, ExcelInterface excelInterface, ModelSettings modelSets, double[] wtps)
         {
-            Policy = new PolicyPoint(modelSets.OptmzSets.Penalty);
+            Policy = new PolicyPower(modelSets.OptmzSets.Penalty);
 
             _seed = id; // rnd seed used to reset the seed of this epidemic modeller        
             _rng = new RandomVariateLib.RNG(_seed);
