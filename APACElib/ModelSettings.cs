@@ -303,7 +303,8 @@ namespace APACElib
     {
         public int NOfItrs { get; }
         public int NOfLastItrsToAverage { get; }
-        public double[] X0 { get; }        
+        public double[] X0 { get; } 
+        public double[] XScale { get; }
         public bool IfExportResults { get; }
 
         public double[] StepSize_GH_a0s { get; }
@@ -321,6 +322,9 @@ namespace APACElib
 
             string strX0 = excelInterface.GetCellValue("General Settings", "initialX").ToString();
             X0 =Array.ConvertAll(strX0.Split(','), Convert.ToDouble);
+
+            string strXScale = excelInterface.GetCellValue("General Settings", "xScale").ToString();
+            XScale = Array.ConvertAll(strXScale.Split(','), Convert.ToDouble);            
 
             IfExportResults = SupportFunctions.ConvertYesNoToBool(excelInterface.GetCellValue("General Settings", "ifExportOptResults").ToString());
 

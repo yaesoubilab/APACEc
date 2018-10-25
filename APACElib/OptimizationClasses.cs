@@ -73,8 +73,8 @@ namespace APACElib
     public class PolicyPoint : Policy
     {
         /// <summary>
-        /// prevalence threshold:            tau = x1 
-        /// change in prevalence threshold:  theta = x2
+        /// prevalence threshold:            tau 
+        /// change in prevalence threshold:  theta 
         /// </summary>
         /// 
 
@@ -199,7 +199,7 @@ namespace APACElib
         }
 
         /// <param name="x"> x[0:1]: threshold to switch, x[2:3]: change in prevalence to switch  </param>
-        public override void Sample_f_and_Df(Vector<double> x, double derivative_step, bool ifResampleSeeds = true)
+        public override void Sample_f_and_Df(Vector<double> x, double derivative_step, Vector<double> xScale, bool ifResampleSeeds = true)
         {
             int i = 0;
             double wtp = 0;
@@ -218,8 +218,8 @@ namespace APACElib
             xValues.Add(x);
             for (i = 0; i < Policy.NOfPolicyParameters; i++)
             {
-                xValues.Add(x - epsilonMatrix.Row(i));
-                xValues.Add(x + epsilonMatrix.Row(i));
+                xValues.Add(x - epsilonMatrix.Row(i) * xScale[i]);
+                xValues.Add(x + epsilonMatrix.Row(i) * xScale[i]);
             }
 
             // sample wtp
@@ -244,9 +244,7 @@ namespace APACElib
             // seeds
             EpiModeller_Df.AssignInitialSeeds();
             foreach (Epidemic epi in EpiModeller_Df.Epidemics)
-            {
                 epi.InitialSeed = EpiModeller_Df.Epidemics[0].InitialSeed;
-            }
 
             // simulate
             EpiModeller_Df.SimulateEpidemics(ifResampleSeeds: false);
@@ -259,7 +257,7 @@ namespace APACElib
             // calculate derivatives
             for (i = 0; i < x.Count; i++)
             {
-                _DfValues[i] = (_fValues[2 * i + 3] - _fValues[2 * i + 2]) / (2 * derivative_step);
+                _DfValues[i] = (_fValues[2 * i + 3] - _fValues[2 * i + 2]) / (2 * derivative_step * xScale[i]);
             }
         }
 
@@ -294,6 +292,10 @@ namespace APACElib
             double[] arrX0 = modelSets.OptmzSets.X0;
             Vector<double> x0 = Vector<double>.Build.DenseOfArray(arrX0);
 
+            // scale of policy parameters
+            double[] arrXScale = modelSets.OptmzSets.XScale;
+            Vector<double> xScale = Vector<double>.Build.DenseOfArray(arrXScale);
+
             // find wtp
             List<double> wtps = new List<double>();
             for (double wtp = modelSets.OptmzSets.WTP_min;
@@ -326,7 +328,8 @@ namespace APACElib
                 maxItrs: modelSets.OptmzSets.NOfItrs,
                 nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
                 x0: x0,
-                ifParallel: true,
+                xScale: xScale,
+                ifParallel: false,
                 modelProvidesDerivatives: true
                 );
 
