@@ -115,6 +115,60 @@ namespace APACElib
         }        
     }
 
+    public class PolicyExponential : Policy
+    {
+        /// <summary>
+        /// prevalence threshold:            tau(wtp)   = tau0*exp(tau1 * wtp)
+        /// multiplier:                      rho(wtp)   = rho0 + rho1 * wtp   
+        /// change in prevalence threshold:  theta(wtp) = tau * rho(wtp)
+        /// </summary>
+
+        const double MAX_THRESHOLD = 1;
+        private double[] _tauParams;
+        private double[] _rhoParams;
+        public double[] TauParams { get => _tauParams; } // prevalence threshold
+        public double[] RhoParams { get => _rhoParams; } // multiplier to get the threshold for change in prevalence
+
+        public PolicyExponential(double penalty) : base(penalty)
+        {
+            _nOfParams = 4;
+            _defaultParamValues = Vector<double>.Build.Dense(new double[4] { 0.05, 0, 1, 0 });
+            _tauParams = new double[2];
+            _rhoParams = new double[2];
+        }
+
+        public override double UpdateParameters(Vector<double> paramValues, double wtp, bool checkFeasibility = true)
+        {
+            _accumPenalty = 0;
+            _tauParams = paramValues.SubVector(0, 2).ToArray();
+            _rhoParams = paramValues.SubVector(2, 2).ToArray();
+
+            if (checkFeasibility)
+            {
+                _accumPenalty += base.EnsureFeasibility(ref _tauParams[0], 0, MAX_THRESHOLD);
+                _accumPenalty += base.EnsureFeasibility(ref _tauParams[1], double.MinValue, 0);
+                _accumPenalty += base.EnsureFeasibility(ref _rhoParams[0], 0, 1);
+                _accumPenalty += base.EnsureLessThan(ref _rhoParams[1], (1 - _rhoParams[0]) / wtp);
+                _accumPenalty += base.EnsureGreaterThan(ref _rhoParams[1], -_rhoParams[0] / wtp);
+            }
+
+            return _accumPenalty;
+        }
+
+        public override double GetTau(double wtp)
+        {
+            return _tauParams[0] * Math.Exp(wtp * _tauParams[1]);
+        }
+        private double GetRho(double wtp)
+        {
+            return Math.Min(Math.Max(_rhoParams[0] + _rhoParams[1] * wtp, 0), 1);
+        }
+        public override double GetTheta(double wtp)
+        {
+            return GetRho(wtp) * GetTau(wtp);
+        }
+    }
+
     public class PolicyPower : Policy
     {
         /// <summary>
@@ -157,7 +211,7 @@ namespace APACElib
 
         public override double GetTau(double wtp)
         {
-            return _tauParams[0] * Math.Pow(wtp, _tauParams[1]);
+            return Math.Min(_tauParams[0] * Math.Pow(wtp, _tauParams[1]), 1);
         }
         private double GetRho(double wtp)
         {
@@ -329,7 +383,7 @@ namespace APACElib
                 nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
                 x0: x0,
                 xScale: xScale,
-                ifParallel: false,
+                ifParallel: true,
                 modelProvidesDerivatives: true
                 );
 
