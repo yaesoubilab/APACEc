@@ -8,7 +8,6 @@ using MathNet.Numerics.LinearAlgebra;
 
 namespace APACElib
 {
-
     public abstract class Policy
     {
         protected int _nOfParams = 0;
@@ -232,13 +231,13 @@ namespace APACElib
         private double[] _fValues;
         private Vector<double> _DfValues;
 
-        public PolicyExponential Policy { get; private set; }
+        public Policy Policy { get; private set; }
         public EpidemicModeller EpiModeller_f { get; private set; } // epi modeller to estimate f
         public EpidemicModeller EpiModeller_Df { get; private set; } // epi modeller to estimate derivatives of f
 
-        public GonorrheaEpiModellerV2(int id, ExcelInterface excelInterface, ModelSettings modelSets, double[] wtps)
+        public GonorrheaEpiModellerV2(int id, ExcelInterface excelInterface, ModelSettings modelSets, double[] wtps, Policy policy)
         {
-            Policy = new PolicyExponential(modelSets.OptmzSets.Penalty);
+            Policy = policy;
 
             _seed = id; // rnd seed used to reset the seed of this epidemic modeller        
             _rng = new RandomVariateLib.RNG(_seed);
@@ -337,12 +336,25 @@ namespace APACElib
         }
     }
 
-    public class OptimizeGonohrreaV2
-    {        
-        public const int NUM_OF_THRESHOLDS = 2;
+    public abstract class OptimizeGonohrrea
+    {
+        protected int NUM_OF_THRESHOLDS { get; } = 2;
+        public List<double[]> Summary { get; private set; } = new List<double[]>();
 
-        public List<double[]> Summary = new List<double[]>();
+        public double[,] GetSummary()
+        {
+            double[,] results = new double[Summary.Count, NUM_OF_THRESHOLDS + 5];
 
+            for (int i = 0; i < Summary.Count; i++)
+                for (int j = 0; j < NUM_OF_THRESHOLDS + 5; j++)
+                    results[i, j] = Summary[i][j];
+
+            return results;
+        }
+    }
+
+    public class OptimizeGonohrreaRandomizedWTP : OptimizeGonohrrea
+    {                
         public void Run(ExcelInterface excelInterface, ModelSettings modelSets)
         {
 
@@ -370,7 +382,12 @@ namespace APACElib
                 foreach (double b in modelSets.OptmzSets.StepSize_GH_bs)
                     foreach (double c0 in modelSets.OptmzSets.DerivativeStep_cs)
                         epiModels.Add(
-                            new GonorrheaEpiModellerV2(epiID++, excelInterface, modelSets, wtps.ToArray())
+                            new GonorrheaEpiModellerV2(
+                                epiID++, 
+                                excelInterface, 
+                                modelSets, 
+                                wtps.ToArray(), 
+                                new PolicyExponential(modelSets.OptmzSets.Penalty))
                             );
 
             // create a stochastic approximation object
@@ -387,7 +404,7 @@ namespace APACElib
                 nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
                 x0: x0,
                 xScale: xScale,
-                ifParallel: false,
+                ifParallel: true,
                 modelProvidesDerivatives: true
                 );
 
@@ -414,164 +431,20 @@ namespace APACElib
                 Summary.Add(result);
             }
         }
-
-        public double[,] GetSummary()
-        {
-            double[,] results = new double[Summary.Count, NUM_OF_THRESHOLDS + 5];
-
-            for (int i = 0; i < Summary.Count; i++)
-                for (int j = 0; j < NUM_OF_THRESHOLDS + 5; j++)
-                    results[i, j] = Summary[i][j];
-
-            return results;
-        }
     }
 
-    public class GonorrheaEpiModeller : SimModel
+    public class OptimizeGonohrreaFixedWTPs : OptimizeGonohrrea
     {
-        const double PENALTY = 10e9;
-        const double MAX_THRESHOLD = 0.25;
-        private int _seed;
-        private double _wtp = 0;
-
-        public EpidemicModeller EpiModeller_f { get; private set; } // epi modeller to estimate f
-        public EpidemicModeller EpiModeller_Df { get; private set; } // epi modeller to estimate derivatives of f
-
-        public GonorrheaEpiModeller(int id, ExcelInterface excelInterface, ModelSettings modelSets, double wtp)
-        {
-            _seed = id; // rnd seed used to reset the seed of this epidemic modeller
-
-            // epi modeller with 1 epidemic to calcualte f(x)
-            EpiModeller_f = new EpidemicModeller(id, excelInterface, modelSets, numOfEpis: 1);
-            EpiModeller_f.BuildEpidemics();
-
-            // epi modeller to calcualte derivatives
-            EpiModeller_Df = new EpidemicModeller(id, excelInterface, modelSets, 
-                numOfEpis: (int)Math.Pow(2, OptimizeGonohrrea.NUM_OF_VARIABLES));
-            EpiModeller_Df.BuildEpidemics();
-
-            _wtp = wtp;
-        }
-
-        /// <param name="x"> x[0]: threshold to switch, x[1]: change in prevalence to switch  </param>
-        public override double GetAReplication(Vector<double> x, bool ifResampleSeeds)
-        {
-            double objValue = 0;
-
-            // make sure variables are in feasible range; if not, add the penalty to the objective function
-            objValue += MakeXFeasible(x);
-
-            // update the thresholds in the epidemic modeller
-            foreach (Epidemic epi in EpiModeller_f.Epidemics)
-            {
-                for (int conditionIndx = 0; conditionIndx < 6; conditionIndx ++)
-                    ((Condition_OnFeatures)epi.DecisionMaker.Conditions[conditionIndx]).UpdateThresholds(x.ToArray());
-            }
-
-            // simulate
-            EpiModeller_f.SimulateEpidemics(ifResampleSeeds);
-
-            // calcualte net monetary benefit
-            objValue += _wtp* EpiModeller_f.SimSummary.DALYStat.Mean + EpiModeller_f.SimSummary.CostStat.Mean;
-                       
-            return objValue;
-        }
-
-        /// <param name="x"> x[0]: threshold to switch, x[1]: change in prevalence to switch  </param>
-        public override Vector<double> GetDerivativeEstimate(Vector<double> x, double derivative_step)
-        {
-            // estimate the derivative of f at x
-            Vector<double> Df = Vector<double>.Build.Dense(x.Count());
-
-            // build epsilon matrix
-            Matrix<double> epsilonMatrix = Matrix<double>.Build.DenseDiagonal(x.Count(), derivative_step);
-
-            // find x-values to calculate Df
-            List<Vector<double>> xValues = new List<Vector<double>>();
-            xValues.Add(x - epsilonMatrix.Row(0));
-            xValues.Add(x + epsilonMatrix.Row(0));
-            xValues.Add(x - epsilonMatrix.Row(1));
-            xValues.Add(x + epsilonMatrix.Row(1));
-
-            // penalize f when x is outside the feasible readon
-            double[] fValues = new double[xValues.Count];
-            int i = 0;
-            for (i = 0; i < xValues.Count; i++)
-            {
-                fValues[i] = MakeXFeasible(xValues[i]);
-            }
-
-            // update the thresholds in the epidemic modeller      
-            i = 0;
-            foreach (Epidemic epi in EpiModeller_Df.Epidemics)
-            {
-                epi.InitialSeed = EpiModeller_f.Epidemics[0].InitialSeed;
-                for (int conditionIndx = 0; conditionIndx < 6; conditionIndx++)
-                    ((Condition_OnFeatures)epi.DecisionMaker.Conditions[conditionIndx])
-                        .UpdateThresholds(xValues[i].ToArray());
-                i++;
-            }
-
-            // simulate
-            EpiModeller_Df.SimulateEpidemics(ifResampleSeeds:false);
-        
-            // update f values
-            for (i = 0; i < 4; i++)
-                fValues[i] += _wtp * EpiModeller_Df.Epidemics[i].EpidemicCostHealth.TotalDiscountedDALY
-                    + EpiModeller_Df.Epidemics[i].EpidemicCostHealth.TotalDisountedCost;
-
-            Df[0] = (fValues[1] - fValues[0]) / (2 * derivative_step);
-            Df[1] = (fValues[3] - fValues[2]) / (2 * derivative_step);
-
-            return Df;
-        }
-
-        private double MakeXFeasible(Vector<double> x)
-        {
-            double penalty = 0;
-            // make sure variables are in feasible range; if not, add the penalty to the objective function
-            for (int i = 0; i < x.Count; i++)
-            {
-                if (x[i] < 0)
-                {
-                    penalty += _wtp*PENALTY * Math.Pow(x[i], 2);
-                    x[i] = 0;
-                }
-                else if (x[i] > MAX_THRESHOLD)
-                {
-                    penalty += _wtp*PENALTY * Math.Pow(x[i] - MAX_THRESHOLD, 2);
-                    x[i] = MAX_THRESHOLD;
-                }
-            }
-            // change in prevalence should be smaller than the prevalence threshold
-            if (x[0] < x[1])
-            {
-                penalty += _wtp*PENALTY * Math.Pow(x[1] - x[0], 2);
-                x[1] = x[0];
-            }
-
-            return penalty;
-        }
-
-
-        public override void ResetSeedAtItr0()
-        {
-            EpiModeller_f.ResetRNG(seed: _seed);
-        }
-    }
-
-    public class OptimizeGonohrrea
-    {
-        public const int NUM_OF_VARIABLES = 2;
-
-        public List<double[]> Summary = new List<double[]>();
 
         public void Run(ExcelInterface excelInterface, ModelSettings modelSets)
-        {          
-
+        { 
             // initial thresholds for the initial WTP 
             double[] arrX0 = modelSets.OptmzSets.X0;
             Vector<double> x0 = Vector<double>.Build.DenseOfArray(arrX0);
+
+            // scale of policy parameters
+            double[] arrXScale = modelSets.OptmzSets.XScale;
+            Vector<double> xScale = Vector<double>.Build.DenseOfArray(arrXScale);
 
             // for all wtp values
             int epiID = 0;
@@ -586,7 +459,12 @@ namespace APACElib
                     foreach (double b in modelSets.OptmzSets.StepSize_GH_bs)
                         foreach (double c0 in modelSets.OptmzSets.DerivativeStep_cs)
                             epiModels.Add(
-                                new GonorrheaEpiModeller(epiID++, excelInterface, modelSets, wtp)
+                                new GonorrheaEpiModellerV2(
+                                    epiID++, 
+                                    excelInterface, 
+                                    modelSets, 
+                                    new double[1] { wtp },
+                                    new PolicyPoint(modelSets.OptmzSets.Penalty))
                                 );
 
                 // create a stochastic approximation object
@@ -602,6 +480,7 @@ namespace APACElib
                     maxItrs: modelSets.OptmzSets.NOfItrs,
                     nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
                     x0: x0,
+                    xScale: xScale,
                     ifParallel: true,
                     modelProvidesDerivatives: true
                     );
@@ -614,7 +493,7 @@ namespace APACElib
                 x0 = multOptimizer.xStar;
 
                 // store results
-                double[] result = new double[NUM_OF_VARIABLES + 5]; // 1 for wtp, 1 for fStar, 1 for a0, 1 for b 1 for c0
+                double[] result = new double[NUM_OF_THRESHOLDS + 5]; // 1 for wtp, 1 for fStar, 1 for a0, 1 for b 1 for c0
                 result[0] = wtp;
                 result[1] = multOptimizer.a0Star;
                 result[2] = multOptimizer.bStar;
@@ -625,17 +504,140 @@ namespace APACElib
                 Summary.Add(result);
             }
         }
-
-        public double[,] GetSummary()
-        {
-            double[,] results = new double[Summary.Count, NUM_OF_VARIABLES + 5];
-
-            for (int i = 0; i < Summary.Count; i++)
-                for (int j = 0; j < NUM_OF_VARIABLES + 5; j++)
-                    results[i, j] = Summary[i][j];
-
-            return results;
-        }
+        
     }
+
+    //public class GonorrheaEpiModeller : SimModel
+    //{
+    //    const double PENALTY = 10e9;
+    //    const double MAX_THRESHOLD = 0.25;
+    //    private int _seed;
+    //    private double _wtp = 0;
+
+    //    public EpidemicModeller EpiModeller_f { get; private set; } // epi modeller to estimate f
+    //    public EpidemicModeller EpiModeller_Df { get; private set; } // epi modeller to estimate derivatives of f
+
+    //    public GonorrheaEpiModeller(int id, ExcelInterface excelInterface, ModelSettings modelSets, double wtp)
+    //    {
+    //        _seed = id; // rnd seed used to reset the seed of this epidemic modeller
+
+    //        // epi modeller with 1 epidemic to calcualte f(x)
+    //        EpiModeller_f = new EpidemicModeller(id, excelInterface, modelSets, numOfEpis: 1);
+    //        EpiModeller_f.BuildEpidemics();
+
+    //        // epi modeller to calcualte derivatives
+    //        EpiModeller_Df = new EpidemicModeller(id, excelInterface, modelSets,
+    //            numOfEpis: (int)Math.Pow(2, OptimizeGonohrrea.NUM_OF_VARIABLES));
+    //        EpiModeller_Df.BuildEpidemics();
+
+    //        _wtp = wtp;
+    //    }
+
+    //    /// <param name="x"> x[0]: threshold to switch, x[1]: change in prevalence to switch  </param>
+    //    public override double GetAReplication(Vector<double> x, bool ifResampleSeeds)
+    //    {
+    //        double objValue = 0;
+
+    //        // make sure variables are in feasible range; if not, add the penalty to the objective function
+    //        objValue += MakeXFeasible(x);
+
+    //        // update the thresholds in the epidemic modeller
+    //        foreach (Epidemic epi in EpiModeller_f.Epidemics)
+    //        {
+    //            for (int conditionIndx = 0; conditionIndx < 6; conditionIndx++)
+    //                ((Condition_OnFeatures)epi.DecisionMaker.Conditions[conditionIndx]).UpdateThresholds(x.ToArray());
+    //        }
+
+    //        // simulate
+    //        EpiModeller_f.SimulateEpidemics(ifResampleSeeds);
+
+    //        // calcualte net monetary benefit
+    //        objValue += _wtp * EpiModeller_f.SimSummary.DALYStat.Mean + EpiModeller_f.SimSummary.CostStat.Mean;
+
+    //        return objValue;
+    //    }
+
+    //    /// <param name="x"> x[0]: threshold to switch, x[1]: change in prevalence to switch  </param>
+    //    public override Vector<double> GetDerivativeEstimate(Vector<double> x, double derivative_step)
+    //    {
+    //        // estimate the derivative of f at x
+    //        Vector<double> Df = Vector<double>.Build.Dense(x.Count());
+
+    //        // build epsilon matrix
+    //        Matrix<double> epsilonMatrix = Matrix<double>.Build.DenseDiagonal(x.Count(), derivative_step);
+
+    //        // find x-values to calculate Df
+    //        List<Vector<double>> xValues = new List<Vector<double>>();
+    //        xValues.Add(x - epsilonMatrix.Row(0));
+    //        xValues.Add(x + epsilonMatrix.Row(0));
+    //        xValues.Add(x - epsilonMatrix.Row(1));
+    //        xValues.Add(x + epsilonMatrix.Row(1));
+
+    //        // penalize f when x is outside the feasible readon
+    //        double[] fValues = new double[xValues.Count];
+    //        int i = 0;
+    //        for (i = 0; i < xValues.Count; i++)
+    //        {
+    //            fValues[i] = MakeXFeasible(xValues[i]);
+    //        }
+
+    //        // update the thresholds in the epidemic modeller      
+    //        i = 0;
+    //        foreach (Epidemic epi in EpiModeller_Df.Epidemics)
+    //        {
+    //            epi.InitialSeed = EpiModeller_f.Epidemics[0].InitialSeed;
+    //            for (int conditionIndx = 0; conditionIndx < 6; conditionIndx++)
+    //                ((Condition_OnFeatures)epi.DecisionMaker.Conditions[conditionIndx])
+    //                    .UpdateThresholds(xValues[i].ToArray());
+    //            i++;
+    //        }
+
+    //        // simulate
+    //        EpiModeller_Df.SimulateEpidemics(ifResampleSeeds: false);
+
+    //        // update f values
+    //        for (i = 0; i < 4; i++)
+    //            fValues[i] += _wtp * EpiModeller_Df.Epidemics[i].EpidemicCostHealth.TotalDiscountedDALY
+    //                + EpiModeller_Df.Epidemics[i].EpidemicCostHealth.TotalDisountedCost;
+
+    //        Df[0] = (fValues[1] - fValues[0]) / (2 * derivative_step);
+    //        Df[1] = (fValues[3] - fValues[2]) / (2 * derivative_step);
+
+    //        return Df;
+    //    }
+
+    //    private double MakeXFeasible(Vector<double> x)
+    //    {
+    //        double penalty = 0;
+    //        // make sure variables are in feasible range; if not, add the penalty to the objective function
+    //        for (int i = 0; i < x.Count; i++)
+    //        {
+    //            if (x[i] < 0)
+    //            {
+    //                penalty += _wtp * PENALTY * Math.Pow(x[i], 2);
+    //                x[i] = 0;
+    //            }
+    //            else if (x[i] > MAX_THRESHOLD)
+    //            {
+    //                penalty += _wtp * PENALTY * Math.Pow(x[i] - MAX_THRESHOLD, 2);
+    //                x[i] = MAX_THRESHOLD;
+    //            }
+    //        }
+    //        // change in prevalence should be smaller than the prevalence threshold
+    //        if (x[0] < x[1])
+    //        {
+    //            penalty += _wtp * PENALTY * Math.Pow(x[1] - x[0], 2);
+    //            x[1] = x[0];
+    //        }
+
+    //        return penalty;
+    //    }
+
+
+    //    public override void ResetSeedAtItr0()
+    //    {
+    //        EpiModeller_f.ResetRNG(seed: _seed);
+    //    }
+    //}
 
 }

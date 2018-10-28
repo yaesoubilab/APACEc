@@ -131,7 +131,8 @@ namespace APACElib
             if (_modelSettings.SimRNDSeedsSource == EnumSimRNDSeedsSource.Prespecified)
                 _modelSettings.SimRNDSeedsSource = EnumSimRNDSeedsSource.RandomUnweighted;
 
-            OptimizeGonohrreaV2 optimizer = new OptimizeGonohrreaV2();
+            //OptimizeGonohrreaRandomizedWTP optimizer = new OptimizeGonohrreaRandomizedWTP();
+            OptimizeGonohrreaFixedWTPs optimizer = new OptimizeGonohrreaFixedWTPs();
             optimizer.Run(_excelInterface, _modelSettings);
 
             ExcelIntface.ReportOptimization(optimizer.GetSummary());
