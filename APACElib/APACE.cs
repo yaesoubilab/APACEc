@@ -132,7 +132,7 @@ namespace APACElib
                 _modelSettings.SimRNDSeedsSource = EnumSimRNDSeedsSource.RandomUnweighted;
 
             //OptimizeGonohrreaRandomizedWTP optimizer = new OptimizeGonohrreaRandomizedWTP();
-            OptimizeGonohrreaFixedWTPs optimizer = new OptimizeGonohrreaFixedWTPs();
+            OptimizeGonohrreaRandomizedWTP optimizer = new OptimizeGonohrreaRandomizedWTP();
             optimizer.Run(_excelInterface, _modelSettings);
 
             ExcelIntface.ReportOptimization(optimizer.GetSummary());

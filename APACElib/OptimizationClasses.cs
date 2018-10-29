@@ -247,7 +247,8 @@ namespace APACElib
                 id, 
                 excelInterface, 
                 modelSets,
-                numOfEpis: 2 + 2* Policy.NOfPolicyParameters); // 1 for base, 1 for f, and 2*nPar for derivatives
+                numOfEpis: wtps.Count() * (2 + 2* Policy.NOfPolicyParameters) // 1 for base (f(x0)), 1 for f(x), and 2*nPar for derivatives
+                ); 
 
             EpiModeller_Df.BuildEpidemics();
 
@@ -258,8 +259,8 @@ namespace APACElib
         /// <param name="x"> x[0:1]: threshold to switch, x[2:3]: change in prevalence to switch  </param>
         public override void Sample_f_and_Df(Vector<double> x, double derivative_step, Vector<double> xScale, bool ifResampleSeeds = true)
         {
-            int i = 0;
-            double wtp = 0;
+            int i = 0; int j = 0;
+            //double wtp = 0;
 
             // derivative of f at x
             _DfValues = Vector<double>.Build.Dense(x.Count());
@@ -279,23 +280,22 @@ namespace APACElib
                 xValues.Add(x + epsilonMatrix.Row(i) * xScale[i]);
             }
 
-            // sample wtp
-            wtp = _wtps[DiscreteUniformDist.SampleDiscrete(_rng)];
-
-            // update the thresholds in the epidemic modeller      
-            i = 0;
-            _fValues = new double[xValues.Count];
-            foreach (Epidemic epi in EpiModeller_Df.Epidemics)
+            j = 0;
+            _fValues = new double[xValues.Count];           
+            for (i = 0; i < 2 + 2 * Policy.NOfPolicyParameters; i++)
             {
-                // update the policy parameters
-                _fValues[i] += (wtp + 1) * Policy.UpdateParameters(xValues[i], wtp, (i!=0));
+                foreach (int wtp in _wtps)
+                {
+                    // update the policy parameters
+                    _fValues[i] += (wtp + 1) * Policy.UpdateParameters(xValues[i], wtp, (i != 0)); //
 
-                // find thresholds
-                double[] t = Policy.GetTauAndTheta(wtp);                
-                for (int conditionIndx = 0; conditionIndx < 6; conditionIndx++)
-                    ((Condition_OnFeatures)epi.DecisionMaker.Conditions[conditionIndx])
-                        .UpdateThresholds(t);
-                i++;
+                    // find thresholds
+                    double[] t = Policy.GetTauAndTheta(wtp);
+                    for (int conditionIndx = 0; conditionIndx < 6; conditionIndx++)
+                        ((Condition_OnFeatures)EpiModeller_Df.Epidemics[j].DecisionMaker.Conditions[conditionIndx])
+                            .UpdateThresholds(t);
+                    j++;
+                }
             }
 
             // seeds
@@ -307,9 +307,21 @@ namespace APACElib
             EpiModeller_Df.SimulateEpidemics(ifResampleSeeds: false);
 
             // update f values
-            for (i = 0; i < EpiModeller_Df.Epidemics.Count(); i++)
-                _fValues[i] += wtp * EpiModeller_Df.Epidemics[i].EpidemicCostHealth.TotalDiscountedDALY
-                    + EpiModeller_Df.Epidemics[i].EpidemicCostHealth.TotalDisountedCost - _fValues[0];
+            j = 0;
+            for (i = 0; i < 2 + 2 * Policy.NOfPolicyParameters; i++)
+            {
+                foreach (int wtp in _wtps)
+                {
+                    _fValues[i] += 
+                        wtp * EpiModeller_Df.Epidemics[j].EpidemicCostHealth.TotalDiscountedDALY
+                        + EpiModeller_Df.Epidemics[j].EpidemicCostHealth.TotalDisountedCost;
+                    j++;
+                }
+                if (i == 0)
+                    _fValues[i] = _fValues[i] / _wtps.Count();
+                else
+                    _fValues[i] = _fValues[i] / _wtps.Count() - _fValues[0];
+            }
 
             // calculate derivatives
             for (i = 0; i < x.Count; i++)
@@ -404,7 +416,7 @@ namespace APACElib
                 nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
                 x0: x0,
                 xScale: xScale,
-                ifParallel: true,
+                ifParallel: false,
                 modelProvidesDerivatives: true
                 );
 
@@ -413,7 +425,7 @@ namespace APACElib
                 multOptimizer.ExportResultsToCSV("");
 
             // store results
-            PolicyPower policy = new PolicyPower(modelSets.OptmzSets.Penalty);
+            PolicyExponential policy = new PolicyExponential(modelSets.OptmzSets.Penalty);
             ((GonorrheaEpiModeller)epiModels[0]).Policy.UpdateParameters(multOptimizer.xStar, 0);
             
             foreach (double wtp in wtps)
