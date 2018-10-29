@@ -222,7 +222,7 @@ namespace APACElib
         }
     }
 
-    public class GonorrheaEpiModellerV2 : SimModel
+    public class GonorrheaEpiModeller : SimModel
     {
         private int _seed;
         private RandomVariateLib.DiscreteUniform DiscreteUniformDist;
@@ -235,7 +235,7 @@ namespace APACElib
         public EpidemicModeller EpiModeller_f { get; private set; } // epi modeller to estimate f
         public EpidemicModeller EpiModeller_Df { get; private set; } // epi modeller to estimate derivatives of f
 
-        public GonorrheaEpiModellerV2(int id, ExcelInterface excelInterface, ModelSettings modelSets, double[] wtps, Policy policy)
+        public GonorrheaEpiModeller(int id, ExcelInterface excelInterface, ModelSettings modelSets, double[] wtps, Policy policy)
         {
             Policy = policy;
 
@@ -374,7 +374,7 @@ namespace APACElib
             {
                 wtps.Add(wtp);
             }
-
+                
             // build epidemic models  
             int epiID = 0;
             List<SimModel> epiModels = new List<SimModel>();
@@ -382,7 +382,7 @@ namespace APACElib
                 foreach (double b in modelSets.OptmzSets.StepSize_GH_bs)
                     foreach (double c0 in modelSets.OptmzSets.DerivativeStep_cs)
                         epiModels.Add(
-                            new GonorrheaEpiModellerV2(
+                            new GonorrheaEpiModeller(
                                 epiID++, 
                                 excelInterface, 
                                 modelSets, 
@@ -414,7 +414,7 @@ namespace APACElib
 
             // store results
             PolicyPower policy = new PolicyPower(modelSets.OptmzSets.Penalty);
-            ((GonorrheaEpiModellerV2)epiModels[0]).Policy.UpdateParameters(multOptimizer.xStar, 0);
+            ((GonorrheaEpiModeller)epiModels[0]).Policy.UpdateParameters(multOptimizer.xStar, 0);
             
             foreach (double wtp in wtps)
             {
@@ -425,7 +425,7 @@ namespace APACElib
                 result[2] = multOptimizer.bStar;
                 result[3] = multOptimizer.c0Star;
                 result[4] = multOptimizer.fStar;                
-                double[] t = ((GonorrheaEpiModellerV2)epiModels[0]).Policy.GetTauAndTheta(wtp);
+                double[] t = ((GonorrheaEpiModeller)epiModels[0]).Policy.GetTauAndTheta(wtp);
                 result[5] = t[0];
                 result[6] = t[1];
                 Summary.Add(result);
@@ -459,7 +459,7 @@ namespace APACElib
                     foreach (double b in modelSets.OptmzSets.StepSize_GH_bs)
                         foreach (double c0 in modelSets.OptmzSets.DerivativeStep_cs)
                             epiModels.Add(
-                                new GonorrheaEpiModellerV2(
+                                new GonorrheaEpiModeller(
                                     epiID++, 
                                     excelInterface, 
                                     modelSets, 
@@ -506,138 +506,5 @@ namespace APACElib
         }
         
     }
-
-    //public class GonorrheaEpiModeller : SimModel
-    //{
-    //    const double PENALTY = 10e9;
-    //    const double MAX_THRESHOLD = 0.25;
-    //    private int _seed;
-    //    private double _wtp = 0;
-
-    //    public EpidemicModeller EpiModeller_f { get; private set; } // epi modeller to estimate f
-    //    public EpidemicModeller EpiModeller_Df { get; private set; } // epi modeller to estimate derivatives of f
-
-    //    public GonorrheaEpiModeller(int id, ExcelInterface excelInterface, ModelSettings modelSets, double wtp)
-    //    {
-    //        _seed = id; // rnd seed used to reset the seed of this epidemic modeller
-
-    //        // epi modeller with 1 epidemic to calcualte f(x)
-    //        EpiModeller_f = new EpidemicModeller(id, excelInterface, modelSets, numOfEpis: 1);
-    //        EpiModeller_f.BuildEpidemics();
-
-    //        // epi modeller to calcualte derivatives
-    //        EpiModeller_Df = new EpidemicModeller(id, excelInterface, modelSets,
-    //            numOfEpis: (int)Math.Pow(2, OptimizeGonohrrea.NUM_OF_VARIABLES));
-    //        EpiModeller_Df.BuildEpidemics();
-
-    //        _wtp = wtp;
-    //    }
-
-    //    /// <param name="x"> x[0]: threshold to switch, x[1]: change in prevalence to switch  </param>
-    //    public override double GetAReplication(Vector<double> x, bool ifResampleSeeds)
-    //    {
-    //        double objValue = 0;
-
-    //        // make sure variables are in feasible range; if not, add the penalty to the objective function
-    //        objValue += MakeXFeasible(x);
-
-    //        // update the thresholds in the epidemic modeller
-    //        foreach (Epidemic epi in EpiModeller_f.Epidemics)
-    //        {
-    //            for (int conditionIndx = 0; conditionIndx < 6; conditionIndx++)
-    //                ((Condition_OnFeatures)epi.DecisionMaker.Conditions[conditionIndx]).UpdateThresholds(x.ToArray());
-    //        }
-
-    //        // simulate
-    //        EpiModeller_f.SimulateEpidemics(ifResampleSeeds);
-
-    //        // calcualte net monetary benefit
-    //        objValue += _wtp * EpiModeller_f.SimSummary.DALYStat.Mean + EpiModeller_f.SimSummary.CostStat.Mean;
-
-    //        return objValue;
-    //    }
-
-    //    /// <param name="x"> x[0]: threshold to switch, x[1]: change in prevalence to switch  </param>
-    //    public override Vector<double> GetDerivativeEstimate(Vector<double> x, double derivative_step)
-    //    {
-    //        // estimate the derivative of f at x
-    //        Vector<double> Df = Vector<double>.Build.Dense(x.Count());
-
-    //        // build epsilon matrix
-    //        Matrix<double> epsilonMatrix = Matrix<double>.Build.DenseDiagonal(x.Count(), derivative_step);
-
-    //        // find x-values to calculate Df
-    //        List<Vector<double>> xValues = new List<Vector<double>>();
-    //        xValues.Add(x - epsilonMatrix.Row(0));
-    //        xValues.Add(x + epsilonMatrix.Row(0));
-    //        xValues.Add(x - epsilonMatrix.Row(1));
-    //        xValues.Add(x + epsilonMatrix.Row(1));
-
-    //        // penalize f when x is outside the feasible readon
-    //        double[] fValues = new double[xValues.Count];
-    //        int i = 0;
-    //        for (i = 0; i < xValues.Count; i++)
-    //        {
-    //            fValues[i] = MakeXFeasible(xValues[i]);
-    //        }
-
-    //        // update the thresholds in the epidemic modeller      
-    //        i = 0;
-    //        foreach (Epidemic epi in EpiModeller_Df.Epidemics)
-    //        {
-    //            epi.InitialSeed = EpiModeller_f.Epidemics[0].InitialSeed;
-    //            for (int conditionIndx = 0; conditionIndx < 6; conditionIndx++)
-    //                ((Condition_OnFeatures)epi.DecisionMaker.Conditions[conditionIndx])
-    //                    .UpdateThresholds(xValues[i].ToArray());
-    //            i++;
-    //        }
-
-    //        // simulate
-    //        EpiModeller_Df.SimulateEpidemics(ifResampleSeeds: false);
-
-    //        // update f values
-    //        for (i = 0; i < 4; i++)
-    //            fValues[i] += _wtp * EpiModeller_Df.Epidemics[i].EpidemicCostHealth.TotalDiscountedDALY
-    //                + EpiModeller_Df.Epidemics[i].EpidemicCostHealth.TotalDisountedCost;
-
-    //        Df[0] = (fValues[1] - fValues[0]) / (2 * derivative_step);
-    //        Df[1] = (fValues[3] - fValues[2]) / (2 * derivative_step);
-
-    //        return Df;
-    //    }
-
-    //    private double MakeXFeasible(Vector<double> x)
-    //    {
-    //        double penalty = 0;
-    //        // make sure variables are in feasible range; if not, add the penalty to the objective function
-    //        for (int i = 0; i < x.Count; i++)
-    //        {
-    //            if (x[i] < 0)
-    //            {
-    //                penalty += _wtp * PENALTY * Math.Pow(x[i], 2);
-    //                x[i] = 0;
-    //            }
-    //            else if (x[i] > MAX_THRESHOLD)
-    //            {
-    //                penalty += _wtp * PENALTY * Math.Pow(x[i] - MAX_THRESHOLD, 2);
-    //                x[i] = MAX_THRESHOLD;
-    //            }
-    //        }
-    //        // change in prevalence should be smaller than the prevalence threshold
-    //        if (x[0] < x[1])
-    //        {
-    //            penalty += _wtp * PENALTY * Math.Pow(x[1] - x[0], 2);
-    //            x[1] = x[0];
-    //        }
-
-    //        return penalty;
-    //    }
-
-
-    //    public override void ResetSeedAtItr0()
-    //    {
-    //        EpiModeller_f.ResetRNG(seed: _seed);
-    //    }
-    //}
 
 }
