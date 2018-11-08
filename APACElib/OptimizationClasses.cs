@@ -365,7 +365,7 @@ namespace APACElib
         }
     }
 
-    public class OptimizeGonohrreaRandomizedWTP : OptimizeGonohrrea
+    public class OptimizeGonohrrea_StructuredPolicy : OptimizeGonohrrea
     {                
         public void Run(ExcelInterface excelInterface, ModelSettings modelSets)
         {
@@ -445,7 +445,7 @@ namespace APACElib
         }
     }
 
-    public class OptimizeGonohrreaFixedWTPs : OptimizeGonohrrea
+    public class OptimizeGonohrrea_FixedWTPs : OptimizeGonohrrea
     {
 
         public void Run(ExcelInterface excelInterface, ModelSettings modelSets)
