@@ -135,7 +135,7 @@ namespace APACElib
             OptimizeGonohrrea_StructuredPolicy optimizer = new OptimizeGonohrrea_StructuredPolicy();
             optimizer.Run(_excelInterface, _modelSettings);
 
-            ExcelIntface.ReportOptimization(optimizer.GetSummary());
+            ExcelIntface.ReportOptimization(optimizer.GetSummary(), optimizer.OptimalParamValues);
         }
         
         // optimize the dynamic policy

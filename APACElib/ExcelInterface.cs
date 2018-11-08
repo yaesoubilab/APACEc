@@ -1694,7 +1694,7 @@ namespace APACElib
         }
 
         // report the results of optimization
-        public void ReportOptimization(double[,] results)
+        public void ReportOptimization(double[,] results, string policyParams)
         {
             // clear sheet        
             ActivateSheet("Optimization");
@@ -1706,6 +1706,7 @@ namespace APACElib
                 lastCol
                 );
 
+            WriteToCell(policyParams, "baseOptimizationResults", -2, 1);
             WriteToMatrix(results, "baseOptimizationResults", 1, 0);
             AlignAMatrix(base.RowIndex("baseOptimizationResults"), base.ColIndex("baseOptimizationResults"), enumAlignment.Center);
         }

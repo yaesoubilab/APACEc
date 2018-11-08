@@ -25,6 +25,7 @@ namespace APACElib
         public abstract double UpdateParameters(Vector<double> paramValues, double wtp, bool checkFeasibility = true);
         public abstract double GetTau(double wtp);
         public abstract double GetTheta(double wtp);
+        public abstract string GetParams(); // return the text of policy params
         public double[] GetTauAndTheta(double wtp)
         {
             double tau = GetTau(wtp);
@@ -104,6 +105,10 @@ namespace APACElib
             return _accumPenalty;
         }
 
+        public override string GetParams()
+        {
+            return _tau.ToString() + ',' + _theta.ToString();
+        }
         public override double GetTau(double wtp)
         {
             return _tau;
@@ -152,6 +157,11 @@ namespace APACElib
             }
 
             return _accumPenalty;
+        }
+
+        public override string GetParams()
+        {
+            return _tauParams.ToString() + ',' + _rhoParams.ToString();
         }
 
         public override double GetTau(double wtp)
@@ -206,7 +216,12 @@ namespace APACElib
             }
 
             return _accumPenalty;            
-        }        
+        }
+
+        public override string GetParams()
+        {
+            return _tauParams.ToString() + ',' + _rhoParams.ToString();
+        }
 
         public override double GetTau(double wtp)
         {
@@ -350,6 +365,7 @@ namespace APACElib
 
     public abstract class OptimizeGonohrrea
     {
+        public string OptimalParamValues { get; set; }
         protected int NUM_OF_THRESHOLDS { get; } = 2;
         public List<double[]> Summary { get; private set; } = new List<double[]>();
 
@@ -427,7 +443,13 @@ namespace APACElib
             // store results
             PolicyExponential policy = new PolicyExponential(modelSets.OptmzSets.Penalty);
             ((GonorrheaEpiModeller)epiModels[0]).Policy.UpdateParameters(multOptimizer.xStar, 0);
-            
+
+            // optimal policy parameters
+            double[] optParam = multOptimizer.xStar.ToArray();
+            foreach (double v in optParam)
+                OptimalParamValues = OptimalParamValues + v + ',';
+            OptimalParamValues = OptimalParamValues.Substring(0, OptimalParamValues.Length - 1);
+
             foreach (double wtp in wtps)
             {
                 // 1 for wtp, 1 for fStar, 1 for a0, 1 for b 1 for c0
