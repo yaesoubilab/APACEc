@@ -44,6 +44,7 @@ namespace APACElib
         public int[] RndSeeds { get; set; }
         public double[] RndSeedsGoodnessOfFit { get; set; }
         public int NumOfSimItrs { get; set; }
+        public int NumOfSeedsToRead { get; set; }
         public EnumQFunctionApproximationMethod QFunApxMethod { get; set; } = EnumQFunctionApproximationMethod.Q_Approximation;
         public bool IfEpidemicTimeIsUsedAsFeature { get; set; }
         public int PastDecisionPeriodWithDecisionAsFeature { get; set; }
@@ -126,6 +127,7 @@ namespace APACElib
             ScenarioSeed = excelInterface.GetScenarioSeed();
             EpiTimeIndexToChangeSeed = (int)(Math.Round(excelInterface.GetEpiTimeIndexToChangeSeed() / DeltaT,0));
             NumOfSimItrs = excelInterface.GetNumberOfSimulationIterations();
+            NumOfSeedsToRead = excelInterface.GetNumberOfSeedsToRead();
             SimRNDSeedsSource = excelInterface.GetSimulationRNDSeedsSource();
             
             NumOfDeltaT_inDecisionInterval = excelInterface.GetNumDeltaTDecisionInterval();
@@ -151,14 +153,14 @@ namespace APACElib
                 {
                     case EnumSimRNDSeedsSource.StartFrom0:
                         break;
-                    case EnumSimRNDSeedsSource.Prespecified:
-                    case EnumSimRNDSeedsSource.RandomUnweighted:
+                    case EnumSimRNDSeedsSource.Prespecified:                   
                         RndSeeds = excelInterface.GetRNDSeeds(NumOfSimItrs);
                         break;
+                    case EnumSimRNDSeedsSource.RandomUnweighted:
                     case EnumSimRNDSeedsSource.RandomWeighted:
                         {
-                            RndSeeds = excelInterface.GetRNDSeeds(NumOfSimItrs);
-                            RndSeedsGoodnessOfFit = excelInterface.GetGoodnessOfFitForRNDSeeds(NumOfSimItrs);
+                            RndSeeds = excelInterface.GetRNDSeeds(NumOfSeedsToRead);
+                            RndSeedsGoodnessOfFit = excelInterface.GetGoodnessOfFitForRNDSeeds(NumOfSeedsToRead);
                         }
                         break;
                 }

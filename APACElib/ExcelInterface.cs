@@ -452,6 +452,10 @@ namespace APACElib
         {
             return (int)(double)GetCellValue("General Settings", "numOfIterations");
         }
+        public int GetNumberOfSeedsToRead()
+        {
+            return (int)(double)GetCellValue("General Settings", "numSeedsToRead");
+        }
         public double GetTimeStep()
         {
             return (double)GetCellValue("General Settings", "timeStep");
@@ -891,8 +895,8 @@ namespace APACElib
                 //base.ReadRangeFromActiveSheet(3, (int)ExcelInterface.enumCalibrationColumns.RandomSeed, 2 + n)
                 ReadRangeFromActiveSheet(
                     3, 
-                    (int)EnumCalibrationColumns.RandomSeed, 
-                    LastRowWithDataInThisColumn((int)EnumCalibrationColumns.RandomSeed))
+                    (int)EnumCalibrationColumns.RandomSeed,
+                    2+n) //LastRowWithDataInThisColumn((int)EnumCalibrationColumns.RandomSeed)
                 );
      
             //return SupportFunctions.ConvertArrayToInt(base.ReadRangeFromActiveSheet(3, (int)ExcelInterface.enumCalibrationColumns.RandomSeed, ExcelInteractorLib.ExcelInteractor.enumRangeDirection.DownEnd));
