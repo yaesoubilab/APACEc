@@ -372,7 +372,7 @@ namespace APACElib
                             NumOfNewMembersOverPastPeriod += classes[ClassIDs[i]].ClassStat.NumOfNewMembersOverPastPeriod;
                         CollectEndOfDeltaTStats(simIndex);
 
-                        if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
+                        if (simIndex >= _warmUpSimIndex && !(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
                         {
                             if (AccumulatedIncidenceAfterWarmUp < CalibInfo.FeasibleRangeMin 
                                 || AccumulatedIncidenceAfterWarmUp > CalibInfo.FeasibleRangeMax)
@@ -390,7 +390,7 @@ namespace APACElib
                             CollectEndOfDeltaTStats(simIndex);
                         }
                          
-                        if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
+                        if (simIndex >= _warmUpSimIndex && !(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
                         {
                             if (IncidenceTimeSeries.GetLastRecording() < CalibInfo.FeasibleRangeMin
                                 || IncidenceTimeSeries.GetLastRecording() > CalibInfo.FeasibleRangeMax)
@@ -405,7 +405,7 @@ namespace APACElib
                             Prevalence += classes[ClassIDs[i]].ClassStat.Prevalence;
                         CollectEndOfDeltaTStats(simIndex);
 
-                        if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
+                        if (simIndex >= _warmUpSimIndex && !(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
                         {
                             if (Prevalence < CalibInfo.FeasibleRangeMin
                                 || Prevalence > CalibInfo.FeasibleRangeMax)
@@ -451,7 +451,7 @@ namespace APACElib
             CollectEndOfDeltaTStats(simIndex);
 
             // check for feasibility
-            if (!(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
+            if (simIndex >= _warmUpSimIndex && !(CalibInfo is null) && CalibInfo.IfCheckWithinFeasibleRange)
             {
                 if (IncidenceTimeSeries.GetLastRecording() < CalibInfo.FeasibleRangeMin ||
                     IncidenceTimeSeries.GetLastRecording() > CalibInfo.FeasibleRangeMin)
@@ -627,7 +627,7 @@ namespace APACElib
                 AveragePrevalenceStat.Record(Ratio.Value);
             
             // check if within feasible range
-            if (!(CalibInfo is null) && RatioUpdated==true && CalibInfo.IfCheckWithinFeasibleRange)
+            if (simIndex >= _warmUpSimIndex && !(CalibInfo is null) && RatioUpdated==true && CalibInfo.IfCheckWithinFeasibleRange)
             {
                 if (Ratio < CalibInfo.FeasibleRangeMin || Ratio > CalibInfo.FeasibleRangeMax)
                     ifFeasiableRangesViolated = true;
