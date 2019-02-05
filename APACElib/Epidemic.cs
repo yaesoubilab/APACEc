@@ -538,10 +538,12 @@ namespace APACElib
                         // created above
                         break;
                     case Parameter.EnumType.Correlated:
-                        thisParameter = new CorrelatedParameter(parameterID, name, (int)par1, par2, par3);
+                        thisParameter = new CorrelatedParameter(parameterID, name, 
+                            _paramManager.Parameters[(int)par1], par2, par3);
                         break;
                     case Parameter.EnumType.Multiplicative:
-                        thisParameter = new MultiplicativeParameter(parameterID, name, (int)par1, (int)par2, (bool)(par3==1));
+                        thisParameter = new MultiplicativeParameter(parameterID, name, 
+                            _paramManager.Parameters[(int)par1], _paramManager.Parameters[(int)par2], (bool)(par3==1));
                         break;
                     case Parameter.EnumType.TimeDependentLinear:
                         thisParameter = new TimeDependetLinear(parameterID, name, (int)par1, (int)par2, par3, par4);

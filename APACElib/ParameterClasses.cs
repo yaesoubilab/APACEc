@@ -118,9 +118,7 @@ namespace APACElib
                 case Parameter.EnumType.Correlated:
                     {
                         CorrelatedParameter thisCorrelatedParameter = thisPar as CorrelatedParameter;
-                        int parameterIDCorrelatedTo = thisCorrelatedParameter.IDOfDepedentPar;
-                        double valueOfTheParameterIDCorrelatedTo = ParameterValues[parameterIDCorrelatedTo];
-                        ParameterValues[thisPar.ID] = thisCorrelatedParameter.Sample(valueOfTheParameterIDCorrelatedTo);
+                        ParameterValues[thisPar.ID] = thisCorrelatedParameter.Sample();
                     }
                     break;
 
@@ -128,9 +126,7 @@ namespace APACElib
                 case Parameter.EnumType.Multiplicative:
                     {
                         MultiplicativeParameter thisMultiplicativeParameter = thisPar as MultiplicativeParameter;
-                        int firstParID = thisMultiplicativeParameter.FirstParameterID;
-                        int secondParID = thisMultiplicativeParameter.SecondParameterID;
-                        ParameterValues[thisPar.ID] = thisMultiplicativeParameter.Sample(ParameterValues[firstParID], ParameterValues[secondParID]);
+                        ParameterValues[thisPar.ID] = thisMultiplicativeParameter.Sample();
                     }
                     break;
 
