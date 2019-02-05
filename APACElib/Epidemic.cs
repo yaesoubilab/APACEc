@@ -543,11 +543,14 @@ namespace APACElib
                     case Parameter.EnumType.Multiplicative:
                         thisParameter = new MultiplicativeParameter(parameterID, name, (int)par1, (int)par2, (bool)(par3==1));
                         break;
-                    case Parameter.EnumType.TimeDependetLinear:
+                    case Parameter.EnumType.TimeDependentLinear:
                         thisParameter = new TimeDependetLinear(parameterID, name, (int)par1, (int)par2, par3, par4);
                         break;
-                    case Parameter.EnumType.TimeDependetOscillating:
+                    case Parameter.EnumType.TimeDependentOscillating:
                         thisParameter = new TimeDependetOscillating(parameterID, name, (int)par1, (int)par2, (int)par3, (int)par4);
+                        break;
+                    case Parameter.EnumType.TimeDependentExponential:
+                        thisParameter = new TimeDependentExponential(parameterID, name, (int)par1, (int)par2, (int)par3, (int)par4);
                         break;
                     case Parameter.EnumType.ComorbidityDisutility:
                         thisParameter = new ComorbidityDisutility(parameterID, name, (int)par1, (int)par2);

@@ -162,7 +162,7 @@ namespace APACElib
                     break;
 
                 // time dependent linear parameter
-                case Parameter.EnumType.TimeDependetLinear:
+                case Parameter.EnumType.TimeDependentLinear:
                     {
                         TimeDependetLinear thisTimeDepedentLinearPar = thisPar as TimeDependetLinear;
                         double intercept = ParameterValues[thisTimeDepedentLinearPar.InterceptParID];
@@ -175,7 +175,7 @@ namespace APACElib
                     break;
 
                 // time dependent oscillating parameter
-                case Parameter.EnumType.TimeDependetOscillating:
+                case Parameter.EnumType.TimeDependentOscillating:
                     {
                         TimeDependetOscillating thisTimeDepedentOscillatingPar = thisPar as TimeDependetOscillating;
                         double a0 = ParameterValues[thisTimeDepedentOscillatingPar.a0ParID];
@@ -184,6 +184,19 @@ namespace APACElib
                         double a3 = ParameterValues[thisTimeDepedentOscillatingPar.a3ParID];
 
                         ParameterValues[thisPar.ID] = thisTimeDepedentOscillatingPar.Sample(time, a0, a1, a2, a3);
+                    }
+                    break;
+
+                // time dependent exponential parameter
+                case Parameter.EnumType.TimeDependentExponential:
+                    {
+                        TimeDependentExponential thisTimeDepedentExpPar = thisPar as TimeDependentExponential;
+                        double b = ParameterValues[thisTimeDepedentExpPar.bParID];
+                        double min = ParameterValues[thisTimeDepedentExpPar.minParID];
+                        double max = ParameterValues[thisTimeDepedentExpPar.maxParID];
+                        double tStart = ParameterValues[thisTimeDepedentExpPar.tStartParID];
+
+                        ParameterValues[thisPar.ID] = thisTimeDepedentExpPar.Sample(time, b, min, max, tStart);
                     }
                     break;
 
@@ -198,8 +211,7 @@ namespace APACElib
                     }
                     break;
             }
-        }
-       
+        }       
     }
 
     public class ForceOfInfectionModel
