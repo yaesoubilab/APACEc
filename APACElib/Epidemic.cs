@@ -655,13 +655,11 @@ namespace APACElib
                                     if (_paramManager.Parameters[thisNormalClass.InfectivityParIDs[i]].ShouldBeUpdatedByTime)
                                     {
                                         _paramManager.ThereAreTimeDepParms_infectivities = true;
-                                        _paramManager.ThereAreTimeDepParms_tranmission = true;
                                     }
                                 for (int i = 0; i < thisNormalClass.SusceptibilityParIDs.Length; i++)
                                     if (_paramManager.Parameters[thisNormalClass.SusceptibilityParIDs[i]].ShouldBeUpdatedByTime)
                                     {
                                         _paramManager.ThereAreTimeDepParms_susceptibilities = true;
-                                        _paramManager.ThereAreTimeDepParms_tranmission = true;
                                     }
                             }
                         }
@@ -683,7 +681,7 @@ namespace APACElib
 
                             // build the class
                             Class_Splitting thisSplittingClass = new Class_Splitting(classID, name);
-                            thisSplittingClass.SetUp(parIDForProbOfSuccess, destClassIDGivenSuccess, destClassIDGivenFailure);
+                            thisSplittingClass.SetUp(_paramManager.Parameters[parIDForProbOfSuccess], destClassIDGivenSuccess, destClassIDGivenFailure);
 
                             // add class
                             Classes.Add(thisSplittingClass);
@@ -946,12 +944,9 @@ namespace APACElib
                         {
                             int IDOfRateParameter = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfRateParameter));
                             // create the process
-                            Event_EpidemicIndependent thisEvent_EpidemicIndependent = new Event_EpidemicIndependent(name, ID, IDOfActivatingIntervention, _paramManager.Parameters[IDOfRateParameter], IDOfDestinationClass);
+                            Event_EpidemicIndependent thisEvent_EpidemicIndependent = new Event_EpidemicIndependent(
+                                name, ID, IDOfActivatingIntervention, _paramManager.Parameters[IDOfRateParameter], IDOfDestinationClass);
                             _events.Add(thisEvent_EpidemicIndependent);
-
-                            // check if the rate parameter is time dependent
-                            if (_paramManager.ThereAreTimeDepParms && _paramManager.Parameters[IDOfRateParameter].ShouldBeUpdatedByTime)
-                                _paramManager.ThereAreTimeDepParms_diseaseProgression = true;
                         }
                         break;
                     case "Event: Epidemic-Dependent":

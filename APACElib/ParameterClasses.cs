@@ -16,8 +16,6 @@ namespace APACElib
         public bool ThereAreTimeDepParms { get; private set; } = false;
         public bool ThereAreTimeDepParms_susceptibilities { get; set; } = false;
         public bool ThereAreTimeDepParms_infectivities { get; set; } = false;
-        public bool ThereAreTimeDepParms_tranmission { get; set; } = false;
-        public bool ThereAreTimeDepParms_diseaseProgression { get; set; } = false;
         public bool ThereAreTimeDepParms_splittingClasses { get; set; } = false;
 
         public ParameterManager()
@@ -62,16 +60,8 @@ namespace APACElib
             {
                 // update time depedent parameters 
                 foreach (Parameter thisParameter in Parameters.Where(p => p.ShouldBeUpdatedByTime))
-                    thisParameter.Sample(time, rng);
+                    ParameterValues[thisParameter.ID] = thisParameter.Sample(time, rng);
                 
-                // update transmission dynamic matrix if necessary
-                if (ThereAreTimeDepParms_tranmission)
-                {
-                    //CalculateTransmissionMatrix();
-                    //// update transmission rates
-                    //UpdateTransmissionRates();
-                }
-
                 // update value of splitting class parameters
                 if (ThereAreTimeDepParms_splittingClasses)
                 {

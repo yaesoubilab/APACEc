@@ -93,6 +93,7 @@ namespace APACElib
             : base(ID, name){}
 
         public override bool EmptyToEradicate => _emptyToEradicate;
+        
         // transmission 
         public int[] SusceptibilityParIDs { get; private set; }
         public int[] InfectivityParIDs { get; private set; }
@@ -326,7 +327,7 @@ namespace APACElib
     // Class_Splitting
     public class Class_Splitting: Class
     {
-        private double _probOfSuccess;
+        private Parameter _parOfProbSucess;
         
         // Properties
         public Class_Splitting(int ID, string name)
@@ -337,11 +338,11 @@ namespace APACElib
 
         // add the parameter ID for the probability of success
         public void SetUp(
-            int parIDOfProbOfSuccess, 
+            Parameter parOfProbSucess, 
             int destinationClassIDIfSuccess, 
             int destinationClassIDIfFailure)
         {
-            ParIDOfProbOfSuccess = parIDOfProbOfSuccess;
+            _parOfProbSucess = parOfProbSucess;
             
             // store the id of the destination classes
             _numOfMembersToDestClasses = new int[2];
@@ -350,12 +351,6 @@ namespace APACElib
             _destinationClasseIDs[1] = destinationClassIDIfFailure;
         }        
         
-        // update the probability of success
-        public override void UpdateProbOfSuccess(double[] arrSampledParameters)
-        {
-            _probOfSuccess = arrSampledParameters[ParIDOfProbOfSuccess];
-        }
-        
         // send members of this class out
         public override void SendOutMembers(double deltaT, RNG rng)
         {
@@ -363,12 +358,12 @@ namespace APACElib
             if (ClassStat.Prevalence <= 0) return;
 
             // find the number of members sending to each class
-            if (_probOfSuccess == 0)
+            if (_parOfProbSucess.Value == 0)
             {
                 _numOfMembersToDestClasses[0] += 0;
                 _numOfMembersToDestClasses[1] += ClassStat.Prevalence;
             }
-            else if (_probOfSuccess == 1)
+            else if (_parOfProbSucess.Value == 1)
             {
                 _numOfMembersToDestClasses[0] += ClassStat.Prevalence;
                 _numOfMembersToDestClasses[1] += 0;
@@ -376,7 +371,7 @@ namespace APACElib
             else
             {
                 // define a binomial distribution for the number of successes
-                int sampledNumOfSuccesses = new Bionomial("temp", ClassStat.Prevalence, _probOfSuccess).SampleDiscrete(rng);
+                int sampledNumOfSuccesses = new Bionomial("temp", ClassStat.Prevalence, _parOfProbSucess.Value).SampleDiscrete(rng);
 
                 _numOfMembersToDestClasses[0] += sampledNumOfSuccesses;
                 _numOfMembersToDestClasses[1] += ClassStat.Prevalence - sampledNumOfSuccesses;
