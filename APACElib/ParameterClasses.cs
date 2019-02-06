@@ -35,6 +35,15 @@ namespace APACElib
                 ++NumParamsInCalibration;
         }
 
+        public List<Parameter> GetParameters(int[] parIDs)
+        {
+            List<Parameter> list = new List<Parameter>();
+            foreach (int i in parIDs)
+                list.Add(Parameters[i]);
+
+            return list;
+        }
+
         // get the value of parameters to calibrate
         public double[] GetValuesOfParametersToCalibrate()
         {
@@ -53,7 +62,7 @@ namespace APACElib
             {
                 // update time depedent parameters 
                 foreach (Parameter thisParameter in Parameters.Where(p => p.ShouldBeUpdatedByTime))
-                    SampleThisParameter(rng, thisParameter, time);
+                    thisParameter.Sample(time, rng);
                 
                 // update transmission dynamic matrix if necessary
                 if (ThereAreTimeDepParms_tranmission)
@@ -99,115 +108,85 @@ namespace APACElib
             // sample from parameters
             ParameterValues = new double[Parameters.Count];
             foreach (Parameter thisParameter in Parameters)
-                SampleThisParameter(rng, thisParameter, time);
+                ParameterValues[thisParameter.ID] = thisParameter.Sample(time, rng);
         }
+        //// Sample this parameter
+        //private void SampleThisParameter(RNG rng, Parameter thisPar, double time)
+        //{
+        //    switch (thisPar.Type)
+        //    {
+        //        // independent parameter
+        //        case Parameter.EnumType.Independet:
+        //            {
+        //                ParameterValues[thisPar.ID] = ((IndependetParameter)thisPar).Sample(rng);
+        //            }
+        //            break;
 
-        // Sample this parameter
-        private void SampleThisParameter(RNG rng, Parameter thisPar, double time)
-        {
-            switch (thisPar.Type)
-            {
-                // independent parameter
-                case Parameter.EnumType.Independet:
-                    {
-                        ParameterValues[thisPar.ID] = ((IndependetParameter)thisPar).Sample(rng);
-                    }
-                    break;
+        //        // correlated parameter
+        //        case Parameter.EnumType.Correlated:
+        //            {
+        //                CorrelatedParameter thisCorrelatedParameter = thisPar as CorrelatedParameter;
+        //                ParameterValues[thisPar.ID] = thisCorrelatedParameter.Sample();
+        //            }
+        //            break;
 
-                // correlated parameter
-                case Parameter.EnumType.Correlated:
-                    {
-                        CorrelatedParameter thisCorrelatedParameter = thisPar as CorrelatedParameter;
-                        ParameterValues[thisPar.ID] = thisCorrelatedParameter.Sample();
-                    }
-                    break;
+        //        // multiplicative parameter
+        //        case Parameter.EnumType.Multiplicative:
+        //            {
+        //                MultiplicativeParameter thisMultiplicativeParameter = thisPar as MultiplicativeParameter;
+        //                ParameterValues[thisPar.ID] = thisMultiplicativeParameter.Sample();
+        //            }
+        //            break;
 
-                // multiplicative parameter
-                case Parameter.EnumType.Multiplicative:
-                    {
-                        MultiplicativeParameter thisMultiplicativeParameter = thisPar as MultiplicativeParameter;
-                        ParameterValues[thisPar.ID] = thisMultiplicativeParameter.Sample();
-                    }
-                    break;
+        //        // linear combination parameter
+        //        case Parameter.EnumType.LinearCombination:
+        //            {
+        //                LinearCombination thisLinearCombinationPar = thisPar as LinearCombination;
+        //                ParameterValues[thisPar.ID] = thisLinearCombinationPar.Sample();
+        //            }
+        //            break;
 
-                // linear combination parameter
-                case Parameter.EnumType.LinearCombination:
-                    {
-                        LinearCombination thisLinearCombinationPar = thisPar as LinearCombination;
-                        int[] arrParIDs = thisLinearCombinationPar.ParIDs;
-                        double[] arrValueOfParameters = new double[arrParIDs.Length];
+        //        // multiple combination parameter
+        //        case Parameter.EnumType.Product:
+        //            {
+        //                ProductParameter thisMultipleCombinationPar = thisPar as ProductParameter;
+        //                ParameterValues[thisPar.ID] = thisMultipleCombinationPar.Sample();
+        //            }
+        //            break;
 
-                        for (int i = 0; i < arrParIDs.Length; i++)
-                            arrValueOfParameters[i] = ParameterValues[arrParIDs[i]];
+        //        // time dependent linear parameter
+        //        case Parameter.EnumType.TimeDependentLinear:
+        //            {
+        //                TimeDependetLinear thisTimeDepedentLinearPar = thisPar as TimeDependetLinear;
+        //                ParameterValues[thisPar.ID] = thisTimeDepedentLinearPar.Sample(time);
+        //            }
+        //            break;
 
-                        ParameterValues[thisPar.ID] = thisLinearCombinationPar.Sample(arrValueOfParameters);
-                    }
-                    break;
+        //        // time dependent oscillating parameter
+        //        case Parameter.EnumType.TimeDependentOscillating:
+        //            {
+        //                TimeDependetOscillating thisTimeDepedentOscillatingPar = thisPar as TimeDependetOscillating;
+        //                ParameterValues[thisPar.ID] = thisTimeDepedentOscillatingPar.Sample(time);
+        //            }
+        //            break;
 
-                // multiple combination parameter
-                case Parameter.EnumType.Product:
-                    {
-                        ProductParameter thisMultipleCombinationPar = thisPar as ProductParameter;
-                        int[] arrParIDs = thisMultipleCombinationPar.ParIDs;
-                        double[] arrValueOfParameters = new double[arrParIDs.Length];
-                        for (int i = 0; i < arrParIDs.Length; i++)
-                            arrValueOfParameters[i] = ParameterValues[arrParIDs[i]];
+        //        // time dependent exponential parameter
+        //        case Parameter.EnumType.TimeDependentExponential:
+        //            {
+        //                TimeDependentExponential thisTimeDepedentExpPar = thisPar as TimeDependentExponential;
+        //                ParameterValues[thisPar.ID] = thisTimeDepedentExpPar.Sample(time);
+        //            }
+        //            break;
 
-                        ParameterValues[thisPar.ID] = thisMultipleCombinationPar.Sample(arrValueOfParameters);
-                    }
-                    break;
-
-                // time dependent linear parameter
-                case Parameter.EnumType.TimeDependentLinear:
-                    {
-                        TimeDependetLinear thisTimeDepedentLinearPar = thisPar as TimeDependetLinear;
-                        double intercept = ParameterValues[thisTimeDepedentLinearPar.InterceptParID];
-                        double slope = ParameterValues[thisTimeDepedentLinearPar.SlopeParID];
-                        double timeOn = thisTimeDepedentLinearPar.TimeOn;
-                        double timeOff = thisTimeDepedentLinearPar.TimeOff;
-
-                        ParameterValues[thisPar.ID] = thisTimeDepedentLinearPar.Sample(time, intercept, slope, timeOn, timeOff);
-                    }
-                    break;
-
-                // time dependent oscillating parameter
-                case Parameter.EnumType.TimeDependentOscillating:
-                    {
-                        TimeDependetOscillating thisTimeDepedentOscillatingPar = thisPar as TimeDependetOscillating;
-                        double a0 = ParameterValues[thisTimeDepedentOscillatingPar.a0ParID];
-                        double a1 = ParameterValues[thisTimeDepedentOscillatingPar.a1ParID];
-                        double a2 = ParameterValues[thisTimeDepedentOscillatingPar.a2ParID];
-                        double a3 = ParameterValues[thisTimeDepedentOscillatingPar.a3ParID];
-
-                        ParameterValues[thisPar.ID] = thisTimeDepedentOscillatingPar.Sample(time, a0, a1, a2, a3);
-                    }
-                    break;
-
-                // time dependent exponential parameter
-                case Parameter.EnumType.TimeDependentExponential:
-                    {
-                        TimeDependentExponential thisTimeDepedentExpPar = thisPar as TimeDependentExponential;
-                        double b = ParameterValues[thisTimeDepedentExpPar.bParID];
-                        double min = ParameterValues[thisTimeDepedentExpPar.minParID];
-                        double max = ParameterValues[thisTimeDepedentExpPar.maxParID];
-                        double tStart = ParameterValues[thisTimeDepedentExpPar.tStartParID];
-
-                        ParameterValues[thisPar.ID] = thisTimeDepedentExpPar.Sample(time, b, min, max, tStart);
-                    }
-                    break;
-
-                // comorbidity disutility
-                case Parameter.EnumType.ComorbidityDisutility:
-                    {
-                        ComorbidityDisutility thisComorbidDisutility = thisPar as ComorbidityDisutility;
-                        double v1 = ParameterValues[thisComorbidDisutility.Par1ID];
-                        double v2 = ParameterValues[thisComorbidDisutility.Par2ID];
-
-                        ParameterValues[thisPar.ID] = thisComorbidDisutility.Sample(v1, v2);
-                    }
-                    break;
-            }
-        }       
+        //        // comorbidity disutility
+        //        case Parameter.EnumType.ComorbidityDisutility:
+        //            {
+        //                ComorbidityDisutility thisComorbidDisutility = thisPar as ComorbidityDisutility;
+        //                ParameterValues[thisPar.ID] = thisComorbidDisutility.Sample();
+        //            }
+        //            break;
+        //    }
+        //}       
     }
 
     public class ForceOfInfectionModel

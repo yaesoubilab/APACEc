@@ -501,7 +501,7 @@ namespace APACElib
                             int[] arrParIDs = Array.ConvertAll<string, int>(strParIDs, Convert.ToInt32);
                             double[] arrCoefficients = Array.ConvertAll<string, double>(strCoefficients, Convert.ToDouble);
 
-                            thisParameter = new LinearCombination(parameterID, name, arrParIDs, arrCoefficients);
+                            thisParameter = new LinearCombination(parameterID, name, _paramManager.GetParameters(arrParIDs), arrCoefficients);
                         }
                         break;
                     case Parameter.EnumType.Product:
@@ -517,7 +517,7 @@ namespace APACElib
                             // convert to numbers
                             int[] arrParIDs = Array.ConvertAll<string, int>(strParIDs, Convert.ToInt32);
 
-                            thisParameter = new ProductParameter(parameterID, name, arrParIDs);
+                            thisParameter = new ProductParameter(parameterID, name, _paramManager.GetParameters(arrParIDs));
                         }
                         break;
                     default:
@@ -546,16 +546,22 @@ namespace APACElib
                             _paramManager.Parameters[(int)par1], _paramManager.Parameters[(int)par2], (bool)(par3==1));
                         break;
                     case Parameter.EnumType.TimeDependentLinear:
-                        thisParameter = new TimeDependetLinear(parameterID, name, (int)par1, (int)par2, par3, par4);
+                        thisParameter = new TimeDependetLinear(parameterID, name, 
+                            _paramManager.Parameters[(int)par1], _paramManager.Parameters[(int)par2], par3, par4);
                         break;
                     case Parameter.EnumType.TimeDependentOscillating:
-                        thisParameter = new TimeDependetOscillating(parameterID, name, (int)par1, (int)par2, (int)par3, (int)par4);
+                        thisParameter = new TimeDependetOscillating(parameterID, name,
+                             _paramManager.Parameters[(int)par1], _paramManager.Parameters[(int)par2],
+                              _paramManager.Parameters[(int)par3], _paramManager.Parameters[(int)par4]);
                         break;
                     case Parameter.EnumType.TimeDependentExponential:
-                        thisParameter = new TimeDependentExponential(parameterID, name, (int)par1, (int)par2, (int)par3, (int)par4);
+                        thisParameter = new TimeDependentExponential(parameterID, name,
+                             _paramManager.Parameters[(int)par1], _paramManager.Parameters[(int)par2],
+                             _paramManager.Parameters[(int)par3], _paramManager.Parameters[(int)par4]);
                         break;
                     case Parameter.EnumType.ComorbidityDisutility:
-                        thisParameter = new ComorbidityDisutility(parameterID, name, (int)par1, (int)par2);
+                        thisParameter = new ComorbidityDisutility(parameterID, name, 
+                            _paramManager.Parameters[(int)par1], _paramManager.Parameters[(int)par2]);
                         break;
                     default: // indepedent
                         {
