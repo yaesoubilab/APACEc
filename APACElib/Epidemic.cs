@@ -363,10 +363,7 @@ namespace APACElib
 
             // update rates associated with each class and their initial size
             foreach (Class thisClass in Classes)
-            {
-                thisClass.UpdateProbOfSuccess(_paramManager.ParameterValues);
                 thisClass.Reset();
-            }
 
             // reset epidemic history 
             EpiHist.Reset();       
@@ -643,25 +640,12 @@ namespace APACElib
                             // set up initial member and eradication rules
                             thisNormalClass.SetupInitialAndStoppingConditions(_paramManager.Parameters[initialMembersParID], emptyToEradicate);
                             // set up transmission dynamics properties                            
-                            thisNormalClass.SetupTransmissionDynamicsProperties(strSusceptibilityIDs, strInfectivityIDs, rowInContactMatrix);
+                            thisNormalClass.SetupTransmissionDynamicsProperties(
+                                _paramManager.GetParameters(strSusceptibilityIDs), _paramManager.GetParameters(strInfectivityIDs), rowInContactMatrix);
 
                             // add class
                             Classes.Add(thisNormalClass);
-
-                            // check if infectivity and susceptibility parameters are time dependent
-                            if (_paramManager.ThereAreTimeDepParms)
-                            {
-                                for (int i = 0; i < thisNormalClass.InfectivityParIDs.Length; i++)
-                                    if (_paramManager.Parameters[thisNormalClass.InfectivityParIDs[i]].ShouldBeUpdatedByTime)
-                                    {
-                                        _paramManager.ThereAreTimeDepParms_infectivities = true;
-                                    }
-                                for (int i = 0; i < thisNormalClass.SusceptibilityParIDs.Length; i++)
-                                    if (_paramManager.Parameters[thisNormalClass.SusceptibilityParIDs[i]].ShouldBeUpdatedByTime)
-                                    {
-                                        _paramManager.ThereAreTimeDepParms_susceptibilities = true;
-                                    }
-                            }
+                            
                         }
                         break;
                     case "Class: Death":
@@ -685,10 +669,6 @@ namespace APACElib
 
                             // add class
                             Classes.Add(thisSplittingClass);
-
-                            // check if the rate parameter is time dependent
-                            if (_paramManager.ThereAreTimeDepParms && _paramManager.Parameters[parIDForProbOfSuccess].ShouldBeUpdatedByTime)
-                                _paramManager.ThereAreTimeDepParms_splittingClasses = true;
                         }
                         break;
                     case "Class: Resource Monitor":

@@ -14,9 +14,6 @@ namespace APACElib
         public double[] ParameterValues { get; private set; }
         public int NumParamsInCalibration { get; private set; } = 0;
         public bool ThereAreTimeDepParms { get; private set; } = false;
-        public bool ThereAreTimeDepParms_susceptibilities { get; set; } = false;
-        public bool ThereAreTimeDepParms_infectivities { get; set; } = false;
-        public bool ThereAreTimeDepParms_splittingClasses { get; set; } = false;
 
         public ParameterManager()
         {
@@ -41,6 +38,17 @@ namespace APACElib
 
             return list;
         }
+        public List<Parameter> GetParameters(string strParamIDs)
+        {
+            // remove brackets
+            strParamIDs = strParamIDs.Replace(" ", "");
+            strParamIDs = strParamIDs.Replace("{", "");
+            strParamIDs = strParamIDs.Replace("}", "");
+            // convert to array
+            int[] parIDs = Array.ConvertAll(strParamIDs.Split(','), Convert.ToInt32);
+
+            return GetParameters(parIDs);
+        }
 
         // get the value of parameters to calibrate
         public double[] GetValuesOfParametersToCalibrate()
@@ -60,38 +68,30 @@ namespace APACElib
             {
                 // update time depedent parameters 
                 foreach (Parameter thisParameter in Parameters.Where(p => p.ShouldBeUpdatedByTime))
-                    ParameterValues[thisParameter.ID] = thisParameter.Sample(time, rng);
-                
-                // update value of splitting class parameters
-                if (ThereAreTimeDepParms_splittingClasses)
-                {
-                    // update the probability of success
-                    foreach (Class thisClass in classes)
-                        thisClass.UpdateProbOfSuccess(ParameterValues);
-                }
+                    ParameterValues[thisParameter.ID] = thisParameter.Sample(time, rng);  
             }
         }
 
-        // update susceptibility and infectivity of classes
-        public void UpdateClassesSusceptInfect(int simTimeIndex, ref List<Class> classes)
-        {
-            // calculate only at the initialization or when there are time depedent susceptibility or infectivity parameters
-            if (!(simTimeIndex == 0 || ThereAreTimeDepParms_susceptibilities || ThereAreTimeDepParms_infectivities))
-                return;
+        //// update susceptibility and infectivity of classes
+        //public void UpdateClassesSusceptInfect(int simTimeIndex, ref List<Class> classes)
+        //{
+        //    // calculate only at the initialization or when there are time depedent susceptibility or infectivity parameters
+        //    if (!(simTimeIndex == 0 || ThereAreTimeDepParms_susceptibilities || ThereAreTimeDepParms_infectivities))
+        //        return;
 
-            if (ThereAreTimeDepParms_susceptibilities || simTimeIndex == 0)
-            {
-                // only susceptibility
-                foreach (Class thisClass in classes.Where(c => c.IsEpiDependentEventActive))
-                    thisClass.UpdateSusceptibilityParams(ParameterValues);
-            }
-            if (ThereAreTimeDepParms_infectivities || simTimeIndex == 0)
-            {
-                // only infectivity
-                foreach (Class thisClass in classes)
-                    thisClass.UpdateInfectivityParams(ParameterValues);
-            }
-        }
+        //    if (ThereAreTimeDepParms_susceptibilities || simTimeIndex == 0)
+        //    {
+        //        // only susceptibility
+        //        foreach (Class thisClass in classes.Where(c => c.IsEpiDependentEventActive))
+        //            thisClass.UpdateSusceptibilityParams(ParameterValues);
+        //    }
+        //    if (ThereAreTimeDepParms_infectivities || simTimeIndex == 0)
+        //    {
+        //        // only infectivity
+        //        foreach (Class thisClass in classes)
+        //            thisClass.UpdateInfectivityParams(ParameterValues);
+        //    }
+        //}
 
         public void SampleAllParameters(RNG rng, double time)
         {
@@ -144,8 +144,6 @@ namespace APACElib
         // update transmission rates
         public void UpdateTransmissionRates(int simTimeIndex, int[] intvnsInEffect, ref List<Class> classes)
         {
-            // update susceptibility and infectivity of classes
-            _paramManager.UpdateClassesSusceptInfect(simTimeIndex, ref classes);
 
             // find the population size of each mixing group
             int[] popSizeOfMixingGroups = new int[_baseContactMatrices[0].GetLength(0)];
@@ -169,10 +167,10 @@ namespace APACElib
                         // find the infectivity of infection-causing class
                         if (classes[j] is Class_Normal)
                         {
-                            infectivity = classes[j].InfectivityValues[pathogenID];
+                            infectivity = classes[j].GetInfectivityValues()[pathogenID];
                             if (infectivity > 0)
                             {
-                                susContactInf = thisRecievingClass.SusceptibilityValues[pathogenID]
+                                susContactInf = thisRecievingClass.GetSusceptibilityValues()[pathogenID]
                                                 * _contactMatrices[indexOfIntCombInContactMatrices][pathogenID][thisRecievingClass.RowIndexInContactMatrix, classes[j].RowIndexInContactMatrix]
                                                 * infectivity;
 

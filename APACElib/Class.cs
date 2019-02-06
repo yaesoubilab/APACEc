@@ -38,8 +38,6 @@ namespace APACElib
 
         public virtual bool EmptyToEradicate => false;
         public virtual int RowIndexInContactMatrix => 0;
-        public virtual double[] SusceptibilityValues => new double[0];
-        public virtual double[] InfectivityValues => new double[0];
         public virtual int[] ResourcesConsumed => new int[0];
         public virtual bool IsEpiDependentEventActive => false;
       
@@ -47,15 +45,12 @@ namespace APACElib
         public virtual void AddNewMembers(int numOfNewMembers) { }
         // update the initial number of members
         public virtual void UpdateInitialNumOfMembers() { }
-        // update rates of epidemic independent processes associated to this class
-        //public virtual void UpdateRatesOfBirthAndEpiIndpEvents(double[] updatedParameterValues) { }
-        // update susceptibility values
-        public virtual void UpdateSusceptibilityParams(double[] arrSampledParameterValues) { }
-        // update infectivity values
-        public virtual void UpdateInfectivityParams(double[] arrSampledParameterValues) { }
-        // update the probability of success
-        public virtual void UpdateProbOfSuccess(double[] arrSampledParameters) { }
-        // add active events
+
+        // get susceptibility and infectity values 
+        public virtual double[] GetSusceptibilityValues() { return null; }
+        public virtual double[] GetInfectivityValues() { return null; }
+
+          // add active events
         public virtual void AddActiveEvents(int[] interventionCombination) {}
         // update transmission rates affecting this class
         public virtual void UpdateTransmissionRates(double[] transmissionRatesByPathogens) { }
@@ -79,8 +74,12 @@ namespace APACElib
         private Parameter _initialMembersPar;
         private int InitialMembers { get; set; }
 
+        private List<Parameter> _susceptibilityParams;
+        private List<Parameter> _infectivityParams;
         private double[] _susceptibilityValues;
         private double[] _infectivityValues;
+        private bool _areSusceptibilitiesTimeDep = false;
+        private bool _areInfectivitiesTimDep = false;
 
         private bool _isEpiDependentEventActive = false;
         private bool _emptyToEradicate;
@@ -95,10 +94,6 @@ namespace APACElib
         public override bool EmptyToEradicate => _emptyToEradicate;
         
         // transmission 
-        public int[] SusceptibilityParIDs { get; private set; }
-        public int[] InfectivityParIDs { get; private set; }
-        public override double[] SusceptibilityValues => _susceptibilityValues;
-        public override double[] InfectivityValues => _infectivityValues;
         public override int RowIndexInContactMatrix => _rowIndexInContactMatrix;
         public override bool IsEpiDependentEventActive => _isEpiDependentEventActive;
 
@@ -117,23 +112,17 @@ namespace APACElib
         }
         // set up transmission dynamics properties
         public void SetupTransmissionDynamicsProperties(
-            string susceptibilityParamIDs, 
-            string infectivityParamIDs, int 
-            rowIndexInContactMatrix)
+            List<Parameter> susceptibilityParams, 
+            List<Parameter> infectivityParams, 
+            int rowIndexInContactMatrix)
         {
-            // remove brackets
-            susceptibilityParamIDs = susceptibilityParamIDs.Replace(" ", "");
-            susceptibilityParamIDs = susceptibilityParamIDs.Replace("{", "");
-            susceptibilityParamIDs = susceptibilityParamIDs.Replace("}", "");
-            infectivityParamIDs = infectivityParamIDs.Replace(" ", "");
-            infectivityParamIDs = infectivityParamIDs.Replace("{", "");
-            infectivityParamIDs = infectivityParamIDs.Replace("}", "");
-            // convert to array
-            SusceptibilityParIDs = Array.ConvertAll(susceptibilityParamIDs.Split(','), Convert.ToInt32);
-            _susceptibilityValues = new double[SusceptibilityParIDs.Length];
-
-            InfectivityParIDs = Array.ConvertAll(infectivityParamIDs.Split(','), Convert.ToInt32);
-            _infectivityValues = new double[InfectivityParIDs.Length];
+            _susceptibilityParams = susceptibilityParams;
+            _infectivityParams = infectivityParams;
+            
+            // if susceptility parameters should be updated by time
+            _areSusceptibilitiesTimeDep = (_susceptibilityParams.Where(s => s.ShouldBeUpdatedByTime).Count() > 0);
+            // if infectivity parameters should be updated by time
+            _areInfectivitiesTimDep = (_infectivityParams.Where(s => s.ShouldBeUpdatedByTime).Count() > 0);
 
             _rowIndexInContactMatrix = rowIndexInContactMatrix;
         }
@@ -143,18 +132,31 @@ namespace APACElib
             InitialMembers = (int)_initialMembersPar.Value;
             ClassStat.Prevalence= InitialMembers;
         }
-        // update susceptibility and infectivity values
-        public override void UpdateSusceptibilityParams(double[] values)
+
+        // get susceptibility  values
+        public override double[] GetSusceptibilityValues()
         {
-            for (int i = 0; i < SusceptibilityParIDs.Length; i++)
-                _susceptibilityValues[i] = Math.Max(0, values[SusceptibilityParIDs[i]]);
+            if (_susceptibilityValues is null || _areSusceptibilitiesTimeDep)
+            {
+                _susceptibilityValues = new double[_susceptibilityParams.Count];
+                for (int i = 0; i < _susceptibilityParams.Count; i++)
+                    _susceptibilityValues[i] = Math.Max(0, _susceptibilityParams[i].Value);
+            }           
+
+            return _susceptibilityValues;
         }
 
         // update infectivity values
-        public override void UpdateInfectivityParams(double[] values)
+        public override double[] GetInfectivityValues()
         {
-            for (int i = 0; i < InfectivityParIDs.Length; i++)
-                _infectivityValues[i] = Math.Max(0, values[InfectivityParIDs[i]]);
+            if (_infectivityValues is null || _areInfectivitiesTimDep)
+            {
+                _infectivityValues = new double[_infectivityParams.Count];
+                for (int i = 0; i < _infectivityParams.Count; i++)
+                    _infectivityValues[i] = Math.Max(0, _infectivityParams[i].Value);
+            }
+
+            return _infectivityValues;
         }
         // update transmission rates affecting this class
         public override void UpdateTransmissionRates(double[] transmissionRatesByPathogen)
