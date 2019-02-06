@@ -356,7 +356,7 @@ namespace APACElib
 
             // reset the number of people in each compartment
             foreach (Class thisClass in Classes)
-                thisClass.UpdateInitialNumOfMembers((int)Math.Round(_paramManager.ParameterValues[thisClass.InitialMemebersParID]));
+                thisClass.UpdateInitialNumOfMembers();
 
             // health and cost outcomes            
             EpidemicCostHealth.Reset();
@@ -641,7 +641,7 @@ namespace APACElib
                             // build the class
                             Class_Normal thisNormalClass = new Class_Normal(classID, name);
                             // set up initial member and eradication rules
-                            thisNormalClass.SetupInitialAndStoppingConditions(initialMembersParID, emptyToEradicate);
+                            thisNormalClass.SetupInitialAndStoppingConditions(_paramManager.Parameters[initialMembersParID], emptyToEradicate);
                             // set up transmission dynamics properties                            
                             thisNormalClass.SetupTransmissionDynamicsProperties(strSusceptibilityIDs, strInfectivityIDs, rowInContactMatrix);
 

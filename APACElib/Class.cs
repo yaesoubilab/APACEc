@@ -37,7 +37,6 @@ namespace APACElib
         }
 
         public virtual bool EmptyToEradicate => false;
-        public virtual int InitialMemebersParID => 0;
         public virtual int RowIndexInContactMatrix => 0;
         public virtual double[] SusceptibilityValues => new double[0];
         public virtual double[] InfectivityValues => new double[0];
@@ -47,7 +46,7 @@ namespace APACElib
         //  add new member
         public virtual void AddNewMembers(int numOfNewMembers) { }
         // update the initial number of members
-        public virtual void UpdateInitialNumOfMembers(int sampledValue) { }
+        public virtual void UpdateInitialNumOfMembers() { }
         // update rates of epidemic independent processes associated to this class
         //public virtual void UpdateRatesOfBirthAndEpiIndpEvents(double[] updatedParameterValues) { }
         // update susceptibility values
@@ -77,7 +76,7 @@ namespace APACElib
     public class Class_Normal : Class
     {
         // transmission matrix
-        private int _initialMembersParID;
+        private Parameter _initialMembersPar;
         private int InitialMembers { get; set; }
 
         private double[] _susceptibilityValues;
@@ -93,7 +92,6 @@ namespace APACElib
         public Class_Normal(int ID, string name)
             : base(ID, name){}
 
-        public override int InitialMemebersParID => _initialMembersParID;
         public override bool EmptyToEradicate => _emptyToEradicate;
         // transmission 
         public int[] SusceptibilityParIDs { get; private set; }
@@ -110,10 +108,10 @@ namespace APACElib
         }
         // setup the initial number parID
         public void SetupInitialAndStoppingConditions(
-            int initialMembersParID, 
+            Parameter initialMembersPar, 
             bool ifShouldBeEmptyForEradication)
         {
-            _initialMembersParID = initialMembersParID;
+            _initialMembersPar = initialMembersPar;
             _emptyToEradicate = ifShouldBeEmptyForEradication;
         }
         // set up transmission dynamics properties
@@ -139,10 +137,10 @@ namespace APACElib
             _rowIndexInContactMatrix = rowIndexInContactMatrix;
         }
         // update the initial number of members
-        public override void UpdateInitialNumOfMembers(int value)
+        public override void UpdateInitialNumOfMembers()
         {
-            InitialMembers = value;
-            ClassStat.Prevalence= value;
+            InitialMembers = (int)_initialMembersPar.Value;
+            ClassStat.Prevalence= InitialMembers;
         }
         // update susceptibility and infectivity values
         public override void UpdateSusceptibilityParams(double[] values)

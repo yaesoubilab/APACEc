@@ -68,7 +68,7 @@ namespace APACElib
                 if (ThereAreTimeDepParms_tranmission)
                 {
                     //CalculateTransmissionMatrix();
-                    // update transmission rates
+                    //// update transmission rates
                     //UpdateTransmissionRates();
                 }
 
@@ -109,84 +109,7 @@ namespace APACElib
             ParameterValues = new double[Parameters.Count];
             foreach (Parameter thisParameter in Parameters)
                 ParameterValues[thisParameter.ID] = thisParameter.Sample(time, rng);
-        }
-        //// Sample this parameter
-        //private void SampleThisParameter(RNG rng, Parameter thisPar, double time)
-        //{
-        //    switch (thisPar.Type)
-        //    {
-        //        // independent parameter
-        //        case Parameter.EnumType.Independet:
-        //            {
-        //                ParameterValues[thisPar.ID] = ((IndependetParameter)thisPar).Sample(rng);
-        //            }
-        //            break;
-
-        //        // correlated parameter
-        //        case Parameter.EnumType.Correlated:
-        //            {
-        //                CorrelatedParameter thisCorrelatedParameter = thisPar as CorrelatedParameter;
-        //                ParameterValues[thisPar.ID] = thisCorrelatedParameter.Sample();
-        //            }
-        //            break;
-
-        //        // multiplicative parameter
-        //        case Parameter.EnumType.Multiplicative:
-        //            {
-        //                MultiplicativeParameter thisMultiplicativeParameter = thisPar as MultiplicativeParameter;
-        //                ParameterValues[thisPar.ID] = thisMultiplicativeParameter.Sample();
-        //            }
-        //            break;
-
-        //        // linear combination parameter
-        //        case Parameter.EnumType.LinearCombination:
-        //            {
-        //                LinearCombination thisLinearCombinationPar = thisPar as LinearCombination;
-        //                ParameterValues[thisPar.ID] = thisLinearCombinationPar.Sample();
-        //            }
-        //            break;
-
-        //        // multiple combination parameter
-        //        case Parameter.EnumType.Product:
-        //            {
-        //                ProductParameter thisMultipleCombinationPar = thisPar as ProductParameter;
-        //                ParameterValues[thisPar.ID] = thisMultipleCombinationPar.Sample();
-        //            }
-        //            break;
-
-        //        // time dependent linear parameter
-        //        case Parameter.EnumType.TimeDependentLinear:
-        //            {
-        //                TimeDependetLinear thisTimeDepedentLinearPar = thisPar as TimeDependetLinear;
-        //                ParameterValues[thisPar.ID] = thisTimeDepedentLinearPar.Sample(time);
-        //            }
-        //            break;
-
-        //        // time dependent oscillating parameter
-        //        case Parameter.EnumType.TimeDependentOscillating:
-        //            {
-        //                TimeDependetOscillating thisTimeDepedentOscillatingPar = thisPar as TimeDependetOscillating;
-        //                ParameterValues[thisPar.ID] = thisTimeDepedentOscillatingPar.Sample(time);
-        //            }
-        //            break;
-
-        //        // time dependent exponential parameter
-        //        case Parameter.EnumType.TimeDependentExponential:
-        //            {
-        //                TimeDependentExponential thisTimeDepedentExpPar = thisPar as TimeDependentExponential;
-        //                ParameterValues[thisPar.ID] = thisTimeDepedentExpPar.Sample(time);
-        //            }
-        //            break;
-
-        //        // comorbidity disutility
-        //        case Parameter.EnumType.ComorbidityDisutility:
-        //            {
-        //                ComorbidityDisutility thisComorbidDisutility = thisPar as ComorbidityDisutility;
-        //                ParameterValues[thisPar.ID] = thisComorbidDisutility.Sample();
-        //            }
-        //            break;
-        //    }
-        //}       
+        }    
     }
 
     public class ForceOfInfectionModel
