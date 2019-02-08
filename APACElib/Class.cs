@@ -301,7 +301,10 @@ namespace APACElib
             ShouldBeProcessed = true;
             MembersWaitingToDepart = false;
             ClassStat.Reset();
-            ClassStat.Prevalence = InitialMembers;  
+            ClassStat.Prevalence = InitialMembers;
+            _infectivityValues = null;
+            _susceptibilityValues = null;
+               
         }
     }
 
