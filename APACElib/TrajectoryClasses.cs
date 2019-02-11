@@ -530,7 +530,6 @@ namespace APACElib
                 case EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
                     PrevTimeSeries = new PrevalenceTimeSeries(nDeltaTInAPeriod);
                     break;
-
                 case EnumType.IncidenceOverIncidence:
                 case EnumType.IncidenceOverPrevalence:
                     IncdTimeSeries = new IncidenceTimeSeries(1);

@@ -609,6 +609,7 @@ namespace APACElib
                         RatioStats[ratioStatIndex].Record(ratioTraj.AveragePrevalenceStat.Mean, simItr);
                         break;
                     case RatioTrajectory.EnumType.IncidenceOverIncidence:
+                    case RatioTrajectory.EnumType.IncidenceOverPrevalence:
                         RatioStats[ratioStatIndex].Record((double)ratioTraj.IncdTimeSeries.Recordings.Average(), simItr);
                         break;
                 }
