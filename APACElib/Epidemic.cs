@@ -556,6 +556,11 @@ namespace APACElib
                              _paramManager.Parameters[(int)par1], _paramManager.Parameters[(int)par2],
                              _paramManager.Parameters[(int)par3], _paramManager.Parameters[(int)par4]);
                         break;
+                    case Parameter.EnumType.TimeDependentSigmoid:
+                        thisParameter = new TimeDependentSigmoid(parameterID, name,
+                             _paramManager.Parameters[(int)par1], _paramManager.Parameters[(int)par2],
+                             _paramManager.Parameters[(int)par3]);
+                        break;
                     case Parameter.EnumType.ComorbidityDisutility:
                         thisParameter = new ComorbidityDisutility(parameterID, name, 
                             _paramManager.Parameters[(int)par1], _paramManager.Parameters[(int)par2]);
