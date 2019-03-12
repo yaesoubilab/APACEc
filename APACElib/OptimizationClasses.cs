@@ -136,6 +136,7 @@ namespace APACElib
         public PolicyExponential(double penalty) : base(penalty)
         {
             _nOfParams = 4;
+            // base strategy
             _defaultParamValues = Vector<double>.Build.Dense(new double[4] { 0.05, 0, 1, 0 });
             _tauParams = new double[2];
             _rhoParams = new double[2];
@@ -240,7 +241,6 @@ namespace APACElib
     public class GonorrheaEpiModeller : SimModel
     {
         private int _seed;
-        private RandomVariateLib.DiscreteUniform DiscreteUniformDist;
         private RandomVariateLib.RNG _rng;
         private double[] _wtps;
         private double[] _fValues;
@@ -268,7 +268,6 @@ namespace APACElib
             EpiModeller_Df.BuildEpidemics();
 
             _wtps = wtps;
-            DiscreteUniformDist = new RandomVariateLib.DiscreteUniform("wtp", 0, _wtps.Count() - 1);
         }
 
         /// <param name="x"> x[0:1]: threshold to switch, x[2:3]: change in prevalence to switch  </param>
@@ -419,7 +418,7 @@ namespace APACElib
                             );
 
             // create a stochastic approximation object
-            ParallelStochasticApproximation multOptimizer = new ParallelStochasticApproximation(
+            MultipleStochasticApproximation multOptimizer = new MultipleStochasticApproximation(
                 simModels: epiModels,
                 stepSizeGH_a0s: modelSets.OptmzSets.StepSize_GH_a0s,
                 stepSizeGH_bs: modelSets.OptmzSets.StepSize_GH_bs,
@@ -502,7 +501,7 @@ namespace APACElib
                                 );
 
                 // create a stochastic approximation object
-                ParallelStochasticApproximation multOptimizer = new ParallelStochasticApproximation(
+                MultipleStochasticApproximation multOptimizer = new MultipleStochasticApproximation(
                     simModels: epiModels,
                     stepSizeGH_a0s: modelSets.OptmzSets.StepSize_GH_a0s,
                     stepSizeGH_bs: modelSets.OptmzSets.StepSize_GH_bs,
