@@ -11,12 +11,11 @@ namespace APACElib
     public abstract class Policy
     {
         protected int _nOfParams = 0;
-        protected Vector<double> _defaultParamValues;
         protected double Penalty { get; }
         protected double _accumPenalty;
 
         public int NOfPolicyParameters { get => _nOfParams; }
-        public Vector<double> DefaultParamValues { get => _defaultParamValues; }
+        public Vector<double> DefaultParamValues { get; protected set; }
 
         public Policy(double penalty) {
             Penalty = penalty;
@@ -87,7 +86,7 @@ namespace APACElib
         public PolicyPoint(double penalty) : base(penalty)
         {
             _nOfParams = 2;
-            _defaultParamValues = Vector<double>.Build.Dense(new double[2] { 0.05, 0.05 });
+            DefaultParamValues = Vector<double>.Build.Dense(new double[2] { 0.05, 0.05 });
         }
 
         public override double UpdateParameters(Vector<double> paramValues, double wtp, bool checkFeasibility = true)
@@ -137,7 +136,7 @@ namespace APACElib
         {
             _nOfParams = 4;
             // base strategy
-            _defaultParamValues = Vector<double>.Build.Dense(new double[4] { 0.05, 0, 1, 0 });
+            DefaultParamValues = Vector<double>.Build.Dense(new double[4] { 0.05, 0, 0.05, 0 });
             _tauParams = new double[2];
             _rhoParams = new double[2];
         }
@@ -196,7 +195,7 @@ namespace APACElib
         public PolicyPower(double penalty) : base(penalty)
         {
             _nOfParams = 4;
-            _defaultParamValues = Vector<double>.Build.Dense(new double[4] { 0.05, 0, 1, 0 });
+            DefaultParamValues = Vector<double>.Build.Dense(new double[4] { 0.05, 0, 1, 0 });
             _tauParams = new double[2];
             _rhoParams = new double[2];
         }
@@ -427,7 +426,7 @@ namespace APACElib
 
             // minimize 
             multOptimizer.Minimize(
-                maxItrs: modelSets.OptmzSets.NOfItrs,
+                nItrs: modelSets.OptmzSets.NOfItrs,
                 nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
                 x0: x0,
                 xScale: xScale,
@@ -510,7 +509,7 @@ namespace APACElib
 
                 // minimize 
                 multOptimizer.Minimize(
-                    maxItrs: modelSets.OptmzSets.NOfItrs,
+                    nItrs: modelSets.OptmzSets.NOfItrs,
                     nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
                     x0: x0,
                     xScale: xScale,
