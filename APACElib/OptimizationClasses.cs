@@ -10,21 +10,22 @@ namespace APACElib
 {
     public abstract class Policy
     {
-        protected int _nOfParams = 0;
-        protected double Penalty { get; }
-        protected double _accumPenalty;
-
-        public int NOfPolicyParameters { get => _nOfParams; }
-        public Vector<double> DefaultParamValues { get; protected set; }
+        protected double Penalty { get; }  // penalty factor when parameter values are out of range
+        public int NOfPolicyParameters { get; protected set; } // number of parameters of this policy
+        public Vector<double> StatusQuoParamValues { get; protected set; } // parameter values under the status quo
 
         public Policy(double penalty) {
             Penalty = penalty;
         }
 
         public abstract double UpdateParameters(Vector<double> paramValues, double wtp, bool checkFeasibility = true);
+        /// <returns> tau: prevalence threshold to switch </returns>
         public abstract double GetTau(double wtp);
+        /// <returns> theta: threshold of change in prevalence to switch </returns>
         public abstract double GetTheta(double wtp);
-        public abstract string GetParams(); // return the text of policy params
+        /// <returns> text of policy params </returns>
+        public virtual string GetParams() { return ""; }
+        /// <returns> [tau, theta] </returns>
         public double[] GetTauAndTheta(double wtp)
         {
             double tau = GetTau(wtp);
@@ -32,38 +33,49 @@ namespace APACElib
             return new double[2] { tau, theta };
         }
 
-        protected double EnsureFeasibility(ref double var, double min, double max)
+        /// <summary>
+        /// change the value to make sure it is between min and max, 
+        /// and returns (penalty factor) * (value - max)^2 if value > max 
+        /// or (penalty factor) * (value - min)^2 if value < min
+        /// </summary>
+        /// <param name="value"> current parameter value </param>
+        /// <param name="min"> acceptable min </param>
+        /// <param name="max"> acceptable max </param>
+        /// <returns> penalty </returns>
+        protected double EnsureFeasibility(ref double value, double min, double max)
         {
             double penalty = 0;
-            if (var < min)
+            if (value < min)
             {
-                penalty += Penalty * Math.Pow(min - var, 2);
-                var = min;
+                penalty += Penalty * Math.Pow(min - value, 2);
+                value = min;
             }
-            else if (var > max)
+            else if (value > max)
             {
-                penalty += Penalty * Math.Pow(var - max, 2);
-                var = max;
+                penalty += Penalty * Math.Pow(value - max, 2);
+                value = max;
             }
             return penalty;
         }
-        protected double EnsureLessThan (ref double var, double upperBound)
+        // see EnsureFeasibility
+        protected double EnsureLessThan (ref double value, double upperBound)
         {
             double penalty = 0;
-            if (var > upperBound)
+            if (value > upperBound)
             {
-                penalty += Penalty * Math.Pow(var - upperBound, 2);
-                var = upperBound;
+                penalty += Penalty * Math.Pow(value - upperBound, 2);
+                value = upperBound;
             }
             return penalty;
         }
-        protected double EnsureGreaterThan(ref double var, double lowerBound)
+        // see EnsureFeasibility
+        protected double EnsureGreaterThan(ref double value, double lowerBound)
         {
             double penalty = 0;
-            if (var < lowerBound)
+            if (value < lowerBound)
             {
-                penalty += Penalty * Math.Pow(var - lowerBound, 2);
-                var = lowerBound;
+                penalty += Penalty * Math.Pow(value - lowerBound, 2);
+                value = lowerBound;
             }
             return penalty;
         }
@@ -75,7 +87,6 @@ namespace APACElib
         /// prevalence threshold:            tau 
         /// change in prevalence threshold:  theta 
         /// </summary>
-        /// 
 
         const double MAX_THRESHOLD = 0.5;
         private double _tau;
@@ -85,23 +96,23 @@ namespace APACElib
 
         public PolicyPoint(double penalty) : base(penalty)
         {
-            _nOfParams = 2;
-            DefaultParamValues = Vector<double>.Build.Dense(new double[2] { 0.05, 0.05 });
+            NOfPolicyParameters = 2;
+            StatusQuoParamValues = Vector<double>.Build.Dense(new double[2] { 0.05, 0.05 });
         }
 
         public override double UpdateParameters(Vector<double> paramValues, double wtp, bool checkFeasibility = true)
         {
-            _accumPenalty = 0;
+            double accumPenalty = 0;
             _tau = paramValues[0];
             _theta = paramValues[1];
 
             if (checkFeasibility)
             {
-                _accumPenalty += base.EnsureFeasibility(ref _tau, 0, MAX_THRESHOLD);
-                _accumPenalty += base.EnsureFeasibility(ref _theta, 0, MAX_THRESHOLD);
-                _accumPenalty += base.EnsureLessThan(ref _theta, _tau);
+                accumPenalty += base.EnsureFeasibility(ref _tau, 0, MAX_THRESHOLD);
+                accumPenalty += base.EnsureFeasibility(ref _theta, 0, MAX_THRESHOLD);
+                accumPenalty += base.EnsureLessThan(ref _theta, _tau);
             }
-            return _accumPenalty;
+            return accumPenalty;
         }
 
         public override string GetParams()
@@ -123,54 +134,57 @@ namespace APACElib
         /// <summary>
         /// prevalence threshold:            tau(wtp)   = tau0*exp(tau1 * wtp)
         /// multiplier:                      rho(wtp)   = rho0 + rho1 * wtp   
-        /// change in prevalence threshold:  theta(wtp) = tau * rho(wtp)
+        /// change in prevalence threshold:  theta(wtp) = tau(wtp) * rho(wtp)
+        /// parameter values = [tau0, tau1, rho0, rho 1]
         /// </summary>
 
-        const double MAX_THRESHOLD = 1;
-        private double[] _tauParams;
-        private double[] _rhoParams;
-        public double[] TauParams { get => _tauParams; } // prevalence threshold
-        public double[] RhoParams { get => _rhoParams; } // multiplier to get the threshold for change in prevalence
+        enum Par { tau0, tau1, rho0, rho1}
+
+        private double[] _paramValues;
+        //public double[] TauParams { get => _paramValues.SubVector(0, 2).ToArray(); } // prevalence threshold
+        //public double[] RhoParams { get => _paramValues.SubVector(2, 2).ToArray(); } // multiplier to get the threshold for change in prevalence
 
         public PolicyExponential(double penalty) : base(penalty)
         {
-            _nOfParams = 4;
-            // base strategy
-            DefaultParamValues = Vector<double>.Build.Dense(new double[4] { 0.05, 0, 0.05, 0 });
-            _tauParams = new double[2];
-            _rhoParams = new double[2];
+            NOfPolicyParameters = 4;
+            // status quo parameter values 
+            _paramValues = new double[4] { 0.05, 0, 1, 0 };
+            StatusQuoParamValues = Vector<double>.Build.Dense(_paramValues);
         }
 
         public override double UpdateParameters(Vector<double> paramValues, double wtp, bool checkFeasibility = true)
         {
-            _accumPenalty = 0;
-            _tauParams = paramValues.SubVector(0, 2).ToArray();
-            _rhoParams = paramValues.SubVector(2, 2).ToArray();
+            _paramValues = paramValues.ToArray();
+
+            double accumPenalty = 0;
 
             if (checkFeasibility)
             {
-                _accumPenalty += base.EnsureFeasibility(ref _tauParams[0], 0, MAX_THRESHOLD);
-                _accumPenalty += base.EnsureFeasibility(ref _tauParams[1], double.MinValue, 0);
-                _accumPenalty += base.EnsureFeasibility(ref _rhoParams[0], 0, 1);
-                _accumPenalty += base.EnsureLessThan(ref _rhoParams[1], (1 - _rhoParams[0]) / wtp);
-                _accumPenalty += base.EnsureGreaterThan(ref _rhoParams[1], -_rhoParams[0] / wtp);
+                // accumPenalty += base.EnsureFeasibility(ref _tauParams[0], 0, MAX_THRESHOLD);
+
+                // tau0 should be greater than 0
+                accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.tau0], 0);
+                // tau1 should be less than 0
+                accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.tau1], 0);
+                // rho0 should be between 0 and 1
+                accumPenalty += base.EnsureFeasibility(ref _paramValues[(int)Par.rho0], 0, 1);
+                // ensure 0 <= rho(w) <= 1  =>   0 <= rho0 + rho1 * wtp <= 1
+                accumPenalty += base.EnsureFeasibility(
+                    value: ref _paramValues[(int)Par.rho1], 
+                    min: -_paramValues[(int)Par.rho0] / wtp, 
+                    max: (1 - _paramValues[(int)Par.rho0]) / wtp);
             }
 
-            return _accumPenalty;
-        }
-
-        public override string GetParams()
-        {
-            return _tauParams.ToString() + ',' + _rhoParams.ToString();
+            return accumPenalty;
         }
 
         public override double GetTau(double wtp)
         {
-            return _tauParams[0] * Math.Exp(wtp * _tauParams[1]);
+            return _paramValues[(int)Par.tau0] * Math.Exp(wtp * _paramValues[(int)Par.tau1]);
         }
         private double GetRho(double wtp)
         {
-            return Math.Min(Math.Max(_rhoParams[0] + _rhoParams[1] * wtp, 0), 1);
+            return Math.Min(Math.Max(_paramValues[(int)Par.rho0] + _paramValues[(int)Par.rho1] * wtp, 0), 1);
         }
         public override double GetTheta(double wtp)
         {
@@ -180,6 +194,7 @@ namespace APACElib
 
     public class PolicyPower : Policy
     {
+        // *** should be updated ***
         /// <summary>
         /// prevalence threshold:            tau(wtp)   = tau0*power(wtp, tau1)
         /// multiplier:                      rho(wtp)   = rho0 + rho1 * wtp   
@@ -194,28 +209,28 @@ namespace APACElib
 
         public PolicyPower(double penalty) : base(penalty)
         {
-            _nOfParams = 4;
-            DefaultParamValues = Vector<double>.Build.Dense(new double[4] { 0.05, 0, 1, 0 });
+            NOfPolicyParameters = 4;
+            StatusQuoParamValues = Vector<double>.Build.Dense(new double[4] { 0.05, 0, 1, 0 });
             _tauParams = new double[2];
             _rhoParams = new double[2];
         }
 
         public override double UpdateParameters(Vector<double> paramValues, double wtp, bool checkFeasibility = true)
         {
-            _accumPenalty = 0;
+            double accumPenalty = 0;
             _tauParams = paramValues.SubVector(0, 2).ToArray();
             _rhoParams = paramValues.SubVector(2, 2).ToArray();
 
             if (checkFeasibility)
             {
-                _accumPenalty += base.EnsureFeasibility(ref _tauParams[0], 0, MAX_THRESHOLD);
-                _accumPenalty += base.EnsureFeasibility(ref _tauParams[1], double.MinValue, 0);
-                _accumPenalty += base.EnsureFeasibility(ref _rhoParams[0], 0, 1);
-                _accumPenalty += base.EnsureLessThan(ref _rhoParams[1], (1- _rhoParams[0])/wtp);
-                _accumPenalty += base.EnsureGreaterThan(ref _rhoParams[1], -_rhoParams[0] / wtp);
+                accumPenalty += base.EnsureFeasibility(ref _tauParams[0], 0, MAX_THRESHOLD);
+                accumPenalty += base.EnsureFeasibility(ref _tauParams[1], double.MinValue, 0);
+                accumPenalty += base.EnsureFeasibility(ref _rhoParams[0], 0, 1);
+                accumPenalty += base.EnsureLessThan(ref _rhoParams[1], (1- _rhoParams[0])/wtp);
+                accumPenalty += base.EnsureGreaterThan(ref _rhoParams[1], -_rhoParams[0] / wtp);
             }
 
-            return _accumPenalty;            
+            return accumPenalty;            
         }
 
         public override string GetParams()
@@ -237,43 +252,46 @@ namespace APACElib
         }
     }
 
-    public class GonorrheaEpiModeller : SimModel
+    public class GonorrheaSimModel : SimModel
     {
-        private int _seed;
-        private RandomVariateLib.RNG _rng;
-        private double[] _wtps;
-        private double[] _fValues;
-        private Vector<double> _DfValues;
+        /// <summary>
+        /// this will be used by the stochatic approximation algorithm to evalaute structured policies
+        /// </summary>
+        
+        private int _seed; // seed will be used to reset the seed of this epidemic modeller 
+                           // at iteration 0 of the stochastic approximation algorithm
+        private double[] _wtps; // wtp values at which the assigned structured policy should be evaluated
+        private double[] _fValues; // sampled simulation outcomes: 
+                                   // index = 0 -> fstatus quo, 
+                                   // index = 1 -> f(current value of policy parameters)
+                                   // index > 1 -> Df()
+        private Vector<double> _DfValues; // Df at the current value of policy parameters 
 
         public Policy Policy { get; private set; }
-        public EpidemicModeller EpiModeller_f { get; private set; } // epi modeller to estimate f
-        public EpidemicModeller EpiModeller_Df { get; private set; } // epi modeller to estimate derivatives of f
+        public EpidemicModeller EpiModeller { get; private set; } // epi modeller to estimate derivatives of f
 
-        public GonorrheaEpiModeller(int id, ExcelInterface excelInterface, ModelSettings modelSets, double[] wtps, Policy policy)
+        public GonorrheaSimModel(int id, ExcelInterface excelInterface, ModelSettings modelSets, double[] wtps, Policy policy)
         {
+            _seed = id;
             Policy = policy;
-
-            _seed = id; // rnd seed used to reset the seed of this epidemic modeller        
-            _rng = new RandomVariateLib.RNG(_seed);
+            _wtps = wtps;
 
             // epi modeller to calcualte f and derivatives
-            EpiModeller_Df = new EpidemicModeller(
-                id, 
-                excelInterface, 
-                modelSets,
-                numOfEpis: wtps.Count() * (2 + 2* Policy.NOfPolicyParameters) // 1 for base (f(x0)), 1 for f(x), and 2*nPar for derivatives
+            // number of epidemics = (number of wtp values) * M 
+            // M = 1 + 1 + 2*(number of policy parameters), 1 for status quo, 1 for f(x), and 2*(n of policy params) for derivatives
+            EpiModeller = new EpidemicModeller(
+                ID: id, 
+                excelInterface: excelInterface, 
+                modelSettings: modelSets,
+                numOfEpis: wtps.Count() * (2 + 2* Policy.NOfPolicyParameters) 
                 ); 
-
-            EpiModeller_Df.BuildEpidemics();
-
-            _wtps = wtps;
+            EpiModeller.BuildEpidemics();
         }
 
         /// <param name="x"> x[0:1]: threshold to switch, x[2:3]: change in prevalence to switch  </param>
         public override void Sample_f_and_Df(Vector<double> x, double derivative_step, Vector<double> xScale, bool ifResampleSeeds = true)
         {
-            int i = 0; int j = 0;
-            //double wtp = 0;
+            int epi_i = 0;
 
             // derivative of f at x
             _DfValues = Vector<double>.Build.Dense(x.Count());
@@ -281,55 +299,71 @@ namespace APACElib
             // build epsilon matrix
             Matrix<double> epsilonMatrix = Matrix<double>.Build.DenseDiagonal(x.Count(), derivative_step);
 
-            // find x-values to calculate Df
+            // find x-values to calculate f(status quo), f(current policy), and Df(current policy)
             List<Vector<double>> xValues = new List<Vector<double>>();
-            // base scenario
-            xValues.Add(Policy.DefaultParamValues);
-            // current policy
+            // x for status quo
+            xValues.Add(Policy.StatusQuoParamValues);
+            // x for current policy
             xValues.Add(x);
-            for (i = 0; i < Policy.NOfPolicyParameters; i++)
+            // x for derivatives at current policy
+            for (int x_i = 0; x_i < Policy.NOfPolicyParameters; x_i++)
             {
-                xValues.Add(x - epsilonMatrix.Row(i) * xScale[i]);
-                xValues.Add(x + epsilonMatrix.Row(i) * xScale[i]);
+                xValues.Add(x - epsilonMatrix.Row(x_i) * xScale[x_i]);
+                xValues.Add(x + epsilonMatrix.Row(x_i) * xScale[x_i]);
             }
 
-            j = 0;
-            _fValues = new double[xValues.Count];           
-            for (i = 0; i < 2 + 2 * Policy.NOfPolicyParameters; i++)
+            // update the policy of all epidemics and 
+            // record the penalty if a policy parameter is out of the feasible range
+            epi_i = 0;
+            _fValues = new double[xValues.Count()];           
+            for (int i = 0; i < xValues.Count(); i++)
             {
                 foreach (int wtp in _wtps)
                 {
-                    // update the policy parameters
-                    _fValues[i] += (wtp + 1) * Policy.UpdateParameters(xValues[i], wtp, (i != 0)); //
+                    // update the policy parameters and record the penalty if any
+                    // it multiplies the penalty by (wtp + 1) to account for the level of wtp in calcualting the penalty
+                    _fValues[i] += (wtp + 1) * Policy.UpdateParameters(
+                        paramValues: xValues[i],
+                        wtp: wtp, 
+                        checkFeasibility: i != 0);
 
-                    // find thresholds
+                    // find thresholds (tau and theta) for this wtp
                     double[] t = Policy.GetTauAndTheta(wtp);
+
+                    // update the threshold for the epidemic at index epi_i
                     for (int conditionIndx = 0; conditionIndx < 6; conditionIndx++)
-                        ((Condition_OnFeatures)EpiModeller_Df.Epidemics[j].DecisionMaker.Conditions[conditionIndx])
+                        ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i].DecisionMaker.Conditions[conditionIndx])
                             .UpdateThresholds(t);
-                    j++;
+
+                    epi_i++;
                 }
             }
 
-            // seeds
-            EpiModeller_Df.AssignInitialSeeds();
-            foreach (Epidemic epi in EpiModeller_Df.Epidemics)
-                epi.InitialSeed = EpiModeller_Df.Epidemics[0].InitialSeed;
+            // resample the seeds 
+            EpiModeller.AssignInitialSeeds();
+            // make sure all epidemics have the same seed
+            foreach (Epidemic epi in EpiModeller.Epidemics)
+                epi.InitialSeed = EpiModeller.Epidemics[0].InitialSeed;
 
-            // simulate
-            EpiModeller_Df.SimulateEpidemics(ifResampleSeeds: false);
+            // simulate all epidemics 
+            // without resampling seeds (seeds are already assigned above, assumed to be the same for all epidemics
+            EpiModeller.SimulateEpidemics(ifResampleSeeds: false);
 
             // update f values
-            j = 0;
-            for (i = 0; i < 2 + 2 * Policy.NOfPolicyParameters; i++)
+            epi_i = 0;
+            for (int i = 0; i < xValues.Count(); i++)
             {
+                // store net monetary values 
                 foreach (int wtp in _wtps)
                 {
                     _fValues[i] += 
-                        wtp * EpiModeller_Df.Epidemics[j].EpidemicCostHealth.TotalDiscountedDALY
-                        + EpiModeller_Df.Epidemics[j].EpidemicCostHealth.TotalDisountedCost;
-                    j++;
+                        wtp * EpiModeller.Epidemics[epi_i].EpidemicCostHealth.TotalDiscountedDALY
+                        + EpiModeller.Epidemics[epi_i].EpidemicCostHealth.TotalDisountedCost;
+                    epi_i++;
                 }
+
+                // store f values (average over wpt values)
+                // index = 0 is the status quoe
                 if (i == 0)
                     _fValues[i] = _fValues[i] / _wtps.Count();
                 else
@@ -337,14 +371,15 @@ namespace APACElib
             }
 
             // calculate derivatives
-            for (i = 0; i < x.Count; i++)
+            for (int x_i = 0; x_i < x.Count; x_i++)
             {
-                _DfValues[i] = (_fValues[2 * i + 3] - _fValues[2 * i + 2]) / (2 * derivative_step * xScale[i]);
+                _DfValues[x_i] = (_fValues[2 * x_i + 3] - _fValues[2 * x_i + 2]) / (2 * derivative_step * xScale[x_i]);
             }
         }
 
         public override double Get_f()
         {
+            // f(current x) is stored at index 1
             return _fValues[1];
         }
         public override Vector<double> Get_Df()
@@ -354,10 +389,8 @@ namespace APACElib
 
         public override void ResetSeedAtItr0()
         {
-            if (!(EpiModeller_f is null))
-                EpiModeller_f.ResetRNG(seed: _seed);
-            if (!(EpiModeller_Df is null))
-                EpiModeller_Df.ResetRNG(seed: _seed);
+            if (!(EpiModeller is null))
+                EpiModeller.ResetRNG(seed: _seed);
         }
     }
 
@@ -365,18 +398,7 @@ namespace APACElib
     {
         public string OptimalParamValues { get; set; }
         protected int NUM_OF_THRESHOLDS { get; } = 2;
-        public List<double[]> Summary { get; private set; } = new List<double[]>();
-
-        public double[,] GetSummary()
-        {
-            double[,] results = new double[Summary.Count, NUM_OF_THRESHOLDS + 5];
-
-            for (int i = 0; i < Summary.Count; i++)
-                for (int j = 0; j < NUM_OF_THRESHOLDS + 5; j++)
-                    results[i, j] = Summary[i][j];
-
-            return results;
-        }
+        public string[,] Summary { get; protected set; }
     }
 
     public class OptimizeGonohrrea_StructuredPolicy : OptimizeGonohrrea
@@ -384,7 +406,8 @@ namespace APACElib
         public void Run(ExcelInterface excelInterface, ModelSettings modelSets)
         {
 
-            // initial policy parameters 
+            // initial valueo of policy parameters 
+            // (this could be different from or the same as the status quo parameters)
             double[] arrX0 = modelSets.OptmzSets.X0;
             Vector<double> x0 = Vector<double>.Build.DenseOfArray(arrX0);
 
@@ -392,7 +415,7 @@ namespace APACElib
             double[] arrXScale = modelSets.OptmzSets.XScale;
             Vector<double> xScale = Vector<double>.Build.DenseOfArray(arrXScale);
 
-            // find wtp
+            // find wtps 
             List<double> wtps = new List<double>();
             for (double wtp = modelSets.OptmzSets.WTP_min;
                 wtp <= modelSets.OptmzSets.WTP_max;
@@ -401,22 +424,24 @@ namespace APACElib
                 wtps.Add(wtp);
             }
                 
-            // build epidemic models  
+            // build epidemic models to evaluate the structured policies 
+            // build as many as a0's * b's * c0's
             int epiID = 0;
             List<SimModel> epiModels = new List<SimModel>();
             foreach (double a0 in modelSets.OptmzSets.StepSize_GH_a0s)
                 foreach (double b in modelSets.OptmzSets.StepSize_GH_bs)
                     foreach (double c0 in modelSets.OptmzSets.DerivativeStep_cs)
                         epiModels.Add(
-                            new GonorrheaEpiModeller(
-                                epiID++, 
-                                excelInterface, 
-                                modelSets, 
-                                wtps.ToArray(), 
-                                new PolicyExponential(modelSets.OptmzSets.Penalty))
+                            new GonorrheaSimModel(
+                                id: epiID++, 
+                                excelInterface: excelInterface, 
+                                modelSets: modelSets, 
+                                wtps: wtps.ToArray(), 
+                                policy: new PolicyExponential(modelSets.OptmzSets.Penalty))
                             );
 
-            // create a stochastic approximation object
+            // create a multi stochastic approximation object
+            // it runs the optimization algorithm for all combinations of (a0's, b's, c0's)
             MultipleStochasticApproximation multOptimizer = new MultipleStochasticApproximation(
                 simModels: epiModels,
                 stepSizeGH_a0s: modelSets.OptmzSets.StepSize_GH_a0s,
@@ -430,38 +455,41 @@ namespace APACElib
                 nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
                 x0: x0,
                 xScale: xScale,
-                ifParallel: false,
-                modelProvidesDerivatives: true
+                ifParallel: false, // combinations of (a0's, b's, c0's) will run sequentially 
+                modelProvidesDerivatives: true 
                 );
 
             // export results
             if (modelSets.OptmzSets.IfExportResults)
                 multOptimizer.ExportResultsToCSV("");
 
-            // store results
-            PolicyExponential policy = new PolicyExponential(modelSets.OptmzSets.Penalty);
-            ((GonorrheaEpiModeller)epiModels[0]).Policy.UpdateParameters(multOptimizer.xStar, 0);
+            // store the summary of the optimization
+            Summary = multOptimizer.GetSummary(f_digits:1, x_digits:4);
 
-            // optimal policy parameters
-            double[] optParam = multOptimizer.xStar.ToArray();
-            foreach (double v in optParam)
-                OptimalParamValues = OptimalParamValues + v + ',';
-            OptimalParamValues = OptimalParamValues.Substring(0, OptimalParamValues.Length - 1);
+            //// store results
+            //PolicyExponential policy = new PolicyExponential(modelSets.OptmzSets.Penalty);
+            //((GonorrheaEpiModeller)epiModels[0]).Policy.UpdateParameters(multOptimizer.xStar, 0);
 
-            foreach (double wtp in wtps)
-            {
-                // 1 for wtp, 1 for fStar, 1 for a0, 1 for b 1 for c0
-                double[] result = new double[NUM_OF_THRESHOLDS + 5]; 
-                result[0] = wtp;
-                result[1] = multOptimizer.a0Star;
-                result[2] = multOptimizer.bStar;
-                result[3] = multOptimizer.c0Star;
-                result[4] = multOptimizer.fStar;                
-                double[] t = ((GonorrheaEpiModeller)epiModels[0]).Policy.GetTauAndTheta(wtp);
-                result[5] = t[0];
-                result[6] = t[1];
-                Summary.Add(result);
-            }
+            //// optimal policy parameters
+            //double[] optParam = multOptimizer.xStar.ToArray();
+            //foreach (double v in optParam)
+            //    OptimalParamValues = OptimalParamValues + v + ',';
+            //OptimalParamValues = OptimalParamValues.Substring(0, OptimalParamValues.Length - 1);
+
+            //foreach (double wtp in wtps)
+            //{
+            //    // 1 for wtp, 1 for fStar, 1 for a0, 1 for b 1 for c0
+            //    double[] result = new double[NUM_OF_THRESHOLDS + 5]; 
+            //    result[0] = wtp;
+            //    result[1] = multOptimizer.a0Star;
+            //    result[2] = multOptimizer.bStar;
+            //    result[3] = multOptimizer.c0Star;
+            //    result[4] = multOptimizer.fStar;                
+            //    double[] t = ((GonorrheaEpiModeller)epiModels[0]).Policy.GetTauAndTheta(wtp);
+            //    result[5] = t[0];
+            //    result[6] = t[1];
+            //    Summary.Add(result);
+            //}
         }
     }
 
@@ -491,7 +519,7 @@ namespace APACElib
                     foreach (double b in modelSets.OptmzSets.StepSize_GH_bs)
                         foreach (double c0 in modelSets.OptmzSets.DerivativeStep_cs)
                             epiModels.Add(
-                                new GonorrheaEpiModeller(
+                                new GonorrheaSimModel(
                                     epiID++, 
                                     excelInterface, 
                                     modelSets, 
@@ -524,16 +552,16 @@ namespace APACElib
                 // use this xStar as the intial variable for the next wtp
                 x0 = multOptimizer.xStar;
 
-                // store results
-                double[] result = new double[NUM_OF_THRESHOLDS + 5]; // 1 for wtp, 1 for fStar, 1 for a0, 1 for b 1 for c0
-                result[0] = wtp;
-                result[1] = multOptimizer.a0Star;
-                result[2] = multOptimizer.bStar;
-                result[3] = multOptimizer.c0Star;
-                result[4] = multOptimizer.fStar;
-                result[5] = multOptimizer.xStar[0];
-                result[6] = multOptimizer.xStar[1];
-                Summary.Add(result);
+                //// store results
+                //double[] result = new double[NUM_OF_THRESHOLDS + 5]; // 1 for wtp, 1 for fStar, 1 for a0, 1 for b 1 for c0
+                //result[0] = wtp;
+                //result[1] = multOptimizer.a0Star;
+                //result[2] = multOptimizer.bStar;
+                //result[3] = multOptimizer.c0Star;
+                //result[4] = multOptimizer.fStar;
+                //result[5] = multOptimizer.xStar[0];
+                //result[6] = multOptimizer.xStar[1];
+                //Summary.Add(result);
             }
         }
         

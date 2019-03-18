@@ -100,7 +100,9 @@ namespace APACElib
         // assign initial seed to each epidemic
         public void AssignInitialSeeds()
         {
+            // produce new seeds for all epidemics
             SeedGenerator.ResampleSeeds(_rng, Epidemics.Count);
+            // update the seeds of all epidemics
             foreach (Epidemic epi in Epidemics)
                 epi.InitialSeed = SeedGenerator.FindRNDSeed(epi.ID);
         }
