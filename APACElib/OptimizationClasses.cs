@@ -146,9 +146,9 @@ namespace APACElib
 
         public PolicyExponential(double penalty) : base(penalty)
         {
-            NOfPolicyParameters = 4;
+            NOfPolicyParameters = 3;
             // status quo parameter values 
-            _paramValues = new double[4] { 0.05, 0, 1, 0 };
+            _paramValues = new double[3] { 0.05, 0, 1};
             StatusQuoParamValues = Vector<double>.Build.Dense(_paramValues);
         }
 
@@ -157,7 +157,6 @@ namespace APACElib
             _paramValues = paramValues.ToArray();
 
             double accumPenalty = 0;
-
             if (checkFeasibility)
             {
                 // accumPenalty += base.EnsureFeasibility(ref _tauParams[0], 0, MAX_THRESHOLD);
@@ -168,11 +167,11 @@ namespace APACElib
                 accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.tau1], 0);
                 // rho0 should be between 0 and 1
                 accumPenalty += base.EnsureFeasibility(ref _paramValues[(int)Par.rho0], 0, 1);
-                // ensure 0 <= rho(w) <= 1  =>   0 <= rho0 + rho1 * wtp <= 1
-                accumPenalty += base.EnsureFeasibility(
-                    value: ref _paramValues[(int)Par.rho1], 
-                    min: -_paramValues[(int)Par.rho0] / wtp, 
-                    max: (1 - _paramValues[(int)Par.rho0]) / wtp);
+                //// ensure 0 <= rho(w) <= 1  =>   0 <= rho0 + rho1 * wtp <= 1
+                //accumPenalty += base.EnsureFeasibility(
+                //    value: ref _paramValues[(int)Par.rho1], 
+                //    min: -_paramValues[(int)Par.rho0] / wtp, 
+                //    max: (1 - _paramValues[(int)Par.rho0]) / wtp);
             }
 
             return accumPenalty;
@@ -188,7 +187,7 @@ namespace APACElib
         }
         public override double GetTheta(double wtp)
         {
-            return GetRho(wtp) * GetTau(wtp);
+            return  GetTau(wtp) * _paramValues[(int)Par.rho0]; // GetRho(wtp) *
         }
     }
 
