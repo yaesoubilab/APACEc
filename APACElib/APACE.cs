@@ -41,6 +41,7 @@ namespace APACElib
         {
             ExcelIntface = new ExcelInterface();
             ExcelIntface.ConnectToExcelInterface();
+            ExcelIntface.Visible = true;
         }
 
         // run
@@ -55,6 +56,7 @@ namespace APACElib
                 case ExcelInterface.enumWhatToDo.Simulate:
                     {
                         // simulate a policy
+                        Console.WriteLine("Simulating a policy...");
                         SimulateAPolicy();                        
                         break;
                     }
