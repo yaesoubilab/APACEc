@@ -406,11 +406,11 @@ namespace APACElib
                 _modelSets.NumOfDeltaT_inDecisionInterval, 
                 EpiHist.Conditions);
             // add parameters
-            AddParameters(modelSettings.ParametersSheet);
+            AddParameters(modelSettings.Sheets.ParametersSheet);
             // add pathogens
-            AddPathogens(modelSettings.PathogenSheet);
+            AddPathogens(modelSettings.Sheets.PathogenSheet);
             // add classes
-            AddClasses(modelSettings.ClassesSheet);
+            AddClasses(modelSettings.Sheets.ClassesSheet);
             // force of infection model
             FOIModel = new ForceOfInfectionModel(
                 _pathogenIDs.Length,
@@ -421,15 +421,15 @@ namespace APACElib
                 _modelSets.GetPercentChangeInContactMatricesParIDs()
                 );
             // add events
-            AddEvents(modelSettings.EventSheet);            
+            AddEvents(modelSettings.Sheets.EventSheet);            
             // add interventions
-            AddInterventions(modelSettings.InterventionSheet);
+            AddInterventions(modelSettings.Sheets.InterventionSheet);
             // add resources
-            AddResources(modelSettings.ResourcesSheet);            
+            AddResources(modelSettings.Sheets.ResourcesSheet);            
             // add summation statistics
-            AddSummationStatistics(modelSettings.SummationStatisticsSheet);
+            AddSummationStatistics(modelSettings.Sheets.SummationStatisticsSheet);
             // add ratio statistics
-            AddRatioStatistics(modelSettings.RatioStatisticsSheet);
+            AddRatioStatistics(modelSettings.Sheets.RatioStatisticsSheet);
             // add trajectories for simulation output
             EpiHist.SetupSimOutputTrajs(
                 ID,
@@ -440,11 +440,11 @@ namespace APACElib
                 ref _classes,
                 extractOutputHeaders);
             // add features
-            AddFeatures(modelSettings.FeaturesSheet);
+            AddFeatures(modelSettings.Sheets.FeaturesSheet);
             // add conditions
-            AddConditions(modelSettings.ConditionsSheet);
+            AddConditions(modelSettings.Sheets.ConditionsSheet);
             // add connections
-            AddConnections(modelSettings.ConnectionsMatrix);
+            AddConnections(modelSettings.Sheets.ConnectionsMatrix);
             // monitor of interventions in effect
             _monitorOfIntrvsInEffect = new MonitorOfInterventionsInEffect(ref _decisionMaker);
             // economic cost and health

@@ -214,7 +214,7 @@ namespace APACElib
             Timer.Start();
 
             // set up calibration 
-            Calibration = new Calibration(_modelSet.ObservedHistory);
+            Calibration = new Calibration(_modelSet.Sheets.ObservedHistory);
             Calibration.AddCalibTargets(_parentEpidemic.EpiHist.SumTrajs, _parentEpidemic.EpiHist.RatioTrajs);
 
             // use parallel computing? 

@@ -8,9 +8,41 @@ using RandomVariateLib;
 
 namespace APACElib
 {
+    public class ModelSheets
+    {
+        public Array ParametersSheet { get; set; }
+        public Array PathogenSheet { get; set; }
+        public Array ClassesSheet { get; set; }
+        public Array InterventionSheet { get; set; }
+        public Array ResourcesSheet { get; set; }
+        public Array EventSheet { get; set; }
+        public Array SummationStatisticsSheet { get; set; }
+        public Array RatioStatisticsSheet { get; set; }
+        public Array FeaturesSheet { get; set; }
+        public Array ConditionsSheet { get; set; }
+        public Array ObservedHistory { get; set; }
+        public int[,] ConnectionsMatrix { get; set; }
+
+        public void Populate(ExcelInterface excelInterface)
+        {
+            ParametersSheet = excelInterface.GetTableOfParameters();
+            PathogenSheet = excelInterface.GetTableOfPathogens();
+            ClassesSheet = excelInterface.GetTableOfClasses();
+            InterventionSheet = excelInterface.GetTableOfInterventions();
+            ResourcesSheet = excelInterface.GetTableOfResources();
+            EventSheet = excelInterface.GetTableOfEvents();
+            SummationStatisticsSheet = excelInterface.GetTableOfSummationStatistics();
+            RatioStatisticsSheet = excelInterface.GetTableOfRatioStatistics();
+            ConnectionsMatrix = excelInterface.GetConnectionsMatrix();
+            FeaturesSheet = excelInterface.GetTableOfFeatures();
+            ConditionsSheet = excelInterface.GetTableOfConditions();
+        }
+    }
+
     public class ModelSettings
     {
         public OptimizationSettings OptmzSets { get; private set;}
+        public ModelSheets Sheets { get; private set; }
 
         private double[][,] _baseContactMatrices = new double[0][,]; //[pathogen ID][group i, group j]
         private int[][][,] _percentChangeInContactMatricesParIDs = new int[0][][,]; //[intervention ID][pathogen ID][group i, group j]
@@ -80,18 +112,6 @@ namespace APACElib
         public int[][] PrespecifiedSequenceOfInterventions { get; set; }
         public double[,] MatrixOfObservationsAndLikelihoodParams { get; set; }
         public int NumOfTrajsInParallelForCalibr { get; set; }
-        public Array ParametersSheet { get; set; }
-        public Array PathogenSheet { get; set; }
-        public Array ClassesSheet { get; set; }
-        public Array InterventionSheet { get; set; }
-        public Array ResourcesSheet { get; set; }
-        public Array EventSheet { get; set; }
-        public Array SummationStatisticsSheet { get; set; }
-        public Array RatioStatisticsSheet { get; set; }
-        public Array FeaturesSheet { get; set; }
-        public Array ConditionsSheet { get; set; }
-        public Array ObservedHistory { get; set; }
-        public int[,] ConnectionsMatrix { get; set; }
 
         public double[][,] GetBaseContactMatrices() { return _baseContactMatrices; }
         public int[][][,] GetPercentChangeInContactMatricesParIDs() { return _percentChangeInContactMatricesParIDs; }
@@ -167,17 +187,8 @@ namespace APACElib
             }
 
             // read sheets
-            ParametersSheet = excelInterface.GetTableOfParameters();
-            PathogenSheet = excelInterface.GetTableOfPathogens();
-            ClassesSheet = excelInterface.GetTableOfClasses();
-            InterventionSheet = excelInterface.GetTableOfInterventions();
-            ResourcesSheet = excelInterface.GetTableOfResources();
-            EventSheet = excelInterface.GetTableOfEvents();
-            SummationStatisticsSheet = excelInterface.GetTableOfSummationStatistics();
-            RatioStatisticsSheet = excelInterface.GetTableOfRatioStatistics();
-            ConnectionsMatrix = excelInterface.GetConnectionsMatrix();
-            FeaturesSheet = excelInterface.GetTableOfFeatures();
-            ConditionsSheet = excelInterface.GetTableOfConditions();
+            Sheets = new ModelSheets();
+            Sheets.Populate(excelInterface);
 
             // calibration 
             NumOfTrajsInParallelForCalibr = Math.Min(
@@ -239,7 +250,7 @@ namespace APACElib
         // read the contact matrices
         public void ReadContactMatrices(ref ExcelInterface excelInterface, int numOfInterventionsAffectingContactPattern)
         {
-            excelInterface.GetBaseAndPercentageChangeContactMatrix(numOfInterventionsAffectingContactPattern, PathogenSheet.GetLength(0),
+            excelInterface.GetBaseAndPercentageChangeContactMatrix(numOfInterventionsAffectingContactPattern, Sheets.PathogenSheet.GetLength(0),
                 ref _baseContactMatrices, ref _percentChangeInContactMatricesParIDs);
         }
 
@@ -257,7 +268,7 @@ namespace APACElib
         // read sheet of observed history
         public void ReadObservedHistory(ref ExcelInterface excelInterface, int numOfCalibrationTargets)
         {
-            ObservedHistory = excelInterface.GetTableOfObservedHistory(numOfCalibrationTargets);
+            Sheets.ObservedHistory = excelInterface.GetTableOfObservedHistory(numOfCalibrationTargets);
         }
 
         // read q-function coefficient initial values
