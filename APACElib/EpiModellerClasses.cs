@@ -176,7 +176,7 @@ namespace APACElib
                     epi.BuildModel(_modelSet, _listModelInstr[epi.ID]);
                     // simulate
                     epi.SimulateUntilOneAcceptibleTrajFound(_modelSet.TimeIndexToStop);
-                    Console.WriteLine(epi.ID);
+                    //Console.WriteLine(epi.ID);
                     // store epidemic trajectories and outcomes
                     SimSummary.Add(epi, epi.ID);
                 }
