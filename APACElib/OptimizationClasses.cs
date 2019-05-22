@@ -406,6 +406,12 @@ namespace APACElib
     {                
         public void Run(ExcelInterface excelInterface, ModelSettings modelSets, List<ModelInstruction> listModelInstr)
         {
+            if (listModelInstr == null)
+            {
+                listModelInstr = new List<ModelInstruction>();
+                for (int i = 0; i < modelSets.GetNumModelsToBuild(); i++)
+                    listModelInstr.Add(new ModelInstruction());
+            }
 
             // initial valueo of policy parameters 
             // (this could be different from or the same as the status quo parameters)

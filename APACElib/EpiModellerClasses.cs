@@ -61,8 +61,6 @@ namespace APACElib
             // extract model information 
             ModelInfo = new ModelInfo(ref _parentEpidemic);
 
-
-
             // create the epi models
             Epidemics.Clear();
             for (int id = 0; id < numOfEpidemics; id++)                

@@ -394,7 +394,7 @@ namespace APACElib
         }
 
         // subs to create model
-        #region subs to create model  
+        #region functions to create model  
         // create the model
         public void BuildModel(ModelSettings modelSettings, ModelInstruction modelInstr, bool extractOutputHeaders = false)
         {
