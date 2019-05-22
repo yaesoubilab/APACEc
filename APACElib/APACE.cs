@@ -15,6 +15,8 @@ namespace APACElib
         private ExcelInterface _excelInterface;
         public ExcelInterface ExcelIntface { get => _excelInterface; set => _excelInterface = value; }
         private ModelSettings _modelSettings = new ModelSettings();
+        public ModelSettings ModelSetting { get => _modelSettings; }
+        private List<ModelInstruction> _listModelInstr = new List<ModelInstruction>();
         private EpidemicModeller _epidemicModeller;
         private ArrayList _epidemicModellers = new ArrayList();
 
@@ -42,11 +44,15 @@ namespace APACElib
             ExcelIntface = new ExcelInterface();
             ExcelIntface.ConnectToExcelInterface();
             ExcelIntface.Visible = true;
+            // read model settings
+            _modelSettings.ReadSettings(ref _excelInterface);
         }
 
         // run
-        public void Run()
-        {
+        public void Run(List<ModelInstruction> listModelInstruction)
+        {            
+            _listModelInstr = listModelInstruction;
+
             // read model settings
             _modelSettings.ReadSettings(ref _excelInterface);
 
@@ -93,7 +99,7 @@ namespace APACElib
         private void SimulateAPolicy()
         {
             // create an epidemic modeler
-            _epidemicModeller = new EpidemicModeller(0, _excelInterface, _modelSettings);
+            _epidemicModeller = new EpidemicModeller(0, _excelInterface, _modelSettings, _listModelInstr);
 
             // setup simulation output sheet
             SetupSimulationOutputSheet();
@@ -112,7 +118,7 @@ namespace APACElib
             _modelSettings.SimRNDSeedsSource = EnumSimRNDSeedsSource.StartFrom0;
 
             // create an epidemic modeler
-            _epidemicModeller = new EpidemicModeller(0, _excelInterface, _modelSettings);
+            _epidemicModeller = new EpidemicModeller(0, _excelInterface, _modelSettings, _listModelInstr);
 
             // read the observed epidemic history 
             ReadObservedHistory();
@@ -135,7 +141,7 @@ namespace APACElib
 
             //OptimizeGonohrreaRandomizedWTP optimizer = new OptimizeGonohrreaRandomizedWTP();
             OptimizeGonohrrea_StructuredPolicy optimizer = new OptimizeGonohrrea_StructuredPolicy();
-            optimizer.Run(_excelInterface, _modelSettings);
+            optimizer.Run(_excelInterface, _modelSettings, _listModelInstr);
 
             ExcelIntface.ReportOptimization(optimizer.Summary);
         }
@@ -181,7 +187,7 @@ namespace APACElib
 
             ArrayList staticPolicyDesigns = new ArrayList();
             // build a temp modeler to find the available decisions
-            EpidemicModeller tempEpidemicModeller = new EpidemicModeller(0, _excelInterface, _modelSettings);
+            EpidemicModeller tempEpidemicModeller = new EpidemicModeller(0, _excelInterface, _modelSettings, _listModelInstr);
 
             // get interval-based static policy designs
             //staticPolicyDesigns = tempEpidemicModeller.GetIntervalBasedStaticPoliciesDesigns();
@@ -238,7 +244,7 @@ namespace APACElib
                 // read model settings
                 _modelSettings.ReadSettings(ref _excelInterface);
                 // create and epidemic modeler
-                EpidemicModeller thisEpidemicModeller = new EpidemicModeller(designIndex, _excelInterface, _modelSettings);
+                EpidemicModeller thisEpidemicModeller = new EpidemicModeller(designIndex, _excelInterface, _modelSettings, _listModelInstr);
                 // don't store epidemic trajectories
                 thisEpidemicModeller.StoreEpiTrajsForExcelOutput(false);
                 // run the simulation
@@ -476,7 +482,7 @@ namespace APACElib
         private void InitializeDynamicPolicyOptimization()
         {
             // create and epidemic modeler (sequential processing)
-            _epidemicModeller = new EpidemicModeller(0, _excelInterface, _modelSettings); // BuildAnEpidemicModeller_SequentialSimulation(0);
+            _epidemicModeller = new EpidemicModeller(0, _excelInterface, _modelSettings, _listModelInstr); // BuildAnEpidemicModeller_SequentialSimulation(0);
 
             // setup dynamic policy optimization setting
             _epidemicModeller.AddDynamicPolicySettings(ref _excelInterface);
@@ -511,7 +517,7 @@ namespace APACElib
             (int epiModellerID, double wtpForHealth, double harmonicStepSize_a, double epsilonGreedy_beta)
         {
             // build an epidemic model
-            EpidemicModeller thisEpidemicModeller = new EpidemicModeller(epiModellerID, _excelInterface, _modelSettings);
+            EpidemicModeller thisEpidemicModeller = new EpidemicModeller(epiModellerID, _excelInterface, _modelSettings, _listModelInstr);
 
             // add dynamic policy settings
             thisEpidemicModeller.AddDynamicPolicySettings(ref _excelInterface);

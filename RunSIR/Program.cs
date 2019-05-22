@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using APACElib;
 
 namespace RunSIR
 {
@@ -19,8 +20,12 @@ namespace RunSIR
             // connect to the epidemic model
             myAPACE.ConnectToExcelInteface();
 
+            List<ModelInstruction> SIRModels = new List<ModelInstruction>();
+            for (int i = 0; i < myAPACE.ModelSetting.GetNumModelsToBuild(); i++)
+                SIRModels.Add(new SIRModel());
+            
             // run apace
-            myAPACE.Run();
+            myAPACE.Run(SIRModels);
 
             if (args.Length > 0 && args[0] == "true")
             {

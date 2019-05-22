@@ -20,7 +20,7 @@ namespace APACElib
         // public model entities
         public DecisionMaker DecisionMaker { get => _decisionMaker; }
         public ParameterManager ParamManager { get => _paramManager; }  
-        public ForceOfInfectionModel FOIModel { get; set; }
+        public ForceOfInfectionModel FOIModel { get => _FOIModel; }
         public List<Class> Classes { get => _classes; }
         private List<Class> _classes = new List<Class>();
         private List<Event> _events = new List<Event>();
@@ -38,6 +38,8 @@ namespace APACElib
         private ParameterManager _paramManager;
         private MonitorOfInterventionsInEffect _monitorOfIntrvsInEffect;
         private int[] _pathogenIDs;
+        private ForceOfInfectionModel _FOIModel;
+
         private int _numOfClasses;        
         private int _simTimeIndex;  // simulation time index
         private int _epiTimeIndex;  // time indeces since the detection of epidemic
@@ -58,7 +60,7 @@ namespace APACElib
             _decisionMaker = null;
             _paramManager.Parameters.Clear();
             _paramManager = null;
-            FOIModel = null;
+            _FOIModel = null;
             _classes.Clear();
             _classes = null;
             _events.Clear();
@@ -394,10 +396,11 @@ namespace APACElib
         // subs to create model
         #region subs to create model  
         // create the model
-        public void BuildModel(ModelSettings modelSettings, bool extractOutputHeaders = false)
+        public void BuildModel(ModelSettings modelSettings, ModelInstruction modelInstr, bool extractOutputHeaders = false)
         {
             // model settings
             _modelSets = modelSettings;
+
             // epidemic history
             EpiHist = new EpidemicHistory(_classes, _events);
             // decision maker
@@ -405,32 +408,34 @@ namespace APACElib
                 _modelSets.EpidemicTimeIndexToStartDecisionMaking,
                 _modelSets.NumOfDeltaT_inDecisionInterval, 
                 EpiHist.Conditions);
-            // add parameters
-            AddParameters(modelSettings.Sheets.ParametersSheet);
+
+            _paramManager = new ParameterManager();
+
             // add pathogens
-            AddPathogens(modelSettings.Sheets.PathogenSheet);
-            // add classes
-            AddClasses(modelSettings.Sheets.ClassesSheet);
+            AddPathogens();
+
             // force of infection model
-            FOIModel = new ForceOfInfectionModel(
+            _FOIModel = new ForceOfInfectionModel(
                 _pathogenIDs.Length,
                 ref _paramManager);
-            // add contact matrices
-            FOIModel.AddContactInfo(
-                _modelSets.GetBaseContactMatrices(),
-                _modelSets.GetPercentChangeInContactMatricesParIDs()
-                );
-            // add events
-            AddEvents(modelSettings.Sheets.EventSheet);            
-            // add interventions
-            AddInterventions(modelSettings.Sheets.InterventionSheet);
+
+            // build the model accoding to the provided instruction 
+            modelInstr.AssignElements(
+                pathogenIDs: ref _pathogenIDs,
+                modelSets: modelSettings,
+                paramManager: _paramManager,
+                classes: _classes,
+                events: _events,
+                epiHist: EpiHist,
+                FOIModel: _FOIModel,
+                decisionMaker: _decisionMaker);
+            modelInstr.BuildModel();
+            
+            _numOfClasses = _classes.Count;            
+            
             // add resources
             AddResources(modelSettings.Sheets.ResourcesSheet);            
-            // add summation statistics
-            AddSummationStatistics(modelSettings.Sheets.SummationStatisticsSheet);
-            // add ratio statistics
-            AddRatioStatistics(modelSettings.Sheets.RatioStatisticsSheet);
-            // add trajectories for simulation output
+            
             EpiHist.SetupSimOutputTrajs(
                 ID,
                 _modelSets.DeltaT,
@@ -439,12 +444,7 @@ namespace APACElib
                 ref _decisionMaker,
                 ref _classes,
                 extractOutputHeaders);
-            // add features
-            AddFeatures(modelSettings.Sheets.FeaturesSheet);
-            // add conditions
-            AddConditions(modelSettings.Sheets.ConditionsSheet);
-            // add connections
-            AddConnections(modelSettings.Sheets.ConnectionsMatrix);
+                        
             // monitor of interventions in effect
             _monitorOfIntrvsInEffect = new MonitorOfInterventionsInEffect(ref _decisionMaker);
             // economic cost and health
@@ -456,414 +456,15 @@ namespace APACElib
             if (_modelSets.DecisionRule == EnumEpiDecisions.PredeterminedSequence)
                 _decisionMaker.AddPrespecifiedDecisionsOverDecisionsPeriods(_modelSets.PrespecifiedSequenceOfInterventions);
         }
-        // read parameters
-        private void AddParameters(Array parametersSheet)
-        {
-            // parameter manager
-            _paramManager = new ParameterManager();
 
-            int lastRowIndex = parametersSheet.GetLength(0);
-            for (int rowIndex = 1; rowIndex <= lastRowIndex; ++rowIndex)
-            {
-                // ID and Name
-                int parameterID = Convert.ToInt32(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.ID));
-                string name = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Name));
-                bool updateAtEachTimeStep = SupportFunctions.ConvertYesNoToBool(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.UpdateAtEachTimeStep).ToString());
-                string distribution = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Distribution));
-                Parameter.EnumType enumParameterType = Parameter.FindParameterType(distribution);
-                bool includedInCalibration = SupportFunctions.ConvertYesNoToBool(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.IncludedInCalibration).ToString());
-
-                Parameter thisParameter = null;
-                double par1 = 0, par2 = 0, par3 = 0, par4 = 0;
-
-                // read parameter values
-                switch (enumParameterType)
-                {
-                    case Parameter.EnumType.LinearCombination:
-                        {
-                            string strPar1 = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par1));
-                            string strPar2 = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par2));
-
-                            // remove spaces and parenthesis
-                            strPar1 = strPar1.Replace(" ", "");
-                            strPar1 = strPar1.Replace("(", "");
-                            strPar1 = strPar1.Replace(")", "");
-                            strPar2 = strPar2.Replace(" ", "");
-                            strPar2 = strPar2.Replace("(", "");
-                            strPar2 = strPar2.Replace(")", "");
-                            // convert to array
-                            string[] strParIDs = strPar1.Split(',');
-                            string[] strCoefficients = strPar2.Split(',');
-                            // convert to numbers
-                            int[] arrParIDs = Array.ConvertAll<string, int>(strParIDs, Convert.ToInt32);
-                            double[] arrCoefficients = Array.ConvertAll<string, double>(strCoefficients, Convert.ToDouble);
-
-                            thisParameter = new LinearCombination(parameterID, name, _paramManager.GetParameters(arrParIDs), arrCoefficients);
-                        }
-                        break;
-                    case Parameter.EnumType.Product:
-                        {
-                            string strPar1 = Convert.ToString(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par1));
-
-                            // remove spaces and parenthesis
-                            strPar1 = strPar1.Replace(" ", "");
-                            strPar1 = strPar1.Replace("(", "");
-                            strPar1 = strPar1.Replace(")", "");
-                            // convert to array
-                            string[] strParIDs = strPar1.Split(',');
-                            // convert to numbers
-                            int[] arrParIDs = Array.ConvertAll<string, int>(strParIDs, Convert.ToInt32);
-
-                            thisParameter = new ProductParameter(parameterID, name, _paramManager.GetParameters(arrParIDs));
-                        }
-                        break;
-                    default:
-                        {
-                            par1 = Convert.ToDouble(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par1));
-                            par2 = Convert.ToDouble(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par2));
-                            par3 = Convert.ToDouble(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par3));
-                            par4 = Convert.ToDouble(parametersSheet.GetValue(rowIndex, (int)ExcelInterface.EnumParamsColumns.Par4));
-                        }
-                        break;
-                }                         
-
-                // build parameters
-                switch (enumParameterType)
-                {
-                    case Parameter.EnumType.LinearCombination:
-                    case Parameter.EnumType.Product:
-                        // created above
-                        break;
-                    case Parameter.EnumType.Correlated:
-                        thisParameter = new CorrelatedParameter(parameterID, name, 
-                            _paramManager.Parameters[(int)par1], par2, par3);
-                        break;
-                    case Parameter.EnumType.Multiplicative:
-                        thisParameter = new MultiplicativeParameter(parameterID, name, 
-                            _paramManager.Parameters[(int)par1], _paramManager.Parameters[(int)par2], (bool)(par3==1));
-                        break;
-                    case Parameter.EnumType.TimeDependentLinear:
-                        thisParameter = new TimeDependetLinear(parameterID, name, 
-                            _paramManager.Parameters[(int)par1], _paramManager.Parameters[(int)par2], par3, par4);
-                        break;
-                    case Parameter.EnumType.TimeDependentOscillating:
-                        thisParameter = new TimeDependetOscillating(parameterID, name,
-                             _paramManager.Parameters[(int)par1], _paramManager.Parameters[(int)par2],
-                              _paramManager.Parameters[(int)par3], _paramManager.Parameters[(int)par4]);
-                        break;
-                    case Parameter.EnumType.TimeDependentExponential:
-                        thisParameter = new TimeDependentExponential(parameterID, name,
-                             _paramManager.Parameters[(int)par1], _paramManager.Parameters[(int)par2],
-                             _paramManager.Parameters[(int)par3], _paramManager.Parameters[(int)par4]);
-                        break;
-                    case Parameter.EnumType.TimeDependentSigmoid:
-                        thisParameter = new TimeDependentSigmoid(parameterID, name,
-                             _paramManager.Parameters[(int)par1], _paramManager.Parameters[(int)par2],
-                             _paramManager.Parameters[(int)par3]);
-                        break;
-                    case Parameter.EnumType.ComorbidityDisutility:
-                        thisParameter = new ComorbidityDisutility(parameterID, name, 
-                            _paramManager.Parameters[(int)par1], _paramManager.Parameters[(int)par2]);
-                        break;
-                    default: // indepedent
-                        {
-                            EnumRandomVariates enumRVG = RandomVariateLib.SupportProcedures.ConvertToEnumRVG(distribution);
-                            thisParameter = new IndependetParameter(parameterID, name, enumRVG, par1, par2, par3, par4);
-                        }
-                        break;
-                }
-
-                thisParameter.ShouldBeUpdatedByTime = updateAtEachTimeStep;
-                thisParameter.IncludedInCalibration = includedInCalibration;
-                
-                // add the parameter
-                _paramManager.Add(thisParameter);
-            }
-        }
         // add pathogens
-        private void AddPathogens(Array pathogenSheet)
+        private void AddPathogens()
         {
-            _pathogenIDs = new int[pathogenSheet.GetLength(0)];
-            for (int rowIndex = 1; rowIndex <= pathogenSheet.GetLength(0); ++rowIndex)
+            _pathogenIDs = new int[_modelSets.Sheets.PathogenSheet.GetLength(0)];
+            for (int rowIndex = 1; rowIndex <= _modelSets.Sheets.PathogenSheet.GetLength(0); ++rowIndex)
             {
-                _pathogenIDs[rowIndex - 1] = Convert.ToInt32(pathogenSheet.GetValue(rowIndex, 1));
+                _pathogenIDs[rowIndex - 1] = Convert.ToInt32(_modelSets.Sheets.PathogenSheet.GetValue(rowIndex, 1));
             }
-        }
-        // add classes
-        private void AddClasses(Array classesSheet)
-        {
-            for (int rowIndex = 1; rowIndex <= classesSheet.GetLength(0); ++rowIndex)
-            {
-                // ID and Name
-                int classID = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ID));
-                string name = Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.Name));
-                // class type
-                string strClassType = Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ClassType));
-
-                // DALY loss and cost outcomes
-                bool ifCollectOutcomes = false;
-                int parID_DALYPerNewMember=0; int parID_costPerNewMember=0; int parID_healthQualityPerUnitOfTime=0; int parID_costPerUnitOfTime=0;
-                ifCollectOutcomes = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.IfCollectOutcomes)));
-                if (ifCollectOutcomes)
-                {
-                    parID_DALYPerNewMember = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ParID_DALYPerNewMember));
-                    parID_costPerNewMember = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ParID_CostPerNewMember));
-                    parID_healthQualityPerUnitOfTime = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ParID_DisableWeightPerUnitOfTime));
-                    parID_costPerUnitOfTime = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ParID_CostPerUnitOfTime));
-                }
-
-                // statistics                
-                bool collectPrevalenceStats = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CollectPrevalenceStats)));
-                bool collectAccumIncidenceStats = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.CollectAccumIncidenceStats)));
-
-                // simulation output
-                bool showIncidence = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ShowIncidence)));
-                bool showPrevalence = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ShowPrevalence)));
-                bool showAccumIncidence = SupportFunctions.ConvertYesNoToBool(Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ShowAccumIncidence)));
-
-                // build and add the class
-                #region Build class
-                switch (strClassType)
-                {
-                    case "Class: Normal":
-                        {
-                            // initial number parameter ID
-                            int initialMembersParID = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.InitialMembers));
-                            // empty to eradicate
-                            string strEmptyToEradicate = Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.EmptyToEradicate));
-                            bool emptyToEradicate = SupportFunctions.ConvertYesNoToBool(strEmptyToEradicate);
-
-                            // susceptibility parameter ID
-                            string strSusceptibilityIDs = Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.SusceptibilityParID));
-                            // infectivity parameter ID
-                            string strInfectivityIDs = Convert.ToString(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.InfectivityParID));
-                            // row in contact matrix
-                            int rowInContactMatrix = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.RowInContactMatrix));
-
-                            // build the class
-                            Class_Normal thisNormalClass = new Class_Normal(classID, name);
-                            // set up initial member and eradication rules
-                            thisNormalClass.SetupInitialAndStoppingConditions(_paramManager.Parameters[initialMembersParID], emptyToEradicate);
-                            // set up transmission dynamics properties                            
-                            thisNormalClass.SetupTransmissionDynamicsProperties(
-                                _paramManager.GetParameters(strSusceptibilityIDs), _paramManager.GetParameters(strInfectivityIDs), rowInContactMatrix);
-
-                            // add class
-                            Classes.Add(thisNormalClass);
-                            
-                        }
-                        break;
-                    case "Class: Death":
-                        {
-                            // build the class
-                            Class_Death thisDealthClass = new Class_Death(classID, name);
-                            // add class
-                            Classes.Add(thisDealthClass);
-                        }
-                        break;
-                    case "Class: Splitting":
-                        {
-                            // read settings
-                            int parIDForProbOfSuccess = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ParIDForProbOfSuccess));
-                            int destClassIDGivenSuccess = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.DestinationClassIDIfSuccess));
-                            int destClassIDGivenFailure = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.DestinationClassIDIfFailure));
-
-                            // build the class
-                            Class_Splitting thisSplittingClass = new Class_Splitting(classID, name);
-                            thisSplittingClass.SetUp(_paramManager.Parameters[parIDForProbOfSuccess], destClassIDGivenSuccess, destClassIDGivenFailure);
-
-                            // add class
-                            Classes.Add(thisSplittingClass);
-                        }
-                        break;
-                    case "Class: Resource Monitor":
-                        {
-                            // read settings
-                            int resourceIDToCheckAvailability = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ResourceIDToCheckAvailability));
-                            double resourceUnitsConsumedPerArrival = (double)Convert.ToDouble(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ResourceUnitsConsumedPerArrival));
-                            int destinationClassIDGivenSuccess = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.DestinationClassIDIfSuccess));
-                            int destinationClassIDGivenFailure = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.DestinationClassIDIfFailure));                            
-
-                            // build the class
-                            Class_ResourceMonitor thisResourceMonitorClass = new Class_ResourceMonitor(classID, name);                            
-                            thisResourceMonitorClass.SetUp(resourceIDToCheckAvailability, resourceUnitsConsumedPerArrival, destinationClassIDGivenSuccess, destinationClassIDGivenFailure);
-
-                            // add class
-                            Classes.Add(thisResourceMonitorClass);
-                        }
-                        break;
-                }
-                #endregion
-
-                // class statistics 
-                Classes.Last().ClassStat = new OneDimTrajectory(classID, name, _modelSets.WarmUpPeriodSimTIndex);
-                Classes.Last().ClassStat.SetupStatisticsCollectors(
-                    collectAccumIncidenceStats,
-                    collectPrevalenceStats
-                    );
-                // adding time series
-                Classes.Last().ClassStat.AddTimeSeries(
-                    collectIncidence: showIncidence,
-                    collectPrevalence: false,
-                    collectAccumIncidence: false,
-                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval
-                    );
-                
-                // adding cost and health outcomes
-                if (ifCollectOutcomes)
-                    Classes.Last().ClassStat.DeltaCostHealthCollector 
-                        = new DeltaTCostHealth(
-                            _modelSets.DeltaT,
-                            _modelSets.WarmUpPeriodSimTIndex, 
-                            _paramManager.Parameters[parID_DALYPerNewMember],
-                            _paramManager.Parameters[parID_costPerNewMember],
-                            _paramManager.Parameters[parID_healthQualityPerUnitOfTime],
-                            _paramManager.Parameters[parID_costPerUnitOfTime]
-                            );
-
-                // set up which statistics to show
-                Classes.Last().ShowIncidence = showIncidence;
-                Classes.Last().ShowPrevalence = showPrevalence;
-                Classes.Last().ShowAccumIncidence = showAccumIncidence;
-
-            }// end of for
-            _numOfClasses = Classes.Count;
-        }
-        // add interventions
-        private void AddInterventions(Array interventionsSheet)
-        {
-            //_useSameContactMatrixForAllDecisions = true;
-
-            for (int rowIndex = 1; rowIndex <= interventionsSheet.GetLength(0); ++rowIndex)
-            {
-                Intervention thisIntervention;
-                double timeBecomeAvailable = 0;
-                double timeBecomeUnavailable = 0;
-                int resourceID = 0;
-                int delayParID = 0;
-                bool affectingContactPattern;
-                string strDecisionRule;
-                EnumDecisionRule enumDecisionRule;
-                int switchStatus = 0;
-
-                // read intervention information
-                int ID = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ID));
-                // name
-                string name = Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.Name));
-                // action type
-                string strType = Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.Type));
-                EnumInterventionType type = Intervention.ConvertToActionType(strType);
-                // mutually exclusive group
-                int mutuallyExclusiveGroup = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.MutuallyExclusiveGroup));
-
-                // availability
-                timeBecomeAvailable = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.TimeBecomesAvailable));
-                timeBecomeUnavailable = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.TimeBecomesUnavailableTo));
-
-                // costs
-                double fixedCost = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.FixedCost));
-                double costPerUnitOfTime = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.CostPerUnitOfTime));
-                double penaltyForSwitchingFromOnToOff = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.PenaltyOfSwitchingFromOnToOff));
-
-                // if type is default
-                if (type == EnumInterventionType.Default)
-                {
-                    affectingContactPattern = true;
-                    enumDecisionRule = EnumDecisionRule.Predetermined;
-                    switchStatus = 1;
-                }
-                else // if type is not default
-                {
-                    affectingContactPattern = SupportFunctions.ConvertYesNoToBool(
-                        Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.AffectingContactPattern)));
-                    strDecisionRule = Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.OnOffSwitchSetting));
-                    enumDecisionRule = SupportProcedures.ConvertToDecisionRule(strDecisionRule);
-                    
-                    delayParID = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.DelayParID));
-                    resourceID = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ResourceID));
-
-                    // if this intervention is affecting contacts
-                    if (affectingContactPattern)
-                        FOIModel.AddIntrvnAffectingContacts(rowIndex - 1);
-
-                    // switch value for the pre-determined employment
-                    switchStatus = SupportProcedures.ConvertToSwitchValue(
-                        Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.PreDeterminedEmployment_SwitchValue)));
-                }
-
-                // set up resource requirement
-                //if (Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ResourceID)) != "")
-                //  thisIntervention.SetupResourceRequirement(Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ResourceID)));
-
-                // define decision rule
-                DecisionRule simDecisionRule = null;
-                switch (enumDecisionRule)
-                {
-                    case EnumDecisionRule.Predetermined:
-                        {
-                            simDecisionRule = new DecionRule_Predetermined(switchStatus);
-                        }
-                        break;
-                    case EnumDecisionRule.Periodic:
-                        {
-                            int frequency = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.PeriodicEmployment_Periodicity));
-                            int duration = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.PeriodicEmployment_Length));
-                        }
-                        break;
-                    case EnumDecisionRule.ConditionBased:
-                        {
-                            int conditionIDToTurnOn = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_ConditionIDToTurnOn));
-                            int conditionIDToTurnOff = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_ConditionIDToTurnOff));
-                            simDecisionRule = new DecisionRule_ConditionBased(EpiHist.Conditions, conditionIDToTurnOn, conditionIDToTurnOff);
-                        }
-                        break;
-                    case EnumDecisionRule.IntervalBased:
-                        {
-                            //double availableUntilThisTime = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.IntervalBasedOptimizationSettings_AvailableUpToTime));
-                            //int minNumOfDecisionPeriodsToUse = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.IntervalBasedOptimizationSettings_MinNumOfDecisionPeriodsToUse));
-                            //thisIntervention.AddIntervalBaseEmploymentSetting(availableUntilThisTime, minNumOfDecisionPeriodsToUse);
-                        }
-                        break;                   
-                    case EnumDecisionRule.Dynamic:
-                        {
-                            //bool selectOnOffStatusAsFeature = SupportFunctions.ConvertYesNoToBool(Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.SelectOnOffStatusAsFeature)));
-
-                            //int previousObservationPeriodToObserveOnOffValue=0;
-                            //if (selectOnOffStatusAsFeature)
-                            //    previousObservationPeriodToObserveOnOffValue = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.PreviousObservationPeriodToObserveValue));
-                            
-                            //bool useNumOfDecisionPeriodEmployedAsFeature = SupportFunctions.ConvertYesNoToBool(Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.UseNumOfDecisionPeriodEmployedAsFeature)));
-                            //bool remainOnOnceSwitchedOn = SupportFunctions.ConvertYesNoToBool(Convert.ToString(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.RemainsOnOnceSwitchedOn)));
-                            //thisIntervention.AddDynamicPolicySettings(remainOnOnceSwitchedOn); //selectOnOffStatusAsFeature, previousObservationPeriodToObserveOnOffValue, useNumOfDecisionPeriodEmployedAsFeature,
-
-                            //// add features related to this intervention
-                            //// on/off status features (note that default interventions can not have on/off status feature)
-                            //if (selectOnOffStatusAsFeature && thisIntervention.Type != Intervention.enumActionType.Default)
-                            //    _features.Add(new Feature_InterventionOnOffStatus("On/Off status of " + thisIntervention.Name, _numOfFeatures++, thisIntervention.ID, previousObservationPeriodToObserveOnOffValue));
-                            //// feature on the number of decision periods over which this intervention is used
-                            //if (useNumOfDecisionPeriodEmployedAsFeature)
-                            //    _features.Add(new Feature_NumOfDecisoinPeriodsOverWhichThisInterventionWasUsed("Number of decision periods " + thisIntervention.Name + " is used", _numOfFeatures++, thisIntervention.ID));
-                        }
-                        break;
-                }
-
-                // create the intervention
-                thisIntervention = new Intervention(ID, name, type, affectingContactPattern,
-                    timeIndexBecomesAvailable: (int)(timeBecomeAvailable / _modelSets.DeltaT), 
-                    timeIndexBecomesUnavailable: (int)(timeBecomeUnavailable / _modelSets.DeltaT), 
-                    parIDDelayToGoIntoEffectOnceTurnedOn: delayParID, 
-                    decisionRule: simDecisionRule);
-
-                // set up cost
-                thisIntervention.SetUpCost(fixedCost, costPerUnitOfTime, penaltyForSwitchingFromOnToOff);
-
-                // add the intervention
-                DecisionMaker.AddAnIntervention(thisIntervention);
-            }
-
-            // gather info
-            //DecisionMaker.UpdateAfterAllInterventionsAdded();
-
         }
         // add resources
         private void AddResources(Array resourcesSheet)
@@ -901,52 +502,7 @@ namespace APACElib
                 thisResource.ShowAvailability = SupportFunctions.ConvertYesNoToBool(Convert.ToString(resourcesSheet.GetValue(rowIndex, (int)ExcelInterface.enumResourceColumns.ShowAvailableUnits)));
             } 
         }
-        // add events
-        private void AddEvents(Array eventSheet)
-        {
-            for (int rowIndex = 1; rowIndex <= eventSheet.GetLength(0); ++rowIndex)
-            {
-                // general settings
-                int ID = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.ID));
-                string name = Convert.ToString(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.Name));
-                string strEventType = Convert.ToString(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.EventType));
-                int IDOfActivatingIntervention = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfActiviatingIntervention));
-                int IDOfDestinationClass = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfDestinationClass));
-
-                // build the event
-                #region Build event
-                switch (strEventType)
-                {
-                    case "Event: Birth":
-                        {
-                            int IDOfRateParameter = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfRateParameter));
-                            // create the event
-                            Event_Birth thisEvent_Birth = new Event_Birth(name, ID, IDOfActivatingIntervention, _paramManager.Parameters[IDOfRateParameter], IDOfDestinationClass);
-                            _events.Add(thisEvent_Birth);
-                        }
-                        break;
-                    case "Event: Epidemic-Independent":
-                        {
-                            int IDOfRateParameter = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfRateParameter));
-                            // create the process
-                            Event_EpidemicIndependent thisEvent_EpidemicIndependent = new Event_EpidemicIndependent(
-                                name, ID, IDOfActivatingIntervention, _paramManager.Parameters[IDOfRateParameter], IDOfDestinationClass);
-                            _events.Add(thisEvent_EpidemicIndependent);
-                        }
-                        break;
-                    case "Event: Epidemic-Dependent":
-                        {
-                            int IDOfPathogenToGenerate = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfGeneratingPathogen));
-                            // create the process
-                            Event_EpidemicDependent thisEvent_EpidemicDependent = new Event_EpidemicDependent(name, ID, IDOfActivatingIntervention, IDOfPathogenToGenerate, IDOfDestinationClass);
-                            _events.Add(thisEvent_EpidemicDependent);
-                        }
-                        break;
-                }
-                #endregion
-
-            } // end of for
-        }
+       
         // add resource rules
         private void AddResourceRules(Array resourceRulesSheet)
         {
@@ -991,431 +547,9 @@ namespace APACElib
                 //_resourceRules.Add(thisResourceRule);
             }
         }
-        // add summation statistics
-        private void AddSummationStatistics(Array summationStatisticsSheet)
-        {
-            if (summationStatisticsSheet == null) return;
-            for (int rowIndex = 1; rowIndex <= summationStatisticsSheet.GetLength(0); ++rowIndex)
-            {
-                // common information between summation and ratio statistics
-                CommonSumRatioStatistics info = new CommonSumRatioStatistics(summationStatisticsSheet, rowIndex);
-
-                // ID and Name
-                string strDefinedOn = Convert.ToString(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.DefinedOn));
-
-                // defined on 
-                SumTrajectory.EnumDefinedOn definedOn = SumTrajectory.EnumDefinedOn.Classes;
-                if (strDefinedOn == "Events") definedOn = SumTrajectory.EnumDefinedOn.Events;
-
-                // DALY and cost outcomes
-                bool ifCollectOutcomes = false;
-                int parID_DALYPerNewMember = 0; int parID_costPerNewMember = 0;
-                ifCollectOutcomes = SupportFunctions.ConvertYesNoToBool(Convert.ToString(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.IfCollectOutcomes)));
-                if (ifCollectOutcomes)
-                {
-                    parID_DALYPerNewMember = Convert.ToInt32(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.ParID_DALYPerNewMember));
-                    parID_costPerNewMember = Convert.ToInt32(summationStatisticsSheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.ParID_CostPerNewMember));
-                }
-                
-                // build and add the summation statistics
-                if (definedOn == SumTrajectory.EnumDefinedOn.Classes)
-                {
-                    SumClassesTrajectory thisSumClassTraj = new SumClassesTrajectory
-                        (info.ID, info.Name, info.StrType, info.Formula, info.IfDisplay, _modelSets.WarmUpPeriodSimTIndex, _modelSets.NumOfDeltaT_inSimOutputInterval);
-                    // add the summation statistics
-                    EpiHist.SumTrajs.Add(thisSumClassTraj);
-                    // add the survey 
-                    if (info.SurveillanceDataAvailable)
-                    {
-                        // find the type of this summation statistics
-                        switch (thisSumClassTraj.Type)
-                        {
-                            case SumTrajectory.EnumType.Incidence:
-                                EpiHist.SurveyedIncidenceTrajs.Add(
-                                    new SurveyedIncidenceTrajectory(
-                                        id: info.ID,
-                                        name: info.Name,
-                                        displayInSimOutput: info.IfDisplay,
-                                        firstObsMarksStartOfEpidemic: info.FirstObsMarksEpiStart,
-                                        sumClassesTrajectory: thisSumClassTraj,
-                                        sumEventTrajectory: null,
-                                        ratioTrajectory: null,
-                                        nDeltaTsObsPeriod: _modelSets.NumOfDeltaT_inObservationPeriod, 
-                                        nDeltaTsDelayed: info.NDeltaTDelayed,
-                                        noise_nOfDemoninatorSampled: 1)
-                                        );
-                                break;
-                            case SumTrajectory.EnumType.AccumulatingIncident:
-                            case SumTrajectory.EnumType.Prevalence:
-                                EpiHist.SurveyedPrevalenceTrajs.Add(
-                                    new SurveyedPrevalenceTrajectory(
-                                        id: info.ID,
-                                        name: info.Name,
-                                        displayInSimOutput: info.IfDisplay,
-                                        firstObsMarksStartOfEpidemic: info.FirstObsMarksEpiStart,
-                                        sumClassesTrajectory: thisSumClassTraj,
-                                        ratioTrajectory: null,
-                                        nDeltaTsObsPeriod: _modelSets.NumOfDeltaT_inObservationPeriod,
-                                        nDeltaTsDelayed: info.NDeltaTDelayed, 
-                                        noise_percOfDemoninatorSampled: 1)
-                                        );
-                                break;
-                        }
-                    }
-                    
-                    // update class time-series
-                    foreach (int i in thisSumClassTraj.ClassIDs)
-                    {
-                        if (thisSumClassTraj.Type == SumTrajectory.EnumType.Incidence)
-                            _classes[i].ClassStat.AddTimeSeries(
-                                collectIncidence: true,
-                                collectAccumIncidence: false,
-                                collectPrevalence: false, 
-                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval
-                                );
-                        if (thisSumClassTraj.Type == SumTrajectory.EnumType.AccumulatingIncident)
-                            _classes[i].ClassStat.CollectAccumIncidenceStats = true;
-                    }
-                }
-                else // if defined on events
-                {
-                    SumEventTrajectory thisSumEventTraj = new SumEventTrajectory
-                        (info.ID, info.Name, info.StrType, info.Formula, info.IfDisplay, _modelSets.WarmUpPeriodSimTIndex, _modelSets.NumOfDeltaT_inSimOutputInterval);
-                    // add the summation statistics
-                    EpiHist.SumTrajs.Add(thisSumEventTraj);
-
-                    // add the survey 
-                    if (info.SurveillanceDataAvailable)
-                    {
-                        // find the type of this summation statistics
-                        switch (thisSumEventTraj.Type)
-                        {
-                            case SumTrajectory.EnumType.Incidence:
-                                EpiHist.SurveyedIncidenceTrajs.Add(
-                                    new SurveyedIncidenceTrajectory(
-                                        info.ID,
-                                        info.Name,
-                                        info.IfDisplay,
-                                        info.FirstObsMarksEpiStart,
-                                        null,
-                                        thisSumEventTraj,
-                                        null,
-                                        _modelSets.NumOfDeltaT_inObservationPeriod,
-                                        info.NDeltaTDelayed, 
-                                        noise_nOfDemoninatorSampled: 1)
-                                        );
-                                break;
-                            case SumTrajectory.EnumType.AccumulatingIncident:
-                            case SumTrajectory.EnumType.Prevalence:                                
-                                break;
-                        }
-                    }                    
-                }
-
-                // adding cost and health outcomes
-                if (ifCollectOutcomes)
-                    EpiHist.SumTrajs.Last().DeltaCostHealthCollector = 
-                        new DeltaTCostHealth(
-                            _modelSets.DeltaT, 
-                            _modelSets.WarmUpPeriodSimTIndex, 
-                            _paramManager.Parameters[parID_DALYPerNewMember],
-                            _paramManager.Parameters[parID_costPerNewMember]);
-
-                // update calibraton infor
-                if (_modelSets.ModelUse == EnumModelUse.Calibration && info.IfIncludedInCalibration)
-                    EpiHist.SumTrajs.Last().CalibInfo = 
-                        new SpecialStatCalibrInfo(
-                            info.StrMeasureOfFit, 
-                            info.StrLikelihood, 
-                            info.StrLikelihoodParam, 
-                            info.IfCheckWithinFeasibleRange, 
-                            info.FeasibleMin, 
-                            info.FeasibleMax, 
-                            info.FeasibleMinThreshodToHit);
-                
-            }
-
-            // identify sum statistics for which time-series should be collected
-            if (_modelSets.ModelUse == EnumModelUse.Calibration)
-                foreach (SumTrajectory st in EpiHist.SumTrajs.Where(s => !(s.CalibInfo is null)))
-                {
-                    switch (st.Type)
-                    {
-                        case SumTrajectory.EnumType.Incidence:
-                            st.AddTimeSeries(
-                                collectIncidence: true,
-                                collectPrevalence: false,
-                                collectAccumIncidence: false,
-                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                );
-                            break;
-                        case SumTrajectory.EnumType.AccumulatingIncident:
-                            st.AddTimeSeries(
-                                collectIncidence: false,
-                                collectPrevalence: false,
-                                collectAccumIncidence: true,
-                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                );
-                            break;
-                        case SumTrajectory.EnumType.Prevalence:
-                            st.AddTimeSeries(
-                                collectIncidence: false,
-                                collectPrevalence: true,
-                                collectAccumIncidence: false,
-                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                );
-                            break;
-                    }
-                
-                    if (st.CalibInfo.GoodnessOfFit == SpecialStatCalibrInfo.EnumMeasureOfFit.Likelihood)
-                    {
-                        switch (st.CalibInfo.LikelihoodFunc)
-                        {
-                            case SpecialStatCalibrInfo.EnumLikelihoodFunc.Binomial:
-                                {
-                                    EpiHist.SumTrajs[st.CalibInfo.LikelihoodParam.Value].AddTimeSeries(
-                                        collectIncidence: false,
-                                        collectPrevalence: true,
-                                        collectAccumIncidence: false,
-                                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                        );
-                                }
-                                break;
-                        }
-                    }
-                }
-        }
-        // add ratio statistics
-        private void AddRatioStatistics(Array ratioStatsSheet)
-        {
-            if (ratioStatsSheet == null) return;
-
-            for (int rowIndex = 1; rowIndex <= ratioStatsSheet.GetLength(0); ++rowIndex)
-            {
-                // common information between summation and ratio statistics
-                CommonSumRatioStatistics info = new CommonSumRatioStatistics(ratioStatsSheet, rowIndex);
-               
-                // build a ratio stat
-                RatioTrajectory thisRatioTraj = new RatioTrajectory(
-                    info.ID,
-                    info.Name,
-                    info.StrType,
-                    info.Formula,
-                    info.IfDisplay, 
-                    _modelSets.WarmUpPeriodSimTIndex, 
-                    _modelSets.NumOfDeltaT_inSimOutputInterval);
-
-                // set up calibration
-                if (_modelSets.ModelUse == EnumModelUse.Calibration && info.IfIncludedInCalibration)
-                    thisRatioTraj.CalibInfo = new SpecialStatCalibrInfo(
-                        info.StrMeasureOfFit, 
-                        info.StrLikelihood, 
-                        info.StrLikelihoodParam, 
-                        info.IfCheckWithinFeasibleRange, 
-                        info.FeasibleMin, 
-                        info.FeasibleMax, 
-                        info.FeasibleMinThreshodToHit);
-
-                // add the ratio statistics
-                EpiHist.RatioTrajs.Add(thisRatioTraj);
-
-                // add the survey 
-                if (info.SurveillanceDataAvailable)
-                {
-                    switch (thisRatioTraj.Type)
-                    {
-                        case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
-                        case RatioTrajectory.EnumType.AccumulatedIncidenceOverAccumulatedIncidence:
-                            EpiHist.SurveyedPrevalenceTrajs.Add(
-                                new SurveyedPrevalenceTrajectory(
-                                    info.ID,
-                                    info.Name,
-                                    info.IfDisplay,
-                                    info.FirstObsMarksEpiStart,
-                                    null,
-                                    thisRatioTraj,
-                                    _modelSets.NumOfDeltaT_inObservationPeriod,
-                                    info.NDeltaTDelayed,
-                                    info.SurveillanceNoise)
-                                    );
-                            break;
-                        case RatioTrajectory.EnumType.IncidenceOverIncidence:
-                        case RatioTrajectory.EnumType.IncidenceOverPrevalence:
-                            EpiHist.SurveyedIncidenceTrajs.Add(
-                                new SurveyedIncidenceTrajectory(
-                                    info.ID,
-                                    info.Name,
-                                    info.IfDisplay,
-                                    info.FirstObsMarksEpiStart,
-                                    null,
-                                    null,
-                                    thisRatioTraj,
-                                    _modelSets.NumOfDeltaT_inObservationPeriod,
-                                    info.NDeltaTDelayed,
-                                    info.SurveillanceNoise)
-                                );
-                            break;
-                    }
-                    
-                }
-            }
-
-            // identify ratio statistics for which time-series should be collected
-            if (_modelSets.ModelUse == EnumModelUse.Calibration)
-                foreach (RatioTrajectory rt in EpiHist.RatioTrajs.Where(s => !(s.CalibInfo is null)))
-                {
-                    if (rt.CalibInfo.GoodnessOfFit == SpecialStatCalibrInfo.EnumMeasureOfFit.Likelihood)
-                    {
-                        switch (rt.CalibInfo.LikelihoodFunc)
-                        {
-                            case SpecialStatCalibrInfo.EnumLikelihoodFunc.Binomial:
-                                {
-                                    switch (rt.Type)
-                                    {
-                                        case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
-                                            {
-                                                EpiHist.SumTrajs[rt.NominatorSpecialStatID].AddTimeSeries(
-                                                    collectIncidence: false,
-                                                    collectPrevalence: true,
-                                                    collectAccumIncidence: false,
-                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                                    );
-                                                EpiHist.SumTrajs[rt.DenominatorSpecialStatID].AddTimeSeries(
-                                                    collectIncidence: false,
-                                                    collectPrevalence: true,
-                                                    collectAccumIncidence: false,
-                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                                    );
-                                            }
-                                            break;
-                                        case RatioTrajectory.EnumType.IncidenceOverIncidence:
-                                            {
-                                                EpiHist.SumTrajs[rt.NominatorSpecialStatID].AddTimeSeries(
-                                                    collectIncidence: true,
-                                                    collectPrevalence: false,
-                                                    collectAccumIncidence: false,
-                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                                    );
-                                                EpiHist.SumTrajs[rt.DenominatorSpecialStatID].AddTimeSeries(
-                                                    collectIncidence: true,
-                                                    collectPrevalence: false,
-                                                    collectAccumIncidence: false,
-                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                                    );
-                                            }
-                                            break;
-                                        case RatioTrajectory.EnumType.IncidenceOverPrevalence:
-                                            {
-                                                EpiHist.SumTrajs[rt.NominatorSpecialStatID].AddTimeSeries(
-                                                    collectIncidence: true,
-                                                    collectPrevalence: false,
-                                                    collectAccumIncidence: false,
-                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                                    );
-                                                EpiHist.SumTrajs[rt.DenominatorSpecialStatID].AddTimeSeries(
-                                                    collectIncidence: false,
-                                                    collectPrevalence: true,
-                                                    collectAccumIncidence: false,
-                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                                    );
-                                            }
-                                            break;
-                                    }                                
-                                }
-                                break;
-                        }
-                    }
-                }
-        }
-        // add connections
-        private void AddConnections(int[,] connectionsMatrix)
-        {
-            int i = 0;
-            int classID, processID;
-            while (i < connectionsMatrix.GetLength(0))
-            {
-                classID = connectionsMatrix[i, 0];
-                processID = connectionsMatrix[i, 1];
-                ((Class_Normal)Classes[classID]).AddAnEvent((Event)_events[processID]);
-                
-                ++i;
-            }
-        }
-        // add features
-        private void AddFeatures(Array featuresSheet)
-        {
-            for (int rowIndex = 1; rowIndex <= featuresSheet.GetLength(0); ++rowIndex)
-            {
-                int id = Convert.ToInt32(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.ID));
-                string name = Convert.ToString(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.Name));
-                string strFeatureObs = Convert.ToString(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.FeatureObservation));
-
-                int specialStatID;
-                string strSpecialStatFeatureType;
-                double par;
-                int interventionID;
-                string strInterventionFeatureType;
-
-                if (strFeatureObs == "Time")
-                {
-                    // create a feature
-                    EpiHist.Features.Add(new Feature_EpidemicTime(name, id));
-                }
-                else if (strFeatureObs == "Special Statistics")
-                {
-                    specialStatID = Convert.ToInt32(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.SpecialStatID));
-                    strSpecialStatFeatureType = Convert.ToString(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.SpecialStatFeatureType));
-                    par = Convert.ToDouble(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.Par));
-                    // create a feature
-                    EpiHist.AddASpecialStatisticsFeature(name, id, specialStatID, strSpecialStatFeatureType, par);
-                }
-                else if (strFeatureObs == "Intervention")
-                {
-                    interventionID = Convert.ToInt32(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.InterventionID));
-                    strInterventionFeatureType = Convert.ToString(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.InterventionFeatureType));
-                    // create a feature
-                    EpiHist.Features.Add(new Feature_Intervention(name, id, strInterventionFeatureType, _decisionMaker.Interventions[interventionID]));
-                }
-            }
-        }
-
-        // add conditions
-        private void AddConditions(Array conditionsSheet)
-        {
-            for (int rowIndex = 1; rowIndex <= conditionsSheet.GetLength(0); ++rowIndex)
-            {
-                int id = Convert.ToInt32(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.ID));
-                string name = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.Name));
-                string strDefinedOn = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.DefinedOn));
-                
-                switch (strDefinedOn)
-                {
-                    case "Features":
-                        {
-                            string strFeatureIDs = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureIDs));
-                            string strSigns = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureSigns));
-                            string strThresholds = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureThresholds));
-                            string strConclusion = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureConclusion));
-                            EpiHist.Conditions.Add(new Condition_OnFeatures(id, EpiHist.Features, strFeatureIDs, strSigns, strThresholds, strConclusion));
-                        }
-                        break;
-                    case "Conditions":
-                        {
-                            string strConditions = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.Conditions));
-                            string strConclusion = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.ConditionsConclusions));
-                            EpiHist.Conditions.Add(new Condition_OnConditions(id, EpiHist.Conditions, strConditions, strConclusion));
-                        }
-                        break;
-                    case "Always True":
-                        EpiHist.Conditions.Add(new Condition_AlwaysTrue(id));
-                        break;
-                    case "Always False":
-                        EpiHist.Conditions.Add(new Condition_AlwaysFalse(id));
-                        break;
-                }
-            }
-        }
-
+        
+        
+        
         #endregion
 
     }

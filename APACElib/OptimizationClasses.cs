@@ -269,7 +269,8 @@ namespace APACElib
         public Policy Policy { get; private set; }
         public EpidemicModeller EpiModeller { get; private set; } // epi modeller to estimate derivatives of f
 
-        public GonorrheaSimModel(int id, ExcelInterface excelInterface, ModelSettings modelSets, double[] wtps, Policy policy)
+        public GonorrheaSimModel(int id, ExcelInterface excelInterface, ModelSettings modelSets, 
+            List<ModelInstruction> listModelInstr, double[] wtps, Policy policy)
         {
             _seed = id;
             Policy = policy;
@@ -282,6 +283,7 @@ namespace APACElib
                 ID: id, 
                 excelInterface: excelInterface, 
                 modelSettings: modelSets,
+                listModelInstr: listModelInstr,
                 numOfEpis: wtps.Count() * (2 + 2* Policy.NOfPolicyParameters) 
                 ); 
             EpiModeller.BuildEpidemics();
@@ -402,7 +404,7 @@ namespace APACElib
 
     public class OptimizeGonohrrea_StructuredPolicy : OptimizeGonohrrea
     {                
-        public void Run(ExcelInterface excelInterface, ModelSettings modelSets)
+        public void Run(ExcelInterface excelInterface, ModelSettings modelSets, List<ModelInstruction> listModelInstr)
         {
 
             // initial valueo of policy parameters 
@@ -435,6 +437,7 @@ namespace APACElib
                                 id: epiID++, 
                                 excelInterface: excelInterface, 
                                 modelSets: modelSets, 
+                                listModelInstr: listModelInstr,
                                 wtps: wtps.ToArray(), 
                                 policy: new PolicyExponential(modelSets.OptmzSets.Penalty))
                             );
@@ -495,7 +498,7 @@ namespace APACElib
     public class OptimizeGonohrrea_FixedWTPs : OptimizeGonohrrea
     {
 
-        public void Run(ExcelInterface excelInterface, ModelSettings modelSets)
+        public void Run(ExcelInterface excelInterface, ModelSettings modelSets, List<ModelInstruction> listModelInstr)
         { 
             // initial thresholds for the initial WTP 
             double[] arrX0 = modelSets.OptmzSets.X0;
@@ -521,7 +524,8 @@ namespace APACElib
                                 new GonorrheaSimModel(
                                     epiID++, 
                                     excelInterface, 
-                                    modelSets, 
+                                    modelSets,
+                                    listModelInstr,
                                     new double[1] { wtp },
                                     new PolicyPoint(modelSets.OptmzSets.Penalty))
                                 );

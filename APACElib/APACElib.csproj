@@ -70,7 +70,7 @@
     <Compile Include="ExcelInterface.cs" />
     <Compile Include="FeaturesAndConditions.cs" />
     <Compile Include="Intervention.cs" />
-    <Compile Include="ModelSettings.cs" />
+    <Compile Include="ModelConstruction.cs" />
     <Compile Include="EpidemicControl.cs" />
     <Compile Include="DecisionMakingClasses.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

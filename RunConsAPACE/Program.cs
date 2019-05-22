@@ -20,7 +20,7 @@ namespace RunConsAPACE
             myAPACE.ConnectToExcelInteface();
             
             // run apace
-            myAPACE.Run();
+            myAPACE.Run(null);
 
             if (args.Length > 0 && args[0] == "true")
             {
@@ -29,7 +29,6 @@ namespace RunConsAPACE
             }
 
             Console.WriteLine("Completed.");
-
         }
     }
 }

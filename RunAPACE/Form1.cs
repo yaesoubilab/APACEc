@@ -53,7 +53,7 @@ namespace APACE
                 myAPACE.ExcelIntface.Visible = true;
 
             // run the model
-            myAPACE.Run();
+            myAPACE.Run(null);
 
             // make the model visible
             myAPACE.ExcelIntface.Visible = true;
