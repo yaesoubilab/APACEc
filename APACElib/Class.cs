@@ -105,7 +105,7 @@ namespace APACElib
         // setup the initial number parID
         public void SetupInitialAndStoppingConditions(
             Parameter initialMembersPar, 
-            bool ifShouldBeEmptyForEradication)
+            bool ifShouldBeEmptyForEradication=false)
         {
             _initialMembersPar = initialMembersPar;
             _emptyToEradicate = ifShouldBeEmptyForEradication;

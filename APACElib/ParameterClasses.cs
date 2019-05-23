@@ -11,6 +11,7 @@ namespace APACElib
     public class ParameterManager
     {
         public List<Parameter> Parameters { get; set; } = new List<Parameter>();
+        public Dictionary<string, int> Dic = new Dictionary<string, int>();
         public double[] ParameterValues { get; private set; }
         public int NumParamsInCalibration { get; private set; } = 0;
         public bool ThereAreTimeDepParms { get; private set; } = false;
@@ -23,6 +24,7 @@ namespace APACElib
         public void Add(Parameter thisParam)
         {
             Parameters.Add(thisParam);
+            Dic[thisParam.Name] = thisParam.ID;
 
             if (thisParam.ShouldBeUpdatedByTime)
                 ThereAreTimeDepParms = true;
@@ -30,6 +32,10 @@ namespace APACElib
                 ++NumParamsInCalibration;
         }
 
+        public Parameter GetParameter(string paramName)
+        {
+            return Parameters[Dic[paramName]];
+        }
         public List<Parameter> GetParameters(int[] parIDs)
         {
             List<Parameter> list = new List<Parameter>();

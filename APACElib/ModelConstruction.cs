@@ -377,14 +377,14 @@ namespace APACElib
     
     public class ModelInstruction
     {
-        private ModelSettings _modelSets;
-        private int[] _pathogenIDs;
-        private ParameterManager _paramManager;
-        private List<Class> _classes;
-        private List<Event> _events;
-        EpidemicHistory _epiHist;
-        ForceOfInfectionModel _FOIModel;
-        private DecisionMaker _decisionMaker;
+        protected ModelSettings _modelSets;
+        protected int[] _pathogenIDs;
+        protected ParameterManager _paramManager;
+        protected List<Class> _classes;
+        protected List<Event> _events;
+        protected EpidemicHistory _epiHist;
+        protected ForceOfInfectionModel _FOIModel;
+        protected DecisionMaker _decisionMaker;
 
         public ModelInstruction()
         {
@@ -665,19 +665,8 @@ namespace APACElib
                 }
                 #endregion
 
-                // class statistics 
-                _classes.Last().ClassStat = new OneDimTrajectory(classID, name, _modelSets.WarmUpPeriodSimTIndex);
-                _classes.Last().ClassStat.SetupStatisticsCollectors(
-                    collectAccumIncidenceStats,
-                    collectPrevalenceStats
-                    );
-                // adding time series
-                _classes.Last().ClassStat.AddTimeSeries(
-                    collectIncidence: showIncidence,
-                    collectPrevalence: false,
-                    collectAccumIncidence: false,
-                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval
-                    );
+                // set up class statistics and time series 
+                SetupClassStatsAndTimeSeries(_classes.Last(), collectAccumIncidenceStats, collectPrevalenceStats, showIncidence, showPrevalence, showAccumIncidence);
 
                 // adding cost and health outcomes
                 if (ifCollectOutcomes)
@@ -690,14 +679,33 @@ namespace APACElib
                             _paramManager.Parameters[parID_healthQualityPerUnitOfTime],
                             _paramManager.Parameters[parID_costPerUnitOfTime]
                             );
-
-                // set up which statistics to show
-                _classes.Last().ShowIncidence = showIncidence;
-                _classes.Last().ShowPrevalence = showPrevalence;
-                _classes.Last().ShowAccumIncidence = showAccumIncidence;
-
+                
             }// end of for
            
+        }
+
+        // set up class statistics and time series
+        protected void SetupClassStatsAndTimeSeries(Class thisClass, 
+            bool collectAccumIncidenceStats, bool collectPrevalenceStats,
+            bool showIncidence, bool showPrevalence, bool showAccumIncidence)
+        {
+            // class statistics 
+            thisClass.ClassStat = new OneDimTrajectory(thisClass.ID, thisClass.Name, _modelSets.WarmUpPeriodSimTIndex);
+            thisClass.ClassStat.SetupStatisticsCollectors(
+                collectAccumIncidenceStats,
+                collectPrevalenceStats
+                );
+            // adding time series
+            thisClass.ClassStat.AddTimeSeries(
+                collectIncidence: showIncidence,
+                collectPrevalence: false,
+                collectAccumIncidence: false,
+                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval
+                );
+            // set up which statistics to show
+            thisClass.ShowIncidence = showIncidence;
+            thisClass.ShowPrevalence = showPrevalence;
+            thisClass.ShowAccumIncidence = showAccumIncidence;
         }
 
         // add events

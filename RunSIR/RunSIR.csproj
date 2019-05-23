@@ -33,6 +33,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="CSComputationalLib, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\CSComputationLib\CSComputationalLib\bin\Release\CSComputationalLib.dll</HintPath>
+    </Reference>
     <Reference Include="CSExcelInteractorLib">
       <HintPath>..\..\CSExcelInteractorLib\CSExcelInteractorLib\bin\Release\CSExcelInteractorLib.dll</HintPath>
     </Reference>
