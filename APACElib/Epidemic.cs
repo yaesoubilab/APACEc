@@ -419,6 +419,12 @@ namespace APACElib
                 _pathogenIDs.Length,
                 ref _paramManager);
 
+            // add contact matrices
+            _FOIModel.AddContactInfo(
+                _modelSets.GetBaseContactMatrices(),
+                _modelSets.GetPercentChangeInContactMatricesParIDs()
+                );
+
             // build the model accoding to the provided instruction 
             modelInstr.AssignElements(
                 pathogenIDs: ref _pathogenIDs,

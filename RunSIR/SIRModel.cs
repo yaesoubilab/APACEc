@@ -13,9 +13,27 @@ namespace RunSIR
         {
         }
 
-        //public override void AddParameters(ParameterManager paramManager, ModelSettings modelSets)
-        //{
-        //    base.AddParameters(paramManager, modelSets);
-        //}
+
+        public override void BuildModel()
+        {
+            // add parameters 
+            AddParameters();
+            // add classes
+            AddClasses();
+            // add events
+            AddEvents();
+            // add interventions
+            AddInterventions();
+            // add summation statistics
+            AddSummationStatistics();
+            // add ratio statistics
+            AddRatioStatistics();
+            // add features
+            AddFeatures();
+            // add conditions
+            AddConditions();
+            // add connections
+            AddConnections();
+        }
     }
 }

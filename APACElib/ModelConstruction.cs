@@ -419,13 +419,6 @@ namespace APACElib
             AddClasses();
             // add events
             AddEvents();
-
-            // add contact matrices
-            _FOIModel.AddContactInfo(
-                _modelSets.GetBaseContactMatrices(),
-                _modelSets.GetPercentChangeInContactMatricesParIDs()
-                );
-
             // add interventions
             AddInterventions();
             // add summation statistics
@@ -441,7 +434,7 @@ namespace APACElib
         }
 
         // add parameters
-        public virtual void AddParameters()
+        public void AddParameters()
         {
             Array parametersSheet = _modelSets.Sheets.ParametersSheet;
 
@@ -565,7 +558,7 @@ namespace APACElib
         }             
 
         // add classes
-        public virtual void AddClasses()
+        public void AddClasses()
         {
             Array classesSheet = _modelSets.Sheets.ClassesSheet;
 
@@ -708,7 +701,7 @@ namespace APACElib
         }
 
         // add events
-        private void AddEvents()
+        public void AddEvents()
         {
             Array eventSheet = _modelSets.Sheets.EventSheet;
 
@@ -757,7 +750,7 @@ namespace APACElib
         }
 
         // add interventions
-        private void AddInterventions()
+        public void AddInterventions()
         {
             //_useSameContactMatrixForAllDecisions = true;
             Array interventionsSheet = _modelSets.Sheets.InterventionSheet;
@@ -895,7 +888,7 @@ namespace APACElib
         }
 
         // add summation statistics
-        private void AddSummationStatistics()
+        public void AddSummationStatistics()
         {
             Array summationStatisticsSheet = _modelSets.Sheets.SummationStatisticsSheet;
 
@@ -1092,7 +1085,7 @@ namespace APACElib
         }
 
         // add ratio statistics
-        private void AddRatioStatistics()
+        public void AddRatioStatistics()
         {
             Array ratioStatsSheet = _modelSets.Sheets.RatioStatisticsSheet;
 
@@ -1237,7 +1230,7 @@ namespace APACElib
         }
 
         // add features
-        private void AddFeatures()
+        public void AddFeatures()
         {
             Array featuresSheet = _modelSets.Sheets.FeaturesSheet;
 
@@ -1277,7 +1270,7 @@ namespace APACElib
         }
 
         // add conditions
-        private void AddConditions()
+        public void AddConditions()
         {
             Array conditionsSheet = _modelSets.Sheets.ConditionsSheet;
 
@@ -1316,7 +1309,7 @@ namespace APACElib
         }
 
         // add connections
-        private void AddConnections()
+        public void AddConnections()
         {
             int[,] connectionsMatrix = _modelSets.Sheets.ConnectionsMatrix;
 
