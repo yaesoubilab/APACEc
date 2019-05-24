@@ -670,18 +670,14 @@ namespace APACElib
 
                 // adding cost and health outcomes
                 if (ifCollectOutcomes)
-                    _classes.Last().ClassStat.DeltaCostHealthCollector
-                        = new DeltaTCostHealth(
-                            _modelSets.DeltaT,
-                            _modelSets.WarmUpPeriodSimTIndex,
-                            _paramManager.Parameters[parID_DALYPerNewMember],
-                            _paramManager.Parameters[parID_costPerNewMember],
-                            _paramManager.Parameters[parID_healthQualityPerUnitOfTime],
-                            _paramManager.Parameters[parID_costPerUnitOfTime]
-                            );
-                
-            }// end of for
-           
+                    AddCollectOutcomes(
+                        thisClass: _classes.Last(),
+                        DALY: _paramManager.Parameters[parID_DALYPerNewMember],
+                        cost: _paramManager.Parameters[parID_costPerNewMember],
+                        disabilityPerTime: _paramManager.Parameters[parID_healthQualityPerUnitOfTime],
+                        costPerTime: _paramManager.Parameters[parID_costPerUnitOfTime]);
+
+            }// end of for           
         }
 
         // set up class statistics and time series
@@ -707,6 +703,18 @@ namespace APACElib
             thisClass.ShowPrevalence = showPrevalence;
             thisClass.ShowAccumIncidence = showAccumIncidence;
         }
+
+        // set up class collect outcomes
+        protected void AddCollectOutcomes(Class thisClass, Parameter DALY, Parameter cost, Parameter disabilityPerTime, Parameter costPerTime)
+        {
+            thisClass.ClassStat.DeltaCostHealthCollector
+                = new DeltaTCostHealth(
+                    _modelSets.DeltaT,
+                    _modelSets.WarmUpPeriodSimTIndex,
+                    DALY, cost, disabilityPerTime, costPerTime                          
+                    );
+        }
+
 
         // add events
         public void AddEvents()

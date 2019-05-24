@@ -5,15 +5,14 @@ using System.Text;
 using System.Threading.Tasks;
 using APACElib;
 
-namespace RunSIR
+namespace RunGonorrhea
 {
     class Program
     {
-
         [STAThread]
         static void Main(string[] args)
         {
-                        
+
             APACElib.APACE myAPACE;
             // define the epidemic model
             myAPACE = new APACElib.APACE();
@@ -21,12 +20,12 @@ namespace RunSIR
             // connect to the epidemic model
             myAPACE.ConnectToExcelInteface();
 
-            List<ModelInstruction> SIRModels = new List<ModelInstruction>();
+            List<ModelInstruction> GonoModels = new List<ModelInstruction>();
             for (int i = 0; i < myAPACE.ModelSetting.GetNumModelsToBuild(); i++)
-                SIRModels.Add(new SIRModel());
-            
+                GonoModels.Add(new GonoModel());
+
             // run apace
-            myAPACE.Run(SIRModels);
+            myAPACE.Run(GonoModels);
 
             if (args.Length > 0 && args[0] == "true")
             {
