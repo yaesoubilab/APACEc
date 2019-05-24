@@ -381,6 +381,7 @@ namespace APACElib
         protected int[] _pathogenIDs;
         protected ParameterManager _paramManager;
         protected List<Class> _classes;
+        protected  Dictionary<string, int> _dicClasses = new Dictionary<string, int>();
         protected List<Event> _events;
         protected EpidemicHistory _epiHist;
         protected ForceOfInfectionModel _FOIModel;
@@ -663,6 +664,7 @@ namespace APACElib
                         }
                         break;
                 }
+                _dicClasses[name] = classID;
                 #endregion
 
                 // set up class statistics and time series 

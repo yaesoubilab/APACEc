@@ -23,6 +23,7 @@ namespace APACElib
         public ForceOfInfectionModel FOIModel { get => _FOIModel; }
         public List<Class> Classes { get => _classes; }
         private List<Class> _classes = new List<Class>();
+
         private List<Event> _events = new List<Event>();
         public EpidemicHistory EpiHist { get; private set; }
         public EpidemicCostHealth EpidemicCostHealth { get; set; }
