@@ -11,7 +11,7 @@ namespace RunGonorrhea
     public class GonoModel : ModelInstruction
     {
         enum Comparts { I, W, W2 };
-        enum Drugs { Tx_A, Tx_B, Tx_B2};
+        enum Drugs { Tx_A1, Tx_B1, Tx_B2};
         enum SymStates { Sym, Asym };
         enum ResistStates { G_0, G_A, G_B, G_AB }
 
@@ -95,29 +95,65 @@ namespace RunGonorrhea
 
         private void AddGonoClasses()
         {
-            int idIfSuccess = 0;
-            int idIfFailure = 0;
+            int classIdIfSymp = 0;
+            int classIDIfAsymp = 0;
             string parInitialSize;
-
-
+            
             // add S
             int id = 0;
             Class_Normal S = new Class_Normal(id, "S");
             S.SetupInitialAndStoppingConditions(
-                initialMembersPar: GetParam("Initial size of S"),
-                ifShouldBeEmptyForEradication: false);
+                initialMembersPar: GetParam("Initial size of S"));
             S.SetupTransmissionDynamicsProperties(
                 susceptibilityParams: GetParamList(name: "Dummy 1", repeat: 4),
                 infectivityParams: GetParamList(name: "Dummy 0", repeat: 4),
                 rowIndexInContactMatrix: 0);
-            SetupClassStatsAndTimeSeries(thisClass: S,
-                collectAccumIncidenceStats:false,
-                collectPrevalenceStats:false,
-                showIncidence:false,
-                showPrevalence:true,
-                showAccumIncidence:false);
+            SetupClassStatsAndTimeSeries(
+                thisClass: S,
+                showPrevalence:true);
             _classes.Add(S);
-            _dicClasses["S"] = id++;
+            _dicClasses[S.Name] = id++;
+
+            // add other classes 
+            // success with A1, B1, or B2
+            foreach (Drugs d in Enum.GetValues(typeof(Drugs)))
+            {
+                Class_Normal c = new Class_Normal(id, "Success with " + d.ToString());
+                S.SetupInitialAndStoppingConditions(
+                initialMembersPar: GetParam("Dummy 0"));
+                S.SetupTransmissionDynamicsProperties(
+                susceptibilityParams: GetParamList(name: "Dummy 0", repeat: 4),
+                infectivityParams: GetParamList(name: "Dummy 0", repeat: 4),
+                rowIndexInContactMatrix: 0);
+                SetupClassStatsAndTimeSeries(
+                    thisClass: c,
+                    showIncidence: true);
+                _classes.Add(c);
+                _dicClasses[c.Name] = id++;
+            }
+
+            // success with M1 or M2
+            List<string> MOutcomes = new List<string>() {"Success with M1", "Success with M2"};
+            foreach (string s in MOutcomes)
+            {
+                Class_Normal c = new Class_Normal(id, s);
+                S.SetupInitialAndStoppingConditions(
+                initialMembersPar: GetParam("Dummy 0"));
+                S.SetupTransmissionDynamicsProperties(
+                susceptibilityParams: GetParamList(name: "Dummy 0", repeat: 4),
+                infectivityParams: GetParamList(name: "Dummy 0", repeat: 4),
+                rowIndexInContactMatrix: 0);
+                SetupClassStatsAndTimeSeries(
+                    thisClass: c,
+                    showIncidence: true);
+                _classes.Add(c);
+                _dicClasses[c.Name] = id++;
+            }
+
+            // add death
+            Class_Death D = new Class_Death(id, "Death");
+            _classes.Add(D);
+            _dicClasses[D.Name] = id++;
 
             // add I's, W's, and W''s, 
             foreach (Comparts c in Enum.GetValues(typeof(Comparts)))
@@ -140,19 +176,16 @@ namespace RunGonorrhea
                             infectivityParams: GetParamList(
                                 name: name, pos: (int)r, size: 4, remainingParName: "Dummy 0"),
                             rowIndexInContactMatrix: 0);
-                        SetupClassStatsAndTimeSeries(thisClass: cls,
-                            collectAccumIncidenceStats: false,
-                            collectPrevalenceStats: false,
-                            showIncidence: false,
-                            showPrevalence: (c == Comparts.I) ? true : false,
-                            showAccumIncidence: false);
+                        SetupClassStatsAndTimeSeries(
+                            thisClass: cls,
+                            showPrevalence: (c == Comparts.I) ? true : false);
                         _classes.Add(cls);
                         _dicClasses[name] = id++;
                     }
 
-            // Prob symptomatic 
-            idIfSuccess = _dicClasses["I | Sym | " + ResistStates.G_0];
-            idIfFailure = _dicClasses["I | Asym | " + ResistStates.G_0];
+            // Prob symptomatic after infection
+            classIdIfSymp = _dicClasses["I | Sym | " + ResistStates.G_0.ToString()];
+            classIDIfAsymp = _dicClasses["I | Asym | " + ResistStates.G_0.ToString()];
             foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
             {
                 string rStr = r.ToString();
@@ -161,58 +194,76 @@ namespace RunGonorrhea
                 Class_Splitting ifSympt = new Class_Splitting(id, name);
                 ifSympt.SetUp(
                     parOfProbSucess: GetParam("Prob sympt | " + rStr),
-                    destinationClassIDIfSuccess: idIfSuccess + (int)r,
-                    destinationClassIDIfFailure: idIfFailure + (int)r);
-                SetupClassStatsAndTimeSeries(thisClass: ifSympt,
-                    collectAccumIncidenceStats: false,
-                    collectPrevalenceStats: false,
-                    showIncidence: false,
-                    showPrevalence: false,
-                    showAccumIncidence: false);
+                    destinationClassIDIfSuccess: classIdIfSymp + (int)r,
+                    destinationClassIDIfFailure: classIDIfAsymp + (int)r);
+                SetupClassStatsAndTimeSeries(thisClass: ifSympt);
                 _classes.Add(ifSympt);
                 _dicClasses[name] = id++;
             }
 
             // if seeking retreatment after resistance or failure
-            
-            // treatment outcomes 
-            foreach (Drugs d in Enum.GetValues(typeof(Drugs)))
+            foreach (Drugs drug in Enum.GetValues(typeof(Drugs)))
                 foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                     foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                     {
-                        string resistOrFail="";
-                        switch (r)
-                        {
-                            case ResistStates.G_0:
-                                resistOrFail = "R";
-                                break;
-                            case ResistStates.G_A:
-                                resistOrFail = (d == Drugs.Tx_A) ? "F" : "R";
-                                break;
-                            case ResistStates.G_B:
-                                resistOrFail = (d == Drugs.Tx_B) ? "F" : "R";
-                                break;
-                            case ResistStates.G_AB:
-                                resistOrFail = "F";
-                                break;
-                        }
+                        string resistOrFail = GetResistOrFail(resistStat: r, drug: drug);
                         string infectedName = "I | " + s.ToString() + " | " + r.ToString();
-                        string name = "If " + resistOrFail + " | " + d.ToString() + " --> " + infectedName;
+                        string className = "If retreat | " + resistOrFail + " | " + drug.ToString() + " --> " + infectedName;
 
-                        Class_Splitting ifSympt = new Class_Splitting(id, name);
-                        ifSympt.SetUp(
-                            parOfProbSucess: GetParam( (resistOrFail=="R") ? "Prob resistance | " + d.ToString() : "Dummy 1"),
-                            destinationClassIDIfSuccess: ????,
-                            destinationClassIDIfFailure: ????
+                        Class_Splitting ifRetreat = new Class_Splitting(id, className);
+                        ifRetreat.SetUp(
+                            parOfProbSucess: GetParam("Prob retreatment | " + s.ToString()),
+                            destinationClassIDIfSuccess: _dicClasses[Comparts.W2.ToString() + " | " + s.ToString() + " | " + r.ToString()], 
+                            destinationClassIDIfFailure: _dicClasses[infectedName]
                             );
-                        SetupClassStatsAndTimeSeries(thisClass: ifSympt,
-                            collectAccumIncidenceStats: false,
-                            collectPrevalenceStats: false,
-                            showIncidence: false,
-                            showPrevalence: false,
-                            showAccumIncidence: false);
-                        _classes.Add(ifSympt);
-                        _dicClasses[name] = id++;
+                        SetupClassStatsAndTimeSeries(thisClass: ifRetreat);
+                        _classes.Add(ifRetreat);
+                        _dicClasses[className] = id++;
+                    }
+
+            // if symptomatic after the emergence of resistance
+            foreach (Drugs drug in Enum.GetValues(typeof(Drugs)))
+                foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
+                {
+                    // TODO: continue from here
+                    SymStates s = SymStates.Asym;
+                    string resistOrFail = GetResistOrFail(resistStat: r, drug: drug);
+                    if (resistOrFail != "F")
+                    {
+                        string infectedName = "I | " + s.ToString() + " | " + r.ToString();
+                        string className = "If symp | " + resistOrFail + " | " + drug.ToString() + " --> " + infectedName;                    
+
+                        Class_Splitting ifSymp = new Class_Splitting(id, className);
+                        ifSymp.SetUp(
+                            parOfProbSucess: GetParam("Prob resistance | Tx_" +resistOrFail),
+                            destinationClassIDIfSuccess: _dicClasses["If retreat "+ resistOrFail + " | " + drug.ToString() + " --> " + infectedName],
+                            destinationClassIDIfFailure: _dicClasses[]
+                            );
+                        SetupClassStatsAndTimeSeries(thisClass: ifSymp);
+                        _classes.Add(ifSymp);
+                        _dicClasses[className] = id++;
+                    }
+                }
+
+            // treatment outcomes (resistance or failure)             
+            int classIDIfTreatmentSuccess = _dicClasses["Success with " + Drugs.Tx_A1.ToString()];
+            foreach (Drugs drug in Enum.GetValues(typeof(Drugs)))
+                foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
+                    foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
+                    {
+                        string resistOrFail = GetResistOrFail(resistStat: r, drug: drug);
+                        string infectedName = "I | " + s.ToString() + " | " + r.ToString();
+                        string className = "If " + resistOrFail + " | " + drug.ToString() + " --> " + infectedName;
+
+                        Class_Splitting ifRorF = new Class_Splitting(id, className);
+                        ifRorF.SetUp(
+                            parOfProbSucess: GetParam( (resistOrFail=="R") ? "Prob resistance | " + drug.ToString() : "Dummy 1"),
+                            destinationClassIDIfSuccess: 1, // TODO: here 
+                            destinationClassIDIfFailure: classIDIfTreatmentSuccess + (int)drug
+                            );
+                        SetupClassStatsAndTimeSeries(thisClass: ifRorF);
+                        _classes.Add(ifRorF);
+                        _dicClasses[className] = id++;
                     }
 
         }
@@ -249,6 +300,27 @@ namespace RunGonorrhea
         private Parameter GetParam(string paramName)
         {
             return  _paramManager.GetParameter(paramName);
+        }
+
+        private string GetResistOrFail(ResistStates resistStat, Drugs drug)
+        {
+            string resistOrFail = "";
+            switch (resistStat)
+            {
+                case ResistStates.G_0:
+                    resistOrFail = (drug == Drugs.Tx_A1) ? "A" : "B";                   
+                    break;
+                case ResistStates.G_A:
+                    resistOrFail = (drug == Drugs.Tx_A1) ? "F" : "AB";
+                    break;
+                case ResistStates.G_B:
+                    resistOrFail = (drug == Drugs.Tx_A1) ? "AB" : "F";
+                    break;
+                case ResistStates.G_AB:
+                    resistOrFail = "F";
+                    break;
+            }
+            return resistOrFail;
         }
     }
 }

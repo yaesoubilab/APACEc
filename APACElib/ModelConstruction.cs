@@ -684,8 +684,11 @@ namespace APACElib
 
         // set up class statistics and time series
         protected void SetupClassStatsAndTimeSeries(Class thisClass, 
-            bool collectAccumIncidenceStats, bool collectPrevalenceStats,
-            bool showIncidence, bool showPrevalence, bool showAccumIncidence)
+            bool collectAccumIncidenceStats=false, 
+            bool collectPrevalenceStats=false,
+            bool showIncidence=false, 
+            bool showPrevalence=false, 
+            bool showAccumIncidence=false)
         {
             // class statistics 
             thisClass.ClassStat = new OneDimTrajectory(thisClass.ID, thisClass.Name, _modelSets.WarmUpPeriodSimTIndex);
