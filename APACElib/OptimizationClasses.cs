@@ -413,7 +413,7 @@ namespace APACElib
                     listModelInstr.Add(new ModelInstruction());
             }
 
-            // initial valueo of policy parameters 
+            // initial values of policy parameters 
             // (this could be different from or the same as the status quo parameters)
             double[] arrX0 = modelSets.OptmzSets.X0;
             Vector<double> x0 = Vector<double>.Build.DenseOfArray(arrX0);
