@@ -330,7 +330,6 @@ namespace RunGonorrhea
             int idSuccessM1 = _dicClasses["Success with " + Ms.M1.ToString()];
             int idSuccessM2 = _dicClasses["Success with " + Ms.M2.ToString()];
 
-            // add birth events
             // main compartments: S, I
             List<string> mainComp = new List<string>();
             mainComp.Add("S");
@@ -429,7 +428,7 @@ namespace RunGonorrhea
                                 );
                         }
 
-            // for M1
+            // add First-Line Treatment with M1
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
@@ -443,7 +442,7 @@ namespace RunGonorrhea
                         );
                 }
 
-            // for B2            
+            // add Second-Line Treatment with B2            
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                     if (r == ResistStates.G_A)
@@ -459,7 +458,7 @@ namespace RunGonorrhea
                                 IDOfDestinationClass: _dicClasses["If " + resistOrFail + " | " + treatmentProfile])
                                 );
                         }
-            // for M2            
+            // add Second-Line Treatment with M2              
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                     if (r != ResistStates.G_0)
@@ -474,7 +473,28 @@ namespace RunGonorrhea
                             );
                     }
 
-
+            // add Leaving Success with A1, B1, or B2
+            foreach (Drugs d in Enum.GetValues(typeof(Drugs)))
+            {
+                _events.Add(new Event_EpidemicIndependent(
+                    name: "Leaving Success with" + d.ToString(),
+                    ID: id++,
+                    IDOfActivatingIntervention: 0,
+                    rateParameter: GetParam("Dummy Inf"),
+                    IDOfDestinationClass: 0)
+                    );
+            }
+            // add Leaving Success with M1 or M2
+            foreach (Ms m in Enum.GetValues(typeof(Ms)))
+            {
+                _events.Add(new Event_EpidemicIndependent(
+                    name: "Leaving Success with" + m.ToString(),
+                    ID: id++,
+                    IDOfActivatingIntervention: 0,
+                    rateParameter: GetParam("Dummy Inf"),
+                    IDOfDestinationClass: 0)
+                    );
+            }
         }
 
         private List<Parameter> GetParamList(string paramName)
