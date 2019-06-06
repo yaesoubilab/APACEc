@@ -31,7 +31,7 @@ namespace RunGonorrhea
             // add interventions
             AddInterventions();
             // add summation statistics
-            AddSummationStatistics();
+            AddGonoSumStats();
             // add ratio statistics
             AddRatioStatistics();
             // add features
@@ -495,6 +495,92 @@ namespace RunGonorrhea
                     IDOfDestinationClass: 0)
                     );
             }
+        }
+
+        private void AddGonoSumStats()
+        {
+            int id = 0;
+            string formula = "";
+
+            // population size
+            formula = "";
+            foreach (Class c in _classes.Where(c => c is Class_Normal))
+                formula += c.ID + "+";
+            _epiHist.SumTrajs.Add(
+                new SumClassesTrajectory(
+                    ID: id++,
+                    name: "Population size",
+                    strType: "Prevalence",
+                    sumFormula: formula,
+                    displayInSimOutput: true,
+                    warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
+                    );
+
+            // gonorrhea prevalence formulas
+            string pForm = "";
+            List<string> pSymForm = new List<string>() { "", "" }; // Sym, Asym
+            List<string> pResistForm = new List<string>() { "", "", "" }; // A, B, AB
+            foreach (Class c in _classes.Where(c => (c is Class_Normal && c.Name.First()=='I')))
+            {
+                pForm += c.ID + "+";
+                if (c.Name.Contains("Sym"))
+                    pSymForm[0] += c.ID + "+";
+                else
+                    pSymForm[1] += c.ID + "+";
+
+                if (c.Name.Contains("G_A"))
+                    pResistForm[0] += c.ID + "+";
+                else if (c.Name.Contains("G_B"))
+                    pResistForm[1] += c.ID + "+";
+                else if (c.Name.Contains("G_AB"))
+                    pResistForm[2] += c.ID + "+";
+            }
+
+            // gonorrhea prevalence
+            _epiHist.SumTrajs.Add(
+                new SumClassesTrajectory(
+                    ID: id++,
+                    name: "Prevalence",
+                    strType: "Prevalence",
+                    sumFormula: pForm,
+                    displayInSimOutput: true,
+                    warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
+                    );
+
+            // gonorrhea prevalence by symptom status
+            foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
+            {
+                _epiHist.SumTrajs.Add(
+                new SumClassesTrajectory(
+                    ID: id++,
+                    name: "Prevalence | " + s.ToString(),
+                    strType: "Prevalence",
+                    sumFormula: pSymForm[(int)s],
+                    displayInSimOutput: true,
+                    warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
+                    );
+            }
+
+            // gonorrhea prevalence by resistance 
+            foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
+            {
+                _epiHist.SumTrajs.Add(
+                new SumClassesTrajectory(
+                    ID: id++,
+                    name: "Prevalence | " + r.ToString(),
+                    strType: "Prevalence",
+                    sumFormula: pResistForm[(int)r],
+                    displayInSimOutput: true,
+                    warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
+                    );
+            }
+
+
+
         }
 
         private List<Parameter> GetParamList(string paramName)

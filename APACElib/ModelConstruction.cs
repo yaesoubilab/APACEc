@@ -983,18 +983,8 @@ namespace APACElib
                     }
 
                     // update class time-series
-                    foreach (int i in thisSumClassTraj.ClassIDs)
-                    {
-                        if (thisSumClassTraj.Type == SumTrajectory.EnumType.Incidence)
-                            _classes[i].ClassStat.AddTimeSeries(
-                                collectIncidence: true,
-                                collectAccumIncidence: false,
-                                collectPrevalence: false,
-                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval
-                                );
-                        if (thisSumClassTraj.Type == SumTrajectory.EnumType.AccumulatingIncident)
-                            _classes[i].ClassStat.CollectAccumIncidenceStats = true;
-                    }
+                    UpdateClassTimeSeries(thisSumClassTraj);
+
                 }
                 else // if defined on events
                 {
@@ -1343,6 +1333,24 @@ namespace APACElib
                 ((Class_Normal)_classes[classID]).AddAnEvent((Event)_events[processID]);
 
                 ++i;
+            }
+        }
+
+        // update class time series
+        public void UpdateClassTimeSeries(SumClassesTrajectory thisSumClassTraj)
+        {
+            // update class time-series
+            foreach (int i in thisSumClassTraj.ClassIDs)
+            {
+                if (thisSumClassTraj.Type == SumTrajectory.EnumType.Incidence)
+                    _classes[i].ClassStat.AddTimeSeries(
+                        collectIncidence: true,
+                        collectAccumIncidence: false,
+                        collectPrevalence: false,
+                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval
+                        );
+                if (thisSumClassTraj.Type == SumTrajectory.EnumType.AccumulatingIncident)
+                    _classes[i].ClassStat.CollectAccumIncidenceStats = true;
             }
         }
     }
