@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using APACElib;
 using ComputationLib;
+using RandomVariateLib;
 
 namespace RunGonorrhea
 {
@@ -48,8 +49,6 @@ namespace RunGonorrhea
             AddParameters();
             int id = _paramManager.Parameters.Count;
 
-            // add parameters of gonorrhea model 
-
             // initial size of S
             _paramManager.Add(new ProductParameter(
                 ID: id++,
@@ -72,7 +71,7 @@ namespace RunGonorrhea
                     switch (r)
                     {
                         case ResistStates.G_0:
-                            paramNames.Add("1-Initial gonorrhea resistant to A or B");
+                            paramNames.Add("1-Initial resistant to A or B");
                             break;
                         case ResistStates.G_A:
                             paramNames.Add("Initial resistant to A");
@@ -85,11 +84,19 @@ namespace RunGonorrhea
                             break;
                     }
 
-                    _paramManager.Add(new ProductParameter(
-                        ID: id++,
-                        name: name,
-                        parameters: GetParamList(paramNames))
-                        );
+                    if (r == ResistStates.G_AB)
+                        _paramManager.Add(new IndependetParameter(
+                            ID: id++,
+                            name: name,
+                            enumRandomVariateGenerator: RandomVariateLib.SupportProcedures.ConvertToEnumRVG("Constant"),
+                            par1: 0, par2: 0, par3: 0, par4: 0)
+                            );
+                    else
+                        _paramManager.Add(new ProductParameter(
+                            ID: id++,
+                            name: name,
+                            parameters: GetParamList(paramNames))
+                            );
                 }
 
         }
@@ -518,23 +525,23 @@ namespace RunGonorrhea
                     );
 
             // gonorrhea prevalence formulas
-            string pForm = "";
-            List<string> pSymForm = new List<string>() { "", "" }; // Sym, Asym
-            List<string> pResistForm = new List<string>() { "", "", "" }; // A, B, AB
+            string pFormula = "";
+            List<string> pSymFormula = new List<string>() { "", "" }; // Sym, Asym
+            List<string> pResistFormula = new List<string>() { "", "", "" }; // A, B, AB
             foreach (Class c in _classes.Where(c => (c is Class_Normal && c.Name.First()=='I')))
             {
-                pForm += c.ID + "+";
+                pFormula += c.ID + "+";
                 if (c.Name.Contains("Sym"))
-                    pSymForm[0] += c.ID + "+";
+                    pSymFormula[0] += c.ID + "+";
                 else
-                    pSymForm[1] += c.ID + "+";
+                    pSymFormula[1] += c.ID + "+";
 
                 if (c.Name.Contains("G_A"))
-                    pResistForm[0] += c.ID + "+";
+                    pResistFormula[0] += c.ID + "+";
                 else if (c.Name.Contains("G_B"))
-                    pResistForm[1] += c.ID + "+";
+                    pResistFormula[1] += c.ID + "+";
                 else if (c.Name.Contains("G_AB"))
-                    pResistForm[2] += c.ID + "+";
+                    pResistFormula[2] += c.ID + "+";
             }
 
             // gonorrhea prevalence
@@ -543,7 +550,7 @@ namespace RunGonorrhea
                     ID: id++,
                     name: "Prevalence",
                     strType: "Prevalence",
-                    sumFormula: pForm,
+                    sumFormula: pFormula,
                     displayInSimOutput: true,
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
@@ -553,34 +560,155 @@ namespace RunGonorrhea
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
             {
                 _epiHist.SumTrajs.Add(
-                new SumClassesTrajectory(
-                    ID: id++,
-                    name: "Prevalence | " + s.ToString(),
-                    strType: "Prevalence",
-                    sumFormula: pSymForm[(int)s],
-                    displayInSimOutput: true,
-                    warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
-                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
-                    );
+                    new SumClassesTrajectory(
+                        ID: id++,
+                        name: "Prevalence | " + s.ToString(),
+                        strType: "Prevalence",
+                        sumFormula: pSymFormula[(int)s],
+                        displayInSimOutput: true,
+                        warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
+                        );
             }
 
             // gonorrhea prevalence by resistance 
             foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
-            {
                 _epiHist.SumTrajs.Add(
+                    new SumClassesTrajectory(
+                        ID: id++,
+                        name: "Prevalence | " + r.ToString(),
+                        strType: "Prevalence",
+                        sumFormula: pResistFormula[(int)r],
+                        displayInSimOutput: true,
+                        warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
+                        );
+
+            // first-line treatment 
+            string treatedFormula = "", treatedAndSymFormula = "";
+            List<string> treatedResistFormula = new List<string>() { "", "", "" }; // A, B, AB
+            foreach (Class c in _classes.Where(c => (c is Class_Normal && c.Name.Substring(0,2) == "W ")))
+            {
+                treatedFormula += c.ID + "+";
+                if (c.Name.Contains("Sym"))
+                    treatedAndSymFormula += c.ID + "+";
+
+                if (c.Name.Contains("G_A"))
+                    treatedResistFormula[0] += c.ID + "+";
+                else if (c.Name.Contains("G_B"))
+                    treatedResistFormula[1] += c.ID + "+";
+                else if (c.Name.Contains("G_AB"))
+                    treatedResistFormula[2] += c.ID + "+";
+            }
+
+            // received first-line treatment (= number of cases)
+            SumClassesTrajectory t1st = new SumClassesTrajectory(
+                ID: id++,
+                name: "Received 1st Tx",
+                strType: "Incidence",
+                sumFormula: treatedFormula,
+                displayInSimOutput: true,
+                warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+            UpdateClassTimeSeries(t1st);
+            t1st.DeltaCostHealthCollector =
+                new DeltaTCostHealth(
+                    deltaT: _modelSets.DeltaT, 
+                    warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                    DALYPerNewMember: GetParam("Dummy 1"),
+                    costPerNewMember: GetParam("Dummy 0")
+                    );
+            _epiHist.SumTrajs.Add(t1st);
+
+            // received first-line treatment and symptomatic 
+            _epiHist.SumTrajs.Add(new SumClassesTrajectory(
+                ID: id++,
+                name: "Received 1st Tx & Symptomatic",
+                strType: "Incidence",
+                sumFormula: treatedAndSymFormula,
+                displayInSimOutput: true,
+                warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
+                );
+
+            // received first-line treatment by resistance status
+            foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
+                _epiHist.SumTrajs.Add(
+                    new SumClassesTrajectory(
+                        ID: id++,
+                        name: "Received 1st Tx & Resistant to " + r.ToString(),
+                        strType: "Incidence",
+                        sumFormula: treatedResistFormula[(int)r],
+                        displayInSimOutput: true,
+                        warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
+                        );
+
+            // sucessful treatment
+            string treatedA1 = _classes[_dicClasses["Success with A1"]].ID.ToString();
+            string treatedB1 = _classes[_dicClasses["Success with B1"]].ID.ToString();
+            string treatedB2 = _classes[_dicClasses["Success with B2"]].ID.ToString();
+            string treatedM1 = _classes[_dicClasses["Success with M1"]].ID.ToString();
+            string treatedM2 = _classes[_dicClasses["Success with M2"]].ID.ToString();
+
+            string success1st = treatedA1 + "+" + treatedB1 + "+" + treatedM1;
+            string successAorB = treatedA1 + "+" + treatedB1 + "+" + treatedB2;
+            string successM = treatedM1 + "+" + treatedM2;
+            string successAll = successAorB + "+" + successM;
+
+            // # sucessfully treated with 1st line treatment 
+            _epiHist.SumTrajs.Add(
                 new SumClassesTrajectory(
                     ID: id++,
-                    name: "Prevalence | " + r.ToString(),
-                    strType: "Prevalence",
-                    sumFormula: pResistForm[(int)r],
+                    name: "Success 1st",
+                    strType: "Incidence",
+                    sumFormula: success1st,
                     displayInSimOutput: true,
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                     );
-            }
+            // # sucessfully treated with A or B 
+            _epiHist.SumTrajs.Add(
+                new SumClassesTrajectory(
+                    ID: id++,
+                    name: "Success A or B",
+                    strType: "Incidence",
+                    sumFormula: successAorB,
+                    displayInSimOutput: true,
+                    warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
+                    );
 
+            // # sucessfully treated with M
+            SumClassesTrajectory tM = new SumClassesTrajectory(
+               ID: id++,
+               name: "Success M",
+               strType: "Incidence",
+               sumFormula: successM,
+               displayInSimOutput: true,
+               warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+               nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+            UpdateClassTimeSeries(tM);
+            tM.DeltaCostHealthCollector =
+                new DeltaTCostHealth(
+                    deltaT: _modelSets.DeltaT,
+                    warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                    DALYPerNewMember: GetParam("Dummy 0"),
+                    costPerNewMember: GetParam("Dummy 1")
+                    );
+            _epiHist.SumTrajs.Add(tM);
 
-
+            // # sucessfully treated 
+            _epiHist.SumTrajs.Add(
+                new SumClassesTrajectory(
+                    ID: id++,
+                    name: "Success All",
+                    strType: "Incidence",
+                    sumFormula: successAll,
+                    displayInSimOutput: true,
+                    warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
+                    );
         }
 
         private List<Parameter> GetParamList(string paramName)
