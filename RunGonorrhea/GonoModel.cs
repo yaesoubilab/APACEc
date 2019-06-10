@@ -482,6 +482,7 @@ namespace RunGonorrhea
                         );
                 }
 
+            // TODO: debug from here
             // add Second-Line Treatment with B2            
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
