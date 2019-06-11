@@ -335,6 +335,9 @@ namespace APACElib
         // convert sum formula into the array of class IDs or event IDs
         protected int[] ConvertSumFormulaToArrayOfIDs(string formula)
         {
+            if (formula[formula.Length - 1] == '+')
+                formula = formula.Remove(formula.Length - 1);
+
             string[] arrClassIDs = formula.Split('+');
             return Array.ConvertAll<string, int>(arrClassIDs, Convert.ToInt32);
         }

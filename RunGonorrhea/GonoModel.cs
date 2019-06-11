@@ -41,7 +41,7 @@ namespace RunGonorrhea
             // add conditions
             AddConditions();
             // add connections
-            AddConnections();
+            AddGonoConnections();
         }
 
         private void AddGonoParameters()
@@ -326,7 +326,6 @@ namespace RunGonorrhea
                         {
                             if (r != ResistStates.G_A)
                                 continue;
-
                             classIfResist = "W2 | " + s.ToString() + " | G_" + resistOrFail;
                         }
 
@@ -482,7 +481,6 @@ namespace RunGonorrhea
                         );
                 }
 
-            // TODO: debug from here
             // add Second-Line Treatment with B2            
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
@@ -490,17 +488,18 @@ namespace RunGonorrhea
                     {
                         string resistOrFail = GetResistOrFail(resistStat: r, drug: Drugs.B2);
                         string infProfile = s.ToString() + " | " + r.ToString();
-                        string treatmentProfile = resistOrFail + " | B2 --> I |" + infProfile;
+                        string treatmentProfile = resistOrFail + " | B2 --> I | " + infProfile;
                         string destClassName = "If " + treatmentProfile;
 
                         _events.Add(new Event_EpidemicIndependent(
                                 name: "Tx_B2 | W2 | " + infProfile,
                                 ID: id++,
-                                IDOfActivatingIntervention: 5,
+                                IDOfActivatingIntervention: (int)Interventions.M2_A,
                                 rateParameter: _paramManager.Parameters[seekingReTreatmentRate],
                                 IDOfDestinationClass: _dicClasses[destClassName])
                                 );
-                        }
+                    }
+
             // add Second-Line Treatment with M2              
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
@@ -510,7 +509,7 @@ namespace RunGonorrhea
                         _events.Add(new Event_EpidemicIndependent(
                             name: "Tx_B2 | W2 | " + infProfile,
                             ID: id++,
-                            IDOfActivatingIntervention: (r == ResistStates.G_A) ? 6 : 7,
+                            IDOfActivatingIntervention: (r == ResistStates.G_A) ? (int)Interventions.M2_A : (int)Interventions.M2_A_AB,
                             rateParameter: _paramManager.Parameters[seekingReTreatmentRate],
                             IDOfDestinationClass: idSuccessM2)
                             );
@@ -520,22 +519,22 @@ namespace RunGonorrhea
             foreach (Drugs d in Enum.GetValues(typeof(Drugs)))
             {
                 _events.Add(new Event_EpidemicIndependent(
-                    name: "Leaving Success with" + d.ToString(),
+                    name: "Leaving Success with " + d.ToString(),
                     ID: id++,
-                    IDOfActivatingIntervention: 0,
+                    IDOfActivatingIntervention: 0, // always on
                     rateParameter: GetParam("Dummy Inf"),
-                    IDOfDestinationClass: 0)
+                    IDOfDestinationClass: 0) // back to S
                     );
             }
             // add Leaving Success with M1 or M2
             foreach (Ms m in Enum.GetValues(typeof(Ms)))
             {
                 _events.Add(new Event_EpidemicIndependent(
-                    name: "Leaving Success with" + m.ToString(),
+                    name: "Leaving Success with " + m.ToString(),
                     ID: id++,
-                    IDOfActivatingIntervention: 0,
+                    IDOfActivatingIntervention: 0, // always on
                     rateParameter: GetParam("Dummy Inf"),
-                    IDOfDestinationClass: 0)
+                    IDOfDestinationClass: 0) // back to S
                     );
             }
         }
@@ -549,6 +548,7 @@ namespace RunGonorrhea
             formula = "";
             foreach (Class c in _classes.Where(c => c is Class_Normal))
                 formula += c.ID + "+";
+
             _epiHist.SumTrajs.Add(
                 new SumClassesTrajectory(
                     ID: id++,
@@ -564,20 +564,23 @@ namespace RunGonorrhea
             string pFormula = "";
             List<string> pSymFormula = new List<string>() { "", "" }; // Sym, Asym
             List<string> pResistFormula = new List<string>() { "", "", "" }; // A, B, AB
-            foreach (Class c in _classes.Where(c => (c is Class_Normal && c.Name.First()=='I')))
+            foreach (Class c in _classes.Where(c => c is Class_Normal ))
             {
-                pFormula += c.ID + "+";
-                if (c.Name.Contains("Sym"))
-                    pSymFormula[0] += c.ID + "+";
-                else
-                    pSymFormula[1] += c.ID + "+";
+                if (c.Name.First() == 'I' || c.Name.First() == 'W')
+                {
+                    pFormula += c.ID + "+";
+                    if (c.Name.Contains("Sym"))
+                        pSymFormula[0] += c.ID + "+";
+                    else
+                        pSymFormula[1] += c.ID + "+";
 
-                if (c.Name.Contains("G_A"))
-                    pResistFormula[0] += c.ID + "+";
-                else if (c.Name.Contains("G_B"))
-                    pResistFormula[1] += c.ID + "+";
-                else if (c.Name.Contains("G_AB"))
-                    pResistFormula[2] += c.ID + "+";
+                    if (c.Name.Substring(c.Name.Length - 2) == "_A")
+                        pResistFormula[0] += c.ID + "+";
+                    else if (c.Name.Substring(c.Name.Length-2) == "_B")
+                        pResistFormula[1] += c.ID + "+";
+                    else if (c.Name.Substring(c.Name.Length - 2) == "AB")
+                        pResistFormula[2] += c.ID + "+";
+                }
             }
 
             // gonorrhea prevalence
@@ -608,33 +611,37 @@ namespace RunGonorrhea
             }
 
             // gonorrhea prevalence by resistance 
-            foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
-                _epiHist.SumTrajs.Add(
-                    new SumClassesTrajectory(
-                        ID: id++,
-                        name: "Prevalence | " + r.ToString(),
-                        strType: "Prevalence",
-                        sumFormula: pResistFormula[(int)r],
-                        displayInSimOutput: true,
-                        warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
-                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
-                        );
+            foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
+                if (r != ResistStates.G_0)
+                    _epiHist.SumTrajs.Add(
+                        new SumClassesTrajectory(
+                            ID: id++,
+                            name: "Prevalence | " + r.ToString(),
+                            strType: "Prevalence",
+                            sumFormula: pResistFormula[(int)r-1],
+                            displayInSimOutput: true,
+                            warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                            nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
+                            );
 
             // first-line treatment 
             string treatedFormula = "", treatedAndSymFormula = "";
             List<string> treatedResistFormula = new List<string>() { "", "", "" }; // A, B, AB
-            foreach (Class c in _classes.Where(c => (c is Class_Normal && c.Name.Substring(0,2) == "W ")))
+            foreach (Class c in _classes.Where(c => c is Class_Normal))
             {
-                treatedFormula += c.ID + "+";
-                if (c.Name.Contains("Sym"))
-                    treatedAndSymFormula += c.ID + "+";
+                if (c.Name.Length > 1 && c.Name.Substring(0, 2) == "W ")
+                {
+                    treatedFormula += c.ID + "+";
+                    if (c.Name.Contains("Sym"))
+                        treatedAndSymFormula += c.ID + "+";
 
-                if (c.Name.Contains("G_A"))
-                    treatedResistFormula[0] += c.ID + "+";
-                else if (c.Name.Contains("G_B"))
-                    treatedResistFormula[1] += c.ID + "+";
-                else if (c.Name.Contains("G_AB"))
-                    treatedResistFormula[2] += c.ID + "+";
+                    if (c.Name.Substring(c.Name.Length - 2) == "_A")
+                        treatedResistFormula[0] += c.ID + "+";
+                    else if (c.Name.Substring(c.Name.Length - 2) == "_B")
+                        treatedResistFormula[1] += c.ID + "+";
+                    else if (c.Name.Substring(c.Name.Length - 2) == "AB")
+                        treatedResistFormula[2] += c.ID + "+";
+                }
             }
 
             // received first-line treatment (= number of cases)
@@ -668,17 +675,18 @@ namespace RunGonorrhea
                 );
 
             // received first-line treatment by resistance status
-            foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
-                _epiHist.SumTrajs.Add(
-                    new SumClassesTrajectory(
-                        ID: id++,
-                        name: "Received 1st Tx & Resistant to " + r.ToString(),
-                        strType: "Incidence",
-                        sumFormula: treatedResistFormula[(int)r],
-                        displayInSimOutput: true,
-                        warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
-                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
-                        );
+            foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
+                if (r != ResistStates.G_0)
+                    _epiHist.SumTrajs.Add(
+                        new SumClassesTrajectory(
+                            ID: id++,
+                            name: "Received 1st Tx & Resistant to " + r.ToString(),
+                            strType: "Incidence",
+                            sumFormula: treatedResistFormula[(int)r-1],
+                            displayInSimOutput: true,
+                            warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                            nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
+                            );
 
             // sucessful treatment
             string treatedA1 = _classes[_dicClasses["Success with A1"]].ID.ToString();
@@ -745,6 +753,11 @@ namespace RunGonorrhea
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                     );
+        }
+
+        private void AddGonoConnections()
+        {
+
         }
 
         private List<Parameter> GetParamList(string paramName)
