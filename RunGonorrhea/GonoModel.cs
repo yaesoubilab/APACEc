@@ -757,6 +757,25 @@ namespace RunGonorrhea
 
         private void AddGonoConnections()
         {
+            int i = 0;
+
+            // add birth
+            int birthID = _dicEvents["Birth | S"];
+            i = 0;
+            foreach (Class c in _classes.Where(c => c is Class_Normal))
+            {
+                if (c.Name.StartsWith("S") || c.Name.StartsWith("I"))
+                    ((Class_Normal)c).AddAnEvent(_events[birthID + i++]);
+            }            
+
+            // add death
+            int deathID = _dicEvents["Death | S"];
+            i = 0;
+            foreach (Class c in _classes.Where(c => c is Class_Normal))
+            {
+                if (c.Name.StartsWith("S") || c.Name.StartsWith("I"))
+                    ((Class_Normal)c).AddAnEvent(_events[deathID + i++]);
+            }
 
         }
 

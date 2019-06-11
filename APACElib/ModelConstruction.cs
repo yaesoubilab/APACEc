@@ -383,6 +383,7 @@ namespace APACElib
         protected List<Class> _classes;
         protected  Dictionary<string, int> _dicClasses = new Dictionary<string, int>();
         protected List<Event> _events;
+        protected Dictionary<string, int> _dicEvents = new Dictionary<string, int>();
         protected EpidemicHistory _epiHist;
         protected ForceOfInfectionModel _FOIModel;
         protected DecisionMaker _decisionMaker;
