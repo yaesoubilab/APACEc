@@ -19,6 +19,7 @@ namespace APACElib
         private List<ModelInstruction> _listModelInstr = new List<ModelInstruction>();
         private EpidemicModeller _epidemicModeller;
         private ArrayList _epidemicModellers = new ArrayList();
+        private DateTime dt;
 
         // computation time
         private double _actualTimeUsedToFindAllDynamicPolicies; // considering several ADP parameter designs
@@ -52,6 +53,7 @@ namespace APACElib
         public void Run(List<ModelInstruction> listModelInstruction)
         {            
             _listModelInstr = listModelInstruction;
+            dt = DateTime.Now;
 
             // read model settings
             _modelSettings.ReadSettings(ref _excelInterface);
@@ -62,7 +64,7 @@ namespace APACElib
                 case ExcelInterface.enumWhatToDo.Simulate:
                     {
                         // simulate a policy
-                        Console.WriteLine("Simulating a policy...");
+                        Console.WriteLine(dt.ToString() + ": Simulating a policy.");
                         SimulateAPolicy();                        
                         break;
                     }

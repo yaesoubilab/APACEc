@@ -11,7 +11,7 @@ namespace RunGonorrhea
 {
     public class GonoModel : ModelInstruction
     {
-        enum Comparts { I, W, W2 };
+        enum Comparts { I, W, U }; // infection, waiting for treatment, waiting for retreatment 
         enum Drugs { A1, B1, B2};
         enum Ms { M1, M2};
         enum SymStates { Sym, Asym };
@@ -114,7 +114,6 @@ namespace RunGonorrhea
         {
             int classIdIfSymp = 0;
             int classIDIfAsymp = 0;
-            string parInitialSize;
             int id = 0;
             int inf = 0; // infection profile
 
@@ -137,12 +136,12 @@ namespace RunGonorrhea
             foreach (Drugs d in Enum.GetValues(typeof(Drugs)))
             {
                 Class_Normal c = new Class_Normal(id, "Success with " + d.ToString());
-                S.SetupInitialAndStoppingConditions(
-                initialMembersPar: GetParam("Dummy 0"));
-                S.SetupTransmissionDynamicsProperties(
-                susceptibilityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
-                infectivityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
-                rowIndexInContactMatrix: 0);
+                c.SetupInitialAndStoppingConditions(
+                    initialMembersPar: _paramManager.Parameters[(int)DummyParam.D_0]);
+                c.SetupTransmissionDynamicsProperties(
+                    susceptibilityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
+                    infectivityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
+                    rowIndexInContactMatrix: 0);
                 SetupClassStatsAndTimeSeries(
                     thisClass: c,
                     showIncidence: true);
@@ -153,12 +152,12 @@ namespace RunGonorrhea
             foreach (Ms m in Enum.GetValues(typeof(Ms)))
             {
                 Class_Normal c = new Class_Normal(id, "Success with " + m.ToString());
-                S.SetupInitialAndStoppingConditions(
-                initialMembersPar: GetParam("Dummy 0"));
-                S.SetupTransmissionDynamicsProperties(
-                susceptibilityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
-                infectivityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
-                rowIndexInContactMatrix: 0);
+                c.SetupInitialAndStoppingConditions(
+                    initialMembersPar: _paramManager.Parameters[(int)DummyParam.D_0]);
+                c.SetupTransmissionDynamicsProperties(
+                    susceptibilityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
+                    infectivityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
+                    rowIndexInContactMatrix: 0);
                 SetupClassStatsAndTimeSeries(
                     thisClass: c,
                     showIncidence: true);
@@ -168,10 +167,13 @@ namespace RunGonorrhea
 
             // add death
             Class_Death D = new Class_Death(id, "Death");
+            SetupClassStatsAndTimeSeries(
+                    thisClass: D,
+                    showIncidence: true);
             _classes.Add(D);
             _dicClasses[D.Name] = id++;
 
-            // add I's, W's, and W2's, 
+            // add I's, W's, and U's, 
             // example: "I | Sym | G_0"            
             foreach (Comparts c in Enum.GetValues(typeof(Comparts)))
             {
@@ -183,16 +185,17 @@ namespace RunGonorrhea
                         string parName = "Infectivity of | " + Comparts.I.ToString() + " | " + _infProfiles[inf];
                         Class_Normal cls = new Class_Normal(id, name);
 
+                        Parameter p0;
                         if (c == Comparts.I)
-                            parInitialSize = "Initial size of " + name;
-                        else // else for W and W2 the initial size if 0
-                            parInitialSize = "Dummy 0";
+                            p0 = GetParam("Initial size of " + name);
+                        else // else for W and U the initial size if 0
+                            p0 = _paramManager.Parameters[(int)DummyParam.D_0];
 
                         cls.SetupInitialAndStoppingConditions(
-                            initialMembersPar: GetParam(parInitialSize),
+                            initialMembersPar: p0,
                             ifShouldBeEmptyForEradication: false);  // to simulate until the end of the simulation hirozon
                         cls.SetupTransmissionDynamicsProperties(
-                            susceptibilityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4), // no reinfection in I, W, or W2
+                            susceptibilityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4), // no reinfection in I, W, or U
                             infectivityParams: GetParamList(
                                 paramName: parName,
                                 pos: (int)r,
@@ -245,7 +248,7 @@ namespace RunGonorrhea
                             if (resistOrFail == "F")
                             {
                                 // and seeks treatment -> waiting for retreatment
-                                classIfSeekTreatment = "W2 | " + s.ToString() + " | " + r.ToString();
+                                classIfSeekTreatment = "U | " + s.ToString() + " | " + r.ToString();
                                 // and does not seek treatment -> the infectious state 
                                 classIfNotSeekTreatment = "I | " + _infProfiles[inf];
                             }
@@ -254,7 +257,7 @@ namespace RunGonorrhea
                                 // update the infection profile
                                 string newInfProfile = s.ToString() + " | G_" + resistOrFail;
                                 // and seeks treatment -> waiting for retreatment
-                                classIfSeekTreatment = "W2 | " + newInfProfile;
+                                classIfSeekTreatment = "U | " + newInfProfile;
                                 // and does not seek treatment -> the infectious state
                                 classIfNotSeekTreatment = "I | " + newInfProfile;
                             }
@@ -340,7 +343,7 @@ namespace RunGonorrhea
                         {
                             //if (r != ResistStates.G_A)
                             //    continue;
-                            classIfResist = "W2 | " + s.ToString() + " | G_" + resistOrFail;
+                            classIfResist = "U | " + s.ToString() + " | G_" + resistOrFail;
                         }
 
                         // parameter name
@@ -525,7 +528,7 @@ namespace RunGonorrhea
                     string resistOrFail = GetResistOrFail(resistStat: r, drug: Drugs.B2);
                     string infProfile = s.ToString() + " | " + r.ToString();
                     string treatmentProfile = resistOrFail + " | B2 --> I | " + infProfile;
-                    eventName = "Tx_B2 | W2 | " + infProfile;
+                    eventName = "Tx_B2 | U | " + infProfile;
 
                     string destClassName = "";
                     if (resistOrFail == "F")
@@ -549,7 +552,7 @@ namespace RunGonorrhea
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
                     string infProfile = s.ToString() + " | " + r.ToString();
-                    eventName = "Tx_M2 | W2 | " + infProfile;
+                    eventName = "Tx_M2 | U | " + infProfile;
                     _events.Add(new Event_EpidemicIndependent(
                         name: eventName,
                         ID: id,
@@ -707,8 +710,8 @@ namespace RunGonorrhea
                 new DeltaTCostHealth(
                     deltaT: _modelSets.DeltaT, 
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
-                    DALYPerNewMember: GetParam("Dummy 1"),
-                    costPerNewMember: GetParam("Dummy 0")
+                    DALYPerNewMember: _paramManager.Parameters[(int)DummyParam.D_1],
+                    costPerNewMember: _paramManager.Parameters[(int)DummyParam.D_0]
                     );
             _epiHist.SumTrajs.Add(t1st);
 
@@ -786,8 +789,8 @@ namespace RunGonorrhea
                 new DeltaTCostHealth(
                     deltaT: _modelSets.DeltaT,
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
-                    DALYPerNewMember: GetParam("Dummy 0"),
-                    costPerNewMember: GetParam("Dummy 1")
+                    DALYPerNewMember: _paramManager.Parameters[(int)DummyParam.D_0],
+                    costPerNewMember: _paramManager.Parameters[(int)DummyParam.D_1]
                     );
             _epiHist.SumTrajs.Add(tM);
 
@@ -816,8 +819,8 @@ namespace RunGonorrhea
             int txA = _dicEvents["Tx_A1 | W | " + _infProfiles[0]];
             int txB = _dicEvents["Tx_B1 | W | " + _infProfiles[0]]; 
             int txM = _dicEvents["Tx_M1 | W | " + _infProfiles[0]]; 
-            int txB2 = _dicEvents["Tx_B2 | W2 | " + _infProfiles[0]];
-            int txM2 = _dicEvents["Tx_M2 | W2 | " + _infProfiles[0]];
+            int txB2 = _dicEvents["Tx_B2 | U | " + _infProfiles[0]];
+            int txM2 = _dicEvents["Tx_M2 | U | " + _infProfiles[0]];
             int leaveSuccess = _dicEvents["Leaving Success with A1"];
             int success = _dicClasses["Success with A1"];
 
@@ -833,37 +836,39 @@ namespace RunGonorrhea
                 S.AddAnEvent(_events[infectionID + i++]);
 
             // ----------------
-            // add events for I, W, W2
+            // add events for I, W, U
             i = 1;
-            int w = 0, w2 = 0;
+            int w = 0, u = 0;
             foreach (Class c in _classes.Where(c => (c is Class_Normal)))
             {
                 // for I
                 if (c.Name.StartsWith("I"))
                 {                    
-                    ((Class_Normal)c).AddAnEvent(_events[birthID + i++]);
-                    ((Class_Normal)c).AddAnEvent(_events[deathID + i++]);
-                    ((Class_Normal)c).AddAnEvent(_events[naturalRecoveryID + i++]);
-                    ((Class_Normal)c).AddAnEvent(_events[seekingTreatmentID + i++]);
-                    ((Class_Normal)c).AddAnEvent(_events[screeningID + i++]);
+                    ((Class_Normal)c).AddAnEvent(_events[birthID + i]);
+                    ((Class_Normal)c).AddAnEvent(_events[deathID + i]);
+                    ((Class_Normal)c).AddAnEvent(_events[naturalRecoveryID + i]);
+                    ((Class_Normal)c).AddAnEvent(_events[seekingTreatmentID + i]);
+                    ((Class_Normal)c).AddAnEvent(_events[screeningID + i]);
+                    ++i;
                 }
                 // for W
-                else if (c.Name.Substring(0,2) == "W ")
+                else if (c.Name.StartsWith("W "))
                 {
-                    ((Class_Normal)c).AddAnEvent(_events[txA + w++]);
-                    ((Class_Normal)c).AddAnEvent(_events[txB+ w++]);
-                    ((Class_Normal)c).AddAnEvent(_events[txM+ w++]);
+                    ((Class_Normal)c).AddAnEvent(_events[txA + w]);
+                    ((Class_Normal)c).AddAnEvent(_events[txB+ w]);
+                    ((Class_Normal)c).AddAnEvent(_events[txM+ w]);
+                    ++w;
                 }
-                else if (c.Name.Substring(0, 2) == "W2")
+                else if (c.Name.StartsWith("U"))
                 {
-                    ((Class_Normal)c).AddAnEvent(_events[txB2 + w2++]);
-                    ((Class_Normal)c).AddAnEvent(_events[txM + w2++]);
+                    ((Class_Normal)c).AddAnEvent(_events[txB2 + u]);
+                    ((Class_Normal)c).AddAnEvent(_events[txM + u]);
+                    ++u;
                 }
             }
 
             // add leaving success with A1, B1, B2, M1, M2
-            i = 0;
-            for (int j = 0; j<5; j++)
+            for (int j = 0; j < 5; j++)
                 ((Class_Normal)_classes[success + j]).AddAnEvent(_events[leaveSuccess + j]);
         }
 
