@@ -19,8 +19,15 @@ namespace RunGonorrhea
         enum Interventions { A1 = 2, B1, M1, B2_A, M2_A, M2_A_AB}
         enum DummyParam { D_0, D_1, D_Minus1, D_Inf} // 0, 1, 2, 3
 
+        private List<string> _infProfiles = new List<string>();
+
         public GonoModel() : base()
         {
+            foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
+                foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
+                {
+                    _infProfiles.Add(s.ToString() + " | " + r.ToString());
+                }
         }
 
         public override void BuildModel()
@@ -109,6 +116,7 @@ namespace RunGonorrhea
             int classIDIfAsymp = 0;
             string parInitialSize;
             int id = 0;
+            int inf = 0; // infection profile
 
             // add S
             Class_Normal S = new Class_Normal(id, "S");
@@ -164,15 +172,17 @@ namespace RunGonorrhea
             _dicClasses[D.Name] = id++;
 
             // add I's, W's, and W2's, 
-            // example: "I | Sym | G_0"
+            // example: "I | Sym | G_0"            
             foreach (Comparts c in Enum.GetValues(typeof(Comparts)))
+            {
+                inf = 0;
                 foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                     foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                     {
-                        string name = c.ToString() + " | " + s.ToString() + " | " + r.ToString();
-                        string parName = "Infectivity of | " + Comparts.I.ToString() + " | " + s.ToString() + " | " + r.ToString();
+                        string name = c.ToString() + " | " + _infProfiles[inf];
+                        string parName = "Infectivity of | " + Comparts.I.ToString() + " | " + _infProfiles[inf];
                         Class_Normal cls = new Class_Normal(id, name);
-                        
+
                         if (c == Comparts.I)
                             parInitialSize = "Initial size of " + name;
                         else // else for W and W2 the initial size if 0
@@ -184,18 +194,20 @@ namespace RunGonorrhea
                         cls.SetupTransmissionDynamicsProperties(
                             susceptibilityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4), // no reinfection in I, W, or W2
                             infectivityParams: GetParamList(
-                                paramName: parName, 
-                                pos: (int)r, 
+                                paramName: parName,
+                                pos: (int)r,
                                 size: 4,
                                 dummyParam: DummyParam.D_0),
                             rowIndexInContactMatrix: 0);
                         SetupClassStatsAndTimeSeries(
                             thisClass: cls,
                             showPrevalence: (c == Comparts.I) ? true : false,
-                            showIncidence: (c==Comparts.W) ? true: false);
+                            showIncidence: (c == Comparts.W) ? true : false);
                         _classes.Add(cls);
                         _dicClasses[name] = id++;
+                        ++inf;
                     }
+            }
 
             // Prob symptomatic after infection
             classIdIfSymp = _dicClasses["I | Sym | G_0"];
@@ -221,12 +233,12 @@ namespace RunGonorrhea
             foreach (Drugs drug in Enum.GetValues(typeof(Drugs)))   // A1, B1, B2
                 if (drug == Drugs.A1 || drug == Drugs.B1)  // Assuming that failure after B2 will always seek retreatment 
                 {
+                    inf = 0;
                     foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                         foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                         {
                             string resistOrFail = GetResistOrFail(resistStat: r, drug: drug);
-                            string infProfile = s.ToString() + " | " + r.ToString();
-                            string className = "If retreat " + resistOrFail + " | " + drug.ToString() + " --> I | " + infProfile;
+                            string className = "If retreat " + resistOrFail + " | " + drug.ToString() + " --> I | " + _infProfiles[inf];
 
                             string classIfSeekTreatment = "", classIfNotSeekTreatment = "";
                             // if failed
@@ -235,7 +247,7 @@ namespace RunGonorrhea
                                 // and seeks treatment -> waiting for retreatment
                                 classIfSeekTreatment = "W2 | " + s.ToString() + " | " + r.ToString();
                                 // and does not seek treatment -> the infectious state 
-                                classIfNotSeekTreatment = "I | " + infProfile;
+                                classIfNotSeekTreatment = "I | " + _infProfiles[inf];
                             }
                             else // if developed resistance
                             {
@@ -256,6 +268,7 @@ namespace RunGonorrhea
                             SetupClassStatsAndTimeSeries(thisClass: ifRetreat);
                             _classes.Add(ifRetreat);
                             _dicClasses[className] = id++;
+                            ++inf;
                         }
                 }
 
@@ -325,8 +338,8 @@ namespace RunGonorrhea
                         }
                         else // if already received B2
                         {
-                            if (r != ResistStates.G_A)
-                                continue;
+                            //if (r != ResistStates.G_A)
+                            //    continue;
                             classIfResist = "W2 | " + s.ToString() + " | G_" + resistOrFail;
                         }
 
@@ -367,9 +380,8 @@ namespace RunGonorrhea
             // main compartments: S, I
             List<string> mainComp = new List<string>();
             mainComp.Add("S");
-            foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
-                foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
-                    mainComp.Add("I " + s.ToString() + " | " + r.ToString());
+            for (int inf = 0; inf <_infProfiles.Count; inf ++)
+                mainComp.Add("I | " + _infProfiles[inf]);
 
             // add Birth events
             foreach (string comp in mainComp)
@@ -509,40 +521,44 @@ namespace RunGonorrhea
             // add Second-Line Treatment with B2            
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
-                    if (r == ResistStates.G_A)
-                    {
-                        string resistOrFail = GetResistOrFail(resistStat: r, drug: Drugs.B2);
-                        string infProfile = s.ToString() + " | " + r.ToString();
-                        string treatmentProfile = resistOrFail + " | B2 --> I | " + infProfile;
-                        string destClassName = "If " + treatmentProfile;
-                        eventName = "Tx_B2 | W2 | " + infProfile;
+                {
+                    string resistOrFail = GetResistOrFail(resistStat: r, drug: Drugs.B2);
+                    string infProfile = s.ToString() + " | " + r.ToString();
+                    string treatmentProfile = resistOrFail + " | B2 --> I | " + infProfile;
+                    eventName = "Tx_B2 | W2 | " + infProfile;
 
-                        _events.Add(new Event_EpidemicIndependent(
-                            name: eventName,
-                            ID: id,
-                            IDOfActivatingIntervention: (int)Interventions.M2_A,
-                            rateParameter: _paramManager.Parameters[seekingReTreatmentRate],
-                            IDOfDestinationClass: _dicClasses[destClassName])
-                            );
-                        _dicEvents[eventName] = id++;
-                    }
+                    string destClassName = "";
+                    if (resistOrFail == "F")
+                        // if treatment failure occurs, the patient will receive M2 
+                        destClassName = "Success with M2";
+                    else
+                        destClassName = "If " + treatmentProfile;
+
+                    _events.Add(new Event_EpidemicIndependent(
+                        name: eventName,
+                        ID: id,
+                        IDOfActivatingIntervention: (int)Interventions.M2_A,
+                        rateParameter: (r == ResistStates.G_A) ? _paramManager.Parameters[(int)DummyParam.D_0] : _paramManager.Parameters[seekingReTreatmentRate],
+                        IDOfDestinationClass: _dicClasses[destClassName])
+                        );
+                    _dicEvents[eventName] = id++;
+                }
 
             // add Second-Line Treatment with M2              
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
-                    if (r != ResistStates.G_0)
-                    {
-                        string infProfile = s.ToString() + " | " + r.ToString();
-                        eventName = "Tx_B2 | W2 | " + infProfile;
-                        _events.Add(new Event_EpidemicIndependent(
-                            name: eventName,
-                            ID: id,
-                            IDOfActivatingIntervention: (r == ResistStates.G_A) ? (int)Interventions.M2_A : (int)Interventions.M2_A_AB,
-                            rateParameter: _paramManager.Parameters[seekingReTreatmentRate],
-                            IDOfDestinationClass: idSuccessM2)
-                            );
-                        _dicEvents[eventName] = id++;
-                    }
+                {
+                    string infProfile = s.ToString() + " | " + r.ToString();
+                    eventName = "Tx_M2 | W2 | " + infProfile;
+                    _events.Add(new Event_EpidemicIndependent(
+                        name: eventName,
+                        ID: id,
+                        IDOfActivatingIntervention: (r == ResistStates.G_A) ? (int)Interventions.M2_A : (int)Interventions.M2_A_AB,
+                        rateParameter: (r == ResistStates.G_A) ? _paramManager.Parameters[(int)DummyParam.D_0] : _paramManager.Parameters[seekingReTreatmentRate],
+                        IDOfDestinationClass: idSuccessM2)
+                        );
+                    _dicEvents[eventName] = id++;
+                }
 
             // add Leaving Success with A1, B1, or B2
             foreach (Drugs d in Enum.GetValues(typeof(Drugs)))
@@ -797,11 +813,11 @@ namespace RunGonorrhea
             int naturalRecoveryID = _dicEvents["Natural Recovery | I | Sym | G_0"];
             int seekingTreatmentID = _dicEvents["Seeking Treatment | I | Sym | G_0"];
             int screeningID = _dicEvents["Screening | I | Sym | G_0"];
-            int txA = _dicEvents["Tx_A | I | Sym | G_0"];
-            int txB = _dicEvents["Tx_B | I | Sym | G_0"];
-            int txM = _dicEvents["Tx_M | I | Sym | G_0"];
-            int txB2 = _dicEvents["Tx_B2 | I | Sym | G_0"];
-            int txM2 = _dicEvents["Tx_M2 | I | Sym | G_0"];
+            int txA = _dicEvents["Tx_A1 | W | " + _infProfiles[0]];
+            int txB = _dicEvents["Tx_B1 | W | " + _infProfiles[0]]; 
+            int txM = _dicEvents["Tx_M1 | W | " + _infProfiles[0]]; 
+            int txB2 = _dicEvents["Tx_B2 | W2 | " + _infProfiles[0]];
+            int txM2 = _dicEvents["Tx_M2 | W2 | " + _infProfiles[0]];
             int leaveSuccess = _dicEvents["Leaving Success with A1"];
             int success = _dicClasses["Success with A1"];
 
@@ -818,7 +834,7 @@ namespace RunGonorrhea
 
             // ----------------
             // add events for I, W, W2
-            i = 0;
+            i = 1;
             int w = 0, w2 = 0;
             foreach (Class c in _classes.Where(c => (c is Class_Normal)))
             {
