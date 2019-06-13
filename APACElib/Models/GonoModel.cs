@@ -7,7 +7,7 @@ using APACElib;
 using ComputationLib;
 using RandomVariateLib;
 
-namespace RunGonorrhea
+namespace APACElib
 {
     public class GonoModel : ModelInstruction
     {
@@ -365,6 +365,7 @@ namespace RunGonorrhea
         private void AddGonoEvents()
         {
             int id = 0;
+            int inf = 0;
             string eventName = "";
             // rates
             int infRate = _paramManager.Dic["Dummy Inf"];
@@ -383,7 +384,7 @@ namespace RunGonorrhea
             // main compartments: S, I
             List<string> mainComp = new List<string>();
             mainComp.Add("S");
-            for (int inf = 0; inf <_infProfiles.Count; inf ++)
+            for (inf = 0; inf <_infProfiles.Count; inf ++)
                 mainComp.Add("I | " + _infProfiles[inf]);
 
             // add Birth events
@@ -447,6 +448,7 @@ namespace RunGonorrhea
 
             // add Seeking Treatment events
             int idWSymG_0 = _dicClasses["W | Sym | G_0"];
+            inf = 0;
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
@@ -457,12 +459,13 @@ namespace RunGonorrhea
                         ID: id,
                         IDOfActivatingIntervention: 0,
                         rateParameter: (s == SymStates.Sym) ? _paramManager.Parameters[seekingTreatmentRate] : _paramManager.Parameters[(int)DummyParam.D_0],
-                        IDOfDestinationClass: idWSymG_0 + (int)r)
+                        IDOfDestinationClass: idWSymG_0 + inf++)
                     );
                     _dicEvents[eventName] = id++;
                 }
 
             // add Screening events
+            inf = 0;
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
@@ -473,7 +476,7 @@ namespace RunGonorrhea
                         ID: id,
                         IDOfActivatingIntervention: 0,
                         rateParameter: _paramManager.Parameters[screeningRate],
-                        IDOfDestinationClass: idWSymG_0 + 2*(int)s + (int)r)
+                        IDOfDestinationClass: idWSymG_0 + inf++)
                     );
                     _dicEvents[eventName] = id++;
                 }
@@ -837,15 +840,15 @@ namespace RunGonorrhea
 
             // ----------------
             // add events for I, W, U
-            i = 1;
+            i = 0;
             int w = 0, u = 0;
             foreach (Class c in _classes.Where(c => (c is Class_Normal)))
             {
                 // for I
                 if (c.Name.StartsWith("I"))
                 {                    
-                    ((Class_Normal)c).AddAnEvent(_events[birthID + i]);
-                    ((Class_Normal)c).AddAnEvent(_events[deathID + i]);
+                    ((Class_Normal)c).AddAnEvent(_events[birthID + i + 1]);
+                    ((Class_Normal)c).AddAnEvent(_events[deathID + i + 1]);
                     ((Class_Normal)c).AddAnEvent(_events[naturalRecoveryID + i]);
                     ((Class_Normal)c).AddAnEvent(_events[seekingTreatmentID + i]);
                     ((Class_Normal)c).AddAnEvent(_events[screeningID + i]);

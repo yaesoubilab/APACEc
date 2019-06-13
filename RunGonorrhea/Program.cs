@@ -20,12 +20,8 @@ namespace RunGonorrhea
             // connect to the epidemic model
             myAPACE.ConnectToExcelInteface();
 
-            List<ModelInstruction> GonoModels = new List<ModelInstruction>();
-            for (int i = 0; i < myAPACE.ModelSetting.GetNumModelsToBuild(); i++)
-                GonoModels.Add(new GonoModel());
-
             // run apace
-            myAPACE.Run(GonoModels);
+            myAPACE.Run();
 
             if (args.Length > 0 && args[0] == "true")
             {

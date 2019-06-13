@@ -50,10 +50,14 @@ namespace APACElib
         }
 
         // run
-        public void Run(List<ModelInstruction> listModelInstruction)
-        {            
-            _listModelInstr = listModelInstruction;
+        public void Run()
+        {
             dt = DateTime.Now;
+
+            _listModelInstr = null;
+            _listModelInstr = new List<ModelInstruction>();
+            for (int i = 0; i < ModelSetting.GetNumModelsToBuild(); i++)
+                _listModelInstr.Add(new GonoModel());
 
             // read model settings
             _modelSettings.ReadSettings(ref _excelInterface);

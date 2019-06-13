@@ -57,6 +57,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CalibrationClasses.cs" />
+    <Compile Include="Models\GonoModel.cs" />
     <Compile Include="old\CalibrationOld.cs" />
     <Compile Include="APACE.cs" />
     <Compile Include="Class.cs" />

@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using APACElib;
 
 namespace APACE
 {
@@ -43,23 +44,17 @@ namespace APACE
             this.lblStatus.Text = "Status: Running...";            
             this.btnRun.Enabled = false;
 
-            // save the excel file
-            //myAPACE.SaveExcelFile();
-
             // check the visibility of the model
             if (this.chbIfMakeExcelFileInVisible.Checked == true)
                 myAPACE.ExcelIntface.Visible = false;
             else
-                myAPACE.ExcelIntface.Visible = true;
+                myAPACE.ExcelIntface.Visible = true;            
 
             // run the model
-            myAPACE.Run(null);
+            myAPACE.Run();
 
             // make the model visible
             myAPACE.ExcelIntface.Visible = true;
-
-            // reset the epidemic model
-            //myAPACE.RestartEpidemicModel();
 
             // save the excel file if needed
             if (this.chbifSaveExcelFile.Checked)

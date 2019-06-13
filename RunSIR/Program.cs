@@ -21,12 +21,12 @@ namespace RunSIR
             // connect to the epidemic model
             myAPACE.ConnectToExcelInteface();
 
-            List<ModelInstruction> SIRModels = new List<ModelInstruction>();
-            for (int i = 0; i < myAPACE.ModelSetting.GetNumModelsToBuild(); i++)
-                SIRModels.Add(new SIRModel());
+            //List<ModelInstruction> SIRModels = new List<ModelInstruction>();
+            //for (int i = 0; i < myAPACE.ModelSetting.GetNumModelsToBuild(); i++)
+            //    SIRModels.Add(new SIRModel());
             
             // run apace
-            myAPACE.Run(SIRModels);
+            myAPACE.Run();
 
             if (args.Length > 0 && args[0] == "true")
             {
