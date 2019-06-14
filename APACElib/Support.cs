@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using ComputationLib;
 using RandomVariateLib;
+using System.Windows.Forms;
 
 namespace APACElib
 {
@@ -256,6 +257,24 @@ namespace APACElib
         {
             int endTime = Environment.TickCount;
             TimePassed = (double)(endTime - _startTime) / 1000;
+        }
+    }
+
+    // class to update the status bar
+    public class TextBoxUpdater
+    {
+        private RichTextBox _textBox;
+
+        public TextBoxUpdater(RichTextBox richTextBox)
+        {
+            _textBox = richTextBox;
+            _textBox.Clear();
+        }
+        public void AddText(string text)
+        {
+            _textBox.AppendText(DateTime.Now.ToShortTimeString() + ": " + text);
+            _textBox.AppendText(System.Environment.NewLine);
+            _textBox.Update();
         }
     }
 

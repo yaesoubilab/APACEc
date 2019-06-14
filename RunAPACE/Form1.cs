@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using APACElib;
 
-namespace APACE
+namespace RunAPACE
 {
     public partial class Form1 : Form
     {
@@ -70,6 +70,5 @@ namespace APACE
             // make the model visible
             myAPACE.ExcelIntface.Visible = true;
         }
-
     }
 }

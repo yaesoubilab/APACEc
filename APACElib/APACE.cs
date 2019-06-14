@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using ComputationLib;
 using RandomVariateLib;
 using System.Runtime.InteropServices;
+using System.Windows.Forms;
 
 namespace APACElib
 {
@@ -20,6 +21,7 @@ namespace APACElib
         private EpidemicModeller _epidemicModeller;
         private ArrayList _epidemicModellers = new ArrayList();
         private DateTime dt;
+        private TextBoxUpdater _txtBox;
 
         // computation time
         private double _actualTimeUsedToFindAllDynamicPolicies; // considering several ADP parameter designs
@@ -50,17 +52,21 @@ namespace APACElib
         }
 
         // run
-        public void Run()
+        public void Run(string model="None", RichTextBox textBox=null)
         {
             dt = DateTime.Now;
+            _txtBox = new TextBoxUpdater(textBox);
 
             // read model settings
             _modelSettings.ReadSettings(ref _excelInterface);
 
             _listModelInstr = null;
-            _listModelInstr = new List<ModelInstruction>();
-            for (int i = 0; i < ModelSetting.GetNumModelsToBuild(); i++)
-                _listModelInstr.Add(new GonoModel());
+            if (model == "Gonorrhea")
+            {
+                _listModelInstr = new List<ModelInstruction>();
+                for (int i = 0; i < ModelSetting.GetNumModelsToBuild(); i++)
+                    _listModelInstr.Add(new GonoModel());
+            }
 
             // find the task            
             switch (ExcelIntface.GetWhatToDo())
@@ -68,8 +74,10 @@ namespace APACElib
                 case ExcelInterface.enumWhatToDo.Simulate:
                     {
                         // simulate a policy
+                        _txtBox.AddText("Simulation started.");
                         Console.WriteLine(dt.ToString() + ": Simulating a policy.");
-                        SimulateAPolicy();                        
+                        SimulateAPolicy();
+                        _txtBox.AddText("Simulation ended.");
                         break;
                     }
                 case ExcelInterface.enumWhatToDo.Calibrate:
