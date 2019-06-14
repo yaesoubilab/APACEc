@@ -204,7 +204,7 @@ namespace APACElib
                             rowIndexInContactMatrix: 0);
                         SetupClassStatsAndTimeSeries(
                             thisClass: cls,
-                            showPrevalence: (c == Comparts.I) ? true : false,
+                            showPrevalence: (c == Comparts.I || c == Comparts.U) ? true : false,
                             showIncidence: (c == Comparts.W) ? true : false);
                         _classes.Add(cls);
                         _dicClasses[name] = id++;
@@ -356,7 +356,7 @@ namespace APACElib
                             destinationClassIDIfSuccess: _dicClasses[classIfResist],
                             destinationClassIDIfFailure: classIDSuccessA1 + (int)drug
                             );
-                        SetupClassStatsAndTimeSeries(thisClass: ifResist);
+                        SetupClassStatsAndTimeSeries(thisClass: ifResist, showIncidence:true);
                         _classes.Add(ifResist);
                         _dicClasses[className] = id++;
                     }
@@ -543,8 +543,8 @@ namespace APACElib
                     _events.Add(new Event_EpidemicIndependent(
                         name: eventName,
                         ID: id,
-                        IDOfActivatingIntervention: (int)Interventions.M2_A,
-                        rateParameter: (r == ResistStates.G_A) ? _paramManager.Parameters[(int)DummyParam.D_0] : _paramManager.Parameters[seekingReTreatmentRate],
+                        IDOfActivatingIntervention: (r == ResistStates.G_A) ? (int)Interventions.B2_A : 1,
+                        rateParameter: _paramManager.Parameters[seekingReTreatmentRate],
                         IDOfDestinationClass: _dicClasses[destClassName])
                         );
                     _dicEvents[eventName] = id++;
@@ -865,7 +865,7 @@ namespace APACElib
                 else if (c.Name.StartsWith("U"))
                 {
                     ((Class_Normal)c).AddAnEvent(_events[txB2 + u]);
-                    ((Class_Normal)c).AddAnEvent(_events[txM + u]);
+                    ((Class_Normal)c).AddAnEvent(_events[txM2 + u]);
                     ++u;
                 }
             }
