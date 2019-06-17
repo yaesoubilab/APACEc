@@ -75,7 +75,7 @@ namespace APACElib
                     {
                         // simulate a policy
                         _txtBox.AddText("Simulation started.");
-                        Console.WriteLine(dt.ToString() + ": Simulating a policy.");
+                        // Console.WriteLine(dt.ToString() + ": Simulating a policy.");
                         SimulateAPolicy();
                         _txtBox.AddText("Simulation ended.");
                         break;
@@ -83,7 +83,9 @@ namespace APACElib
                 case ExcelInterface.enumWhatToDo.Calibrate:
                     {
                         // calibrate
+                        _txtBox.AddText("Calibration started.");
                         Calibrate();
+                        _txtBox.AddText("Calibration ended.");
                         break;
                     }
                 case ExcelInterface.enumWhatToDo.OptimizeTheDynamicPolicy:

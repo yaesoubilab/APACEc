@@ -12,11 +12,16 @@ namespace APACElib
     public class GonoModel : ModelInstruction
     {
         enum Comparts { I, W, U }; // infection, waiting for treatment, waiting for retreatment 
-        enum Drugs { A1, B1, B2};
-        enum Ms { M1, M2};
+        enum Drugs { A1, B1, B2}; // 1st line treatment with A, 1st line treatment with B, and 2nd line treatment with B
+        enum Ms { M1, M2};  // 1st line treatment with M, and 2nd line treatment with M
         enum SymStates { Sym, Asym };
         enum ResistStates { G_0, G_A, G_B, G_AB }
-        enum Interventions { A1 = 2, B1, M1, B2_A, M2_A, M2_A_AB}
+        enum Interventions { A1 = 2, B1, M1, B2_A, M2_A, M2_B_AB} // A1:    A is used for 1st line treatment
+                                                                  // B1:    B is used for 1st line treatment
+                                                                  // M1:    M is used for 1st line treatment
+                                                                  // B2_A:  retreating those infected with G_A with B after 1st line treatment failure
+                                                                  // M2_A:  retreating those infected with G_A with M after 1st line treatment failure
+                                                                  // M2_B_AB: retreating those infected with G_B or G_AB with M after 1st line treatment failure
         enum DummyParam { D_0, D_1, D_Minus1, D_Inf} // 0, 1, 2, 3
 
         private List<string> _infProfiles = new List<string>();
@@ -234,7 +239,8 @@ namespace APACElib
             // examples "If retreat A | A --> I | Sym | G_0"
             //          "If retreat F | A --> I | Sym | G_A"
             foreach (Drugs drug in Enum.GetValues(typeof(Drugs)))   // A1, B1, B2
-                if (drug == Drugs.A1 || drug == Drugs.B1)  // Assuming that failure after B2 will always seek retreatment 
+                // assume that failure after B2 will always seek retreatment 
+                if (drug == Drugs.A1 || drug == Drugs.B1)  
                 {
                     inf = 0;
                     foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
@@ -559,7 +565,7 @@ namespace APACElib
                     _events.Add(new Event_EpidemicIndependent(
                         name: eventName,
                         ID: id,
-                        IDOfActivatingIntervention: (r == ResistStates.G_A) ? (int)Interventions.M2_A : (int)Interventions.M2_A_AB,
+                        IDOfActivatingIntervention: (r == ResistStates.G_A) ? (int)Interventions.M2_A : (int)Interventions.M2_B_AB,
                         rateParameter: (r == ResistStates.G_A) ? _paramManager.Parameters[(int)DummyParam.D_0] : _paramManager.Parameters[seekingReTreatmentRate],
                         IDOfDestinationClass: idSuccessM2)
                         );
