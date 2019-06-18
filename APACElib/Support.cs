@@ -260,21 +260,51 @@ namespace APACElib
         }
     }
 
+    public static class ThreadHelperClass
+    {
+        delegate void SetTextCallback(RichTextBox ctrl, string text);
+        /// <summary>
+        /// Set text property of various controls
+        /// </summary>
+        /// <param name="form">The calling form</param>
+        /// <param name="ctrl"></param>
+        /// <param name="text"></param>
+        public static void SetText(RichTextBox ctrl, string text)
+        {
+            // InvokeRequired required compares the thread ID of the 
+            // calling thread to the thread ID of the creating thread. 
+            // If these threads are different, it returns true. 
+            if (ctrl.InvokeRequired)
+            {
+                SetTextCallback d = new SetTextCallback(SetText);
+                ctrl.Invoke(d, new object[] { ctrl, text });
+            }
+            else
+            {
+                ctrl.AppendText(DateTime.Now.ToShortTimeString() + ": " + text);
+                ctrl.AppendText(System.Environment.NewLine);
+                ctrl.Update();
+            }
+        }
+    }
+
     // class to update the status bar
-    public class TextBoxUpdater
+    public class StatusBox
     {
         private RichTextBox _textBox;
 
-        public TextBoxUpdater(RichTextBox richTextBox)
+        public StatusBox(RichTextBox richTextBox)
         {
             _textBox = richTextBox;
             _textBox.Clear();
         }
         public void AddText(string text)
         {
-            _textBox.AppendText(DateTime.Now.ToShortTimeString() + ": " + text);
-            _textBox.AppendText(System.Environment.NewLine);
-            _textBox.Update();
+            ThreadHelperClass.SetText(_textBox, text);
+            
+            //_textBox.AppendText(DateTime.Now.ToShortTimeString() + ": " + text);
+            //_textBox.AppendText(System.Environment.NewLine);
+            //_textBox.Update();
         }
     }
 
@@ -288,8 +318,8 @@ namespace APACElib
         public bool IfDisplay { get; }
         public bool SurveillanceDataAvailable { get; }
         public int NDeltaTDelayed { get; }
-        public double SurveillanceNoise { get; }
         public bool FirstObsMarksEpiStart { get; }
+        public int ParIDNoiseDenominator { get; }
 
         public bool IfIncludedInCalibration { get; }
         public string StrMeasureOfFit { get; }
@@ -315,7 +345,7 @@ namespace APACElib
             if (SurveillanceDataAvailable)
             {
                 NDeltaTDelayed = Convert.ToInt32(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.NumOfDeltaTsDelayed));
-                SurveillanceNoise = Convert.ToDouble(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.Noise));
+                ParIDNoiseDenominator = Convert.ToInt32(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.NoiseDenominator));
                 FirstObsMarksEpiStart = SupportFunctions.ConvertYesNoToBool(sheet.GetValue(rowIndex, (int)ExcelInterface.enumSpecialStatisticsColumns.FirstObservationMarksTheStartOfTheSpread).ToString());
             }
             // basic settings

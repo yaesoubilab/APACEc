@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using RandomVariateLib;
 using ComputationLib;
+using System.Windows.Forms;
 
 namespace APACElib
 {
@@ -209,7 +210,7 @@ namespace APACElib
         }
 
         // calibrate
-        public void Calibrate()
+        public void Calibrate(StatusBox statusBox = null)
         {
             // computation time
             Timer = new Timer();
@@ -229,6 +230,7 @@ namespace APACElib
                     ToggleAnEpidemicTo(epi, EnumModelUse.Calibration, _modelSet.DecisionRule, false);
                     // simulate            
                     epi.SimulateUntilOneAcceptibleTrajFound(_modelSet.TimeIndexToStop);
+                    statusBox.AddText(epi.ID + " completed.");
 
                     // find the likeligood of this simulation 
                     if (epi.SeedProducedAcceptibleTraj != -1)
@@ -249,6 +251,8 @@ namespace APACElib
                     ToggleAnEpidemicTo(epi, EnumModelUse.Calibration, _modelSet.DecisionRule, false);
                     // simulate            
                     epi.SimulateUntilOneAcceptibleTrajFound(_modelSet.TimeIndexToStop);
+                    // statusBox.AddText(epi.ID + " completed.");
+
                     // find the likeligood of this simulation 
                     if (epi.SeedProducedAcceptibleTraj != -1)
                         Calibration.CalculateLnL(epi);

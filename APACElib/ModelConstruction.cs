@@ -962,7 +962,7 @@ namespace APACElib
                                         ratioTrajectory: null,
                                         nDeltaTsObsPeriod: _modelSets.NumOfDeltaT_inObservationPeriod,
                                         nDeltaTsDelayed: info.NDeltaTDelayed,
-                                        noise_nOfDemoninatorSampled: 1)
+                                        noise_nOfDemoninatorSampled: _paramManager.Parameters[info.ParIDNoiseDenominator])
                                         );
                                 break;
                             case SumTrajectory.EnumType.AccumulatingIncident:
@@ -977,7 +977,7 @@ namespace APACElib
                                         ratioTrajectory: null,
                                         nDeltaTsObsPeriod: _modelSets.NumOfDeltaT_inObservationPeriod,
                                         nDeltaTsDelayed: info.NDeltaTDelayed,
-                                        noise_percOfDemoninatorSampled: 1)
+                                        noise_percOfDemoninatorSampled: _paramManager.Parameters[info.ParIDNoiseDenominator])
                                         );
                                 break;
                         }
@@ -1012,7 +1012,7 @@ namespace APACElib
                                         null,
                                         _modelSets.NumOfDeltaT_inObservationPeriod,
                                         info.NDeltaTDelayed,
-                                        noise_nOfDemoninatorSampled: 1)
+                                        noise_nOfDemoninatorSampled: _paramManager.Parameters[info.ParIDNoiseDenominator])
                                         );
                                 break;
                             case SumTrajectory.EnumType.AccumulatingIncident:
@@ -1046,54 +1046,7 @@ namespace APACElib
             }
 
             // identify sum statistics for which time-series should be collected
-            if (_modelSets.ModelUse == EnumModelUse.Calibration)
-                foreach (SumTrajectory st in _epiHist.SumTrajs.Where(s => !(s.CalibInfo is null)))
-                {
-                    switch (st.Type)
-                    {
-                        case SumTrajectory.EnumType.Incidence:
-                            st.AddTimeSeries(
-                                collectIncidence: true,
-                                collectPrevalence: false,
-                                collectAccumIncidence: false,
-                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                );
-                            break;
-                        case SumTrajectory.EnumType.AccumulatingIncident:
-                            st.AddTimeSeries(
-                                collectIncidence: false,
-                                collectPrevalence: false,
-                                collectAccumIncidence: true,
-                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                );
-                            break;
-                        case SumTrajectory.EnumType.Prevalence:
-                            st.AddTimeSeries(
-                                collectIncidence: false,
-                                collectPrevalence: true,
-                                collectAccumIncidence: false,
-                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                );
-                            break;
-                    }
-
-                    if (st.CalibInfo.GoodnessOfFit == SpecialStatCalibrInfo.EnumMeasureOfFit.Likelihood)
-                    {
-                        switch (st.CalibInfo.LikelihoodFunc)
-                        {
-                            case SpecialStatCalibrInfo.EnumLikelihoodFunc.Binomial:
-                                {
-                                    _epiHist.SumTrajs[st.CalibInfo.LikelihoodParam.Value].AddTimeSeries(
-                                        collectIncidence: false,
-                                        collectPrevalence: true,
-                                        collectAccumIncidence: false,
-                                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                        );
-                                }
-                                break;
-                        }
-                    }
-                }
+            UpdateSumStatTimeSeries();
         }
 
         // add ratio statistics
@@ -1149,7 +1102,7 @@ namespace APACElib
                                     thisRatioTraj,
                                     _modelSets.NumOfDeltaT_inObservationPeriod,
                                     info.NDeltaTDelayed,
-                                    info.SurveillanceNoise)
+                                     _paramManager.Parameters[info.ParIDNoiseDenominator])
                                     );
                             break;
                         case RatioTrajectory.EnumType.IncidenceOverIncidence:
@@ -1165,7 +1118,7 @@ namespace APACElib
                                     thisRatioTraj,
                                     _modelSets.NumOfDeltaT_inObservationPeriod,
                                     info.NDeltaTDelayed,
-                                    info.SurveillanceNoise)
+                                     _paramManager.Parameters[info.ParIDNoiseDenominator])
                                 );
                             break;
                     }
@@ -1174,71 +1127,7 @@ namespace APACElib
             }
 
             // identify ratio statistics for which time-series should be collected
-            if (_modelSets.ModelUse == EnumModelUse.Calibration)
-                foreach (RatioTrajectory rt in _epiHist.RatioTrajs.Where(s => !(s.CalibInfo is null)))
-                {
-                    if (rt.CalibInfo.GoodnessOfFit == SpecialStatCalibrInfo.EnumMeasureOfFit.Likelihood)
-                    {
-                        switch (rt.CalibInfo.LikelihoodFunc)
-                        {
-                            case SpecialStatCalibrInfo.EnumLikelihoodFunc.Binomial:
-                                {
-                                    switch (rt.Type)
-                                    {
-                                        case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
-                                            {
-                                                _epiHist.SumTrajs[rt.NominatorSpecialStatID].AddTimeSeries(
-                                                    collectIncidence: false,
-                                                    collectPrevalence: true,
-                                                    collectAccumIncidence: false,
-                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                                    );
-                                                _epiHist.SumTrajs[rt.DenominatorSpecialStatID].AddTimeSeries(
-                                                    collectIncidence: false,
-                                                    collectPrevalence: true,
-                                                    collectAccumIncidence: false,
-                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                                    );
-                                            }
-                                            break;
-                                        case RatioTrajectory.EnumType.IncidenceOverIncidence:
-                                            {
-                                                _epiHist.SumTrajs[rt.NominatorSpecialStatID].AddTimeSeries(
-                                                    collectIncidence: true,
-                                                    collectPrevalence: false,
-                                                    collectAccumIncidence: false,
-                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                                    );
-                                                _epiHist.SumTrajs[rt.DenominatorSpecialStatID].AddTimeSeries(
-                                                    collectIncidence: true,
-                                                    collectPrevalence: false,
-                                                    collectAccumIncidence: false,
-                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                                    );
-                                            }
-                                            break;
-                                        case RatioTrajectory.EnumType.IncidenceOverPrevalence:
-                                            {
-                                                _epiHist.SumTrajs[rt.NominatorSpecialStatID].AddTimeSeries(
-                                                    collectIncidence: true,
-                                                    collectPrevalence: false,
-                                                    collectAccumIncidence: false,
-                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                                    );
-                                                _epiHist.SumTrajs[rt.DenominatorSpecialStatID].AddTimeSeries(
-                                                    collectIncidence: false,
-                                                    collectPrevalence: true,
-                                                    collectAccumIncidence: false,
-                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
-                                                    );
-                                            }
-                                            break;
-                                    }
-                                }
-                                break;
-                        }
-                    }
-                }
+            UpdateRatioStatTimeSeries();
         }
 
         // add features
@@ -1353,6 +1242,129 @@ namespace APACElib
                 if (thisSumClassTraj.Type == SumTrajectory.EnumType.AccumulatingIncident)
                     _classes[i].ClassStat.CollectAccumIncidenceStats = true;
             }
+        }
+
+        // update sum statistics for which time-series should be collected
+        public void UpdateSumStatTimeSeries()
+        {
+            if (_modelSets.ModelUse == EnumModelUse.Calibration)
+                foreach (SumTrajectory st in _epiHist.SumTrajs.Where(s => !(s.CalibInfo is null)))
+                {
+                    switch (st.Type)
+                    {
+                        case SumTrajectory.EnumType.Incidence:
+                            st.AddTimeSeries(
+                                collectIncidence: true,
+                                collectPrevalence: false,
+                                collectAccumIncidence: false,
+                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                );
+                            break;
+                        case SumTrajectory.EnumType.AccumulatingIncident:
+                            st.AddTimeSeries(
+                                collectIncidence: false,
+                                collectPrevalence: false,
+                                collectAccumIncidence: true,
+                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                );
+                            break;
+                        case SumTrajectory.EnumType.Prevalence:
+                            st.AddTimeSeries(
+                                collectIncidence: false,
+                                collectPrevalence: true,
+                                collectAccumIncidence: false,
+                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                );
+                            break;
+                    }
+
+                    if (st.CalibInfo.GoodnessOfFit == SpecialStatCalibrInfo.EnumMeasureOfFit.Likelihood)
+                    {
+                        switch (st.CalibInfo.LikelihoodFunc)
+                        {
+                            case SpecialStatCalibrInfo.EnumLikelihoodFunc.Binomial:
+                                {
+                                    _epiHist.SumTrajs[st.CalibInfo.LikelihoodParam.Value].AddTimeSeries(
+                                        collectIncidence: false,
+                                        collectPrevalence: true,
+                                        collectAccumIncidence: false,
+                                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                        );
+                                }
+                                break;
+                        }
+                    }
+                }
+        }
+
+        // update ratio statistics for which time-series should be collected
+        public void UpdateRatioStatTimeSeries()
+        {
+            if (_modelSets.ModelUse == EnumModelUse.Calibration)
+                foreach (RatioTrajectory rt in _epiHist.RatioTrajs.Where(s => !(s.CalibInfo is null)))
+                {
+                    if (rt.CalibInfo.GoodnessOfFit == SpecialStatCalibrInfo.EnumMeasureOfFit.Likelihood)
+                    {
+                        switch (rt.CalibInfo.LikelihoodFunc)
+                        {
+                            case SpecialStatCalibrInfo.EnumLikelihoodFunc.Binomial:
+                                {
+                                    switch (rt.Type)
+                                    {
+                                        case RatioTrajectory.EnumType.PrevalenceOverPrevalence:
+                                            {
+                                                _epiHist.SumTrajs[rt.NominatorSpecialStatID].AddTimeSeries(
+                                                    collectIncidence: false,
+                                                    collectPrevalence: true,
+                                                    collectAccumIncidence: false,
+                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                                    );
+                                                _epiHist.SumTrajs[rt.DenominatorSpecialStatID].AddTimeSeries(
+                                                    collectIncidence: false,
+                                                    collectPrevalence: true,
+                                                    collectAccumIncidence: false,
+                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                                    );
+                                            }
+                                            break;
+                                        case RatioTrajectory.EnumType.IncidenceOverIncidence:
+                                            {
+                                                _epiHist.SumTrajs[rt.NominatorSpecialStatID].AddTimeSeries(
+                                                    collectIncidence: true,
+                                                    collectPrevalence: false,
+                                                    collectAccumIncidence: false,
+                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                                    );
+                                                _epiHist.SumTrajs[rt.DenominatorSpecialStatID].AddTimeSeries(
+                                                    collectIncidence: true,
+                                                    collectPrevalence: false,
+                                                    collectAccumIncidence: false,
+                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                                    );
+                                            }
+                                            break;
+                                        case RatioTrajectory.EnumType.IncidenceOverPrevalence:
+                                            {
+                                                _epiHist.SumTrajs[rt.NominatorSpecialStatID].AddTimeSeries(
+                                                    collectIncidence: true,
+                                                    collectPrevalence: false,
+                                                    collectAccumIncidence: false,
+                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                                    );
+                                                _epiHist.SumTrajs[rt.DenominatorSpecialStatID].AddTimeSeries(
+                                                    collectIncidence: false,
+                                                    collectPrevalence: true,
+                                                    collectAccumIncidence: false,
+                                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inObservationPeriod
+                                                    );
+                                            }
+                                            break;
+                                    }
+                                }
+                                break;
+                        }
+                    }
+                }
         }
     }
 }

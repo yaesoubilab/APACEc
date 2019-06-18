@@ -23,6 +23,8 @@ namespace APACElib
                                                                   // M2_A:  retreating those infected with G_A with M after 1st line treatment failure
                                                                   // M2_B_AB: retreating those infected with G_B or G_AB with M after 1st line treatment failure
         enum DummyParam { D_0, D_1, D_Minus1, D_Inf} // 0, 1, 2, 3
+        enum SpecialStat { PopSize=0, Prev, FirstTx, SuccessAOrB, SuccessAOrBOrM}
+        private List<int> _specialStatIDs = new List<int>(new int[Enum.GetValues(typeof(SpecialStat)).Length]);
 
         private List<string> _infProfiles = new List<string>();
 
@@ -48,7 +50,8 @@ namespace APACElib
             // add summation statistics
             AddGonoSumStats();
             // add ratio statistics
-            AddRatioStatistics();
+            AddGonoRatioStatistics();
+            // AddRatioStatistics();
             // add features
             AddFeatures();
             // add conditions
@@ -620,6 +623,7 @@ namespace APACElib
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                     );
+            _specialStatIDs[(int)SpecialStat.PopSize] = id - 1;
 
             // gonorrhea prevalence formulas
             string pFormula = "";
@@ -655,20 +659,22 @@ namespace APACElib
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                     );
+            _specialStatIDs[(int)SpecialStat.Prev] = id - 1;
 
             // gonorrhea prevalence by symptom status
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
             {
-                _epiHist.SumTrajs.Add(
-                    new SumClassesTrajectory(
-                        ID: id++,
-                        name: "Prevalence | " + s.ToString(),
-                        strType: "Prevalence",
-                        sumFormula: pSymFormula[(int)s],
-                        displayInSimOutput: true,
-                        warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
-                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
-                        );
+                if (s == SymStates.Sym)
+                    _epiHist.SumTrajs.Add(
+                        new SumClassesTrajectory(
+                            ID: id++,
+                            name: "Prevalence | " + s.ToString(),
+                            strType: "Prevalence",
+                            sumFormula: pSymFormula[(int)s],
+                            displayInSimOutput: true,
+                            warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                            nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
+                            );
             }
 
             // gonorrhea prevalence by resistance 
@@ -723,6 +729,7 @@ namespace APACElib
                     costPerNewMember: _paramManager.Parameters[(int)DummyParam.D_0]
                     );
             _epiHist.SumTrajs.Add(t1st);
+            _specialStatIDs[(int)SpecialStat.FirstTx] = id - 1;
 
             // received first-line treatment and symptomatic 
             _epiHist.SumTrajs.Add(new SumClassesTrajectory(
@@ -783,6 +790,7 @@ namespace APACElib
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                     );
+            _specialStatIDs[(int)SpecialStat.SuccessAOrB] = id - 1;
 
             // # sucessfully treated with M
             SumClassesTrajectory tM = new SumClassesTrajectory(
@@ -814,6 +822,163 @@ namespace APACElib
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                     );
+            _specialStatIDs[(int)SpecialStat.SuccessAOrBOrM] = id - 1;
+
+            // update times series of summation statistics
+            UpdateSumStatTimeSeries();
+        }
+
+        private void AddGonoRatioStatistics()
+        {
+            int id = _epiHist.SumTrajs.Count();
+            int idPopSize = _specialStatIDs[(int)SpecialStat.PopSize];
+            int idPrevalence = _specialStatIDs[(int)SpecialStat.Prev];
+            int idFirstTx = _specialStatIDs[(int)SpecialStat.FirstTx];
+            int idSuccessAOrB = _specialStatIDs[(int)SpecialStat.SuccessAOrB];
+            int idSuccessAOrBOrM = _specialStatIDs[(int)SpecialStat.SuccessAOrBOrM];
+            Parameter nIsolateTested = GetParam("Number of isolates tested");
+
+            // gonorrhea prevalence
+            RatioTrajectory prevalence = new RatioTrajectory(
+                id: id,
+                name: "Prevalence",
+                strType: "Prevalence/Prevalence",
+                ratioFormula: idPrevalence + "/" + idPopSize,
+                displayInSimOutput: true,
+                warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+            if (_modelSets.ModelUse == EnumModelUse.Calibration)
+                prevalence.CalibInfo = new SpecialStatCalibrInfo(
+                    measureOfFit: "Likelihood", 
+                    likelihoodFunction: "Binomial",
+                    likelihoodParam: "", 
+                    ifCheckWithinFeasibleRange:true,
+                    lowFeasibleBound: 0.005,
+                    upFeasibleBound: 0.04,
+                    minThresholdToHit: 0);
+            _epiHist.RatioTrajs.Add(prevalence);           
+            id++;
+
+            // % infection symptomatic (prevalence)
+            RatioTrajectory prevalenceSym = new RatioTrajectory(
+                id: id++,
+                name: "% infection symptomatic",
+                strType: "Prevalence/Prevalence",
+                ratioFormula: (idPrevalence + 1) + "/" + idPrevalence,
+                displayInSimOutput: true,
+                warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+            _epiHist.RatioTrajs.Add(prevalenceSym);
+
+            // % infection resistant to A, B, or AB (prevalence)
+            foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
+            {
+                if (r != ResistStates.G_0)
+                {
+                    RatioTrajectory prev = new RatioTrajectory(
+                        id: id++,
+                        name: "% infection resistant to " + r.ToString(),
+                        strType: "Prevalence/Prevalence",
+                        ratioFormula: (idPrevalence + 1 + (int)r) + "/" + idPrevalence,
+                        displayInSimOutput: true,
+                        warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+                    _epiHist.RatioTrajs.Add(prev);
+                }
+            }
+
+            // % received 1st Tx and symptomatic (incidence)
+            RatioTrajectory firstTxSym = new RatioTrajectory(
+                id: id++,
+                name: "% received 1st Tx & symptomatic ",
+                strType: "Incidence/Incidence",
+                ratioFormula: (idFirstTx + 1) + "/" + idFirstTx,
+                displayInSimOutput: true,
+                warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+            if (_modelSets.ModelUse == EnumModelUse.Calibration)
+                firstTxSym.CalibInfo = new SpecialStatCalibrInfo(
+                    measureOfFit: "Likelihood",
+                    likelihoodFunction: "Binomial",
+                    likelihoodParam: "",
+                    ifCheckWithinFeasibleRange: true,
+                    lowFeasibleBound: 0.5,
+                    upFeasibleBound: 0.8,
+                    minThresholdToHit: 0);
+            _epiHist.RatioTrajs.Add(firstTxSym);            
+
+            // % received 1st Tx and resistant to A, B, or AB (incidence)
+            foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
+            {
+                if (r != ResistStates.G_0)
+                {
+                    RatioTrajectory firstTx = new RatioTrajectory(
+                    id: id,
+                    name: "% received 1st Tx & resistant to " + r.ToString(),
+                    strType: "Incidence/Incidence",
+                    ratioFormula: (idFirstTx + 1 + (int)r) + "/" + idFirstTx,
+                    displayInSimOutput: true,
+                    warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+                    if (_modelSets.ModelUse == EnumModelUse.Calibration && r != ResistStates.G_AB)
+                        firstTxSym.CalibInfo = new SpecialStatCalibrInfo(
+                            measureOfFit: "Feasible Range Only",
+                            likelihoodFunction: "",
+                            likelihoodParam: "",
+                            ifCheckWithinFeasibleRange: true,
+                            lowFeasibleBound: 0,
+                            upFeasibleBound: 1,
+                            minThresholdToHit: 0.05);
+                    _epiHist.SurveyedIncidenceTrajs.Add(
+                       new SurveyedIncidenceTrajectory(
+                           id: id,
+                           name: "% received 1st Tx & resistant to " + r.ToString(),
+                           displayInSimOutput: true,
+                           firstObsMarksStartOfEpidemic: false,
+                           sumClassesTrajectory: null,
+                           sumEventTrajectory: null,
+                           ratioTrajectory: firstTx,
+                           nDeltaTsObsPeriod: _modelSets.NumOfDeltaT_inObservationPeriod,
+                           nDeltaTsDelayed: 0,
+                           noise_nOfDemoninatorSampled: nIsolateTested)
+                           );
+                    _epiHist.RatioTrajs.Add(firstTx);
+                    id++;
+                }
+            }
+            // annual rate of gonorrhea cases
+            RatioTrajectory rate = new RatioTrajectory(
+                id: id++,
+                name: "Annual rate of gonorrhea cases",
+                strType: "Incidence/Prevalence",
+                ratioFormula: idFirstTx + "/" + idPopSize,
+                displayInSimOutput: true,
+                warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+            if (_modelSets.ModelUse == EnumModelUse.Calibration)
+                rate.CalibInfo = new SpecialStatCalibrInfo(
+                    measureOfFit: "Likelihood",
+                    likelihoodFunction: "Binomial",
+                    likelihoodParam: "",
+                    ifCheckWithinFeasibleRange: true,
+                    lowFeasibleBound: 0.02,
+                    upFeasibleBound: 0.08,
+                    minThresholdToHit: 0);
+            _epiHist.RatioTrajs.Add(rate);
+
+            // effective life of drugs A and B
+            RatioTrajectory effLifeAandB = new RatioTrajectory(
+                id: id++,
+                name: "Effective life of A and B",
+                strType: "Incidence/Incidence",
+                ratioFormula: idSuccessAOrB + "/" + idSuccessAOrBOrM,
+                displayInSimOutput: true,
+                warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+            _epiHist.RatioTrajs.Add(effLifeAandB);
+
+            // update times series of ratio statistics
+            UpdateRatioStatTimeSeries();
         }
 
         private void AddGonoConnections()

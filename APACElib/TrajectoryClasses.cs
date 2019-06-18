@@ -666,7 +666,7 @@ namespace APACElib
         protected int _nDeltaTsObsPeriod; // number of deltaT's in an observation period 
         protected int _nObsPeriodsDelay;  // number of observation periods delayed      
         protected int _noiseParValue; // value of the noise parameter
-        protected double _noise_nOfDemoninatorSampled;
+        protected Parameter _noise_nOfDemoninatorSampled;
         public bool FirstObsMarksStartOfEpidemic { get; private set; }
 
         public SurveyedTrajectory(
@@ -708,7 +708,7 @@ namespace APACElib
             RatioTrajectory ratioTrajectory,
             int nDeltaTsObsPeriod,
             int nDeltaTsDelayed,
-            double noise_nOfDemoninatorSampled) 
+            Parameter noise_nOfDemoninatorSampled) 
             : base(id, name, displayInSimOutput, firstObsMarksStartOfEpidemic, nDeltaTsObsPeriod, nDeltaTsDelayed)
         {
             _sumClassesTraj = sumClassesTrajectory;
@@ -742,12 +742,13 @@ namespace APACElib
             {
                 if (_ratioTraj.RatioUpdated)
                 {
+                    int n = (int)_noise_nOfDemoninatorSampled.Sample(time: epiTimeIndex, rng: rnd);
                     // check if there is noise (0 implies that all are sampled)
-                    if (_noise_nOfDemoninatorSampled > 0
+                    if (n > 0
                         && _ratioTraj.Ratio.HasValue 
                         && !(_ratioTraj.Ratio is double.NaN))
                     {
-                        RatioNoiseModel noiseModel = new RatioNoiseModel(_ratioTraj.Ratio.Value, _noise_nOfDemoninatorSampled);
+                        RatioNoiseModel noiseModel = new RatioNoiseModel(_ratioTraj.Ratio.Value, n);
                         obsValue = noiseModel.GetAnObservation(rnd);
                     }
                     else
@@ -792,7 +793,7 @@ namespace APACElib
             RatioTrajectory ratioTrajectory,
             int nDeltaTsObsPeriod,
             int nDeltaTsDelayed, 
-            double noise_percOfDemoninatorSampled)
+            Parameter noise_percOfDemoninatorSampled)
             : base(id, name, displayInSimOutput, firstObsMarksStartOfEpidemic, nDeltaTsObsPeriod, nDeltaTsDelayed)
         {
             _sumClassesTraj = sumClassesTrajectory;
@@ -809,9 +810,10 @@ namespace APACElib
             else if (!(_ratioTraj is null))
             {
                 // check if there is noise (0 implies that all is sampled)
-                if (_noise_nOfDemoninatorSampled > 0 && _ratioTraj.Ratio.HasValue && !(_ratioTraj.Ratio is double.NaN))
+                int n = (int)_noise_nOfDemoninatorSampled.Sample(time: epiTimeIndex, rng: rnd);
+                if (n > 0 && _ratioTraj.Ratio.HasValue && !(_ratioTraj.Ratio is double.NaN))
                 {
-                    RatioNoiseModel noiseModel = new RatioNoiseModel(_ratioTraj.Ratio.Value, _noise_nOfDemoninatorSampled);
+                    RatioNoiseModel noiseModel = new RatioNoiseModel(_ratioTraj.Ratio.Value, n);
                     obsValue = noiseModel.GetAnObservation(rnd);
                 }
                 else

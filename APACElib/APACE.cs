@@ -21,7 +21,7 @@ namespace APACElib
         private EpidemicModeller _epidemicModeller;
         private ArrayList _epidemicModellers = new ArrayList();
         private DateTime dt;
-        private TextBoxUpdater _txtBox;
+        private StatusBox _statusBox;
 
         // computation time
         private double _actualTimeUsedToFindAllDynamicPolicies; // considering several ADP parameter designs
@@ -55,7 +55,7 @@ namespace APACElib
         public void Run(string model="None", RichTextBox textBox=null)
         {
             dt = DateTime.Now;
-            _txtBox = new TextBoxUpdater(textBox);
+            _statusBox = new StatusBox(textBox);
 
             // read model settings
             _modelSettings.ReadSettings(ref _excelInterface);
@@ -74,18 +74,18 @@ namespace APACElib
                 case ExcelInterface.enumWhatToDo.Simulate:
                     {
                         // simulate a policy
-                        _txtBox.AddText("Simulation started.");
+                        _statusBox.AddText("Simulation started.");
                         // Console.WriteLine(dt.ToString() + ": Simulating a policy.");
                         SimulateAPolicy();
-                        _txtBox.AddText("Simulation ended.");
+                        _statusBox.AddText("Simulation ended.");
                         break;
                     }
                 case ExcelInterface.enumWhatToDo.Calibrate:
                     {
                         // calibrate
-                        _txtBox.AddText("Calibration started.");
+                        _statusBox.AddText("Calibration started.");
                         Calibrate();
-                        _txtBox.AddText("Calibration ended.");
+                        _statusBox.AddText("Calibration ended.");
                         break;
                     }
                 case ExcelInterface.enumWhatToDo.OptimizeTheDynamicPolicy:
@@ -140,7 +140,7 @@ namespace APACElib
             ReadObservedHistory();
 
             // calibrate
-            _epidemicModeller.Calibrate();
+            _epidemicModeller.Calibrate(_statusBox);
             
             // report calibration results
             ReportCalibrationResult();

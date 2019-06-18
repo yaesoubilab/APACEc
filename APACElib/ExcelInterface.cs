@@ -158,7 +158,7 @@ namespace APACElib
 
             SurveillanceDataAvailable = 13,
             NumOfDeltaTsDelayed = 14,
-            Noise = 15,
+            NoiseDenominator = 15,
             FirstObservationMarksTheStartOfTheSpread = 16,  
             
             IfIncludedInCalibration = 18,
