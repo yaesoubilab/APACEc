@@ -7,7 +7,7 @@ using ComputationLib;
 
 namespace APACElib
 {
-    public abstract class Feature
+     public abstract class Feature
     {
         public string Name { get; private set; }
         public int Index { get; private set; }
@@ -50,7 +50,7 @@ namespace APACElib
 
     public class Feature_SpecialStats: Feature
     {
-        private enum EnumFeatureType
+        public enum EnumFeatureType
         {
             CurrentObservedValue = 0,
             Slope = 1
@@ -74,6 +74,12 @@ namespace APACElib
             }
             _surveyedTraj = surveyedTraj;
         }
+        public Feature_SpecialStats(string name, int featureID, EnumFeatureType featureType, SurveyedTrajectory surveyedTraj, double par)
+            : base(name, featureID)
+        {
+            _featureType = featureType;
+            _surveyedTraj = surveyedTraj;
+        }
 
         public override void Update(int epiTimeIndex)
         {
@@ -94,7 +100,7 @@ namespace APACElib
 
     public class Feature_Intervention: Feature
     {
-        private enum EnumFeatureType
+        public enum EnumFeatureType
         {
             IfEverSwitchedOff = 0,
             IfEverSwitchedOn = 1
@@ -116,6 +122,11 @@ namespace APACElib
                 default:
                     throw new Exception("Invalid value for feature type defined on intervention.");
             }
+            _intervention = intervention;
+        }
+        public Feature_Intervention(string name, int featureID, EnumFeatureType featureType, Intervention intervention) : base(name, featureID)
+        {
+            _featureType = featureType;
             _intervention = intervention;
         }
 
@@ -190,6 +201,20 @@ namespace APACElib
             else
                 _andOr = EnumAndOr.Or;
         }
+        public Condition_OnFeatures(
+            int id,
+            List<Feature> features,
+            int[] featureIDs,
+            EnumSign[] signs,
+            double[] theresholds,
+            EnumAndOr conclusion) : base(id)
+        {
+            _features = features;
+            _featureIDs = featureIDs;
+            _signs = signs;
+            _thresholds = theresholds;
+            _andOr = conclusion;
+        }
 
         public void UpdateThresholds(double[] values)
         {
@@ -258,6 +283,16 @@ namespace APACElib
                 _andOr = EnumAndOr.And;
             else
                 _andOr = EnumAndOr.Or;
+        }
+        public Condition_OnConditions(
+            int id,
+            List<Condition> conditions,
+            int[] conditionIDs,
+            EnumAndOr conclusion) : base(id)
+        {
+            _conditions = conditions;
+            _conditionIDs = conditionIDs;
+            _andOr = conclusion;
         }
 
         public override void Update(int epiTimeIndex)
