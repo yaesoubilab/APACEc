@@ -25,11 +25,10 @@ namespace APACElib
         enum DummyParam { D_0, D_1, D_Minus1, D_Inf, T_Prev, T_DeltaPrev} // 0, 1, 2, 3, 4, 5
         enum SpecialStat { PopSize=0, Prev, FirstTx, SuccessAOrB, SuccessAOrBOrM, PercFirstTxAndResist}
         enum Features { Time, PercResist, ChangeInPercResist, IfEverUsed}
-        enum Conditions {AOut, BOut, ABOut, AOk, BOk, ABOk, BNeverUsed, MNeverUsed };
+        enum Conditions {AOut, BOut, ABOut, AOk, BOk, ABOk, BNeverUsed, MNeverUsed, AOn, AOff, BOn, BOff, MOn, MOff};
 
         private List<int> _specialStatIDs = new List<int>(new int[Enum.GetValues(typeof(SpecialStat)).Length]);
         private List<int> _featureIDs = new List<int>(new int[Enum.GetValues(typeof(Features)).Length]);
-
         private List<string> _infProfiles = new List<string>();
 
         public GonoModel() : base()
@@ -50,7 +49,7 @@ namespace APACElib
             // add events
             AddGonoEvents();
             // add interventions
-            AddInterventions();
+            AddGonoInterventions();
             // add summation statistics
             AddGonoSumStats();
             // add ratio statistics
@@ -605,6 +604,77 @@ namespace APACElib
                 _dicEvents[eventName] = id++;
             }
         }
+
+        private void AddGonoInterventions()
+        {
+            AddInterventions();
+
+            int id = _decisionMaker.Interventions.Count();
+            int i = 0;
+
+            foreach (Interventions intrv in Enum.GetValues(typeof(Interventions)))
+            {
+                int conditionIDToTurnOn = 0, conditionIDToTurnOff = 0;
+                switch (intrv)
+                {
+                    case Interventions.A1:
+                        {
+                            conditionIDToTurnOn = (int)Conditions.AOn;
+                            conditionIDToTurnOff = (int)Conditions.AOff;                           
+                        }
+                        break;
+                    case Interventions.B1:
+                        {
+                            conditionIDToTurnOn = (int)Conditions.BOn;
+                            conditionIDToTurnOff = (int)Conditions.BOff;
+                        }
+                        break;
+                    case Interventions.M1:
+                        {
+                            conditionIDToTurnOn = (int)Conditions.MOn;
+                            conditionIDToTurnOff = (int)Conditions.MOff;
+                        }
+                        break;
+                    case Interventions.B2_A:
+                        {
+                            conditionIDToTurnOn = (int)Conditions.AOn;
+                            conditionIDToTurnOff = (int)Conditions.BOff;
+                        }
+                        break;
+                    case Interventions.M2_A:
+                        {
+                            conditionIDToTurnOn = (int)Conditions.MOn;
+                            conditionIDToTurnOff = (int)Conditions.MOff;
+                        }
+                        break;
+                }
+
+                // decision rule 
+                DecisionRule simDecisionRule = null;
+                if (intrv == Interventions.M2_B_AB)
+                    simDecisionRule = new DecionRule_Predetermined(predeterminedSwitchValue: 1);
+                else
+                    simDecisionRule = new DecisionRule_ConditionBased(
+                        conditions: _epiHist.Conditions,
+                        conditionIDToTurnOn: conditionIDToTurnOn,
+                        conditionIDToTurnOff: conditionIDToTurnOff);
+
+                // intervention
+                _decisionMaker.AddAnIntervention(
+                    new Intervention(
+                        index: id++,
+                        name: intrv.ToString(),
+                        actionType: EnumInterventionType.Additive,
+                        affectingContactPattern: false,
+                        timeIndexBecomesAvailable: 0,
+                        timeIndexBecomesUnavailable: _modelSets.TimeIndexToStop,
+                        parIDDelayToGoIntoEffectOnceTurnedOn: 0,
+                        decisionRule: simDecisionRule));
+
+                i++;
+            }
+        }
+
 
         private void AddGonoSumStats()
         {
