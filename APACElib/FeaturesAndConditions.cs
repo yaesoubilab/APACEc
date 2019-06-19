@@ -4,10 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using ComputationLib;
+using RandomVariateLib;
 
 namespace APACElib
 {
-     public abstract class Feature
+    public abstract class Feature
     {
         public string Name { get; private set; }
         public int Index { get; private set; }
@@ -153,14 +154,14 @@ namespace APACElib
             ID = id;
         }
 
-        public abstract void Update(int epiTimeIndex);
+        public abstract void Update(int epiTimeIndex, RNG rng);
     }
 
     public class Condition_AlwaysTrue : Condition
     {
         public Condition_AlwaysTrue(int id) : base(id) { }
 
-        public override void Update(int epiTimeIndex)
+        public override void Update(int epiTimeIndex, RNG rng)
         {
             Value = true;
         }
@@ -170,7 +171,7 @@ namespace APACElib
     {
         public Condition_AlwaysFalse(int id) : base(id) { }
 
-        public override void Update(int epiTimeIndex)
+        public override void Update(int epiTimeIndex, RNG rng)
         {
             Value = false;
         }
@@ -179,24 +180,34 @@ namespace APACElib
     public class Condition_OnFeatures : Condition
     {
         private List<Feature> _features;
-        private int[] _featureIDs = new int[0];
-        private EnumSign[] _signs = new EnumSign[0];
-        private List<Parameter> _thresholdPars = new List<Parameter>();
-        private double[] _thresholdValues = new double[0];
+        private List<Parameter> _thresholdParams;
+
+        private double[] _thresholdValues;
+        private EnumSign[] _signs = new EnumSign[0];        
         private EnumAndOr _andOr = EnumAndOr.And;
 
         public Condition_OnFeatures(
             int id,
-            List<Feature> features,
+            List<Feature> allFeatures,
+            List<Parameter> allParameters,
             string strFeatureIDs,
-            string strSigns,
-            string strTheresholds,
+            string strThresholdParIDs,
+            string strSigns,            
             string strConclusions): base(id)
-        {
-            _features = features;
-            _featureIDs = SupportProcedures.ConvertStringToIntArray(strFeatureIDs);
+        {            
+
+            int[] featureIDs = SupportProcedures.ConvertStringToIntArray(strFeatureIDs);
+            int[] thresholdParamIDs = SupportProcedures.ConvertStringToIntArray(strThresholdParIDs);
+
+            for (int i = 0; i < featureIDs.Length; i++)
+                _features.Add(allFeatures[featureIDs[i]]);
+            for (int i = 0; i < thresholdParamIDs.Length; i++)
+                _thresholdParams.Add(allParameters[thresholdParamIDs[i]]);
+
             _signs = SupportProcedures.ConvertToEnumSigns(strSigns);
-            _thresholdValues = SupportProcedures.ConvertStringToDoubleArrray(strTheresholds);
+            _thresholdValues = new double[_thresholdParams.Count()];
+
+            //  _thresholdValues = SupportProcedures.ConvertStringToDoubleArrray(strTheresholds);
             if (strConclusions == "And")
                 _andOr = EnumAndOr.And;
             else
@@ -205,15 +216,14 @@ namespace APACElib
         public Condition_OnFeatures(
             int id,
             List<Feature> features,
-            int[] featureIDs,
+            List<Parameter> thresholdParams,
             EnumSign[] signs,
-            double[] theresholds,
             EnumAndOr conclusion) : base(id)
         {
             _features = features;
-            _featureIDs = featureIDs;
+            _thresholdParams = thresholdParams;
             _signs = signs;
-            _thresholdValues = theresholds;
+            _thresholdValues = new double[_thresholdParams.Count()];
             _andOr = conclusion;
         }
 
@@ -222,21 +232,25 @@ namespace APACElib
             _thresholdValues = (double[])values.Clone();
         }
 
-        public override void Update(int epiTimeIndex)
+        public override void Update(int epiTimeIndex, RNG rng)
         {
             bool result = false;
+
+            // update threshold values 
+            for (int i = 0; i < _thresholdParams.Count(); i++)
+                _thresholdValues[i] = _thresholdParams[i].Sample(epiTimeIndex, rng);
 
             switch (_andOr)
             {
                 case EnumAndOr.And:
                     {
                         result = true;  // all features hit thresholds
-                        for (int i = 0; i < _featureIDs.Length; i++)
+                        for (int i = 0; i < _features.Count; i++)
                         {
                             // if one does not 
-                            if (_features[_featureIDs[i]].Value.HasValue &&
+                            if (_features[i].Value.HasValue &&
                                 !SupportProcedures.ValueOfComparison(
-                                    _features[_featureIDs[i]].Value.Value, _signs[i], _thresholdValues[i]))                                
+                                    _features[i].Value.Value, _signs[i], _thresholdValues[i]))                                
                             {
                                 result = false;
                                 break;
@@ -247,12 +261,12 @@ namespace APACElib
                 case EnumAndOr.Or:
                     {
                         result = false; // no feature hits its threshold
-                        for (int i = 0; i < _featureIDs.Length; i++)
+                        for (int i = 0; i < _features.Count; i++)
                         {
                             // if one is within
-                            if (_features[_featureIDs[i]].Value.HasValue && 
+                            if (_features[i].Value.HasValue && 
                                 SupportProcedures.ValueOfComparison(
-                                    _features[_featureIDs[i]].Value.Value, _signs[i], _thresholdValues[i]))
+                                    _features[i].Value.Value, _signs[i], _thresholdValues[i]))
                             {
                                 result = true;
                                 break;
@@ -268,18 +282,19 @@ namespace APACElib
 
     public class Condition_OnConditions: Condition
     {
-        private List<Condition> _conditions;
-        private int[] _conditionIDs;
+        private List<Condition> _conditions = new List<Condition>();
         private EnumAndOr _andOr = EnumAndOr.And;
 
         public Condition_OnConditions(
             int id,
-            List<Condition> conditions,
+            List<Condition> allConditions,
             string strConditions,
             string strConclusions): base(id)
         {
-            _conditions = conditions;
-            _conditionIDs = SupportProcedures.ConvertStringToIntArray(strConditions);
+            int[] conditionIDs = SupportProcedures.ConvertStringToIntArray(strConditions);
+            for (int i = 0; i < conditionIDs.Length; i++)
+                _conditions.Add(allConditions[conditionIDs[i]]);
+
             if (strConclusions == "And")
                 _andOr = EnumAndOr.And;
             else
@@ -288,15 +303,13 @@ namespace APACElib
         public Condition_OnConditions(
             int id,
             List<Condition> conditions,
-            int[] conditionIDs,
             EnumAndOr conclusion) : base(id)
         {
             _conditions = conditions;
-            _conditionIDs = conditionIDs;
             _andOr = conclusion;
         }
 
-        public override void Update(int epiTimeIndex)
+        public override void Update(int epiTimeIndex, RNG rng)
         {
             bool results = false; 
 
@@ -305,10 +318,10 @@ namespace APACElib
                 case EnumAndOr.And:
                     {
                         results = true;  // all conditions are satisifed
-                        for (int i = 0; i < _conditionIDs.Length; i++)
+                        for (int i = 0; i < _conditions.Count(); i++)
                         {
                             // if one conditions is not satisfied
-                            if (_conditions[_conditionIDs[i]].Value == false)
+                            if (_conditions[i].Value == false)
                             {
                                 results = false;
                                 break;
@@ -319,10 +332,10 @@ namespace APACElib
                 case EnumAndOr.Or:
                     {
                         results = false;  // no conditions is satisifed
-                        for (int i = 0; i < _conditionIDs.Length; i++)
+                        for (int i = 0; i < _conditions.Count(); i++)
                         {
                             // if one is satisifed
-                            if (_conditions[_conditionIDs[i]].Value == true)
+                            if (_conditions[i].Value == true)
                             {
                                 results = true;
                                 break;

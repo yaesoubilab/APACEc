@@ -175,13 +175,13 @@ namespace APACElib
                 // make decisions
                 if (_simTimeIndex == 0)
                 {
-                    _monitorOfIntrvsInEffect.MakeADecision(0, true, ref _classes);
+                    _monitorOfIntrvsInEffect.MakeADecision(0, _rng, true, ref _classes);
                     // calculate contact matrices
                     FOIModel.CalculateContactMatrices();
                 }
                 else
                     // make decisions if decision is not predetermined and announce the new decisions (may not necessarily go into effect)
-                    _monitorOfIntrvsInEffect.MakeADecision(_epiTimeIndex, false, ref _classes);
+                    _monitorOfIntrvsInEffect.MakeADecision(_epiTimeIndex, _rng, false, ref _classes);
 
                 // update the effect of chance in time dependent parameter value
                 _paramManager.UpdateTimeDepParams(_rng, _simTimeIndex * _modelSets.DeltaT, _classes);

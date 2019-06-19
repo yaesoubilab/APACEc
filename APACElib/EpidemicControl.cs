@@ -59,14 +59,14 @@ namespace APACElib
         }
 
         // make the first decision (at time zero)
-        public void MakeTheFirstDecision(int epiTimeIndex)
+        public void MakeTheFirstDecision(int epiTimeIndex, RNG rng)
         {
             int[] newDecision = new int[NumOfInterventions];
             CurrentDecision = new int[NumOfInterventions];
 
             // update conditions
             foreach (Condition c in Conditions)
-                c.Update(epiTimeIndex);
+                c.Update(epiTimeIndex, rng);
 
             // check if decisions are not prespecified
             if (_presetDecisionsOverDecisionsPeriods == null)
@@ -86,7 +86,7 @@ namespace APACElib
         }
 
         // find a new intervention combination
-        public void MakeANewDecision(int epiTimeIndex)
+        public void MakeANewDecision(int epiTimeIndex, RNG rng)
         {
             // if next decision point is reached
             if (epiTimeIndex != _nextEpiTimeIndexToMakeDecision)
@@ -94,7 +94,7 @@ namespace APACElib
 
             // update conditions
             foreach (Condition c in Conditions)
-                c.Update(epiTimeIndex);
+                c.Update(epiTimeIndex, rng);
 
             int[] newDecision = new int[NumOfInterventions];
 
@@ -234,13 +234,13 @@ namespace APACElib
             InterventionsInEffect = new int[_decisionMaker.NumOfInterventions];
         }
 
-        public void MakeADecision(int epiTimeIndex, bool toInitialize, ref List<Class> classes)
+        public void MakeADecision(int epiTimeIndex, RNG rng, bool toInitialize, ref List<Class> classes)
         {
             // request for a decision
             if (toInitialize)
-                _decisionMaker.MakeTheFirstDecision(epiTimeIndex);
+                _decisionMaker.MakeTheFirstDecision(epiTimeIndex, rng);
             else
-                _decisionMaker.MakeANewDecision(epiTimeIndex);
+                _decisionMaker.MakeANewDecision(epiTimeIndex, rng);
 
             // update interventions that are in effect
             if (epiTimeIndex == _decisionMaker.EpiTimeIndexToChangeIntervetionsInEffect)

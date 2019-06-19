@@ -1189,7 +1189,7 @@ namespace APACElib
                             string strSigns = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureSigns));
                             string strThresholds = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureThresholds));
                             string strConclusion = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureConclusion));
-                            _epiHist.Conditions.Add(new Condition_OnFeatures(id, _epiHist.Features, strFeatureIDs, strSigns, strThresholds, strConclusion));
+                            _epiHist.Conditions.Add(new Condition_OnFeatures(id, _epiHist.Features, _paramManager.Parameters, strFeatureIDs, strThresholds, strSigns, strConclusion));
                         }
                         break;
                     case "Conditions":
