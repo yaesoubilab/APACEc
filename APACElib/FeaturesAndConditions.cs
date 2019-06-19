@@ -181,7 +181,8 @@ namespace APACElib
         private List<Feature> _features;
         private int[] _featureIDs = new int[0];
         private EnumSign[] _signs = new EnumSign[0];
-        private double[] _thresholds = new double[0];
+        private List<Parameter> _thresholdPars = new List<Parameter>();
+        private double[] _thresholdValues = new double[0];
         private EnumAndOr _andOr = EnumAndOr.And;
 
         public Condition_OnFeatures(
@@ -195,7 +196,7 @@ namespace APACElib
             _features = features;
             _featureIDs = SupportProcedures.ConvertStringToIntArray(strFeatureIDs);
             _signs = SupportProcedures.ConvertToEnumSigns(strSigns);
-            _thresholds = SupportProcedures.ConvertStringToDoubleArrray(strTheresholds);
+            _thresholdValues = SupportProcedures.ConvertStringToDoubleArrray(strTheresholds);
             if (strConclusions == "And")
                 _andOr = EnumAndOr.And;
             else
@@ -212,13 +213,13 @@ namespace APACElib
             _features = features;
             _featureIDs = featureIDs;
             _signs = signs;
-            _thresholds = theresholds;
+            _thresholdValues = theresholds;
             _andOr = conclusion;
         }
 
         public void UpdateThresholds(double[] values)
         {
-            _thresholds = (double[])values.Clone();
+            _thresholdValues = (double[])values.Clone();
         }
 
         public override void Update(int epiTimeIndex)
@@ -235,7 +236,7 @@ namespace APACElib
                             // if one does not 
                             if (_features[_featureIDs[i]].Value.HasValue &&
                                 !SupportProcedures.ValueOfComparison(
-                                    _features[_featureIDs[i]].Value.Value, _signs[i], _thresholds[i]))                                
+                                    _features[_featureIDs[i]].Value.Value, _signs[i], _thresholdValues[i]))                                
                             {
                                 result = false;
                                 break;
@@ -251,7 +252,7 @@ namespace APACElib
                             // if one is within
                             if (_features[_featureIDs[i]].Value.HasValue && 
                                 SupportProcedures.ValueOfComparison(
-                                    _features[_featureIDs[i]].Value.Value, _signs[i], _thresholds[i]))
+                                    _features[_featureIDs[i]].Value.Value, _signs[i], _thresholdValues[i]))
                             {
                                 result = true;
                                 break;

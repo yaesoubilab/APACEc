@@ -23,7 +23,7 @@ namespace APACElib
                                                                   // M2_A:  retreating those infected with G_A with M after 1st line treatment failure
                                                                   // M2_B_AB: retreating those infected with G_B or G_AB with M after 1st line treatment failure
         enum DummyParam { D_0, D_1, D_Minus1, D_Inf} // 0, 1, 2, 3
-        enum SpecialStat { PopSize=0, Prev, FirstTx, SuccessAOrB, SuccessAOrBOrM}
+        enum SpecialStat { PopSize=0, Prev, FirstTx, SuccessAOrB, SuccessAOrBOrM, PercFirstTxAndResist}
         private List<int> _specialStatIDs = new List<int>(new int[Enum.GetValues(typeof(SpecialStat)).Length]);
 
         private List<string> _infProfiles = new List<string>();
@@ -51,11 +51,10 @@ namespace APACElib
             AddGonoSumStats();
             // add ratio statistics
             AddGonoRatioStatistics();
-            // AddRatioStatistics();
             // add features
-            AddFeatures();
+            AddGonoFeatures();
             // add conditions
-            AddConditions();
+            AddGonoConditions();
             // add connections
             AddGonoConnections();
         }
@@ -887,7 +886,7 @@ namespace APACElib
                 }
             }
 
-            // % received 1st Tx and symptomatic (incidence)
+            // % received 1st Tx and symptomatic (incidence)            
             RatioTrajectory firstTxSym = new RatioTrajectory(
                 id: id++,
                 name: "% received 1st Tx & symptomatic ",
@@ -905,9 +904,10 @@ namespace APACElib
                     lowFeasibleBound: 0.5,
                     upFeasibleBound: 0.8,
                     minThresholdToHit: 0);
-            _epiHist.RatioTrajs.Add(firstTxSym);            
+            _epiHist.RatioTrajs.Add(firstTxSym);
 
             // % received 1st Tx and resistant to A, B, or AB (incidence)
+            _specialStatIDs[(int)SpecialStat.PercFirstTxAndResist] = id;
             foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
             {
                 if (r != ResistStates.G_0)
@@ -1044,6 +1044,70 @@ namespace APACElib
             // add leaving success with A1, B1, B2, M1, M2
             for (int j = 0; j < 5; j++)
                 ((Class_Normal)_classes[success + j]).AddAnEvent(_events[leaveSuccess + j]);
+        }
+
+        private void AddGonoFeatures()
+        {
+            int id = 0;
+            int idPercFirstTxAndResist = _specialStatIDs[(int)SpecialStat.PercFirstTxAndResist];
+
+            // add time
+            _epiHist.Features.Add(new Feature_EpidemicTime("Epidemic Time", id++));
+
+            // % receieved 1st Tx and resistant to A, B, or AB
+            foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
+            {
+                if (r != ResistStates.G_0)
+                {
+                    _epiHist.AddASpecialStatisticsFeature(
+                        name: "% received 1st Tx & resistant to " + r.ToString(),
+                        featureID: id++,
+                        specialStatID: idPercFirstTxAndResist + (int)r - 1,
+                        strFeatureType: "Current Observed Value",
+                        par: 0);
+                }
+            }
+
+            // change in % receieved 1st Tx and resistant to A, B, or AB
+            foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
+            {
+                if (r != ResistStates.G_0)
+                {
+                    _epiHist.AddASpecialStatisticsFeature(
+                        name: "Change in % received 1st Tx & resistant to " + r.ToString(),
+                        featureID: id++,
+                        specialStatID: idPercFirstTxAndResist + (int)r - 1,
+                        strFeatureType: "Slope",
+                        par: 0);
+                }
+            }
+
+            // if A1 and B1 ever switched off 
+            _epiHist.Features.Add(new Feature_Intervention(
+                name: "If A1 ever switched off",
+                featureID: id++, 
+                featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
+                intervention: _decisionMaker.Interventions[(int)Interventions.A1])
+                );
+            _epiHist.Features.Add(new Feature_Intervention(
+                name: "If B1 ever switched off",
+                featureID: id++, 
+                featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
+                intervention: _decisionMaker.Interventions[(int)Interventions.B1])
+                );
+
+            // if M ever switched on
+            _epiHist.Features.Add(new Feature_Intervention(
+                name: "If M1 ever switched on",
+                featureID: id++,
+                featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOn,
+                intervention: _decisionMaker.Interventions[(int)Interventions.M1])
+                );
+        }
+
+        private void AddGonoConditions()
+        {
+
         }
 
         private List<Parameter> GetParamList(string paramName)
