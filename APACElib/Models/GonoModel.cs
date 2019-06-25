@@ -675,7 +675,6 @@ namespace APACElib
             }
         }
 
-
         private void AddGonoSumStats()
         {
             int id = 0;
