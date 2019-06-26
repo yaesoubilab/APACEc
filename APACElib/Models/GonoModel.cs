@@ -43,9 +43,9 @@ namespace APACElib
         public override void BuildModel()
         {
             // add parameters 
-            AddGonoParameters();
+            AddGonoParameters("MSM");
             // add classes
-            AddGonoClasses();
+            AddGonoClasses("MSM");
             // add events
             AddGonoEvents();
             // add interventions
@@ -62,82 +62,80 @@ namespace APACElib
             AddGonoConnections();
         }
 
-        private void AddGonoParameters()
+        private void AddGonoParameters(string region)
         {
             // add the parameters from the parameter sheet
             AddParameters();
-            int id = _paramManager.Parameters.Count;
+            int parID = _paramManager.Parameters.Count;
 
             // initial size of S
-            _paramManager.Add(new ProductParameter(
-                ID: id++,
-                name: "Initial size of S",
-                parameters: GetParamList(new List<string>() {"Initial N", "1-Initial prevalence"}))
-                );
+            AddGonoParamSize_S(region, ref parID);
 
             // initial size of I compartments
+            int infProfileID = 0;
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
-                {
-                    string name = "Initial size of I | " + s.ToString() + " | " + r.ToString();
-                    List<string> paramNames = new List<string>() { "Initial N", "Initial prevalence" };
-
-                    if (s == SymStates.Sym)
-                        paramNames.Add("Initial symptomatic");
-                    else
-                        paramNames.Add("1-Initial symptomatic");
-
-                    switch (r)
-                    {
-                        case ResistStates.G_0:
-                            paramNames.Add("1-Initial resistant to A or B");
-                            break;
-                        case ResistStates.G_A:
-                            paramNames.Add("Initial resistant to A");
-                            break;
-                        case ResistStates.G_B:
-                            paramNames.Add("Initial resistant to B");
-                            break;
-                        case ResistStates.G_AB:
-                            paramNames.Add("Initial resistant to AB");
-                            break;
-                    }
-
-                    if (r == ResistStates.G_AB)
-                        _paramManager.Add(new IndependetParameter(
-                            ID: id++,
-                            name: name,
-                            enumRandomVariateGenerator: RandomVariateLib.SupportProcedures.ConvertToEnumRVG("Constant"),
-                            par1: 0, par2: 0, par3: 0, par4: 0)
-                            );
-                    else
-                        _paramManager.Add(new ProductParameter(
-                            ID: id++,
-                            name: name,
-                            parameters: GetParamList(paramNames))
-                            );
-                }
+                    AddGonoParamSize_I(region, s, r, infProfileID++, ref parID);
 
         }
 
-        private void AddGonoClasses()
+        private void AddGonoParamSize_S(string region, ref int id)
         {
-            int classIdIfSymp = 0;
-            int classIDIfAsymp = 0;
+            _paramManager.Add(new ProductParameter(
+                ID: id++,
+                name: "Initial size of " + region + " | S",
+                parameters: GetParamList(new List<string>() { "Initial population size | " + region, "1-Initial prevalence | " + region }))
+                );
+        }
+        
+        private void AddGonoParamSize_I(string region, SymStates s, ResistStates r, int infProfileID, ref int id)
+        {
+            string name = "Initial size of " + region + " | I | " + _infProfiles[infProfileID];
+            List<string> paramNames = new List<string>() { "Initial population size | " + region, "Initial prevalence | " + region };
+
+            if (s == SymStates.Sym)
+                paramNames.Add("Initial symptomatic | " + region);
+            else
+                paramNames.Add("1-Initial symptomatic | " + region);
+
+            switch (r)
+            {
+                case ResistStates.G_0:
+                    paramNames.Add("1-Initial resistant to A or B | " + region);
+                    break;
+                case ResistStates.G_A:
+                    paramNames.Add("Initial resistant to A | " + region);
+                    break;
+                case ResistStates.G_B:
+                    paramNames.Add("Initial resistant to B | " + region);
+                    break;
+                case ResistStates.G_AB:
+                    paramNames.Add("Initial resistant to AB | " + region);
+                    break;
+            }
+
+            if (r == ResistStates.G_AB)
+                _paramManager.Add(new IndependetParameter(
+                    ID: id++,
+                    name: name,
+                    enumRandomVariateGenerator: RandomVariateLib.SupportProcedures.ConvertToEnumRVG("Constant"),
+                    par1: 0, par2: 0, par3: 0, par4: 0)
+                    );
+            else
+                _paramManager.Add(new ProductParameter(
+                    ID: id++,
+                    name: name,
+                    parameters: GetParamList(paramNames))
+                    );
+        }
+
+        private void AddGonoClasses(string region)
+        {
             int id = 0;
-            int inf = 0; // infection profile
+            int infProfile = 0; // infection profile
 
             // add S
-            Class_Normal S = new Class_Normal(id, "S");
-            S.SetupInitialAndStoppingConditions(
-                initialMembersPar: GetParam("Initial size of S"));
-            S.SetupTransmissionDynamicsProperties(
-                susceptibilityParams: GetParamList(dummyParam: DummyParam.D_1, repeat: 4),
-                infectivityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
-                rowIndexInContactMatrix: 0);
-            SetupClassStatsAndTimeSeries(
-                thisClass: S,
-                showPrevalence:true);
+            Class_Normal S = Get_S(id, region);
             _classes.Add(S);
             _dicClasses[S.Name] = id++;
 
@@ -145,100 +143,64 @@ namespace APACElib
             // Success with A1, B1, or B2
             foreach (Drugs d in Enum.GetValues(typeof(Drugs)))
             {
-                Class_Normal c = new Class_Normal(id, "Success with " + d.ToString());
-                c.SetupInitialAndStoppingConditions(
-                    initialMembersPar: _paramManager.Parameters[(int)DummyParam.D_0]);
-                c.SetupTransmissionDynamicsProperties(
-                    susceptibilityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
-                    infectivityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
-                    rowIndexInContactMatrix: 0);
-                SetupClassStatsAndTimeSeries(
-                    thisClass: c,
-                    showIncidence: true);
+                Class_Normal c = Get_Success(id, region, d.ToString());
                 _classes.Add(c);
                 _dicClasses[c.Name] = id++;
             }
+
             // Success with M1 or M2
             foreach (Ms m in Enum.GetValues(typeof(Ms)))
             {
-                Class_Normal c = new Class_Normal(id, "Success with " + m.ToString());
-                c.SetupInitialAndStoppingConditions(
-                    initialMembersPar: _paramManager.Parameters[(int)DummyParam.D_0]);
-                c.SetupTransmissionDynamicsProperties(
-                    susceptibilityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
-                    infectivityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
-                    rowIndexInContactMatrix: 0);
-                SetupClassStatsAndTimeSeries(
-                    thisClass: c,
-                    showIncidence: true);
+                Class_Normal c = Get_Success(id, region, m.ToString());
                 _classes.Add(c);
                 _dicClasses[c.Name] = id++;
             }
 
             // add death
-            Class_Death D = new Class_Death(id, "Death");
-            SetupClassStatsAndTimeSeries(
-                    thisClass: D,
-                    showIncidence: true);
+            Class_Death D = Get_D(id, region);
             _classes.Add(D);
             _dicClasses[D.Name] = id++;
 
             // add I's, W's, and U's, 
-            // example: "I | Sym | G_0"            
+            // example: "I | Sym | G_0"     
+            int infParID = _paramManager.Dic["Infectivity of | I | " + _infProfiles[0]];
+            int size0ParID = _paramManager.Dic["Initial size of " + region + " | I | " + _infProfiles[0]];
             foreach (Comparts c in Enum.GetValues(typeof(Comparts)))
             {
-                inf = 0;
+                infProfile = 0;
                 foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                     foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                     {
-                        string name = c.ToString() + " | " + _infProfiles[inf];
-                        string parName = "Infectivity of | " + Comparts.I.ToString() + " | " + _infProfiles[inf];
-                        Class_Normal cls = new Class_Normal(id, name);
-
-                        Parameter p0;
-                        if (c == Comparts.I)
-                            p0 = GetParam("Initial size of " + name);
-                        else // else for W and U the initial size if 0
-                            p0 = _paramManager.Parameters[(int)DummyParam.D_0];
-
-                        cls.SetupInitialAndStoppingConditions(
-                            initialMembersPar: p0,
-                            ifShouldBeEmptyForEradication: false);  // to simulate until the end of the simulation hirozon
-                        cls.SetupTransmissionDynamicsProperties(
-                            susceptibilityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4), // no reinfection in I, W, or U
-                            infectivityParams: GetParamList(
-                                paramName: parName,
-                                pos: (int)r,
-                                size: 4,
-                                dummyParam: DummyParam.D_0),
-                            rowIndexInContactMatrix: 0);
-                        SetupClassStatsAndTimeSeries(
-                            thisClass: cls,
-                            showPrevalence: (c == Comparts.I || c == Comparts.U) ? true : false,
-                            showIncidence: (c == Comparts.W) ? true : false);
-                        _classes.Add(cls);
-                        _dicClasses[name] = id++;
-                        ++inf;
+                        Class_Normal C = Get_I_W_U(id: id, region: region, 
+                            infProfileID: infProfile,
+                            c: c, 
+                            r: r, 
+                            size0ParID: (c == Comparts.I) ? size0ParID++ : (int)DummyParam.D_0, 
+                            infectivityParID: infParID + infProfile);
+                        _classes.Add(C);
+                        _dicClasses[C.Name] = id++;
+                        ++infProfile;
                     }
             }
 
             // Prob symptomatic after infection
-            classIdIfSymp = _dicClasses["I | Sym | G_0"];
-            classIDIfAsymp = _dicClasses["I | Asym | G_0"];
+            int classIdIfSymp = _dicClasses[region + " | I | Sym | G_0"];
+            int classIDIfAsymp = _dicClasses[region + " | I | Asym | G_0"];
+            int ifSymParID = _paramManager.Dic["Prob sym | G_0"];
             foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
             {
-                string rStr = r.ToString();
-                string name = "If Sym | " + rStr;
-
-                Class_Splitting ifSym = new Class_Splitting(id, name);
-                ifSym.SetUp(
-                    parOfProbSucess: GetParam("Prob sym | " + rStr),
-                    destinationClassIDIfSuccess: classIdIfSymp + (int)r,
-                    destinationClassIDIfFailure: classIDIfAsymp + (int)r);
-                SetupClassStatsAndTimeSeries(thisClass: ifSym);
+                Class_Splitting ifSym = Get_IfSym(
+                    id: id, 
+                    region: region, 
+                    r: r,
+                    ifSymParID: ifSymParID + (int)r, 
+                    classIDIfSym: classIdIfSymp + (int)r,
+                    classIDIfAsym: classIDIfAsymp + (int)r);
                 _classes.Add(ifSym);
-                _dicClasses[name] = id++;
+                _dicClasses[ifSym.Name] = id++;
             }
+
+            // TODO: starts here
 
             // if seeking retreatment after resistance or failure
             // examples "If retreat A | A --> I | Sym | G_0"
@@ -247,12 +209,12 @@ namespace APACElib
                 // assume that failure after B2 will always seek retreatment 
                 if (drug == Drugs.A1 || drug == Drugs.B1)  
                 {
-                    inf = 0;
+                    infProfile = 0;
                     foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                         foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                         {
                             string resistOrFail = GetResistOrFail(resistStat: r, drug: drug);
-                            string className = "If retreat " + resistOrFail + " | " + drug.ToString() + " --> I | " + _infProfiles[inf];
+                            string className = "If retreat " + resistOrFail + " | " + drug.ToString() + " --> I | " + _infProfiles[infProfile];
 
                             string classIfSeekTreatment = "", classIfNotSeekTreatment = "";
                             // if failed
@@ -261,7 +223,7 @@ namespace APACElib
                                 // and seeks treatment -> waiting for retreatment
                                 classIfSeekTreatment = "U | " + s.ToString() + " | " + r.ToString();
                                 // and does not seek treatment -> the infectious state 
-                                classIfNotSeekTreatment = "I | " + _infProfiles[inf];
+                                classIfNotSeekTreatment = "I | " + _infProfiles[infProfile];
                             }
                             else // if developed resistance
                             {
@@ -282,7 +244,7 @@ namespace APACElib
                             SetupClassStatsAndTimeSeries(thisClass: ifRetreat);
                             _classes.Add(ifRetreat);
                             _dicClasses[className] = id++;
-                            ++inf;
+                            ++infProfile;
                         }
                 }
 
@@ -336,8 +298,8 @@ namespace APACElib
                         if (resistOrFail == "F")
                             continue;
 
-                        string infProfile = "I | " + s.ToString() + " | " + r.ToString();  // "I | Sym | G_0"                
-                        string treatmentProfile = resistOrFail + " | " + drug.ToString() + " --> " + infProfile; // "A | A --> I | Sym | G_0"
+                        string strInfProfile = "I | " + s.ToString() + " | " + r.ToString();  // "I | Sym | G_0"                
+                        string treatmentProfile = resistOrFail + " | " + drug.ToString() + " --> " + strInfProfile; // "A | A --> I | Sym | G_0"
                         string className = "If " + treatmentProfile; // "If A | A --> I | Sym | G_0"
                         string classIfResist = "";
 
@@ -371,6 +333,73 @@ namespace APACElib
                         _classes.Add(ifResist);
                         _dicClasses[className] = id++;
                     }
+        }
+
+        private Class_Normal Get_S(int id, string region)
+        {
+            Class_Normal S = new Class_Normal(id, region + " | S");
+            S.SetupInitialAndStoppingConditions(
+                initialMembersPar: GetParam("Initial size of " + region + " | S"));
+            S.SetupTransmissionDynamicsProperties(
+                susceptibilityParams: GetParamList(dummyParam: DummyParam.D_1, repeat: 4),
+                infectivityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
+                rowIndexInContactMatrix: 0);
+            SetupClassStatsAndTimeSeries(
+                thisClass: S,
+                showPrevalence: true);
+            return S;
+        }
+        private Class_Normal Get_Success(int id, string region, string drug)
+        {
+            Class_Normal c = new Class_Normal(id, region + " | Success with " + drug);
+            c.SetupInitialAndStoppingConditions(
+                initialMembersPar: _paramManager.Parameters[(int)DummyParam.D_0]);
+            c.SetupTransmissionDynamicsProperties(
+                susceptibilityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
+                infectivityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
+                rowIndexInContactMatrix: 0);
+            SetupClassStatsAndTimeSeries(
+                thisClass: c,
+                showIncidence: true);
+            return c;
+        }
+        private Class_Death Get_D(int id, string region)
+        {
+            Class_Death D = new Class_Death(id, region + " | Death");
+            SetupClassStatsAndTimeSeries(
+                    thisClass: D,
+                    showIncidence: true);
+            return D;
+        }
+        private Class_Normal Get_I_W_U(int id, string region, int infProfileID, Comparts c, ResistStates r, int size0ParID, int infectivityParID)
+        {
+            Class_Normal C = new Class_Normal(id, region + " | " + c.ToString() + " | " + _infProfiles[infProfileID]);
+            C.SetupInitialAndStoppingConditions(
+                initialMembersPar: _paramManager.Parameters[size0ParID],
+                ifShouldBeEmptyForEradication: false);  // to simulate until the end of the simulation hirozon
+            C.SetupTransmissionDynamicsProperties(
+                susceptibilityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4), // no reinfection in I, W, or U
+                infectivityParams: GetParamList(
+                    parID: infectivityParID,
+                    pos: (int)r,
+                    size: 4,
+                    dummyParam: DummyParam.D_0),
+                rowIndexInContactMatrix: 0);
+            SetupClassStatsAndTimeSeries(
+                thisClass: C,
+                showPrevalence: (c == Comparts.I || c == Comparts.U) ? true : false,
+                showIncidence: (c == Comparts.W) ? true : false);
+            return C;
+        }
+        private Class_Splitting Get_IfSym(int id, string region, ResistStates r, int ifSymParID, int classIDIfSym, int classIDIfAsym)
+        {
+            Class_Splitting ifSym = new Class_Splitting(id, region + " | If Sym | " + r.ToString());
+            ifSym.SetUp(
+                parOfProbSucess: _paramManager.Parameters[ifSymParID],
+                destinationClassIDIfSuccess: classIDIfSym,
+                destinationClassIDIfFailure: classIDIfAsym);
+            SetupClassStatsAndTimeSeries(thisClass: ifSym);
+            return ifSym;
         }
 
         private void AddGonoEvents()
@@ -1292,7 +1321,7 @@ namespace APACElib
         {            
             return new List<Parameter>() { _paramManager.GetParameter(paramName) };
         }
-        private List<Parameter> GetParamList( List<string> paramNames)
+        private List<Parameter> GetParamList(List<string> paramNames)
         {
             List<Parameter> list = new List<Parameter>();
             foreach (string name in paramNames)
@@ -1313,6 +1342,16 @@ namespace APACElib
             for (int i = 0; i < size; i++)
                 if (i == pos)
                     list.Add(GetParam(paramName));
+                else
+                    list.Add(_paramManager.Parameters[(int)dummyParam]);
+            return list;
+        }
+        private List<Parameter> GetParamList(int parID, int pos, int size, DummyParam dummyParam)
+        {
+            List<Parameter> list = new List<Parameter>();
+            for (int i = 0; i < size; i++)
+                if (i == pos)
+                    list.Add(_paramManager.Parameters[parID]);
                 else
                     list.Add(_paramManager.Parameters[(int)dummyParam]);
             return list;
