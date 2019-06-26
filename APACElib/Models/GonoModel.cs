@@ -200,8 +200,6 @@ namespace APACElib
                 _dicClasses[ifSym.Name] = id++;
             }
 
-            // TODO: starts here
-
             // if seeking retreatment after resistance or failure
             // examples "If retreat A | A --> I | Sym | G_0"
             //          "If retreat F | A --> I | Sym | G_A"
@@ -213,40 +211,20 @@ namespace APACElib
                     foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                         foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                         {
-                            string resistOrFail = GetResistOrFail(resistStat: r, drug: drug);
-                            string className = "If retreat " + resistOrFail + " | " + drug.ToString() + " --> I | " + _infProfiles[infProfile];
-
-                            string classIfSeekTreatment = "", classIfNotSeekTreatment = "";
-                            // if failed
-                            if (resistOrFail == "F")
-                            {
-                                // and seeks treatment -> waiting for retreatment
-                                classIfSeekTreatment = "U | " + s.ToString() + " | " + r.ToString();
-                                // and does not seek treatment -> the infectious state 
-                                classIfNotSeekTreatment = "I | " + _infProfiles[infProfile];
-                            }
-                            else // if developed resistance
-                            {
-                                // update the infection profile
-                                string newInfProfile = s.ToString() + " | G_" + resistOrFail;
-                                // and seeks treatment -> waiting for retreatment
-                                classIfSeekTreatment = "U | " + newInfProfile;
-                                // and does not seek treatment -> the infectious state
-                                classIfNotSeekTreatment = "I | " + newInfProfile;
-                            }
-
-                            Class_Splitting ifRetreat = new Class_Splitting(id, className);
-                            ifRetreat.SetUp(
-                                parOfProbSucess: GetParam("Prob retreatment | " + s.ToString()),
-                                destinationClassIDIfSuccess: _dicClasses[classIfSeekTreatment],
-                                destinationClassIDIfFailure: _dicClasses[classIfNotSeekTreatment]
-                                );
-                            SetupClassStatsAndTimeSeries(thisClass: ifRetreat);
+                            Class_Splitting ifRetreat = Get_IfRetreat(
+                                id: id,
+                                region: region,
+                                r: r,
+                                s: s, 
+                                drug: drug, 
+                                infProfile: infProfile);
                             _classes.Add(ifRetreat);
-                            _dicClasses[className] = id++;
+                            _dicClasses[ifRetreat.Name] = id++;
                             ++infProfile;
                         }
                 }
+
+            // TODO: starts here
 
             // if symptomatic after the emergence of resistance
             // example: "If symp | A | A --> I | Asym | G_0"
@@ -400,6 +378,39 @@ namespace APACElib
                 destinationClassIDIfFailure: classIDIfAsym);
             SetupClassStatsAndTimeSeries(thisClass: ifSym);
             return ifSym;
+        }
+        private Class_Splitting Get_IfRetreat(int id, string region, ResistStates r, SymStates s, Drugs drug, int infProfile)
+        {
+            string resistOrFail = GetResistOrFail(resistStat: r, drug: drug);
+            string className = region +  " | If retreat " + resistOrFail + " | " + drug.ToString() + " --> I | " + _infProfiles[infProfile];
+
+            string classIfSeekTreatment = "", classIfNotSeekTreatment = "";
+            // if failed
+            if (resistOrFail == "F")
+            {
+                // and seeks treatment -> waiting for retreatment
+                classIfSeekTreatment = region + " | U | " + _infProfiles[infProfile];
+                // and does not seek treatment -> the infectious state 
+                classIfNotSeekTreatment = region + " | I | " + _infProfiles[infProfile];
+            }
+            else // if developed resistance
+            {
+                // update the infection profile
+                string newInfProfile = s.ToString() + " | G_" + resistOrFail;
+                // and seeks treatment -> waiting for retreatment
+                classIfSeekTreatment = region + " | U | " + newInfProfile;
+                // and does not seek treatment -> the infectious state
+                classIfNotSeekTreatment = region + " | I | " + newInfProfile;
+            }
+
+            Class_Splitting ifRetreat = new Class_Splitting(id, className);
+            ifRetreat.SetUp(
+                parOfProbSucess: GetParam("Prob retreatment | " + s.ToString()),
+                destinationClassIDIfSuccess: _dicClasses[classIfSeekTreatment],
+                destinationClassIDIfFailure: _dicClasses[classIfNotSeekTreatment]
+                );
+            SetupClassStatsAndTimeSeries(thisClass: ifRetreat);
+            return ifRetreat;
         }
 
         private void AddGonoEvents()
