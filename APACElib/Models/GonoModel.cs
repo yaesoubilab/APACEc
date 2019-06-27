@@ -9,6 +9,13 @@ using RandomVariateLib;
 
 namespace APACElib
 {
+
+    public class SpecialStatInfo
+    {
+        enum SpecialStat { PopSize=0, Prev, FirstTx, SuccessAOrB, SuccessAOrBOrM, PercFirstTxAndResist}
+        public List<int> SpecialStatIDs { get; set; } = new List<int>(new int[Enum.GetValues(typeof(SpecialStat)).Length]);
+    }
+
     public class GonoModel : ModelInstruction
     {
         enum Comparts { I, W, U }; // infection, waiting for treatment, waiting for retreatment 
@@ -23,11 +30,9 @@ namespace APACElib
                                                                   // M2_A:  retreating those infected with G_A with M after 1st line treatment failure
                                                                   // M2_B_AB: retreating those infected with G_B or G_AB with M after 1st line treatment failure
         enum DummyParam { D_0, D_1, D_Minus1, D_Inf, T_Prev, T_DeltaPrev} // 0, 1, 2, 3, 4, 5
-        enum SpecialStat { PopSize=0, Prev, FirstTx, SuccessAOrB, SuccessAOrBOrM, PercFirstTxAndResist}
+        
         enum Features { Time, PercResist, ChangeInPercResist, IfEverUsed}
-        enum Conditions {AOut, BOut, ABOut, AOk, BOk, ABOk, BNeverUsed, MNeverUsed, AOn, AOff, BOn, BOff, MOn, MOff};
-
-        private List<int> _specialStatIDs = new List<int>(new int[Enum.GetValues(typeof(SpecialStat)).Length]);
+        enum Conditions {AOut, BOut, ABOut, AOk, BOk, ABOk, BNeverUsed, MNeverUsed, AOn, AOff, BOn, BOff, MOn, MOff};        
         private List<int> _featureIDs = new List<int>(new int[Enum.GetValues(typeof(Features)).Length]);
         private List<string> _infProfiles = new List<string>();
 
@@ -47,19 +52,19 @@ namespace APACElib
             // add classes
             AddGonoClasses("MSM");
             // add events
-            AddGonoEvents();
+            AddGonoEvents("MSM");
             // add interventions
-            AddGonoInterventions();
+            AddGonoInterventions("MSM");
             // add summation statistics
             AddGonoSumStats();
             // add ratio statistics
             AddGonoRatioStatistics();
             // add features
-            AddGonoFeatures();
+            AddGonoFeatures("MSM");
             // add conditions
             AddGonoConditions();
             // add connections
-            AddGonoConnections();
+            AddGonoConnections("MSM");
         }
 
         private void AddGonoParameters(string region)
@@ -135,7 +140,7 @@ namespace APACElib
             int infProfile = 0; // infection profile
 
             // add S
-            Class_Normal S = Get_S(id, region);
+            Class_Normal S = Get_S(id, region, _paramManager.Dic["Initial size of " + region + " | S"]);
             _classes.Add(S);
             _dicClasses[S.Name] = id++;
 
@@ -203,6 +208,8 @@ namespace APACElib
             // if seeking retreatment after resistance or failure
             // examples "If retreat A | A --> I | Sym | G_0"
             //          "If retreat F | A --> I | Sym | G_A"
+            int parIDProbRetreatIfSym = _paramManager.Dic["Prob retreatment | Sym"];
+            int parIDProbRetreatIfAsym = _paramManager.Dic["Prob retreatment | Asym"];
             foreach (Drugs drug in Enum.GetValues(typeof(Drugs)))   // A1, B1, B2
                 // assume that failure after B2 will always seek retreatment 
                 if (drug == Drugs.A1 || drug == Drugs.B1)  
@@ -217,45 +224,34 @@ namespace APACElib
                                 r: r,
                                 s: s, 
                                 drug: drug, 
-                                infProfile: infProfile);
+                                infProfile: infProfile, 
+                                parIDProbRetreat: (s == SymStates.Sym) ? parIDProbRetreatIfSym : parIDProbRetreatIfAsym);
                             _classes.Add(ifRetreat);
                             _dicClasses[ifRetreat.Name] = id++;
                             ++infProfile;
                         }
                 }
 
-            // TODO: starts here
-
             // if symptomatic after the emergence of resistance
-            // example: "If symp | A | A --> I | Asym | G_0"
+            // example: "If sym | A | A --> I | Asym | G_0"
             //          true    -> "If retreat A | A --> I | Sym | G_0"
             //          false   -> "I | Asym | G_A"         
+            int parIDProbSym = _paramManager.Dic["Prob sym | G_0"];
             foreach (Drugs drug in Enum.GetValues(typeof(Drugs))) // A1, B1, or B2
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
                     string resistOrFail = GetResistOrFail(resistStat: r, drug: drug);
                     // if developed resistance
                     if (resistOrFail != "F")
-                    {                        
-                        string className = "If sym | " + resistOrFail + " | " + drug.ToString() + " --> I | Asym | " + r.ToString();
-                        string classIfSym = "", classIfAsym = "";
-
-                        // assuming that failure after B2 will receive M2
-                        if (drug == Drugs.A1 || drug == Drugs.B1)
-                            classIfSym = "If retreat " + resistOrFail + " | " + drug.ToString() + " --> I | Sym | " + r.ToString();
-                        else
-                            classIfSym = "Success with M2";
-                        classIfAsym = "I | Asym | G_" + resistOrFail;
-
-                        Class_Splitting ifSymp = new Class_Splitting(id, className);
-                        ifSymp.SetUp(
-                            parOfProbSucess: GetParam("Prob sym | G_" + resistOrFail),
-                            destinationClassIDIfSuccess: _dicClasses[classIfSym],
-                            destinationClassIDIfFailure: _dicClasses[classIfAsym]
-                            );
-                        SetupClassStatsAndTimeSeries(thisClass: ifSymp);
+                    {
+                        Class_Splitting ifSymp = Get_IfSymAfterR(
+                            id: id,
+                            region: region,
+                            resistOrFail: resistOrFail,
+                            r: r,
+                            drug: drug);
                         _classes.Add(ifSymp);
-                        _dicClasses[className] = id++;   
+                        _dicClasses[ifSymp.Name] = id++;   
                     }
                 }
 
@@ -266,7 +262,9 @@ namespace APACElib
             // example: "If A | A --> I | Asym | G_0"
             //          true: "If sym | A | A --> I | Asym | G_0"
             //          false: "Success A1"
-            int classIDSuccessA1 = _dicClasses["Success with " + Drugs.A1.ToString()];
+            int classIDSuccess = _dicClasses[region + " | Success with " + Drugs.A1.ToString()];
+            int parIDProbResistA = _paramManager.Dic["Prob resistance | Drug A"];
+            int parIDProbResistB = parIDProbResistA + 1;
             foreach (Drugs drug in Enum.GetValues(typeof(Drugs))) // A1, B1, B2
                 foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                     foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
@@ -276,48 +274,25 @@ namespace APACElib
                         if (resistOrFail == "F")
                             continue;
 
-                        string strInfProfile = "I | " + s.ToString() + " | " + r.ToString();  // "I | Sym | G_0"                
-                        string treatmentProfile = resistOrFail + " | " + drug.ToString() + " --> " + strInfProfile; // "A | A --> I | Sym | G_0"
-                        string className = "If " + treatmentProfile; // "If A | A --> I | Sym | G_0"
-                        string classIfResist = "";
-
-                        // find the destination classes
-                        if (drug == Drugs.A1 || drug == Drugs.B1)
-                        {
-                            // if already symptomatic 
-                            if (s == SymStates.Sym)
-                                classIfResist = "If retreat " + treatmentProfile;
-                            else // if not symtomatic
-                                classIfResist = "If sym | " + treatmentProfile;
-                        }
-                        else // if already received B2
-                        {
-                            //if (r != ResistStates.G_A)
-                            //    continue;
-                            classIfResist = "U | " + s.ToString() + " | G_" + resistOrFail;
-                        }
-
-                        // parameter name
-                        string paramName = (drug == Drugs.A1) ? "Prob resistance | Drug A" : "Prob resistance | Drug B";
-
-                        // make the splitting class
-                        Class_Splitting ifResist = new Class_Splitting(id, className);
-                        ifResist.SetUp(
-                            parOfProbSucess: GetParam(paramName),
-                            destinationClassIDIfSuccess: _dicClasses[classIfResist],
-                            destinationClassIDIfFailure: classIDSuccessA1 + (int)drug
-                            );
-                        SetupClassStatsAndTimeSeries(thisClass: ifResist, showIncidence:true);
+                        Class_Splitting ifResist = Get_ifR(
+                            id: id,
+                            region: region,
+                            resistOrFail: resistOrFail,
+                            r: r,
+                            s: s,
+                            drug: drug,
+                            parIDProbResist: (drug == Drugs.A1) ? parIDProbResistA : parIDProbResistB,
+                            classIDSuccess: classIDSuccess + (int)drug);
                         _classes.Add(ifResist);
-                        _dicClasses[className] = id++;
+                        _dicClasses[ifResist.Name] = id++;
                     }
         }
 
-        private Class_Normal Get_S(int id, string region)
+        private Class_Normal Get_S(int id, string region, int parInitialSizeID)
         {
             Class_Normal S = new Class_Normal(id, region + " | S");
             S.SetupInitialAndStoppingConditions(
-                initialMembersPar: GetParam("Initial size of " + region + " | S"));
+                initialMembersPar: _paramManager.Parameters[parInitialSizeID]);
             S.SetupTransmissionDynamicsProperties(
                 susceptibilityParams: GetParamList(dummyParam: DummyParam.D_1, repeat: 4),
                 infectivityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
@@ -379,7 +354,7 @@ namespace APACElib
             SetupClassStatsAndTimeSeries(thisClass: ifSym);
             return ifSym;
         }
-        private Class_Splitting Get_IfRetreat(int id, string region, ResistStates r, SymStates s, Drugs drug, int infProfile)
+        private Class_Splitting Get_IfRetreat(int id, string region, ResistStates r, SymStates s, Drugs drug, int infProfile, int parIDProbRetreat)
         {
             string resistOrFail = GetResistOrFail(resistStat: r, drug: drug);
             string className = region +  " | If retreat " + resistOrFail + " | " + drug.ToString() + " --> I | " + _infProfiles[infProfile];
@@ -405,15 +380,66 @@ namespace APACElib
 
             Class_Splitting ifRetreat = new Class_Splitting(id, className);
             ifRetreat.SetUp(
-                parOfProbSucess: GetParam("Prob retreatment | " + s.ToString()),
+                parOfProbSucess: _paramManager.Parameters[parIDProbRetreat],
                 destinationClassIDIfSuccess: _dicClasses[classIfSeekTreatment],
                 destinationClassIDIfFailure: _dicClasses[classIfNotSeekTreatment]
                 );
             SetupClassStatsAndTimeSeries(thisClass: ifRetreat);
             return ifRetreat;
         }
+        private Class_Splitting Get_IfSymAfterR(int id, string region, string resistOrFail, ResistStates r, Drugs drug)
+        {
+            string className = region + " | If sym | " + resistOrFail + " | " + drug.ToString() + " --> I | Asym | " + r.ToString();
+            string classIfSym = "", classIfAsym = "";
 
-        private void AddGonoEvents()
+            // assuming that failure after B2 will receive M2
+            if (drug == Drugs.A1 || drug == Drugs.B1)
+                classIfSym = region + " | If retreat " + resistOrFail + " | " + drug.ToString() + " --> I | Sym | " + r.ToString();
+            else
+                classIfSym = region + " | Success with M2";
+            classIfAsym = region + " | I | Asym | G_" + resistOrFail;
+
+            Class_Splitting ifSymp = new Class_Splitting(id, className);
+            ifSymp.SetUp(
+                parOfProbSucess: GetParam("Prob sym | G_" + resistOrFail),
+                destinationClassIDIfSuccess: _dicClasses[classIfSym],
+                destinationClassIDIfFailure: _dicClasses[classIfAsym]
+                );
+            SetupClassStatsAndTimeSeries(thisClass: ifSymp);
+            return ifSymp;
+        }
+        private Class_Splitting Get_ifR(int id, string region, string resistOrFail, ResistStates r, SymStates s, Drugs drug, int parIDProbResist, int classIDSuccess)
+        {
+            string strInfProfile = "I | " + s.ToString() + " | " + r.ToString();  // "I | Sym | G_0"                
+            string treatmentProfile = resistOrFail + " | " + drug.ToString() + " --> " + strInfProfile; // "A | A --> I | Sym | G_0"
+            string className = region + " | If " + treatmentProfile; // "If A | A --> I | Sym | G_0"
+            string classIfResist = "";
+
+            // find the destination classes
+            if (drug == Drugs.A1 || drug == Drugs.B1)
+            {
+                // if already symptomatic 
+                if (s == SymStates.Sym)
+                    classIfResist = region + " | If retreat " + treatmentProfile;
+                else // if not symtomatic
+                    classIfResist = region + " | If sym | " + treatmentProfile;
+            }
+            else // if already received B2
+            {
+                classIfResist = region + " | U | " + s.ToString() + " | G_" + resistOrFail;
+            }
+
+            // make the splitting class
+            Class_Splitting ifResist = new Class_Splitting(id, className);
+            ifResist.SetUp(
+                parOfProbSucess: _paramManager.Parameters[parIDProbResist],
+                destinationClassIDIfSuccess: _dicClasses[classIfResist],
+                destinationClassIDIfFailure: classIDSuccess);
+            SetupClassStatsAndTimeSeries(thisClass: ifResist, showIncidence: true);
+            return ifResist;
+        }
+
+        private void AddGonoEvents(string region)
         {
             int id = 0;
             int inf = 0;
@@ -427,21 +453,21 @@ namespace APACElib
             int seekingTreatmentRate = _paramManager.Dic["Annual rate of seeking treatment (symptomatic)"];
             int seekingReTreatmentRate = _paramManager.Dic["Annual rate of retreatment"];
             
-            int idS = _dicClasses["S"];
-            int idDeath = _dicClasses["Death"];
-            int idSuccessM1 = _dicClasses["Success with " + Ms.M1.ToString()];
-            int idSuccessM2 = _dicClasses["Success with " + Ms.M2.ToString()];
+            int idS = _dicClasses[region + " | S"];
+            int idDeath = _dicClasses[region + " | Death"];
+            int idSuccessM1 = _dicClasses[region + " | Success with " + Ms.M1.ToString()];
+            int idSuccessM2 = _dicClasses[region + " | Success with " + Ms.M2.ToString()];
 
             // main compartments: S, I
             List<string> mainComp = new List<string>();
-            mainComp.Add("S");
+            mainComp.Add(region + " | S");
             for (inf = 0; inf <_infProfiles.Count; inf ++)
-                mainComp.Add("I | " + _infProfiles[inf]);
+                mainComp.Add(region + " | I | " + _infProfiles[inf]);
 
             // add Birth events
             foreach (string comp in mainComp)
             {
-                eventName = "Birth | " + comp;
+                eventName = region + " | Birth | " + comp;
                 _events.Add(new Event_Birth(
                     name: eventName,
                     ID: id,
@@ -454,7 +480,7 @@ namespace APACElib
             // add Death events
             foreach (string comp in mainComp)
             {
-                eventName = "Death | " + comp;
+                eventName = region + " | Death | " + comp;
                 _events.Add(new Event_EpidemicIndependent(
                     name: eventName,
                     ID: id,
@@ -463,14 +489,13 @@ namespace APACElib
                     IDOfDestinationClass: idDeath)
                     );
                 _dicEvents[eventName] = id++;
-            }
-            
+            }            
 
             // add Infection events
-            int idIfSympG_0 = _dicClasses["If Sym | G_0"];
+            int idIfSympG_0 = _dicClasses[region + " | If Sym | G_0"];
             foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
             {
-                eventName = "Infection | " + r.ToString();
+                eventName = region + " | Infection | " + r.ToString();
                 _events.Add(new Event_EpidemicDependent(
                     name: eventName,
                     ID: id,
@@ -486,7 +511,7 @@ namespace APACElib
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
                     string infProfile = s.ToString() + " | " + r.ToString();
-                    eventName = "Natural Recovery | I | " + infProfile;
+                    eventName = region + " | Natural Recovery | I | " + infProfile;
                     _events.Add(new Event_EpidemicIndependent(
                         name: eventName,
                         ID: id,
@@ -498,13 +523,13 @@ namespace APACElib
                 }
 
             // add Seeking Treatment events
-            int idWSymG_0 = _dicClasses["W | Sym | G_0"];
+            int idWSymG_0 = _dicClasses[region + " | W | Sym | G_0"];
             inf = 0;
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
                     string infProfile = s.ToString() + " | " + r.ToString();
-                    eventName = "Seeking Treatment | I | " + infProfile;
+                    eventName = region + " | Seeking Treatment | I | " + infProfile;
                     _events.Add(new Event_EpidemicIndependent(
                         name: eventName,
                         ID: id,
@@ -521,7 +546,7 @@ namespace APACElib
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
                     string infProfile = s.ToString() + " | " + r.ToString();
-                    eventName = "Screening | I | " + infProfile;
+                    eventName = region + " | Screening | I | " + infProfile;
                     _events.Add(new Event_EpidemicIndependent(
                         name: eventName,
                         ID: id,
@@ -541,13 +566,13 @@ namespace APACElib
                             string resistOrFail = GetResistOrFail(resistStat: r, drug: d);
                             string infProfile = s.ToString() + " | " + r.ToString();
                             string treatmentProfile = resistOrFail + " | " + d.ToString() + " --> I | " + infProfile;
-                            eventName = "Tx_" + d.ToString() + " | W | " + infProfile;
+                            eventName = region + " | Tx_" + d.ToString() + " | W | " + infProfile;
                             string destClassName = "";
 
                             if (resistOrFail == "F")
-                                destClassName = "If retreat " + treatmentProfile;
+                                destClassName = region + " | If retreat " + treatmentProfile;
                             else
-                                destClassName = "If " + treatmentProfile;
+                                destClassName = region + " | If " + treatmentProfile;
 
                             _events.Add(new Event_EpidemicIndependent(
                                 name: eventName,
@@ -564,7 +589,7 @@ namespace APACElib
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
                     string infProfile = s.ToString() + " | " + r.ToString();
-                    eventName = "Tx_M1 | W | " + infProfile;
+                    eventName = region + " | Tx_M1 | W | " + infProfile;
                     _events.Add(new Event_EpidemicIndependent(
                         name: eventName,
                         ID: id,
@@ -582,14 +607,14 @@ namespace APACElib
                     string resistOrFail = GetResistOrFail(resistStat: r, drug: Drugs.B2);
                     string infProfile = s.ToString() + " | " + r.ToString();
                     string treatmentProfile = resistOrFail + " | B2 --> I | " + infProfile;
-                    eventName = "Tx_B2 | U | " + infProfile;
+                    eventName = region + " | Tx_B2 | U | " + infProfile;
 
                     string destClassName = "";
                     if (resistOrFail == "F")
                         // if treatment failure occurs, the patient will receive M2 
-                        destClassName = "Success with M2";
+                        destClassName = region + " | Success with M2";
                     else
-                        destClassName = "If " + treatmentProfile;
+                        destClassName = region + " | If " + treatmentProfile;
 
                     _events.Add(new Event_EpidemicIndependent(
                         name: eventName,
@@ -606,7 +631,7 @@ namespace APACElib
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
                     string infProfile = s.ToString() + " | " + r.ToString();
-                    eventName = "Tx_M2 | U | " + infProfile;
+                    eventName = region + " | Tx_M2 | U | " + infProfile;
                     _events.Add(new Event_EpidemicIndependent(
                         name: eventName,
                         ID: id,
@@ -620,7 +645,7 @@ namespace APACElib
             // add Leaving Success with A1, B1, or B2
             foreach (Drugs d in Enum.GetValues(typeof(Drugs)))
             {
-                eventName = "Leaving Success with " + d.ToString();
+                eventName = region + " | Leaving Success with " + d.ToString();
                 _events.Add(new Event_EpidemicIndependent(
                     name: eventName,
                     ID: id,
@@ -633,7 +658,7 @@ namespace APACElib
             // add Leaving Success with M1 or M2
             foreach (Ms m in Enum.GetValues(typeof(Ms)))
             {
-                eventName = "Leaving Success with " + m.ToString();
+                eventName = region + " | Leaving Success with " + m.ToString();
                 _events.Add(new Event_EpidemicIndependent(
                     name: eventName,
                     ID: id,
@@ -645,7 +670,7 @@ namespace APACElib
             }
         }
 
-        private void AddGonoInterventions()
+        private void AddGonoInterventions(string region)
         {
             AddInterventions();
 
@@ -703,7 +728,7 @@ namespace APACElib
                 _decisionMaker.AddAnIntervention(
                     new Intervention(
                         index: id++,
-                        name: intrv.ToString(),
+                        name: region + " | " + intrv.ToString(),
                         actionType: EnumInterventionType.Additive,
                         affectingContactPattern: false,
                         timeIndexBecomesAvailable: 0,
@@ -1094,26 +1119,26 @@ namespace APACElib
             UpdateRatioStatTimeSeries();
         }
 
-        private void AddGonoConnections()
+        private void AddGonoConnections(string region)
         {
             int i = 0;           
-            int birthID = _dicEvents["Birth | S"];
-            int deathID = _dicEvents["Death | S"];
-            int infectionID = _dicEvents["Infection | G_0"];
-            int naturalRecoveryID = _dicEvents["Natural Recovery | I | Sym | G_0"];
-            int seekingTreatmentID = _dicEvents["Seeking Treatment | I | Sym | G_0"];
-            int screeningID = _dicEvents["Screening | I | Sym | G_0"];
-            int txA = _dicEvents["Tx_A1 | W | " + _infProfiles[0]];
-            int txB = _dicEvents["Tx_B1 | W | " + _infProfiles[0]]; 
-            int txM = _dicEvents["Tx_M1 | W | " + _infProfiles[0]]; 
-            int txB2 = _dicEvents["Tx_B2 | U | " + _infProfiles[0]];
-            int txM2 = _dicEvents["Tx_M2 | U | " + _infProfiles[0]];
-            int leaveSuccess = _dicEvents["Leaving Success with A1"];
-            int success = _dicClasses["Success with A1"];
+            int birthID = _dicEvents[region + " | Birth | S"];
+            int deathID = _dicEvents[region + " | Death | S"];
+            int infectionID = _dicEvents[region + " | Infection | G_0"];
+            int naturalRecoveryID = _dicEvents[region + " | Natural Recovery | I | Sym | G_0"];
+            int seekingTreatmentID = _dicEvents[region + " | Seeking Treatment | I | Sym | G_0"];
+            int screeningID = _dicEvents[region + " | Screening | I | Sym | G_0"];
+            int txA = _dicEvents[region + " | Tx_A1 | W | " + _infProfiles[0]];
+            int txB = _dicEvents[region + " | Tx_B1 | W | " + _infProfiles[0]]; 
+            int txM = _dicEvents[region + " | Tx_M1 | W | " + _infProfiles[0]]; 
+            int txB2 = _dicEvents[region + " | Tx_B2 | U | " + _infProfiles[0]];
+            int txM2 = _dicEvents[region + " | Tx_M2 | U | " + _infProfiles[0]];
+            int leaveSuccess = _dicEvents[region + " | Leaving Success with A1"];
+            int success = _dicClasses[region + " | Success with A1"];
 
             // ----------------
             // add events for S
-            Class_Normal S = (Class_Normal)_classes[_dicClasses["S"]];
+            Class_Normal S = (Class_Normal)_classes[_dicClasses[region + " | S"]];
             // birth and death
             S.AddAnEvent(_events[birthID]);
             S.AddAnEvent(_events[deathID]);
@@ -1129,7 +1154,7 @@ namespace APACElib
             foreach (Class c in _classes.Where(c => (c is Class_Normal)))
             {
                 // for I
-                if (c.Name.StartsWith("I"))
+                if (c.Name.StartsWith(region + " | I"))
                 {                    
                     ((Class_Normal)c).AddAnEvent(_events[birthID + i + 1]);
                     ((Class_Normal)c).AddAnEvent(_events[deathID + i + 1]);
@@ -1139,14 +1164,14 @@ namespace APACElib
                     ++i;
                 }
                 // for W
-                else if (c.Name.StartsWith("W "))
+                else if (c.Name.StartsWith(region + " | W "))
                 {
                     ((Class_Normal)c).AddAnEvent(_events[txA + w]);
                     ((Class_Normal)c).AddAnEvent(_events[txB+ w]);
                     ((Class_Normal)c).AddAnEvent(_events[txM+ w]);
                     ++w;
                 }
-                else if (c.Name.StartsWith("U"))
+                else if (c.Name.StartsWith(region + " | U"))
                 {
                     ((Class_Normal)c).AddAnEvent(_events[txB2 + u]);
                     ((Class_Normal)c).AddAnEvent(_events[txM2 + u]);
@@ -1159,7 +1184,7 @@ namespace APACElib
                 ((Class_Normal)_classes[success + j]).AddAnEvent(_events[leaveSuccess + j]);
         }
 
-        private void AddGonoFeatures()
+        private void AddGonoFeatures(string region)
         {
             int id = 0;
             int idPercFirstTxAndResist = _specialStatIDs[(int)SpecialStat.PercFirstTxAndResist];
@@ -1175,7 +1200,7 @@ namespace APACElib
                 if (r != ResistStates.G_0)
                 {
                     _epiHist.AddASpecialStatisticsFeature(
-                        name: "% received 1st Tx & resistant to " + r.ToString(),
+                        name: region + " | % received 1st Tx & resistant to " + r.ToString(),
                         featureID: id++,
                         specialStatID: idPercFirstTxAndResist + (int)r - 1,
                         strFeatureType: "Current Observed Value",
@@ -1190,7 +1215,7 @@ namespace APACElib
                 if (r != ResistStates.G_0)
                 {
                     _epiHist.AddASpecialStatisticsFeature(
-                        name: "Change in % received 1st Tx & resistant to " + r.ToString(),
+                        name: region + " | Change in % received 1st Tx & resistant to " + r.ToString(),
                         featureID: id++,
                         specialStatID: idPercFirstTxAndResist + (int)r - 1,
                         strFeatureType: "Slope",
@@ -1201,13 +1226,13 @@ namespace APACElib
             // if A1 and B1 ever switched off 
             _featureIDs[(int)Features.IfEverUsed] = id;
             _epiHist.Features.Add(new Feature_Intervention(
-                name: "If A1 ever switched off",
+                name: region + " | If A1 ever switched off",
                 featureID: id++, 
                 featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
                 intervention: _decisionMaker.Interventions[(int)Interventions.A1])
                 );
             _epiHist.Features.Add(new Feature_Intervention(
-                name: "If B1 ever switched off",
+                name: region + " | If B1 ever switched off",
                 featureID: id++, 
                 featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
                 intervention: _decisionMaker.Interventions[(int)Interventions.B1])
@@ -1215,7 +1240,7 @@ namespace APACElib
 
             // if M ever switched on
             _epiHist.Features.Add(new Feature_Intervention(
-                name: "If M1 ever switched on",
+                name: region + " | If M1 ever switched on",
                 featureID: id++,
                 featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOn,
                 intervention: _decisionMaker.Interventions[(int)Interventions.M1])
