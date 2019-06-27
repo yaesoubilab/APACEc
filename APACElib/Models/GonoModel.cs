@@ -9,11 +9,19 @@ using RandomVariateLib;
 
 namespace APACElib
 {
+    enum GonoSpecialStatIDs { PopSize = 0, Prev, FirstTx, SuccessAOrB, SuccessAOrBOrM, PercFirstTxAndResist }
 
-    public class SpecialStatInfo
-    {
-        enum SpecialStat { PopSize=0, Prev, FirstTx, SuccessAOrB, SuccessAOrBOrM, PercFirstTxAndResist}
-        public List<int> SpecialStatIDs { get; set; } = new List<int>(new int[Enum.GetValues(typeof(SpecialStat)).Length]);
+    public class GonoSpecialStatInfo
+    {        
+        public List<int> SpecialStatIDs { get; set; } = new List<int>(new int[Enum.GetValues(typeof(GonoSpecialStatIDs)).Length]);
+        public string Prev { get; set; } = "";
+        public List<string> PrevSym { get; set; } = new List<string>() { "", "" }; // Sym, Asym
+        public List<string> PrevResist { get; set; } = new List<string>() { "", "", "" }; // A, B, AB
+
+        public string Treated { get; set; } = "";
+        public string TreatedAndSym { get; set; } = "";
+        public List<string> TreatedResist { get; set; } = new List<string>() { "", "", "" }; // A, B, AB
+
     }
 
     public class GonoModel : ModelInstruction
@@ -35,6 +43,7 @@ namespace APACElib
         enum Conditions {AOut, BOut, ABOut, AOk, BOk, ABOk, BNeverUsed, MNeverUsed, AOn, AOff, BOn, BOff, MOn, MOff};        
         private List<int> _featureIDs = new List<int>(new int[Enum.GetValues(typeof(Features)).Length]);
         private List<string> _infProfiles = new List<string>();
+        private GonoSpecialStatInfo _specialStatInfo = new GonoSpecialStatInfo();
 
         public GonoModel() : base()
         {
@@ -56,7 +65,7 @@ namespace APACElib
             // add interventions
             AddGonoInterventions("MSM");
             // add summation statistics
-            AddGonoSumStats();
+            AddGonoSumStats("MSM");
             // add ratio statistics
             AddGonoRatioStatistics();
             // add features
@@ -185,6 +194,46 @@ namespace APACElib
                         _classes.Add(C);
                         _dicClasses[C.Name] = id++;
                         ++infProfile;
+
+                        // update formulas of special statistics 
+                        _specialStatInfo.Prev += C.ID + "+";
+                        if (s == SymStates.Sym)
+                            _specialStatInfo.PrevSym[0] += C.ID + "+";
+                        else
+                            _specialStatInfo.PrevSym[1] += C.ID + "+";
+                        switch (r)
+                        {
+                            case ResistStates.G_A:
+                                _specialStatInfo.PrevResist[0] += C.ID + "+";
+                                break;
+                            case ResistStates.G_B:
+                                _specialStatInfo.PrevResist[1] += C.ID + "+";
+                                break;
+                            case ResistStates.G_AB:
+                                _specialStatInfo.PrevResist[2] += C.ID + "+";
+                                break;
+                        }
+
+                        // special statics on treatment
+                        if (c == Comparts.W)
+                        {
+                            _specialStatInfo.Treated += C.ID + "+";
+                            if (s == SymStates.Sym)
+                                _specialStatInfo.TreatedAndSym += C.ID + "+";
+
+                            switch(r)
+                            {
+                                case ResistStates.G_A:
+                                    _specialStatInfo.TreatedResist[0] += C.ID + "+";
+                                    break;
+                                case ResistStates.G_B:
+                                    _specialStatInfo.TreatedResist[1] += C.ID + "+";
+                                    break;
+                                case ResistStates.G_AB:
+                                    _specialStatInfo.TreatedResist[2] += C.ID + "+";
+                                    break;
+                            }
+                        }
                     }
             }
 
@@ -460,9 +509,9 @@ namespace APACElib
 
             // main compartments: S, I
             List<string> mainComp = new List<string>();
-            mainComp.Add(region + " | S");
+            mainComp.Add("S");
             for (inf = 0; inf <_infProfiles.Count; inf ++)
-                mainComp.Add(region + " | I | " + _infProfiles[inf]);
+                mainComp.Add("I | " + _infProfiles[inf]);
 
             // add Birth events
             foreach (string comp in mainComp)
@@ -740,7 +789,7 @@ namespace APACElib
             }
         }
 
-        private void AddGonoSumStats()
+        private void AddGonoSumStats(string region)
         {
             int id = 0;
             string formula = "";
@@ -760,30 +809,7 @@ namespace APACElib
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                     );
-            _specialStatIDs[(int)SpecialStat.PopSize] = id - 1;
-
-            // gonorrhea prevalence formulas
-            string pFormula = "";
-            List<string> pSymFormula = new List<string>() { "", "" }; // Sym, Asym
-            List<string> pResistFormula = new List<string>() { "", "", "" }; // A, B, AB
-            foreach (Class c in _classes.Where(c => c is Class_Normal ))
-            {
-                if (c.Name.First() == 'I' || c.Name.First() == 'W')
-                {
-                    pFormula += c.ID + "+";
-                    if (c.Name.Contains("Sym"))
-                        pSymFormula[0] += c.ID + "+";
-                    else
-                        pSymFormula[1] += c.ID + "+";
-
-                    if (c.Name.Substring(c.Name.Length - 2) == "_A")
-                        pResistFormula[0] += c.ID + "+";
-                    else if (c.Name.Substring(c.Name.Length-2) == "_B")
-                        pResistFormula[1] += c.ID + "+";
-                    else if (c.Name.Substring(c.Name.Length - 2) == "AB")
-                        pResistFormula[2] += c.ID + "+";
-                }
-            }
+            _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PopSize] = id - 1;            
 
             // gonorrhea prevalence
             _epiHist.SumTrajs.Add(
@@ -791,12 +817,12 @@ namespace APACElib
                     ID: id++,
                     name: "Prevalence",
                     strType: "Prevalence",
-                    sumFormula: pFormula,
+                    sumFormula: _specialStatInfo.Prev,
                     displayInSimOutput: true,
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                     );
-            _specialStatIDs[(int)SpecialStat.Prev] = id - 1;
+            _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.Prev] = id - 1;
 
             // gonorrhea prevalence by symptom status
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
@@ -807,7 +833,7 @@ namespace APACElib
                             ID: id++,
                             name: "Prevalence | " + s.ToString(),
                             strType: "Prevalence",
-                            sumFormula: pSymFormula[(int)s],
+                            sumFormula: _specialStatInfo.PrevSym[(int)s],
                             displayInSimOutput: true,
                             warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                             nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
@@ -822,38 +848,18 @@ namespace APACElib
                             ID: id++,
                             name: "Prevalence | " + r.ToString(),
                             strType: "Prevalence",
-                            sumFormula: pResistFormula[(int)r-1],
+                            sumFormula: _specialStatInfo.PrevResist[(int)r-1],
                             displayInSimOutput: true,
                             warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                             nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                             );
-
-            // first-line treatment 
-            string treatedFormula = "", treatedAndSymFormula = "";
-            List<string> treatedResistFormula = new List<string>() { "", "", "" }; // A, B, AB
-            foreach (Class c in _classes.Where(c => c is Class_Normal))
-            {
-                if (c.Name.Length > 1 && c.Name.Substring(0, 2) == "W ")
-                {
-                    treatedFormula += c.ID + "+";
-                    if (c.Name.Contains("Sym"))
-                        treatedAndSymFormula += c.ID + "+";
-
-                    if (c.Name.Substring(c.Name.Length - 2) == "_A")
-                        treatedResistFormula[0] += c.ID + "+";
-                    else if (c.Name.Substring(c.Name.Length - 2) == "_B")
-                        treatedResistFormula[1] += c.ID + "+";
-                    else if (c.Name.Substring(c.Name.Length - 2) == "AB")
-                        treatedResistFormula[2] += c.ID + "+";
-                }
-            }
 
             // received first-line treatment (= number of cases)
             SumClassesTrajectory t1st = new SumClassesTrajectory(
                 ID: id++,
                 name: "Received 1st Tx",
                 strType: "Incidence",
-                sumFormula: treatedFormula,
+                sumFormula: _specialStatInfo.Treated,
                 displayInSimOutput: true,
                 warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                 nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
@@ -866,14 +872,14 @@ namespace APACElib
                     costPerNewMember: _paramManager.Parameters[(int)DummyParam.D_0]
                     );
             _epiHist.SumTrajs.Add(t1st);
-            _specialStatIDs[(int)SpecialStat.FirstTx] = id - 1;
+            _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.FirstTx] = id - 1;
 
             // received first-line treatment and symptomatic 
             _epiHist.SumTrajs.Add(new SumClassesTrajectory(
                 ID: id++,
                 name: "Received 1st Tx & Symptomatic",
                 strType: "Incidence",
-                sumFormula: treatedAndSymFormula,
+                sumFormula: _specialStatInfo.TreatedAndSym,
                 displayInSimOutput: true,
                 warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                 nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
@@ -887,18 +893,18 @@ namespace APACElib
                             ID: id++,
                             name: "Received 1st Tx & Resistant to " + r.ToString(),
                             strType: "Incidence",
-                            sumFormula: treatedResistFormula[(int)r-1],
+                            sumFormula: _specialStatInfo.TreatedResist[(int)r-1],
                             displayInSimOutput: true,
                             warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                             nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                             );
 
             // sucessful treatment
-            string treatedA1 = _classes[_dicClasses["Success with A1"]].ID.ToString();
-            string treatedB1 = _classes[_dicClasses["Success with B1"]].ID.ToString();
-            string treatedB2 = _classes[_dicClasses["Success with B2"]].ID.ToString();
-            string treatedM1 = _classes[_dicClasses["Success with M1"]].ID.ToString();
-            string treatedM2 = _classes[_dicClasses["Success with M2"]].ID.ToString();
+            string treatedA1 = _classes[_dicClasses[region + " | Success with A1"]].ID.ToString();
+            string treatedB1 = _classes[_dicClasses[region + " | Success with B1"]].ID.ToString();
+            string treatedB2 = _classes[_dicClasses[region + " | Success with B2"]].ID.ToString();
+            string treatedM1 = _classes[_dicClasses[region + " | Success with M1"]].ID.ToString();
+            string treatedM2 = _classes[_dicClasses[region + " | Success with M2"]].ID.ToString();
 
             string success1st = treatedA1 + "+" + treatedB1 + "+" + treatedM1;
             string successAorB = treatedA1 + "+" + treatedB1 + "+" + treatedB2;
@@ -927,9 +933,9 @@ namespace APACElib
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                     );
-            _specialStatIDs[(int)SpecialStat.SuccessAOrB] = id - 1;
+            _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.SuccessAOrB] = id - 1;
 
-            // # sucessfully treated with M
+            // sucessfully treated with M
             SumClassesTrajectory tM = new SumClassesTrajectory(
                ID: id++,
                name: "Success M",
@@ -948,7 +954,7 @@ namespace APACElib
                     );
             _epiHist.SumTrajs.Add(tM);
 
-            // # sucessfully treated 
+            // sucessfully treated 
             _epiHist.SumTrajs.Add(
                 new SumClassesTrajectory(
                     ID: id++,
@@ -959,7 +965,7 @@ namespace APACElib
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                     );
-            _specialStatIDs[(int)SpecialStat.SuccessAOrBOrM] = id - 1;
+            _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.SuccessAOrBOrM] = id - 1;
 
             // update times series of summation statistics
             UpdateSumStatTimeSeries();
@@ -968,11 +974,11 @@ namespace APACElib
         private void AddGonoRatioStatistics()
         {
             int id = _epiHist.SumTrajs.Count();
-            int idPopSize = _specialStatIDs[(int)SpecialStat.PopSize];
-            int idPrevalence = _specialStatIDs[(int)SpecialStat.Prev];
-            int idFirstTx = _specialStatIDs[(int)SpecialStat.FirstTx];
-            int idSuccessAOrB = _specialStatIDs[(int)SpecialStat.SuccessAOrB];
-            int idSuccessAOrBOrM = _specialStatIDs[(int)SpecialStat.SuccessAOrBOrM];
+            int idPopSize = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PopSize];
+            int idPrevalence = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.Prev];
+            int idFirstTx = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.FirstTx];
+            int idSuccessAOrB = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.SuccessAOrB];
+            int idSuccessAOrBOrM = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.SuccessAOrBOrM];
             Parameter nIsolateTested = GetParam("Number of isolates tested");
 
             // gonorrhea prevalence
@@ -1045,7 +1051,7 @@ namespace APACElib
             _epiHist.RatioTrajs.Add(firstTxSym);
 
             // % received 1st Tx and resistant to A, B, or AB (incidence)
-            _specialStatIDs[(int)SpecialStat.PercFirstTxAndResist] = id;
+            _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PercFirstTxAndResist] = id;
             foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
             {
                 if (r != ResistStates.G_0)
@@ -1187,7 +1193,7 @@ namespace APACElib
         private void AddGonoFeatures(string region)
         {
             int id = 0;
-            int idPercFirstTxAndResist = _specialStatIDs[(int)SpecialStat.PercFirstTxAndResist];
+            int idPercFirstTxAndResist = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PercFirstTxAndResist];
 
             // add time
             _featureIDs[(int)Features.Time] = id;
