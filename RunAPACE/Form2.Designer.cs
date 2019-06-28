@@ -33,11 +33,11 @@
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.lbConnection = new System.Windows.Forms.Label();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.txtStatus = new System.Windows.Forms.RichTextBox();
+            this.label1 = new System.Windows.Forms.Label();
+            this.chbIfSave = new System.Windows.Forms.CheckBox();
             this.lbStatus = new System.Windows.Forms.Label();
             this.btnRun = new System.Windows.Forms.Button();
-            this.chbIfSave = new System.Windows.Forms.CheckBox();
-            this.label1 = new System.Windows.Forms.Label();
-            this.txtStatus = new System.Windows.Forms.RichTextBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.SuspendLayout();
@@ -98,6 +98,34 @@
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Run";
             // 
+            // txtStatus
+            // 
+            this.txtStatus.Location = new System.Drawing.Point(10, 107);
+            this.txtStatus.Name = "txtStatus";
+            this.txtStatus.Size = new System.Drawing.Size(268, 83);
+            this.txtStatus.TabIndex = 4;
+            this.txtStatus.Text = "";
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(10, 26);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(131, 13);
+            this.label1.TabIndex = 3;
+            this.label1.Text = "Select a pre-coded model:";
+            this.label1.Click += new System.EventHandler(this.label1_Click);
+            // 
+            // chbIfSave
+            // 
+            this.chbIfSave.AutoSize = true;
+            this.chbIfSave.Location = new System.Drawing.Point(10, 57);
+            this.chbIfSave.Name = "chbIfSave";
+            this.chbIfSave.Size = new System.Drawing.Size(185, 17);
+            this.chbIfSave.TabIndex = 2;
+            this.chbIfSave.Text = "Save the Excel file when finished.";
+            this.chbIfSave.UseVisualStyleBackColor = true;
+            // 
             // lbStatus
             // 
             this.lbStatus.AutoSize = true;
@@ -119,34 +147,6 @@
             this.btnRun.UseVisualStyleBackColor = true;
             this.btnRun.Click += new System.EventHandler(this.btnRun_Click);
             // 
-            // chbIfSave
-            // 
-            this.chbIfSave.AutoSize = true;
-            this.chbIfSave.Location = new System.Drawing.Point(10, 57);
-            this.chbIfSave.Name = "chbIfSave";
-            this.chbIfSave.Size = new System.Drawing.Size(185, 17);
-            this.chbIfSave.TabIndex = 2;
-            this.chbIfSave.Text = "Save the Excel file when finished.";
-            this.chbIfSave.UseVisualStyleBackColor = true;
-            // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(10, 26);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(131, 13);
-            this.label1.TabIndex = 3;
-            this.label1.Text = "Select a pre-coded model:";
-            this.label1.Click += new System.EventHandler(this.label1_Click);
-            // 
-            // txtStatus
-            // 
-            this.txtStatus.Location = new System.Drawing.Point(10, 107);
-            this.txtStatus.Name = "txtStatus";
-            this.txtStatus.Size = new System.Drawing.Size(268, 83);
-            this.txtStatus.TabIndex = 4;
-            this.txtStatus.Text = "";
-            // 
             // Form2
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -155,7 +155,7 @@
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
             this.Name = "Form2";
-            this.Text = "Form2";
+            this.Text = "APACE";
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.groupBox2.ResumeLayout(false);

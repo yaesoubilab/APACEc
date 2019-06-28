@@ -22,6 +22,16 @@ namespace APACElib
         public string TreatedAndSym { get; set; } = "";
         public List<string> TreatedResist { get; set; } = new List<string>() { "", "", "" }; // A, B, AB
 
+        public void Reset()
+        {
+            SpecialStatIDs = new List<int>(new int[Enum.GetValues(typeof(GonoSpecialStatIDs)).Length]);
+            Prev = "";
+            PrevSym = new List<string>() { "", "" }; // Sym, Asym
+            PrevResist = new List<string>() { "", "", "" }; // A, B, AB
+            Treated = "";
+            TreatedAndSym = "";
+            TreatedResist = new List<string>() { "", "", "" }; // A, B, AB
+        }
     }
 
     public class GonoModel : ModelInstruction
@@ -56,6 +66,8 @@ namespace APACElib
 
         public override void BuildModel()
         {
+            _specialStatInfo.Reset();
+
             // add parameters 
             AddGonoParameters("MSM");
             // add classes
@@ -1044,7 +1056,7 @@ namespace APACElib
                     measureOfFit: "Likelihood",
                     likelihoodFunction: "Binomial",
                     likelihoodParam: "",
-                    ifCheckWithinFeasibleRange: true,
+                    ifCheckWithinFeasibleRange: true, 
                     lowFeasibleBound: 0.5,
                     upFeasibleBound: 0.8,
                     minThresholdToHit: 0);
@@ -1065,11 +1077,11 @@ namespace APACElib
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
                     if (_modelSets.ModelUse == EnumModelUse.Calibration && r != ResistStates.G_AB)
-                        firstTxSym.CalibInfo = new SpecialStatCalibrInfo(
+                        firstTx.CalibInfo = new SpecialStatCalibrInfo(
                             measureOfFit: "Feasible Range Only",
                             likelihoodFunction: "",
                             likelihoodParam: "",
-                            ifCheckWithinFeasibleRange: true,
+                            ifCheckWithinFeasibleRange: true, 
                             lowFeasibleBound: 0,
                             upFeasibleBound: 1,
                             minThresholdToHit: 0.05);
@@ -1104,7 +1116,7 @@ namespace APACElib
                     measureOfFit: "Likelihood",
                     likelihoodFunction: "Binomial",
                     likelihoodParam: "",
-                    ifCheckWithinFeasibleRange: true,
+                    ifCheckWithinFeasibleRange: true, 
                     lowFeasibleBound: 0.02,
                     upFeasibleBound: 0.08,
                     minThresholdToHit: 0);
