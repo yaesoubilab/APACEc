@@ -43,7 +43,7 @@ namespace APACElib
             else
                 numOfEpidemics = _modelSet.GetNumModelsToBuild();
 
-            if (listModelInstr==null)
+            if (listModelInstr==null || listModelInstr.Count == 0)
             {
                 _listModelInstr = new List<ModelInstruction>();
                 for (int i = 0; i < numOfEpidemics; i++)
