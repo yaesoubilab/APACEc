@@ -60,13 +60,7 @@ namespace APACElib
             // read model settings
             _modelSettings.ReadSettings(ref _excelInterface);
 
-            _listModelInstr = null;
-            if (model == "Gonorrhea")
-            {
-                _listModelInstr = new List<ModelInstruction>();
-                for (int i = 0; i < ModelSetting.GetNumModelsToBuild(); i++)
-                    _listModelInstr.Add(new GonoModel());
-            }
+            GetModelStructures(model, _modelSettings);
 
             // find the task            
             switch (ExcelIntface.GetWhatToDo())
@@ -333,6 +327,30 @@ namespace APACElib
                 objectiveFunction: _modelSettings.ObjectiveFunction
                     );
         }
+
+        // build 
+        private void GetModelStructures(string model, ModelSettings modelSet)
+        {
+            // find how many epi models to create
+            int numOfEpidemics = 0;
+            if (modelSet.ModelUse == EnumModelUse.Optimization)
+                numOfEpidemics = -1;
+            else
+                numOfEpidemics = modelSet.GetNumModelsToBuild();
+
+            _listModelInstr = new List<ModelInstruction>();
+            if (model == "Gonorrhea")
+            {
+                for (int i = 0; i < ModelSetting.GetNumModelsToBuild(); i++)
+                    _listModelInstr.Add(new GonoModel());
+            }
+            else
+            {
+                for (int i = 0; i < numOfEpidemics; i++)
+                    _listModelInstr.Add(new ModelInstruction());
+            }
+        }
+
 
         // dynamic policy optimization for several epidemics 
         private void BuildAndOptimizeEachEpidemicModeller_DynamicPolicyOptimization(bool storeEpidemicTrajectories,
