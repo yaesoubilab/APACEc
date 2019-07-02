@@ -97,13 +97,17 @@ namespace APACElib
                 case ExcelInterface.enumWhatToDo.Optimize:
                     {
                         // optimize 
+                        _statusBox.AddText("Optimization started.");
                         Optimize();
+                        _statusBox.AddText("Optimization ended.");
                         break;
                     }
                 case ExcelInterface.enumWhatToDo.RunExperiments:
                     {
                         // run experiments
+                        _statusBox.AddText("Running experiments started.");
                         RunExperiments();
+                        _statusBox.AddText("Running experiments ended.");
                         break;
                     }                   
             }
