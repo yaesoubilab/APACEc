@@ -126,7 +126,7 @@ namespace APACElib
                     nModels = NumOfSimItrs;
                     break;
                 case EnumModelUse.Optimization:
-                    nModels = -1;
+                    nModels = -1; // this is determined based on how many parameters the policy has
                     break;
                 case EnumModelUse.Calibration:
                     nModels = NumOfTrajsInParallelForCalibr;
@@ -205,6 +205,9 @@ namespace APACElib
                 }
             }
 
+            if (ModelUse == EnumModelUse.Optimization)
+                OptmzSets = new OptimizationSettings(ref excelInterface);
+
             // read sheets
             Sheets = new ModelSheets();
             Sheets.Populate(excelInterface);
@@ -220,10 +223,10 @@ namespace APACElib
         }
 
         // read optimization settings
-        public void ReadOptimizationSettings(ref ExcelInterface excelInterface)
-        {
-            OptmzSets = new OptimizationSettings(ref excelInterface);
-        }
+        //public void ReadOptimizationSettings(ref ExcelInterface excelInterface)
+        //{
+            
+        //}
         // read feature and approximation related settings
         public void ReadADPOptimizationSettings(ref ExcelInterface excelInterface)
         {
@@ -341,9 +344,7 @@ namespace APACElib
         public double[] StepSize_GH_a0s { get; }
         public double[] StepSize_GH_bs { get; }
         public double[] DerivativeStep_cs { get; }
-        public double WTP_min { get; }
-        public double WTP_max { get; }
-        public double WTP_step { get; }
+        public double[] WTPs { get; }
         public double Penalty { get; }
 
         public OptimizationSettings(ref ExcelInterface excelInterface)
@@ -366,10 +367,9 @@ namespace APACElib
 
             string strCs = excelInterface.GetCellValue("General Settings", "derivativeStep").ToString();
             DerivativeStep_cs = Array.ConvertAll(strCs.Split(','), Convert.ToDouble);
-                      
-            WTP_min = (double) excelInterface.GetCellValue("General Settings", "wtpMin");
-            WTP_max = (double) excelInterface.GetCellValue("General Settings", "wtpMax");
-            WTP_step = (double) excelInterface.GetCellValue("General Settings", "wtpStep");
+
+            string strWTPs = excelInterface.GetCellValue("General Settings", "wtps").ToString();
+            WTPs = Array.ConvertAll(strWTPs.Split(','), Convert.ToDouble);
 
             Penalty = (double)excelInterface.GetCellValue("General Settings", "penalty");
         }

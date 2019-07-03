@@ -11,7 +11,7 @@ namespace APACElib
     public abstract class Policy
     {
         protected double Penalty { get; }  // penalty factor when parameter values are out of range
-        public int NOfPolicyParameters { get; protected set; } // number of parameters of this policy
+        public static int NOfPolicyParameters { get;  set; } // number of parameters of this policy
         public Vector<double> StatusQuoParamValues { get; protected set; } // parameter values under the status quo
 
         public Policy(double penalty) {
@@ -283,8 +283,7 @@ namespace APACElib
                 ID: id, 
                 excelInterface: excelInterface, 
                 modelSettings: modelSets,
-                listModelInstr: listModelInstr,
-                numOfEpis: wtps.Count() * (2 + 2* Policy.NOfPolicyParameters) 
+                listModelInstr: listModelInstr
                 ); 
             EpiModeller.BuildEpidemics();
         }
@@ -406,12 +405,12 @@ namespace APACElib
     {                
         public void Run(ExcelInterface excelInterface, ModelSettings modelSets, List<ModelInstruction> listModelInstr)
         {
-            if (listModelInstr == null)
-            {
-                listModelInstr = new List<ModelInstruction>();
-                for (int i = 0; i < modelSets.GetNumModelsToBuild(); i++)
-                    listModelInstr.Add(new ModelInstruction());
-            }
+            //if (listModelInstr == null)
+            //{
+            //    listModelInstr = new List<ModelInstruction>();
+            //    for (int i = 0; i < modelSets.GetNumModelsToBuild(); i++)
+            //        listModelInstr.Add(new ModelInstruction());
+            //}
 
             // initial values of policy parameters 
             // (this could be different from or the same as the status quo parameters)
@@ -424,14 +423,10 @@ namespace APACElib
 
             // find wtps 
             List<double> wtps = new List<double>();
-            for (double wtp = modelSets.OptmzSets.WTP_min;
-                wtp <= modelSets.OptmzSets.WTP_max;
-                wtp += modelSets.OptmzSets.WTP_step)
-            {
+            foreach (double wtp in modelSets.OptmzSets.WTPs)
                 wtps.Add(wtp);
-            }
                 
-            // build epidemic models to evaluate the structured policies 
+            // build epidemic models to evaluate structured policies 
             // build as many as a0's * b's * c0's
             int epiID = 0;
             List<SimModel> epiModels = new List<SimModel>();
@@ -448,8 +443,7 @@ namespace APACElib
                                 policy: new PolicyExponential(modelSets.OptmzSets.Penalty))
                             );
 
-            // create a multi stochastic approximation object
-            // it runs the optimization algorithm for all combinations of (a0's, b's, c0's)
+            // create a multi stochastic approximation object            // it runs the optimization algorithm for all combinations of (a0's, b's, c0's)
             MultipleStochasticApproximation multOptimizer = new MultipleStochasticApproximation(
                 simModels: epiModels,
                 stepSizeGH_a0s: modelSets.OptmzSets.StepSize_GH_a0s,
@@ -516,11 +510,8 @@ namespace APACElib
 
             // for all wtp values
             int epiID = 0;
-            for (double wtp = modelSets.OptmzSets.WTP_min; 
-                wtp <= modelSets.OptmzSets.WTP_max; 
-                wtp += modelSets.OptmzSets.WTP_step)
+            foreach (double wtp in modelSets.OptmzSets.WTPs)
             {
-
                 // build epidemic models                
                 List<SimModel> epiModels = new List<SimModel>();
                 foreach (double a0 in modelSets.OptmzSets.StepSize_GH_a0s)

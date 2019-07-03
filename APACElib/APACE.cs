@@ -60,7 +60,7 @@ namespace APACElib
             // read model settings
             _modelSettings.ReadSettings(ref _excelInterface);
 
-            GetModelStructures(model, _modelSettings);
+            GetModelStructures(model);
 
             // find the task            
             switch (ExcelIntface.GetWhatToDo())
@@ -147,7 +147,7 @@ namespace APACElib
         private void Optimize()
         {
             // read optimization settings
-            _modelSettings.ReadOptimizationSettings(ref _excelInterface);
+           // _modelSettings.ReadOptimizationSettings(ref _excelInterface);
 
             // making sure seeds are correctly sampled
             if (_modelSettings.SimRNDSeedsSource == EnumSimRNDSeedsSource.Prespecified)
@@ -174,11 +174,11 @@ namespace APACElib
             BuildAndOptimizeEachEpidemicModeller_DynamicPolicyOptimization(true, _modelSettings.EpidemicTimeIndexToStartDecisionMaking, 0);
 
             // single value for wtp for health
-            if (Math.Abs(_modelSettings.OptmzSets.WTP_min - _modelSettings.OptmzSets.WTP_max) < SupportProcedures.minimumWTPforHealth)
+            if (_modelSettings.OptmzSets.WTPs.Count() == 1)
             {
                 double harmonicStep_a = 0, epsilonGreedy_beta = 0;
                 // find the optimal epidemic modeler
-                EpidemicModeller optimalEpidemicModeller = FindOptimalEpiModeller_DynamicPolicy(_modelSettings.OptmzSets.WTP_min, ref harmonicStep_a, ref epsilonGreedy_beta);
+                EpidemicModeller optimalEpidemicModeller = FindOptimalEpiModeller_DynamicPolicy(_modelSettings.OptmzSets.WTPs[0], ref harmonicStep_a, ref epsilonGreedy_beta);
                 // report optimization result
                 ReportADPResultsForThisEpidemic(optimalEpidemicModeller, harmonicStep_a, epsilonGreedy_beta);
                 // report simulation result
@@ -329,19 +329,26 @@ namespace APACElib
         }
 
         // build 
-        private void GetModelStructures(string model, ModelSettings modelSet)
+        private void GetModelStructures(string model)
         {
             // find how many epi models to create
             int numOfEpidemics = 0;
-            if (modelSet.ModelUse == EnumModelUse.Optimization)
+            if (_modelSettings.ModelUse == EnumModelUse.Optimization)
                 numOfEpidemics = -1;
             else
-                numOfEpidemics = modelSet.GetNumModelsToBuild();
+                numOfEpidemics = _modelSettings.GetNumModelsToBuild();
 
             _listModelInstr = new List<ModelInstruction>();
             if (model == "Gonorrhea")
             {
-                for (int i = 0; i < ModelSetting.GetNumModelsToBuild(); i++)
+                int n = ModelSetting.GetNumModelsToBuild();
+                if (_modelSettings.ModelUse == EnumModelUse.Optimization)
+                {
+                    // 2 for f and Df, and 2 * (number of policy parameters) for 2-direction derivatives 
+                    PolicyExponential.NOfPolicyParameters = 3;
+                    n = _modelSettings.OptmzSets.WTPs.Count() * (2 + 2 * PolicyExponential.NOfPolicyParameters);
+                }
+                for (int i = 0; i < n; i++)
                     _listModelInstr.Add(new GonoModel());
             }
             else
@@ -826,8 +833,7 @@ namespace APACElib
             double[][] adpSASimulationOutcomes = new double[0][];
             double[][] adpSASimulationIterations = new double[0][];              
 
-            double thisWTPForHealth = _modelSettings.OptmzSets.WTP_min;
-            while (thisWTPForHealth <= _modelSettings.OptmzSets.WTP_max)
+            foreach (double thisWTPForHealth in _modelSettings.OptmzSets.WTPs)
             {
                 // find the optimal static policy for this epidemic
                 optHarmonicStep_a = 0; 
@@ -872,8 +878,6 @@ namespace APACElib
                 // concatenate
                 adpSASimulationIterations = SupportFunctions.ConcatJaggedArray(adpSASimulationIterations, thisSimulationIterations);
 
-                // increment the wtp for health 
-                thisWTPForHealth += _modelSettings.OptmzSets.WTP_step;
             }
 
             // report
@@ -919,8 +923,7 @@ namespace APACElib
             double[][] simulationOutcomes = new double[0][], simulationIterations = new double[0][];
             string[][] staticPolicies = new string[0][];
 
-            double thisWTPForHealth = _modelSettings.OptmzSets.WTP_min;
-            while (thisWTPForHealth <= _modelSettings.OptmzSets.WTP_max)
+            foreach (double thisWTPForHealth in _modelSettings.OptmzSets.WTPs)
             {
                 // find the optimal static policy for this epidemic
                 EpidemicModeller thisEpiModeller = null;
@@ -966,8 +969,6 @@ namespace APACElib
                 // concatenate
                 simulationIterations = SupportFunctions.ConcatJaggedArray(simulationIterations, thisSimulationIterations);
                 
-                // increment the wtp for health 
-                thisWTPForHealth += _modelSettings.OptmzSets.WTP_step;
             }
 
             // report

@@ -31,26 +31,26 @@ namespace APACElib
 
         // Instantiation
         public EpidemicModeller(int ID, ExcelInterface excelInterface,
-            ModelSettings modelSettings, List<ModelInstruction> listModelInstr, int numOfEpis = -1)
+            ModelSettings modelSettings, List<ModelInstruction> listModelInstr)
         {
             this.ID = ID;
             _modelSet = modelSettings;
 
-            // find how many epi models to create
-            int numOfEpidemics = 0;
-            if (_modelSet.ModelUse == EnumModelUse.Optimization)
-                numOfEpidemics = numOfEpis;
-            else
-                numOfEpidemics = _modelSet.GetNumModelsToBuild();
+            //// find how many epi models to create
+            //int numOfEpidemics = 0;
+            //if (_modelSet.ModelUse == EnumModelUse.Optimization)
+            //    numOfEpidemics = numOfEpis;
+            //else
+            //    numOfEpidemics = _modelSet.GetNumModelsToBuild();
 
-            if (listModelInstr==null || listModelInstr.Count == 0)
-            {
-                _listModelInstr = new List<ModelInstruction>();
-                for (int i = 0; i < numOfEpidemics; i++)
-                    _listModelInstr.Add(new ModelInstruction());
-            }
-            else
-                _listModelInstr = listModelInstr;
+            //if (listModelInstr==null || listModelInstr.Count == 0)
+            //{
+            //    _listModelInstr = new List<ModelInstruction>();
+            //    for (int i = 0; i < numOfEpidemics; i++)
+            //        _listModelInstr.Add(new ModelInstruction());
+            //}
+            //else
+            _listModelInstr = listModelInstr;
 
             // build a parent epidemic model 
             _parentEpidemic = new Epidemic(0);
@@ -64,7 +64,7 @@ namespace APACElib
 
             // create the epi models
             Epidemics.Clear();
-            for (int id = 0; id < numOfEpidemics; id++)                
+            for (int id = 0; id < listModelInstr.Count; id++)                
                 Epidemics.Add(new Epidemic(id));
 
             // create a rnd seed generator 
@@ -571,6 +571,9 @@ namespace APACElib
             // store trajectories
             if (_set.IfShowSimulatedTrajs)
                 SimSummaryTrajs.Add(simulatedEpi);
+
+            if (_set.ModelUse != EnumModelUse.Simulation)
+                return;
 
             // store sampled parameter values
             ParamValues[simItr] = simulatedEpi.ParamManager.ParameterValues;
