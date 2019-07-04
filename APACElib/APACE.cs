@@ -332,23 +332,18 @@ namespace APACElib
         private void GetModelStructures(string model)
         {
             // find how many epi models to create
-            int numOfEpidemics = 0;
-            if (_modelSettings.ModelUse == EnumModelUse.Optimization)
-                numOfEpidemics = -1;
-            else
-                numOfEpidemics = _modelSettings.GetNumModelsToBuild();
+            int numOfEpidemics = _modelSettings.GetNumModelsToBuild();
 
             _listModelInstr = new List<ModelInstruction>();
             if (model == "Gonorrhea")
             {
-                int n = ModelSetting.GetNumModelsToBuild();
                 if (_modelSettings.ModelUse == EnumModelUse.Optimization)
                 {
                     // 2 for f and Df, and 2 * (number of policy parameters) for 2-direction derivatives 
                     PolicyExponential.NOfPolicyParameters = 3;
-                    n = _modelSettings.OptmzSets.WTPs.Count() * (2 + 2 * PolicyExponential.NOfPolicyParameters);
+                    numOfEpidemics = _modelSettings.OptmzSets.WTPs.Count() * (2 + 2 * PolicyExponential.NOfPolicyParameters);
                 }
-                for (int i = 0; i < n; i++)
+                for (int i = 0; i < numOfEpidemics; i++)
                     _listModelInstr.Add(new GonoModel());
             }
             else
