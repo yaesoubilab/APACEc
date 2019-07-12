@@ -55,7 +55,7 @@ namespace APACElib
         // update transmission rates affecting this class
         public virtual void UpdateTransmissionRates(double[] transmissionRatesByPathogens) { }
         // send out members
-        public virtual void SendOutMembers(double deltaT, RNG rng) { }
+        public virtual void SendOutMembers(double deltaT, RNG rng, RNG rngBirth) { }
         // reset number of members sending to each destination class
         public virtual void ResetNumOfMembersToDestClasses() { }
         // find the members out of active processes
@@ -201,11 +201,14 @@ namespace APACElib
                 _destinationClasseIDs[i++] = thisProcess.IDOfDestinationClass;
         }
         // send members of this class out
-        public override void SendOutMembers(double deltaT, RNG rng)
+        public override void SendOutMembers(double deltaT, RNG rng, RNG rngBirth)
         {
             // if number of members is zero, no member is departing
-            if (ClassStat.Prevalence<= 0)
+            if (ClassStat.Prevalence <= 0)
+            {
+                rng.Advance(n:_events.Count);
                 return;
+            }
 
             int eIndex = 0;
             int numOfActiveEvents = _activeEvents.Count;
@@ -251,11 +254,13 @@ namespace APACElib
                 {
                     int numOfBirths = 0;
                     if (thisProcess.Rate == 0)
+                    {
                         numOfBirths = 0;
+                    }
                     else
                     {
                         // get a sample on the number of births
-                        numOfBirths = new Poisson("Birth", ClassStat.Prevalence * thisProcess.Rate * deltaT).SampleDiscrete(rng);
+                        numOfBirths = new Poisson("Birth", ClassStat.Prevalence * thisProcess.Rate * deltaT).SampleDiscrete(rngBirth);
                     }
                     // record the number of members out of this process
                     thisProcess.MembersOutOverPastDeltaT = numOfBirths;
@@ -357,7 +362,7 @@ namespace APACElib
         }        
         
         // send members of this class out
-        public override void SendOutMembers(double deltaT, RNG rng)
+        public override void SendOutMembers(double deltaT, RNG rng, RNG rngBirth)
         {
             // if number of members is zero, no member is departing
             if (ClassStat.Prevalence <= 0) return;
@@ -446,7 +451,7 @@ namespace APACElib
         }
         
         // send members of this class out
-        public override void SendOutMembers(double deltaT, RNG rng)
+        public override void SendOutMembers(double deltaT, RNG rng, RNG rngBirth)
         {
             // departing members will be processed
             //_ifMembersWaitingToSendOutBeforeNextDeltaT = false;

@@ -31,8 +31,10 @@ namespace APACElib
         public Timer Timer { get; private set; } = new Timer();
 
         public int InitialSeed { get; set; }
-        RNG _rng;        
-        RNG _rngNoise;
+        RNG _rng;
+        RNG _rngBirth; // rng used for birth events
+        RNG _rngNoise; // rng used for modeling noise in observations
+
         int _newSeed;
         public List<int> TestedSeeds { get; set; } = new List<int>();
         private DecisionMaker _decisionMaker;
@@ -253,7 +255,7 @@ namespace APACElib
                 foreach (Class thisClass in Classes.Where(c => c.ShouldBeProcessed))
                 {                    
                     // calculate the number of members to be sent out from each class
-                    thisClass.SendOutMembers(_modelSets.DeltaT, _rng);
+                    thisClass.SendOutMembers(_modelSets.DeltaT, _rng, _rngBirth);
                     // all departing members are processed
                     thisClass.ShouldBeProcessed = false;
                 }
@@ -336,6 +338,7 @@ namespace APACElib
         {
             // reset the rnd object
             _rng = new RNG(seed);
+            _rngBirth = new RNG(_rng.Next());
             _rngNoise = new RNG(_rng.Next());
             int[] seeds = (new RNG(_rng.Next())).NextInt32s(_modelSets.ScenarioSeed+1);
             _newSeed = seeds.Last();
