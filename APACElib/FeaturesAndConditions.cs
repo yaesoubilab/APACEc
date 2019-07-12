@@ -183,6 +183,7 @@ namespace APACElib
         private List<Parameter> _thresholdParams;
 
         private double[] _thresholdValues;
+        private bool _ifTresholdSetOutside = false;
         private EnumSign[] _signs = new EnumSign[0];        
         private EnumAndOr _andOr = EnumAndOr.And;
 
@@ -230,6 +231,7 @@ namespace APACElib
         public void UpdateThresholds(double[] values)
         {
             _thresholdValues = (double[])values.Clone();
+            _ifTresholdSetOutside = true;
         }
 
         public override void Update(int epiTimeIndex, RNG rng)
@@ -237,8 +239,11 @@ namespace APACElib
             bool result = false;
 
             // update threshold values 
-            for (int i = 0; i < _thresholdParams.Count(); i++)
-                _thresholdValues[i] = _thresholdParams[i].Sample(epiTimeIndex, rng);
+            if (_ifTresholdSetOutside == false)
+            {
+                for (int i = 0; i < _thresholdParams.Count(); i++)
+                    _thresholdValues[i] = _thresholdParams[i].Sample(epiTimeIndex, rng);
+            }
 
             switch (_andOr)
             {
