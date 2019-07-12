@@ -572,7 +572,7 @@ namespace APACElib
             if (_set.IfShowSimulatedTrajs)
                 SimSummaryTrajs.Add(simulatedEpi);
 
-            if (_set.ModelUse != EnumModelUse.Simulation)
+            if (_set.ModelUse == EnumModelUse.Calibration)
                 return;
 
             // store sampled parameter values

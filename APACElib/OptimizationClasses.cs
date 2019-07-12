@@ -420,11 +420,6 @@ namespace APACElib
             // scale of policy parameters
             double[] arrXScale = modelSets.OptmzSets.XScale;
             Vector<double> xScale = Vector<double>.Build.DenseOfArray(arrXScale);
-
-            // find wtps 
-            List<double> wtps = new List<double>();
-            foreach (double wtp in modelSets.OptmzSets.WTPs)
-                wtps.Add(wtp);
                 
             // build epidemic models to evaluate structured policies 
             // build as many as a0's * b's * c0's
@@ -439,7 +434,7 @@ namespace APACElib
                                 excelInterface: excelInterface, 
                                 modelSets: modelSets, 
                                 listModelInstr: listModelInstr,
-                                wtps: wtps.ToArray(), 
+                                wtps: modelSets.OptmzSets.WTPs, 
                                 policy: new PolicyExponential(modelSets.OptmzSets.Penalty))
                             );
 
