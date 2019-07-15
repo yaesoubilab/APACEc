@@ -65,5 +65,10 @@ namespace RunAPACE
         {
 
         }
+
+        private void cmbModels_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }

@@ -8,6 +8,7 @@ using ComputationLib;
 using RandomVariateLib;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using APACElib.Models;
 
 namespace APACElib
 {
@@ -344,7 +345,12 @@ namespace APACElib
                     numOfEpidemics = _modelSettings.OptmzSets.WTPs.Count() * (2 + 2 * PolicyExponential.NOfPolicyParameters);
                 }
                 for (int i = 0; i < numOfEpidemics; i++)
-                    _listModelInstr.Add(new GonoModel());
+                    _listModelInstr.Add(new MSMGonoModel());
+            }
+            else if (model == "Spatial Gonorrhea")
+            {
+                for (int i = 0; i < numOfEpidemics; i++)
+                    _listModelInstr.Add(new SpacialGonoModel());
             }
             else
             {

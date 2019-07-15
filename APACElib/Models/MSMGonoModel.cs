@@ -7,61 +7,14 @@ using APACElib;
 using ComputationLib;
 using RandomVariateLib;
 
-namespace APACElib
+namespace APACElib.Models
 {
-    enum GonoSpecialStatIDs { PopSize = 0, Prev, FirstTx, SuccessAOrB, SuccessAOrBOrM, PercFirstTxAndResist }
 
-    public class GonoSpecialStatInfo
-    {        
-        public List<int> SpecialStatIDs { get; set; } = new List<int>(new int[Enum.GetValues(typeof(GonoSpecialStatIDs)).Length]);
-        public string Prev { get; set; } = "";
-        public List<string> PrevSym { get; set; } = new List<string>() { "", "" }; // Sym, Asym
-        public List<string> PrevResist { get; set; } = new List<string>() { "", "", "" }; // A, B, AB
-
-        public string Treated { get; set; } = "";
-        public string TreatedAndSym { get; set; } = "";
-        public List<string> TreatedResist { get; set; } = new List<string>() { "", "", "" }; // A, B, AB
-
-        public void Reset()
+    public class MSMGonoModel : GonoModel
+    {       
+        public MSMGonoModel() : base()
         {
-            SpecialStatIDs = new List<int>(new int[Enum.GetValues(typeof(GonoSpecialStatIDs)).Length]);
-            Prev = "";
-            PrevSym = new List<string>() { "", "" }; // Sym, Asym
-            PrevResist = new List<string>() { "", "", "" }; // A, B, AB
-            Treated = "";
-            TreatedAndSym = "";
-            TreatedResist = new List<string>() { "", "", "" }; // A, B, AB
-        }
-    }
-
-    public class GonoModel : ModelInstruction
-    {
-        enum Comparts { I, W, U }; // infection, waiting for treatment, waiting for retreatment 
-        enum Drugs { A1, B1, B2}; // 1st line treatment with A, 1st line treatment with B, and 2nd line treatment with B
-        enum Ms { M1, M2};  // 1st line treatment with M, and 2nd line treatment with M
-        enum SymStates { Sym, Asym };
-        enum ResistStates { G_0, G_A, G_B, G_AB }
-        enum Interventions { A1 = 2, B1, M1, B2_A, M2_A, M2_B_AB} // A1:    A is used for 1st line treatment
-                                                                  // B1:    B is used for 1st line treatment
-                                                                  // M1:    M is used for 1st line treatment
-                                                                  // B2_A:  retreating those infected with G_A with B after 1st line treatment failure
-                                                                  // M2_A:  retreating those infected with G_A with M after 1st line treatment failure
-                                                                  // M2_B_AB: retreating those infected with G_B or G_AB with M after 1st line treatment failure
-        enum DummyParam { D_0, D_1, D_Minus1, D_Inf, T_Prev, T_DeltaPrev} // 0, 1, 2, 3, 4, 5
-        
-        enum Features { Time, PercResist, ChangeInPercResist, IfEverUsed}
-        enum Conditions {AOut, BOut, ABOut, AOk, BOk, ABOk, BNeverUsed, MNeverUsed, AOn, AOff, BOn, BOff, MOn, MOff};        
-        private List<int> _featureIDs = new List<int>(new int[Enum.GetValues(typeof(Features)).Length]);
-        private List<string> _infProfiles = new List<string>();
-        private GonoSpecialStatInfo _specialStatInfo = new GonoSpecialStatInfo();
-
-        public GonoModel() : base()
-        {
-            foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
-                foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
-                {
-                    _infProfiles.Add(s.ToString() + " | " + r.ToString());
-                }
+           
         }
 
         public override void BuildModel()
@@ -88,71 +41,6 @@ namespace APACElib
             AddGonoConditions();
             // add connections
             AddGonoConnections("MSM");
-        }
-
-        private void AddGonoParameters(string region)
-        {            
-            int parID = _paramManager.Parameters.Count;
-
-            // initial size of S
-            AddGonoParamSize_S(region, ref parID);
-
-            // initial size of I compartments
-            int infProfileID = 0;
-            foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
-                foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
-                    AddGonoParamSize_I(region, s, r, infProfileID++, ref parID);
-
-        }
-
-        private void AddGonoParamSize_S(string region, ref int id)
-        {
-            _paramManager.Add(new ProductParameter(
-                ID: id++,
-                name: "Initial size of " + region + " | S",
-                parameters: GetParamList(new List<string>() { "Initial population size | " + region, "1-Initial prevalence | " + region }))
-                );
-        }
-        
-        private void AddGonoParamSize_I(string region, SymStates s, ResistStates r, int infProfileID, ref int id)
-        {
-            string name = "Initial size of " + region + " | I | " + _infProfiles[infProfileID];
-            List<string> paramNames = new List<string>() { "Initial population size | " + region, "Initial prevalence | " + region };
-
-            if (s == SymStates.Sym)
-                paramNames.Add("Initial symptomatic | " + region);
-            else
-                paramNames.Add("1-Initial symptomatic | " + region);
-
-            switch (r)
-            {
-                case ResistStates.G_0:
-                    paramNames.Add("1-Initial resistant to A or B | " + region);
-                    break;
-                case ResistStates.G_A:
-                    paramNames.Add("Initial resistant to A | " + region);
-                    break;
-                case ResistStates.G_B:
-                    paramNames.Add("Initial resistant to B | " + region);
-                    break;
-                case ResistStates.G_AB:
-                    paramNames.Add("Initial resistant to AB | " + region);
-                    break;
-            }
-
-            if (r == ResistStates.G_AB)
-                _paramManager.Add(new IndependetParameter(
-                    ID: id++,
-                    name: name,
-                    enumRandomVariateGenerator: RandomVariateLib.SupportProcedures.ConvertToEnumRVG("Constant"),
-                    par1: 0, par2: 0, par3: 0, par4: 0)
-                    );
-            else
-                _paramManager.Add(new ProductParameter(
-                    ID: id++,
-                    name: name,
-                    parameters: GetParamList(paramNames))
-                    );
         }
 
         private void AddGonoClasses(string region)
@@ -197,11 +85,11 @@ namespace APACElib
                 foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                     foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                     {
-                        Class_Normal C = Get_I_W_U(id: id, region: region, 
+                        Class_Normal C = Get_I_W_U(id: id, region: region,
                             infProfileID: infProfile,
-                            c: c, 
-                            r: r, 
-                            size0ParID: (c == Comparts.I) ? size0ParID++ : (int)DummyParam.D_0, 
+                            c: c,
+                            r: r,
+                            size0ParID: (c == Comparts.I) ? size0ParID++ : (int)DummyParam.D_0,
                             infectivityParID: infParID + infProfile);
                         _classes.Add(C);
                         _dicClasses[C.Name] = id++;
@@ -233,7 +121,7 @@ namespace APACElib
                             if (s == SymStates.Sym)
                                 _specialStatInfo.TreatedAndSym += C.ID + "+";
 
-                            switch(r)
+                            switch (r)
                             {
                                 case ResistStates.G_A:
                                     _specialStatInfo.TreatedResist[0] += C.ID + "+";
@@ -256,10 +144,10 @@ namespace APACElib
             foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
             {
                 Class_Splitting ifSym = Get_IfSym(
-                    id: id, 
-                    region: region, 
+                    id: id,
+                    region: region,
                     r: r,
-                    ifSymParID: ifSymParID + (int)r, 
+                    ifSymParID: ifSymParID + (int)r,
                     classIDIfSym: classIdIfSymp + (int)r,
                     classIDIfAsym: classIDIfAsymp + (int)r);
                 _classes.Add(ifSym);
@@ -273,7 +161,7 @@ namespace APACElib
             int parIDProbRetreatIfAsym = _paramManager.Dic["Prob retreatment | Asym"];
             foreach (Drugs drug in Enum.GetValues(typeof(Drugs)))   // A1, B1, B2
                 // assume that failure after B2 will always seek retreatment 
-                if (drug == Drugs.A1 || drug == Drugs.B1)  
+                if (drug == Drugs.A1 || drug == Drugs.B1)
                 {
                     infProfile = 0;
                     foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
@@ -283,9 +171,9 @@ namespace APACElib
                                 id: id,
                                 region: region,
                                 r: r,
-                                s: s, 
-                                drug: drug, 
-                                infProfile: infProfile, 
+                                s: s,
+                                drug: drug,
+                                infProfile: infProfile,
                                 parIDProbRetreat: (s == SymStates.Sym) ? parIDProbRetreatIfSym : parIDProbRetreatIfAsym);
                             _classes.Add(ifRetreat);
                             _dicClasses[ifRetreat.Name] = id++;
@@ -312,7 +200,7 @@ namespace APACElib
                             r: r,
                             drug: drug);
                         _classes.Add(ifSymp);
-                        _dicClasses[ifSymp.Name] = id++;   
+                        _dicClasses[ifSymp.Name] = id++;
                     }
                 }
 
@@ -418,7 +306,7 @@ namespace APACElib
         private Class_Splitting Get_IfRetreat(int id, string region, ResistStates r, SymStates s, Drugs drug, int infProfile, int parIDProbRetreat)
         {
             string resistOrFail = GetResistOrFail(resistStat: r, drug: drug);
-            string className = region +  " | If retreat " + resistOrFail + " | " + drug.ToString() + " --> I | " + _infProfiles[infProfile];
+            string className = region + " | If retreat " + resistOrFail + " | " + drug.ToString() + " --> I | " + _infProfiles[infProfile];
 
             string classIfSeekTreatment = "", classIfNotSeekTreatment = "";
             // if failed
@@ -513,7 +401,7 @@ namespace APACElib
             int screeningRate = _paramManager.Dic["Annual screening rate"];
             int seekingTreatmentRate = _paramManager.Dic["Annual rate of seeking treatment (symptomatic)"];
             int seekingReTreatmentRate = _paramManager.Dic["Annual rate of retreatment"];
-            
+
             int idS = _dicClasses[region + " | S"];
             int idDeath = _dicClasses[region + " | Death"];
             int idSuccessM1 = _dicClasses[region + " | Success with " + Ms.M1.ToString()];
@@ -522,7 +410,7 @@ namespace APACElib
             // main compartments: S, I
             List<string> mainComp = new List<string>();
             mainComp.Add("S");
-            for (inf = 0; inf <_infProfiles.Count; inf ++)
+            for (inf = 0; inf < _infProfiles.Count; inf++)
                 mainComp.Add("I | " + _infProfiles[inf]);
 
             // add Birth events
@@ -550,7 +438,7 @@ namespace APACElib
                     IDOfDestinationClass: idDeath)
                     );
                 _dicEvents[eventName] = id++;
-            }            
+            }
 
             // add Infection events
             int idIfSympG_0 = _dicClasses[region + " | If Sym | G_0"];
@@ -746,7 +634,7 @@ namespace APACElib
                     case Interventions.A1:
                         {
                             conditionIDToTurnOn = (int)Conditions.AOn;
-                            conditionIDToTurnOff = (int)Conditions.AOff;                           
+                            conditionIDToTurnOff = (int)Conditions.AOff;
                         }
                         break;
                     case Interventions.B1:
@@ -821,7 +709,7 @@ namespace APACElib
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                     );
-            _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PopSize] = id - 1;            
+            _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PopSize] = id - 1;
 
             // gonorrhea prevalence
             _epiHist.SumTrajs.Add(
@@ -860,7 +748,7 @@ namespace APACElib
                             ID: id++,
                             name: "Prevalence | " + r.ToString(),
                             strType: "Prevalence",
-                            sumFormula: _specialStatInfo.PrevResist[(int)r-1],
+                            sumFormula: _specialStatInfo.PrevResist[(int)r - 1],
                             displayInSimOutput: true,
                             warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                             nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
@@ -878,7 +766,7 @@ namespace APACElib
             UpdateClassTimeSeries(t1st);
             t1st.DeltaCostHealthCollector =
                 new DeltaTCostHealth(
-                    deltaT: _modelSets.DeltaT, 
+                    deltaT: _modelSets.DeltaT,
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                     DALYPerNewMember: _paramManager.Parameters[(int)DummyParam.D_1],
                     costPerNewMember: _paramManager.Parameters[(int)DummyParam.D_0]
@@ -905,7 +793,7 @@ namespace APACElib
                             ID: id++,
                             name: "Received 1st Tx & Resistant to " + r.ToString(),
                             strType: "Incidence",
-                            sumFormula: _specialStatInfo.TreatedResist[(int)r-1],
+                            sumFormula: _specialStatInfo.TreatedResist[(int)r - 1],
                             displayInSimOutput: true,
                             warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                             nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
@@ -1004,14 +892,14 @@ namespace APACElib
                 nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
             if (_modelSets.ModelUse == EnumModelUse.Calibration)
                 prevalence.CalibInfo = new SpecialStatCalibrInfo(
-                    measureOfFit: "Likelihood", 
+                    measureOfFit: "Likelihood",
                     likelihoodFunction: "Binomial",
-                    likelihoodParam: "", 
-                    ifCheckWithinFeasibleRange:true,
+                    likelihoodParam: "",
+                    ifCheckWithinFeasibleRange: true,
                     lowFeasibleBound: 0.005,
                     upFeasibleBound: 0.04,
                     minThresholdToHit: 0);
-            _epiHist.RatioTrajs.Add(prevalence);           
+            _epiHist.RatioTrajs.Add(prevalence);
             id++;
 
             // % infection symptomatic (prevalence)
@@ -1056,7 +944,7 @@ namespace APACElib
                     measureOfFit: "Likelihood",
                     likelihoodFunction: "Binomial",
                     likelihoodParam: "",
-                    ifCheckWithinFeasibleRange: true, 
+                    ifCheckWithinFeasibleRange: true,
                     lowFeasibleBound: 0.5,
                     upFeasibleBound: 0.8,
                     minThresholdToHit: 0);
@@ -1081,7 +969,7 @@ namespace APACElib
                             measureOfFit: "Feasible Range Only",
                             likelihoodFunction: "",
                             likelihoodParam: "",
-                            ifCheckWithinFeasibleRange: true, 
+                            ifCheckWithinFeasibleRange: true,
                             lowFeasibleBound: 0,
                             upFeasibleBound: 1,
                             minThresholdToHit: 0.05);
@@ -1116,7 +1004,7 @@ namespace APACElib
                     measureOfFit: "Likelihood",
                     likelihoodFunction: "Binomial",
                     likelihoodParam: "",
-                    ifCheckWithinFeasibleRange: true, 
+                    ifCheckWithinFeasibleRange: true,
                     lowFeasibleBound: 0.02,
                     upFeasibleBound: 0.08,
                     minThresholdToHit: 0);
@@ -1139,7 +1027,7 @@ namespace APACElib
 
         private void AddGonoConnections(string region)
         {
-            int i = 0;           
+            int i = 0;
             int birthID = _dicEvents[region + " | Birth | S"];
             int deathID = _dicEvents[region + " | Death | S"];
             int infectionID = _dicEvents[region + " | Infection | G_0"];
@@ -1147,8 +1035,8 @@ namespace APACElib
             int seekingTreatmentID = _dicEvents[region + " | Seeking Treatment | I | Sym | G_0"];
             int screeningID = _dicEvents[region + " | Screening | I | Sym | G_0"];
             int txA = _dicEvents[region + " | Tx_A1 | W | " + _infProfiles[0]];
-            int txB = _dicEvents[region + " | Tx_B1 | W | " + _infProfiles[0]]; 
-            int txM = _dicEvents[region + " | Tx_M1 | W | " + _infProfiles[0]]; 
+            int txB = _dicEvents[region + " | Tx_B1 | W | " + _infProfiles[0]];
+            int txM = _dicEvents[region + " | Tx_M1 | W | " + _infProfiles[0]];
             int txB2 = _dicEvents[region + " | Tx_B2 | U | " + _infProfiles[0]];
             int txM2 = _dicEvents[region + " | Tx_M2 | U | " + _infProfiles[0]];
             int leaveSuccess = _dicEvents[region + " | Leaving Success with A1"];
@@ -1173,7 +1061,7 @@ namespace APACElib
             {
                 // for I
                 if (c.Name.StartsWith(region + " | I"))
-                {                    
+                {
                     ((Class_Normal)c).AddAnEvent(_events[birthID + i + 1]);
                     ((Class_Normal)c).AddAnEvent(_events[deathID + i + 1]);
                     ((Class_Normal)c).AddAnEvent(_events[naturalRecoveryID + i]);
@@ -1185,8 +1073,8 @@ namespace APACElib
                 else if (c.Name.StartsWith(region + " | W "))
                 {
                     ((Class_Normal)c).AddAnEvent(_events[txA + w]);
-                    ((Class_Normal)c).AddAnEvent(_events[txB+ w]);
-                    ((Class_Normal)c).AddAnEvent(_events[txM+ w]);
+                    ((Class_Normal)c).AddAnEvent(_events[txB + w]);
+                    ((Class_Normal)c).AddAnEvent(_events[txM + w]);
                     ++w;
                 }
                 else if (c.Name.StartsWith(region + " | U"))
@@ -1245,13 +1133,13 @@ namespace APACElib
             _featureIDs[(int)Features.IfEverUsed] = id;
             _epiHist.Features.Add(new Feature_Intervention(
                 name: region + " | If A1 ever switched off",
-                featureID: id++, 
+                featureID: id++,
                 featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
                 intervention: _decisionMaker.Interventions[(int)Interventions.A1])
                 );
             _epiHist.Features.Add(new Feature_Intervention(
                 name: region + " | If B1 ever switched off",
-                featureID: id++, 
+                featureID: id++,
                 featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
                 intervention: _decisionMaker.Interventions[(int)Interventions.B1])
                 );
@@ -1269,7 +1157,7 @@ namespace APACElib
         {
             int id = 0;
             EnumSign[] signs;
-            List<Parameter> thresholdParams = new  List<Parameter>{
+            List<Parameter> thresholdParams = new List<Parameter>{
                 _paramManager.Parameters[(int)DummyParam.T_Prev],
                 _paramManager.Parameters[(int)DummyParam.T_DeltaPrev]};
             List<Parameter> thresholdParams0 = new List<Parameter> {
@@ -1285,7 +1173,7 @@ namespace APACElib
                     id: id++,
                     features: new List<Feature> {
                         _epiHist.Features[_featureIDs[(int)Features.PercResist] + i],
-                        _epiHist.Features[_featureIDs[(int)Features.ChangeInPercResist] + i] } ,
+                        _epiHist.Features[_featureIDs[(int)Features.ChangeInPercResist] + i] },
                     thresholdParams: thresholdParams,
                     signs: signs,
                     conclusion: EnumAndOr.Or));
@@ -1299,7 +1187,7 @@ namespace APACElib
                         _epiHist.Features[_featureIDs[(int)Features.PercResist] + i],
                         _epiHist.Features[_featureIDs[(int)Features.ChangeInPercResist] + i] },
                     thresholdParams: thresholdParams,
-                    signs: signs,                    
+                    signs: signs,
                     conclusion: EnumAndOr.And));
 
             // B is never used
@@ -1312,7 +1200,7 @@ namespace APACElib
                 conclusion: EnumAndOr.And));
 
             // M1 is neer used
-            thresholdParams = new List<Parameter>{_paramManager.Parameters[(int)DummyParam.D_0]};
+            thresholdParams = new List<Parameter> { _paramManager.Parameters[(int)DummyParam.D_0] };
             _epiHist.Conditions.Add(new Condition_OnFeatures(
                 id: id++,
                 features: new List<Feature> {
@@ -1367,73 +1255,10 @@ namespace APACElib
             id++;
 
             // turn off M
-            _epiHist.Conditions.Add(new Condition_AlwaysFalse(id:id++));
+            _epiHist.Conditions.Add(new Condition_AlwaysFalse(id: id++));
 
         }
 
-        private List<Parameter> GetParamList(string paramName)
-        {            
-            return new List<Parameter>() { _paramManager.GetParameter(paramName) };
-        }
-        private List<Parameter> GetParamList(List<string> paramNames)
-        {
-            List<Parameter> list = new List<Parameter>();
-            foreach (string name in paramNames)
-                list.Add(GetParam(name));
-
-            return list;
-        }
-        private List<Parameter> GetParamList(DummyParam dummyParam, int repeat)
-        {
-            List<Parameter> list = new List<Parameter>();
-            for (int i = 0; i < repeat; i++)
-                list.Add(_paramManager.Parameters[(int)dummyParam]);
-            return list;
-        }
-        private List<Parameter> GetParamList(string paramName, int pos, int size, DummyParam dummyParam)
-        {
-            List<Parameter> list = new List<Parameter>();
-            for (int i = 0; i < size; i++)
-                if (i == pos)
-                    list.Add(GetParam(paramName));
-                else
-                    list.Add(_paramManager.Parameters[(int)dummyParam]);
-            return list;
-        }
-        private List<Parameter> GetParamList(int parID, int pos, int size, DummyParam dummyParam)
-        {
-            List<Parameter> list = new List<Parameter>();
-            for (int i = 0; i < size; i++)
-                if (i == pos)
-                    list.Add(_paramManager.Parameters[parID]);
-                else
-                    list.Add(_paramManager.Parameters[(int)dummyParam]);
-            return list;
-        }
-        private Parameter GetParam(string paramName)
-        {
-            return  _paramManager.GetParameter(paramName);
-        }
-
-        private string GetResistOrFail(ResistStates resistStat, Drugs drug)
-        {
-            string resistOrFail = "";
-            switch (resistStat)
-            {
-                case ResistStates.G_0:
-                    resistOrFail = (drug == Drugs.A1) ? "A" : "B";                   
-                    break;
-                case ResistStates.G_A:
-                    resistOrFail = (drug == Drugs.A1) ? "F" : "AB";
-                    break;
-                case ResistStates.G_B:
-                    resistOrFail = (drug == Drugs.A1) ? "AB" : "F";
-                    break;
-                case ResistStates.G_AB:
-                    resistOrFail = "F";
-                    break;
-            }
-            return resistOrFail;
-        }
+        
     }
 }
