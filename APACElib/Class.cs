@@ -237,7 +237,7 @@ namespace APACElib
             // find the probabilities of each process   
             // calculate the probability of not leaving the class
             eventProbs[0] = Math.Exp(-sumOfRates);
-            // calculate the probability of other processes 
+            // calculate the probability of other processes
             double coeff = (1 - eventProbs[0]) / sumOfRates;
             for (int probIndex = 1; probIndex <= numOfActiveEvents; ++probIndex)
                 eventProbs[probIndex] = coeff * eventRates[probIndex-1];
