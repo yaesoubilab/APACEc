@@ -24,9 +24,9 @@ namespace APACElib.Models
             // add the parameters from the parameter sheet
             AddParameters();
             // add gono parameters 
-            AddGonoParameters("MSM");
+            AddGonoParameters(new List<string>() { "MSM" });
             // add classes
-            AddGonoClasses("MSM");
+            AddGonoClasses(new List<string>() { "MSM" });
             // add events
             AddGonoEvents("MSM");
             // add interventions
@@ -43,56 +43,61 @@ namespace APACElib.Models
             AddGonoConnections("MSM");
         }
 
-        private void AddGonoClasses(string region)
+        private void AddGonoClasses(List<string> regions)
         {
-            int id = 0;
+            int classID = 0;
+            int regionID = 0;
             int infProfile = 0; // infection profile
 
-            // add S
-            Class_Normal S = Get_S(id, region, _paramManager.Dic["Initial size of " + region + " | S"]);
-            _classes.Add(S);
-            _dicClasses[S.Name] = id++;
+            // add S's
+            int parIDSize = _paramManager.Dic["Initial size of " + regions[0] + " | S"];
+            for (regionID = 0; regionID < regions.Count; regionID++)
+            {
+                Class_Normal S = Get_S(classID, regions[regionID], parIDSize + regionID);
+                _classes.Add(S);
+                _dicClasses[S.Name] = classID++;
+            }            
 
             // add classes to count the treatment outcomes
             // Success with A1, B1, or B2
             foreach (Drugs d in Enum.GetValues(typeof(Drugs)))
             {
-                Class_Normal c = Get_Success(id, region, d.ToString());
+                Class_Normal c = Get_Success(classID, regions[0], d.ToString());
                 _classes.Add(c);
-                _dicClasses[c.Name] = id++;
+                _dicClasses[c.Name] = classID++;
             }
 
             // Success with M1 or M2
             foreach (Ms m in Enum.GetValues(typeof(Ms)))
             {
-                Class_Normal c = Get_Success(id, region, m.ToString());
+                Class_Normal c = Get_Success(classID, regions[0], m.ToString());
                 _classes.Add(c);
-                _dicClasses[c.Name] = id++;
+                _dicClasses[c.Name] = classID++;
             }
 
             // add death
-            Class_Death D = Get_D(id, region);
+            Class_Death D = Get_D(classID, regions[0]);
             _classes.Add(D);
-            _dicClasses[D.Name] = id++;
+            _dicClasses[D.Name] = classID++;
 
             // add I's, W's, and U's, 
             // example: "I | Sym | G_0"     
             int infParID = _paramManager.Dic["Infectivity of | I | " + _infProfiles[0]];
-            int size0ParID = _paramManager.Dic["Initial size of " + region + " | I | " + _infProfiles[0]];
+            int size0ParID = _paramManager.Dic["Initial size of " + regions[0] + " | I | " + _infProfiles[0]];
             foreach (Comparts c in Enum.GetValues(typeof(Comparts)))
             {
                 infProfile = 0;
                 foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                     foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                     {
-                        Class_Normal C = Get_I_W_U(id: id, region: region,
+                        Class_Normal C = Get_I_W_U(id: classID, region: regions[0],
                             infProfileID: infProfile,
                             c: c,
                             r: r,
                             size0ParID: (c == Comparts.I) ? size0ParID++ : (int)DummyParam.D_0,
                             infectivityParID: infParID + infProfile);
                         _classes.Add(C);
-                        _dicClasses[C.Name] = id++;
+                        _dicClasses[C.Name] = classID++;
                         ++infProfile;
 
                         // update formulas of special statistics 
@@ -138,20 +143,20 @@ namespace APACElib.Models
             }
 
             // Prob symptomatic after infection
-            int classIdIfSymp = _dicClasses[region + " | I | Sym | G_0"];
-            int classIDIfAsymp = _dicClasses[region + " | I | Asym | G_0"];
+            int classIdIfSymp = _dicClasses[regions[0] + " | I | Sym | G_0"];
+            int classIDIfAsymp = _dicClasses[regions[0] + " | I | Asym | G_0"];
             int ifSymParID = _paramManager.Dic["Prob sym | G_0"];
             foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
             {
                 Class_Splitting ifSym = Get_IfSym(
-                    id: id,
-                    region: region,
+                    id: classID,
+                    region: regions[0],
                     r: r,
                     ifSymParID: ifSymParID + (int)r,
                     classIDIfSym: classIdIfSymp + (int)r,
                     classIDIfAsym: classIDIfAsymp + (int)r);
                 _classes.Add(ifSym);
-                _dicClasses[ifSym.Name] = id++;
+                _dicClasses[ifSym.Name] = classID++;
             }
 
             // if seeking retreatment after resistance or failure
@@ -168,15 +173,15 @@ namespace APACElib.Models
                         foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                         {
                             Class_Splitting ifRetreat = Get_IfRetreat(
-                                id: id,
-                                region: region,
+                                id: classID,
+                                region: regions[0],
                                 r: r,
                                 s: s,
                                 drug: drug,
                                 infProfile: infProfile,
                                 parIDProbRetreat: (s == SymStates.Sym) ? parIDProbRetreatIfSym : parIDProbRetreatIfAsym);
                             _classes.Add(ifRetreat);
-                            _dicClasses[ifRetreat.Name] = id++;
+                            _dicClasses[ifRetreat.Name] = classID++;
                             ++infProfile;
                         }
                 }
@@ -194,13 +199,13 @@ namespace APACElib.Models
                     if (resistOrFail != "F")
                     {
                         Class_Splitting ifSymp = Get_IfSymAfterR(
-                            id: id,
-                            region: region,
+                            id: classID,
+                            region: regions[0],
                             resistOrFail: resistOrFail,
                             r: r,
                             drug: drug);
                         _classes.Add(ifSymp);
-                        _dicClasses[ifSymp.Name] = id++;
+                        _dicClasses[ifSymp.Name] = classID++;
                     }
                 }
 
@@ -211,7 +216,7 @@ namespace APACElib.Models
             // example: "If A | A --> I | Asym | G_0"
             //          true: "If sym | A | A --> I | Asym | G_0"
             //          false: "Success A1"
-            int classIDSuccess = _dicClasses[region + " | Success with " + Drugs.A1.ToString()];
+            int classIDSuccess = _dicClasses[regions[0] + " | Success with " + Drugs.A1.ToString()];
             int parIDProbResistA = _paramManager.Dic["Prob resistance | Drug A"];
             int parIDProbResistB = parIDProbResistA + 1;
             foreach (Drugs drug in Enum.GetValues(typeof(Drugs))) // A1, B1, B2
@@ -224,8 +229,8 @@ namespace APACElib.Models
                             continue;
 
                         Class_Splitting ifResist = Get_ifR(
-                            id: id,
-                            region: region,
+                            id: classID,
+                            region: regions[0],
                             resistOrFail: resistOrFail,
                             r: r,
                             s: s,
@@ -233,7 +238,7 @@ namespace APACElib.Models
                             parIDProbResist: (drug == Drugs.A1) ? parIDProbResistA : parIDProbResistB,
                             classIDSuccess: classIDSuccess + (int)drug);
                         _classes.Add(ifResist);
-                        _dicClasses[ifResist.Name] = id++;
+                        _dicClasses[ifResist.Name] = classID++;
                     }
         }
 

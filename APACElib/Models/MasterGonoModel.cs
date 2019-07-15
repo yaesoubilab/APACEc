@@ -67,8 +67,6 @@ namespace APACElib
 
         protected void AddGonoParameters(List<string> regions)
         {
-            int parID = _paramManager.Parameters.Count;
-
             int parIDInitialPop = _paramManager.Dic["Initial population size | " + regions[0]];
             int parID1MinusPrev = _paramManager.Dic["1-Initial prevalence | " + regions[0]];
 
@@ -76,7 +74,6 @@ namespace APACElib
             for (int i = 0; i < regions.Count; i++)
                 AddGonoParamSize_S(
                     region: regions[i], 
-                    id: parID++,
                     parIDInitialPop: parIDInitialPop + i, 
                     parID1MinusPrev: parID1MinusPrev + i);
 
@@ -84,60 +81,77 @@ namespace APACElib
             int infProfileID = 0;
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
-                    AddGonoParamSize_I(regions, s, r, infProfileID++, ref parID);
+                    AddGonoParamSize_I(regions, s, r, infProfileID++);
 
         }
 
-        private void AddGonoParamSize_S(string region, int id, int parIDInitialPop, int parID1MinusPrev)
+        private void AddGonoParamSize_S(string region, int parIDInitialPop, int parID1MinusPrev)
         {
             _paramManager.Add(new ProductParameter(
-                ID: id,
+                ID: _paramManager.Parameters.Count,
                 name: "Initial size of " + region + " | S",
                 parameters: GetParamList(new List<int>() { parIDInitialPop, parID1MinusPrev }))
                 );
         }
 
-        private void AddGonoParamSize_I(List<string> regions, SymStates s, ResistStates r, int infProfileID, ref int id)
+        private void AddGonoParamSize_I(List<string> regions, SymStates s, ResistStates r, int infProfileID)
         {
-            //TODO: Continue from here 
+            List<int> paramIDs = new List<int>();
+            int parID = _paramManager.Parameters.Count;
+            int parIDInitialPopSize = _paramManager.Dic["Initial population size | " + regions[0]];
+            int parIDInitialPrevalence = _paramManager.Dic["Initial prevalence | " + regions[0]];
+            int parIDInitialSym = _paramManager.Dic["Initial symptomatic | " + regions[0]];
+            int parIDInitialAsym = _paramManager.Dic["1-Initial symptomatic | " + regions[0]];
+            int parIDInitialResistToA = _paramManager.Dic["Initial resistant to A | " + regions[0]];
+            int parIDInitialResistToB = _paramManager.Dic["Initial resistant to B | " + regions[0]];
+            int parIDInitialResistToAorB = _paramManager.Dic["1-Initial resistant to A or B | " + regions[0]];
 
-            string name = "Initial size of " + region + " | I | " + _infProfiles[infProfileID];
-            List<string> paramNames = new List<string>() { "Initial population size | " + region, "Initial prevalence | " + region };
-
-            if (s == SymStates.Sym)
-                paramNames.Add("Initial symptomatic | " + region);
-            else
-                paramNames.Add("1-Initial symptomatic | " + region);
-
-            switch (r)
+            for (int regionID = 0; regionID < regions.Count; regionID++)
             {
-                case ResistStates.G_0:
-                    paramNames.Add("1-Initial resistant to A or B | " + region);
-                    break;
-                case ResistStates.G_A:
-                    paramNames.Add("Initial resistant to A | " + region);
-                    break;
-                case ResistStates.G_B:
-                    paramNames.Add("Initial resistant to B | " + region);
-                    break;
-                case ResistStates.G_AB:
-                    paramNames.Add("Initial resistant to AB | " + region);
-                    break;
-            }
+                string parName = "Initial size of " + regions[regionID] + " | I | " + _infProfiles[infProfileID];
 
-            if (r == ResistStates.G_AB)
-                _paramManager.Add(new IndependetParameter(
-                    ID: id++,
-                    name: name,
-                    enumRandomVariateGenerator: RandomVariateLib.SupportProcedures.ConvertToEnumRVG("Constant"),
-                    par1: 0, par2: 0, par3: 0, par4: 0)
-                    );
-            else
-                _paramManager.Add(new ProductParameter(
-                    ID: id++,
-                    name: name,
-                    parameters: GetParamList(paramNames))
-                    );
+                // par ID for population size of this region
+                paramIDs.Add(parIDInitialPopSize + regionID);
+                // par ID for prevalence of gonorrhea in this region
+                paramIDs.Add(parIDInitialPrevalence + regionID);
+
+                // par ID for proportion symptomatic or asymptomatic 
+                if (s == SymStates.Sym)
+                    paramIDs.Add(parIDInitialSym + regionID);
+                else
+                    paramIDs.Add(parIDInitialAsym + regionID);
+
+                // par ID for prevalence of resistance to A, B, or AB
+                switch (r)
+                {
+                    case ResistStates.G_0:
+                        paramIDs.Add(parIDInitialResistToAorB + regionID);
+                        break;
+                    case ResistStates.G_A:
+                        paramIDs.Add(parIDInitialResistToA + regionID);
+                        break;
+                    case ResistStates.G_B:
+                        paramIDs.Add(parIDInitialResistToB + regionID);
+                        break;
+                    case ResistStates.G_AB:
+                        paramIDs.Add(0);
+                        break;
+                }
+
+                if (r == ResistStates.G_AB)
+                    _paramManager.Add(new IndependetParameter(
+                        ID: parID++,
+                        name: parName,
+                        enumRandomVariateGenerator: RandomVariateLib.SupportProcedures.ConvertToEnumRVG("Constant"),
+                        par1: 0, par2: 0, par3: 0, par4: 0)
+                        );
+                else
+                    _paramManager.Add(new ProductParameter(
+                        ID: parID++,
+                        name: parName,
+                        parameters: GetParamList(paramIDs))
+                        );
+            }
         }
 
         protected List<Parameter> GetParamList(string paramName)

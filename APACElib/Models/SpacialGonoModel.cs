@@ -22,8 +22,8 @@ namespace APACElib.Models
             // add the parameters from the parameter sheet
             AddParameters();
             // add gono parameters 
-            foreach (string s in _sites)
-                AddGonoParameters(region: s);
+            AddGonoParameters(_sites);
+
         }
 
 
