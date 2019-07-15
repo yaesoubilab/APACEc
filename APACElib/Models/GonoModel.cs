@@ -68,7 +68,9 @@ namespace APACElib
         {
             _specialStatInfo.Reset();
 
-            // add parameters 
+            // add the parameters from the parameter sheet
+            AddParameters();
+            // add gono parameters 
             AddGonoParameters("MSM");
             // add classes
             AddGonoClasses("MSM");
@@ -89,9 +91,7 @@ namespace APACElib
         }
 
         private void AddGonoParameters(string region)
-        {
-            // add the parameters from the parameter sheet
-            AddParameters();
+        {            
             int parID = _paramManager.Parameters.Count;
 
             // initial size of S

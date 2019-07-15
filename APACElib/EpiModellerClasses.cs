@@ -578,10 +578,6 @@ namespace APACElib
             // store sampled parameter values
             ParamValues[simItr] = simulatedEpi.ParamManager.ParameterValues;
 
-            // if the outcomes should be recorded
-            if (!(simulatedEpi.ModelUse == EnumModelUse.Simulation))
-                return;
-
             // summary statistics
             DALYStat.Record(simulatedEpi.EpidemicCostHealth.TotalDiscountedDALY);
             CostStat.Record(simulatedEpi.EpidemicCostHealth.TotalDisountedCost);
