@@ -167,19 +167,23 @@ namespace APACElib.Models
 
             // add Screening events
             inf = 0;
+            i = 0;
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
-                    string infProfile = s.ToString() + " | " + r.ToString();
-                    eventName = regions[0] + " | Screening | I | " + infProfile;
-                    _events.Add(new Event_EpidemicIndependent(
-                        name: eventName,
-                        ID: id,
-                        IDOfActivatingIntervention: 0,
-                        rateParameter: _paramManager.Parameters[screeningRate],
-                        IDOfDestinationClass: idWSymG_0 + inf++)
-                    );
-                    _dicEvents[eventName] = id++;
+                    for (regionID = 0; regionID < regions.Count; regionID++)
+                    {
+                        eventName = regions[regionID] + " | Screening | I | " + _infProfiles[inf];
+                        _events.Add(new Event_EpidemicIndependent(
+                            name: eventName,
+                            ID: id,
+                            IDOfActivatingIntervention: 0,
+                            rateParameter: _paramManager.Parameters[screeningRate],
+                            IDOfDestinationClass: idWSymG_0 + i++)
+                        );
+                        _dicEvents[eventName] = id++;
+                    }
+                    inf++;
                 }
 
             // add First-Line Treatment with A1 and B1
