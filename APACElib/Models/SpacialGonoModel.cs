@@ -23,7 +23,8 @@ namespace APACElib.Models
             AddParameters();
             // add gono parameters 
             AddGonoParameters(_sites);
-
+            // add classes
+            AddGonoClasses(_sites);
         }
 
 
