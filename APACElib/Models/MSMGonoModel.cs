@@ -32,17 +32,17 @@ namespace APACElib.Models
             // add events
             AddGonoEvents(regions);
             // add interventions
-            AddGonoInterventions("MSM");
+            AddGonoInterventions(regions);
             // add summation statistics
             AddGonoSumStats("MSM");
             // add ratio statistics
             AddGonoRatioStatistics();
             // add features
-            AddGonoFeatures("MSM");
+            AddGonoFeatures(regions);
             // add conditions
             AddGonoConditions();
             // add connections
-            AddGonoConnections("MSM");
+            AddGonoConnections(regions);
         }
 
         private void AddGonoEvents(List<string> regions)
@@ -185,33 +185,39 @@ namespace APACElib.Models
                     }
                     inf++;
                 }
-
+            // TODO: Continue here
             // add First-Line Treatment with A1 and B1
             foreach (Drugs d in Enum.GetValues(typeof(SymStates)))
                 if (d == Drugs.A1 || d == Drugs.B1)
+                {
+                    inf = 0;
                     foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                         foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                         {
-                            string resistOrFail = GetResistOrFail(resistStat: r, drug: d);
-                            string infProfile = s.ToString() + " | " + r.ToString();
-                            string treatmentProfile = resistOrFail + " | " + d.ToString() + " --> I | " + infProfile;
-                            eventName = regions[0] + " | Tx_" + d.ToString() + " | W | " + infProfile;
-                            string destClassName = "";
+                            for (regionID = 0; regionID < regions.Count; regionID++)
+                            {
+                                string resistOrFail = GetResistOrFail(resistStat: r, drug: d);
+                                string treatmentProfile = resistOrFail + " | " + d.ToString() + " --> I | " + _infProfiles[inf];
+                                eventName = regions[regionID] + " | Tx_" + d.ToString() + " | W | " + _infProfiles[inf];
+                                string destClassName = "";
 
-                            if (resistOrFail == "F")
-                                destClassName = regions[0] + " | If retreat " + treatmentProfile;
-                            else
-                                destClassName = regions[0] + " | If " + treatmentProfile;
+                                if (resistOrFail == "F")
+                                    destClassName = regions[regionID] + " | If retreat " + treatmentProfile;
+                                else
+                                    destClassName = regions[regionID] + " | If " + treatmentProfile;
 
-                            _events.Add(new Event_EpidemicIndependent(
-                                name: eventName,
-                                ID: id,
-                                IDOfActivatingIntervention: (d == Drugs.A1) ? (int)Interventions.A1 : (int)Interventions.B1,
-                                rateParameter: _paramManager.Parameters[infRate],
-                                IDOfDestinationClass: _dicClasses[destClassName])
-                                );
-                            _dicEvents[eventName] = id++;
+                                _events.Add(new Event_EpidemicIndependent(
+                                    name: eventName,
+                                    ID: id,
+                                    IDOfActivatingIntervention: (d == Drugs.A1) ? (int)Interventions.A1 : (int)Interventions.B1,
+                                    rateParameter: _paramManager.Parameters[infRate], // infinity rate
+                                    IDOfDestinationClass: _dicClasses[destClassName])
+                                    );
+                                _dicEvents[eventName] = id++;
+                            }
+                            inf++;
                         }
+                }
 
             // add First-Line Treatment with M1
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
@@ -299,13 +305,14 @@ namespace APACElib.Models
             }
         }
 
-        private void AddGonoInterventions(string region)
+        private void AddGonoInterventions(List<string> regions)
         {
             AddInterventions();
 
             int id = _decisionMaker.Interventions.Count();
             int i = 0;
 
+            // add interventions
             foreach (Interventions intrv in Enum.GetValues(typeof(Interventions)))
             {
                 int conditionIDToTurnOn = 0, conditionIDToTurnOff = 0;
@@ -357,7 +364,7 @@ namespace APACElib.Models
                 _decisionMaker.AddAnIntervention(
                     new Intervention(
                         index: id++,
-                        name: region + " | " + intrv.ToString(),
+                        name: regions[0] + " | " + intrv.ToString(),
                         actionType: EnumInterventionType.Additive,
                         affectingContactPattern: false,
                         timeIndexBecomesAvailable: 0,
@@ -705,26 +712,26 @@ namespace APACElib.Models
             UpdateRatioStatTimeSeries();
         }
 
-        private void AddGonoConnections(string region)
+        private void AddGonoConnections(List<string> regions)
         {
             int i = 0;
-            int birthID = _dicEvents[region + " | Birth | S"];
-            int deathID = _dicEvents[region + " | Death | S"];
-            int infectionID = _dicEvents[region + " | Infection | G_0"];
-            int naturalRecoveryID = _dicEvents[region + " | Natural Recovery | I | Sym | G_0"];
-            int seekingTreatmentID = _dicEvents[region + " | Seeking Treatment | I | Sym | G_0"];
-            int screeningID = _dicEvents[region + " | Screening | I | Sym | G_0"];
-            int txA = _dicEvents[region + " | Tx_A1 | W | " + _infProfiles[0]];
-            int txB = _dicEvents[region + " | Tx_B1 | W | " + _infProfiles[0]];
-            int txM = _dicEvents[region + " | Tx_M1 | W | " + _infProfiles[0]];
-            int txB2 = _dicEvents[region + " | Tx_B2 | U | " + _infProfiles[0]];
-            int txM2 = _dicEvents[region + " | Tx_M2 | U | " + _infProfiles[0]];
-            int leaveSuccess = _dicEvents[region + " | Leaving Success with A1"];
-            int success = _dicClasses[region + " | Success with A1"];
+            int birthID = _dicEvents[regions[0] + " | Birth | S"];
+            int deathID = _dicEvents[regions[0] + " | Death | S"];
+            int infectionID = _dicEvents[regions[0] + " | Infection | G_0"];
+            int naturalRecoveryID = _dicEvents[regions[0] + " | Natural Recovery | I | Sym | G_0"];
+            int seekingTreatmentID = _dicEvents[regions[0] + " | Seeking Treatment | I | Sym | G_0"];
+            int screeningID = _dicEvents[regions[0] + " | Screening | I | Sym | G_0"];
+            int txA = _dicEvents[regions[0] + " | Tx_A1 | W | " + _infProfiles[0]];
+            int txB = _dicEvents[regions[0] + " | Tx_B1 | W | " + _infProfiles[0]];
+            int txM = _dicEvents[regions[0] + " | Tx_M1 | W | " + _infProfiles[0]];
+            int txB2 = _dicEvents[regions[0] + " | Tx_B2 | U | " + _infProfiles[0]];
+            int txM2 = _dicEvents[regions[0] + " | Tx_M2 | U | " + _infProfiles[0]];
+            int leaveSuccess = _dicEvents[regions[0] + " | Leaving Success with A1"];
+            int success = _dicClasses[regions[0] + " | Success with A1"];
 
             // ----------------
             // add events for S
-            Class_Normal S = (Class_Normal)_classes[_dicClasses[region + " | S"]];
+            Class_Normal S = (Class_Normal)_classes[_dicClasses[regions[0] + " | S"]];
             // birth and death
             S.AddAnEvent(_events[birthID]);
             S.AddAnEvent(_events[deathID]);
@@ -740,7 +747,7 @@ namespace APACElib.Models
             foreach (Class c in _classes.Where(c => (c is Class_Normal)))
             {
                 // for I
-                if (c.Name.StartsWith(region + " | I"))
+                if (c.Name.StartsWith(regions[0] + " | I"))
                 {
                     ((Class_Normal)c).AddAnEvent(_events[birthID + i + 1]);
                     ((Class_Normal)c).AddAnEvent(_events[deathID + i + 1]);
@@ -750,14 +757,14 @@ namespace APACElib.Models
                     ++i;
                 }
                 // for W
-                else if (c.Name.StartsWith(region + " | W "))
+                else if (c.Name.StartsWith(regions[0] + " | W "))
                 {
                     ((Class_Normal)c).AddAnEvent(_events[txA + w]);
                     ((Class_Normal)c).AddAnEvent(_events[txB + w]);
                     ((Class_Normal)c).AddAnEvent(_events[txM + w]);
                     ++w;
                 }
-                else if (c.Name.StartsWith(region + " | U"))
+                else if (c.Name.StartsWith(regions[0] + " | U"))
                 {
                     ((Class_Normal)c).AddAnEvent(_events[txB2 + u]);
                     ((Class_Normal)c).AddAnEvent(_events[txM2 + u]);
@@ -770,7 +777,7 @@ namespace APACElib.Models
                 ((Class_Normal)_classes[success + j]).AddAnEvent(_events[leaveSuccess + j]);
         }
 
-        private void AddGonoFeatures(string region)
+        private void AddGonoFeatures(List<string> regions)
         {
             int id = 0;
             int idPercFirstTxAndResist = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PercFirstTxAndResist];
@@ -786,7 +793,7 @@ namespace APACElib.Models
                 if (r != ResistStates.G_0)
                 {
                     _epiHist.AddASpecialStatisticsFeature(
-                        name: region + " | % received 1st Tx & resistant to " + r.ToString(),
+                        name: regions[0] + " | % received 1st Tx & resistant to " + r.ToString(),
                         featureID: id++,
                         specialStatID: idPercFirstTxAndResist + (int)r - 1,
                         strFeatureType: "Current Observed Value",
@@ -801,7 +808,7 @@ namespace APACElib.Models
                 if (r != ResistStates.G_0)
                 {
                     _epiHist.AddASpecialStatisticsFeature(
-                        name: region + " | Change in % received 1st Tx & resistant to " + r.ToString(),
+                        name: regions[0] + " | Change in % received 1st Tx & resistant to " + r.ToString(),
                         featureID: id++,
                         specialStatID: idPercFirstTxAndResist + (int)r - 1,
                         strFeatureType: "Slope",
@@ -812,13 +819,13 @@ namespace APACElib.Models
             // if A1 and B1 ever switched off 
             _featureIDs[(int)Features.IfEverUsed] = id;
             _epiHist.Features.Add(new Feature_Intervention(
-                name: region + " | If A1 ever switched off",
+                name: regions[0] + " | If A1 ever switched off",
                 featureID: id++,
                 featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
                 intervention: _decisionMaker.Interventions[(int)Interventions.A1])
                 );
             _epiHist.Features.Add(new Feature_Intervention(
-                name: region + " | If B1 ever switched off",
+                name: regions[0] + " | If B1 ever switched off",
                 featureID: id++,
                 featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
                 intervention: _decisionMaker.Interventions[(int)Interventions.B1])
@@ -826,7 +833,7 @@ namespace APACElib.Models
 
             // if M ever switched on
             _epiHist.Features.Add(new Feature_Intervention(
-                name: region + " | If M1 ever switched on",
+                name: regions[0] + " | If M1 ever switched on",
                 featureID: id++,
                 featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOn,
                 intervention: _decisionMaker.Interventions[(int)Interventions.M1])
