@@ -13,14 +13,14 @@ namespace APACElib
 
     public class GonoSpecialStatInfo
     {        
-        public List<int> SpecialStatIDs { get; set; } = new List<int>(new int[Enum.GetValues(typeof(GonoSpecialStatIDs)).Length]);
-        public string Prev { get; set; } = "";
-        public List<string> PrevSym { get; set; } = new List<string>() { "", "" }; // Sym, Asym
-        public List<string> PrevResist { get; set; } = new List<string>() { "", "", "" }; // A, B, AB
+        public List<int> SpecialStatIDs { get; set; }
+        public string Prev { get; set; }
+        public List<string> PrevSym { get; set; } // Sym, Asym
+        public List<string> PrevResist { get; set; } // A, B, AB
 
-        public string Treated { get; set; } = "";
-        public string TreatedAndSym { get; set; } = "";
-        public List<string> TreatedResist { get; set; } = new List<string>() { "", "", "" }; // A, B, AB
+        public string Treated { get; set; }
+        public string TreatedAndSym { get; set; }
+        public List<string> TreatedResist { get; set; } // A, B, AB
 
         public void Reset()
         {
