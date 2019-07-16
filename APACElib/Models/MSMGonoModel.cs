@@ -19,7 +19,7 @@ namespace APACElib.Models
 
         public override void BuildModel()
         {
-            _specialStatInfo.Reset();
+            _specialStatInfo.Reset(1);
 
             List<string> regions = new List<string>() { "MSM" };
 
@@ -34,9 +34,9 @@ namespace APACElib.Models
             // add interventions
             AddGonoInterventions(regions);
             // add summation statistics
-            AddGonoSumStats("MSM");
+            AddGonoSumStats(regions);
             // add ratio statistics
-            AddGonoRatioStatistics();
+            AddGonoRatioStatistics(regions);
             // add features
             AddGonoFeatures(regions);
             // add conditions
@@ -376,16 +376,16 @@ namespace APACElib.Models
             }
         }
 
-        private void AddGonoSumStats(string region)
+        private void AddGonoSumStats(List<string> regions)
         {
             int id = 0;
+            int regionID = 0;
             string formula = "";
 
             // population size
             formula = "";
             foreach (Class c in _classes.Where(c => c is Class_Normal))
                 formula += c.ID + "+";
-
             _epiHist.SumTrajs.Add(
                 new SumClassesTrajectory(
                     ID: id++,
@@ -404,14 +404,14 @@ namespace APACElib.Models
                     ID: id++,
                     name: "Prevalence",
                     strType: "Prevalence",
-                    sumFormula: _specialStatInfo.Prev,
+                    sumFormula: _specialStatInfo.Prev[0],
                     displayInSimOutput: true,
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                     );
             _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.Prev] = id - 1;
-
-            // gonorrhea prevalence by symptom status
+            
+            // prevalence of symptomatic gonorrhea 
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
             {
                 if (s == SymStates.Sym)
@@ -420,7 +420,7 @@ namespace APACElib.Models
                             ID: id++,
                             name: "Prevalence | " + s.ToString(),
                             strType: "Prevalence",
-                            sumFormula: _specialStatInfo.PrevSym[(int)s],
+                            sumFormula: _specialStatInfo.PrevSym[0][(int)s],
                             displayInSimOutput: true,
                             warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                             nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
@@ -435,18 +435,19 @@ namespace APACElib.Models
                             ID: id++,
                             name: "Prevalence | " + r.ToString(),
                             strType: "Prevalence",
-                            sumFormula: _specialStatInfo.PrevResist[(int)r - 1],
+                            sumFormula: _specialStatInfo.PrevResist[0][(int)r - 1],
                             displayInSimOutput: true,
                             warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                             nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                             );
+            
 
             // received first-line treatment (= number of cases)
             SumClassesTrajectory t1st = new SumClassesTrajectory(
                 ID: id++,
                 name: "Received 1st Tx",
                 strType: "Incidence",
-                sumFormula: _specialStatInfo.Treated,
+                sumFormula: _specialStatInfo.Treated[0],
                 displayInSimOutput: true,
                 warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                 nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
@@ -466,7 +467,7 @@ namespace APACElib.Models
                 ID: id++,
                 name: "Received 1st Tx & Symptomatic",
                 strType: "Incidence",
-                sumFormula: _specialStatInfo.TreatedAndSym,
+                sumFormula: _specialStatInfo.TreatedAndSym[0],
                 displayInSimOutput: true,
                 warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                 nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
@@ -480,23 +481,48 @@ namespace APACElib.Models
                             ID: id++,
                             name: "Received 1st Tx & Resistant to " + r.ToString(),
                             strType: "Incidence",
-                            sumFormula: _specialStatInfo.TreatedResist[(int)r - 1],
+                            sumFormula: _specialStatInfo.TreatedResist[0][(int)r - 1],
                             displayInSimOutput: true,
                             warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                             nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                             );
 
-            // sucessful treatment
-            string treatedA1 = _classes[_dicClasses[region + " | Success with A1"]].ID.ToString();
-            string treatedB1 = _classes[_dicClasses[region + " | Success with B1"]].ID.ToString();
-            string treatedB2 = _classes[_dicClasses[region + " | Success with B2"]].ID.ToString();
-            string treatedM1 = _classes[_dicClasses[region + " | Success with M1"]].ID.ToString();
-            string treatedM2 = _classes[_dicClasses[region + " | Success with M2"]].ID.ToString();
+            // received first-line treatment by resistance status and region
+            if (regions.Count > 1)
+            {
+                foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
+                    if (r != ResistStates.G_0)
+                    {
+                        _specialStatInfo.SumStatIDsTxResist[(int)r] = id;
+                        for (regionID = 0; regionID < regions.Count; regionID++)
+                        {   
+                            _epiHist.SumTrajs.Add(
+                                new SumClassesTrajectory(
+                                    ID: id++,
+                                    name: "Received 1st Tx & Resistant to " + r.ToString() + " | " + regions[regionID],
+                                    strType: "Incidence",
+                                    sumFormula: _specialStatInfo.TreatedResist[1 + regionID][(int)r - 1],
+                                    displayInSimOutput: true,
+                                    warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
+                                    );
+                        }
+                    }
+            }
 
-            string success1st = treatedA1 + "+" + treatedB1 + "+" + treatedM1;
-            string successAorB = treatedA1 + "+" + treatedB1 + "+" + treatedB2;
-            string successM = treatedM1 + "+" + treatedM2;
-            string successAll = successAorB + "+" + successM;
+            // sucessful treatment
+            string success1st = 
+                _specialStatInfo.TreatedA1B1B2[(int)Drugs.A1] +
+                _specialStatInfo.TreatedA1B1B2[(int)Drugs.B1] +  
+                _specialStatInfo.TreatedM1M2[(int)Ms.M1];
+            string successAorB =
+                _specialStatInfo.TreatedA1B1B2[(int)Drugs.A1] + 
+                _specialStatInfo.TreatedA1B1B2[(int)Drugs.B1] +
+                _specialStatInfo.TreatedA1B1B2[(int)Drugs.B2];
+            string successM =
+                _specialStatInfo.TreatedM1M2[(int)Ms.M1] +
+                _specialStatInfo.TreatedM1M2[(int)Ms.M2];
+            string successAll = successAorB + successM;
 
             // # sucessfully treated with 1st line treatment 
             _epiHist.SumTrajs.Add(
@@ -558,7 +584,7 @@ namespace APACElib.Models
             UpdateSumStatTimeSeries();
         }
 
-        private void AddGonoRatioStatistics()
+        private void AddGonoRatioStatistics(List<string> regions)
         {
             int id = _epiHist.SumTrajs.Count();
             int idPopSize = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PopSize];
@@ -644,13 +670,13 @@ namespace APACElib.Models
                 if (r != ResistStates.G_0)
                 {
                     RatioTrajectory firstTx = new RatioTrajectory(
-                    id: id,
-                    name: "% received 1st Tx & resistant to " + r.ToString(),
-                    strType: "Incidence/Incidence",
-                    ratioFormula: (idFirstTx + 1 + (int)r) + "/" + idFirstTx,
-                    displayInSimOutput: true,
-                    warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
-                    nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+                        id: id,
+                        name: "% received 1st Tx & resistant to " + r.ToString(),
+                        strType: "Incidence/Incidence",
+                        ratioFormula: (idFirstTx + 1 + (int)r) + "/" + idFirstTx,   // 1 here is for symptomatics
+                        displayInSimOutput: true,
+                        warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
                     if (_modelSets.ModelUse == EnumModelUse.Calibration && r != ResistStates.G_AB)
                         firstTx.CalibInfo = new SpecialStatCalibrInfo(
                             measureOfFit: "Feasible Range Only",
@@ -661,8 +687,8 @@ namespace APACElib.Models
                             upFeasibleBound: 1,
                             minThresholdToHit: 0.05);
                     _epiHist.SurveyedIncidenceTrajs.Add(
-                       new SurveyedIncidenceTrajectory(
-                           id: id,
+                        new SurveyedIncidenceTrajectory(
+                            id: id,
                            name: "% received 1st Tx & resistant to " + r.ToString(),
                            displayInSimOutput: true,
                            firstObsMarksStartOfEpidemic: false,
@@ -677,6 +703,46 @@ namespace APACElib.Models
                     id++;
                 }
             }
+
+            // % received 1st Tx and resistant to A, B, or AB (incidence) by region
+            if (regions.Count > 1)
+                foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
+                {
+                    if (r != ResistStates.G_0)
+                    {
+                        _specialStatInfo.RatioStatIDsTxResist[(int)r] = id;
+                        int firstID = _specialStatInfo.SumStatIDsTxResist[(int)r];
+                        for (int regionID = 0; regionID < regions.Count; regionID++)
+                        {
+                            RatioTrajectory traj = new RatioTrajectory(
+                                id: id,
+                                name: "% received 1st Tx & resistant to " + r.ToString() + " | " + regions[regionID],
+                                strType: "Incidence/Incidence",
+                                ratioFormula: (firstID + regionID) + "/" + firstID, 
+                                displayInSimOutput: true,
+                                warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+                           
+                            _epiHist.SurveyedIncidenceTrajs.Add(
+                                new SurveyedIncidenceTrajectory(
+                                    id: id,
+                                    name: "% received 1st Tx & resistant to " + r.ToString(),
+                                    displayInSimOutput: true,
+                                    firstObsMarksStartOfEpidemic: false,
+                                    sumClassesTrajectory: null,
+                                    sumEventTrajectory: null,
+                                    ratioTrajectory: traj,
+                                    nDeltaTsObsPeriod: _modelSets.NumOfDeltaT_inObservationPeriod,
+                                    nDeltaTsDelayed: 0,
+                                    noise_nOfDemoninatorSampled: nIsolateTested,
+                                    ratioNoiseN: 1 / regions.Count)
+                                    );
+                            _epiHist.RatioTrajs.Add(traj);
+                            id++;
+                        }
+                    }
+                }
+
             // annual rate of gonorrhea cases
             RatioTrajectory rate = new RatioTrajectory(
                 id: id++,

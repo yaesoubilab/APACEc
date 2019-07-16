@@ -667,6 +667,7 @@ namespace APACElib
         protected int _nObsPeriodsDelay;  // number of observation periods delayed      
         protected int _noiseParValue; // value of the noise parameter
         protected Parameter _noise_nOfDemoninatorSampled;
+        protected double _ratioNoiseRatio = 1;
         public bool FirstObsMarksStartOfEpidemic { get; private set; }
 
         public SurveyedTrajectory(
@@ -708,13 +709,14 @@ namespace APACElib
             RatioTrajectory ratioTrajectory,
             int nDeltaTsObsPeriod,
             int nDeltaTsDelayed,
-            Parameter noise_nOfDemoninatorSampled) 
+            Parameter noise_nOfDemoninatorSampled, double ratioNoiseN=1) 
             : base(id, name, displayInSimOutput, firstObsMarksStartOfEpidemic, nDeltaTsObsPeriod, nDeltaTsDelayed)
         {
             _sumClassesTraj = sumClassesTrajectory;
             _sumEventsTraj = sumEventTrajectory;
             _ratioTraj = ratioTrajectory;
             _noise_nOfDemoninatorSampled = noise_nOfDemoninatorSampled;
+            _ratioNoiseRatio = ratioNoiseN;
 
             if (!(_ratioTraj is null))
                 _timeSeries = new IncidenceTimeSeries(1);
@@ -742,7 +744,7 @@ namespace APACElib
             {
                 if (_ratioTraj.RatioUpdated)
                 {
-                    int n = (int)_noise_nOfDemoninatorSampled.Sample(time: epiTimeIndex, rng: rnd);
+                    int n = (int)(_noise_nOfDemoninatorSampled.Sample(time: epiTimeIndex, rng: rnd) * _ratioNoiseRatio);
                     // check if there is noise (0 implies that all are sampled)
                     if (n > 0
                         && _ratioTraj.Ratio.HasValue 

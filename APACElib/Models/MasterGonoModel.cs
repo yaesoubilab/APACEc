@@ -14,23 +14,45 @@ namespace APACElib
     public class GonoSpecialStatInfo
     {        
         public List<int> SpecialStatIDs { get; set; }
-        public string Prev { get; set; }
-        public List<string> PrevSym { get; set; } // Sym, Asym
-        public List<string> PrevResist { get; set; } // A, B, AB
+        public List<string> Prev { get; set; }
+        public List<List<string>> PrevSym { get; set; } // Sym, Asym
+        public List<List<string>> PrevResist { get; set; } // A, B, AB
 
-        public string Treated { get; set; }
-        public string TreatedAndSym { get; set; }
-        public List<string> TreatedResist { get; set; } // A, B, AB
+        public List<string> Treated { get; set; }
+        public List<string> TreatedAndSym { get; set; }
+        public List<List<string>> TreatedResist { get; set; } // A, B, AB
 
-        public void Reset()
+        public List<string> TreatedA1B1B2 { get; set; } // A1, B1, B2
+        public List<string> TreatedM1M2 { get; set; } // M1, M2
+
+        public List<int> SumStatIDsTxResist { get; set; } 
+        public List<int> RatioStatIDsTxResist { get; set; } 
+
+        public void Reset(int nRegions)
         {
             SpecialStatIDs = new List<int>(new int[Enum.GetValues(typeof(GonoSpecialStatIDs)).Length]);
-            Prev = "";
-            PrevSym = new List<string>() { "", "" }; // Sym, Asym
-            PrevResist = new List<string>() { "", "", "" }; // A, B, AB
-            Treated = "";
-            TreatedAndSym = "";
-            TreatedResist = new List<string>() { "", "", "" }; // A, B, AB
+            Prev = new List<string>();
+            PrevSym = new List<List<string>>();
+            PrevResist = new List<List<string>>();
+            Treated = new List<string>();
+            TreatedAndSym = new List<string>();
+            TreatedResist = new List<List<string>>();
+
+            SumStatIDsTxResist = new List<int>(new int[4]); // 4 for 0, A, B, AB
+            RatioStatIDsTxResist = new List<int>(new int[4]); // 4 for 0, A, B, AB
+
+            for (int i = 0; i < nRegions; i++)
+            {
+                Prev.Add("");
+                PrevSym.Add(new List<string>() { "", "" }); // Sym, Asym
+                PrevResist.Add(new List<string> { "", "", "" }); // A, B, AB
+                Treated.Add("");
+                TreatedAndSym.Add("");
+                TreatedResist.Add(new List<string> { "", "", "" }); // A, B, AB
+            }
+
+            TreatedA1B1B2 = new List<string>() { "", "", "" };
+            TreatedM1M2 = new List<string>() { "", ""};
         }
     }
 
@@ -255,6 +277,7 @@ namespace APACElib
                     Class_Normal c = Get_Success(id: classID, region: regions[regionID], drug: d.ToString());
                     _classes.Add(c);
                     _dicClasses[c.Name] = classID++;
+                    _specialStatInfo.TreatedA1B1B2[(int)d] += c.ID + "+";
                 }
             }
 
@@ -266,6 +289,7 @@ namespace APACElib
                     Class_Normal c = Get_Success(id: classID, region: regions[regionID], drug: m.ToString());
                     _classes.Add(c);
                     _dicClasses[c.Name] = classID++;
+                    _specialStatInfo.TreatedM1M2[(int)m] += c.ID + "+";
                 }
             }
 
@@ -300,42 +324,41 @@ namespace APACElib
                             _classes.Add(C);
                             _dicClasses[C.Name] = classID++;
 
-
                             // update formulas of special statistics 
-                            _specialStatInfo.Prev += C.ID + "+";
+                            _specialStatInfo.Prev[0] += C.ID + "+";
                             if (s == SymStates.Sym)
-                                _specialStatInfo.PrevSym[0] += C.ID + "+";
+                                _specialStatInfo.PrevSym[0][0] += C.ID + "+";
                             else
-                                _specialStatInfo.PrevSym[1] += C.ID + "+";
+                                _specialStatInfo.PrevSym[0][1] += C.ID + "+";
                             switch (r)
                             {
                                 case ResistStates.G_A:
-                                    _specialStatInfo.PrevResist[0] += C.ID + "+";
+                                    _specialStatInfo.PrevResist[0][0] += C.ID + "+";
                                     break;
                                 case ResistStates.G_B:
-                                    _specialStatInfo.PrevResist[1] += C.ID + "+";
+                                    _specialStatInfo.PrevResist[0][1] += C.ID + "+";
                                     break;
                                 case ResistStates.G_AB:
-                                    _specialStatInfo.PrevResist[2] += C.ID + "+";
+                                    _specialStatInfo.PrevResist[0][2] += C.ID + "+";
                                     break;
                             }
                             // special statics on treatment
                             if (c == Comparts.W)
                             {
-                                _specialStatInfo.Treated += C.ID + "+";
+                                _specialStatInfo.Treated[0] += C.ID + "+";
                                 if (s == SymStates.Sym)
-                                    _specialStatInfo.TreatedAndSym += C.ID + "+";
+                                    _specialStatInfo.TreatedAndSym[0] += C.ID + "+";
 
                                 switch (r)
                                 {
                                     case ResistStates.G_A:
-                                        _specialStatInfo.TreatedResist[0] += C.ID + "+";
+                                        _specialStatInfo.TreatedResist[0][0] += C.ID + "+";
                                         break;
                                     case ResistStates.G_B:
-                                        _specialStatInfo.TreatedResist[1] += C.ID + "+";
+                                        _specialStatInfo.TreatedResist[0][1] += C.ID + "+";
                                         break;
                                     case ResistStates.G_AB:
-                                        _specialStatInfo.TreatedResist[2] += C.ID + "+";
+                                        _specialStatInfo.TreatedResist[0][2] += C.ID + "+";
                                         break;
                                 }
                             }
