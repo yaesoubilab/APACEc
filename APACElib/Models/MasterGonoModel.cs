@@ -286,6 +286,7 @@ namespace APACElib
                 infProfile = 0;
                 foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                     foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
+                    {
                         for (regionID = 0; regionID < regions.Count; regionID++)
                         {
                             Class_Normal C = Get_I_W_U(
@@ -298,7 +299,7 @@ namespace APACElib
                                 infectivityParID: infictivityParID + infProfile);
                             _classes.Add(C);
                             _dicClasses[C.Name] = classID++;
-                            ++infProfile;
+
 
                             // update formulas of special statistics 
                             _specialStatInfo.Prev += C.ID + "+";
@@ -339,6 +340,8 @@ namespace APACElib
                                 }
                             }
                         }
+                        ++infProfile;
+                    }
             }
 
             // Prob symptomatic after infection
@@ -374,6 +377,7 @@ namespace APACElib
                     infProfile = 0;
                     foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                         foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
+                        {
                             for (regionID = 0; regionID < regions.Count; regionID++)
                             {
                                 Class_Splitting ifRetreat = Get_IfRetreat(
@@ -386,8 +390,10 @@ namespace APACElib
                                     parIDProbRetreat: (s == SymStates.Sym) ? parIDProbRetreatIfSym : parIDProbRetreatIfAsym);
                                 _classes.Add(ifRetreat);
                                 _dicClasses[ifRetreat.Name] = classID++;
-                                ++infProfile;
+
                             }
+                            ++infProfile;
+                        }
                 }
 
             // if symptomatic after the emergence of resistance
