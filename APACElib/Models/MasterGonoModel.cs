@@ -763,9 +763,10 @@ namespace APACElib
 
                     if (regions.Count > 1)
                     {
+                        _featureInfo.PercResistFirstRegion[(int)r] = id;
                         int firstID = _specialStatInfo.RatioStatIDsTxResistFirstRegion[(int)r];
                         for (int regionID = 0; regionID < regions.Count; regionID++)
-                        {
+                        {                            
                             _epiHist.AddASpecialStatisticsFeature(
                                 name: "% received 1st Tx & resistant to " + r.ToString() + " | " + regions[regionID],
                                 featureID: id++,
@@ -792,6 +793,7 @@ namespace APACElib
 
                     if (regions.Count > 1)
                     {
+                        _featureInfo.PChangeInPercResistFirstRegion[(int)r] = id;
                         int firstID = _specialStatInfo.RatioStatIDsTxResistFirstRegion[(int)r];
                         for (int regionID = 0; regionID < regions.Count; regionID++)
                         {
