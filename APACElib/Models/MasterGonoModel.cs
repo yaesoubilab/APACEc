@@ -787,14 +787,10 @@ namespace APACElib
                            );
                     _epiHist.RatioTrajs.Add(firstTx);
                     id++;
-                }
-            }
 
-            // % received 1st Tx and resistant to A, B, or AB (incidence) by region
-            if (regions.Count > 1)
-                foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
-                {
-                    if (r != ResistStates.G_0)
+                    // TODO: check this
+                    // % received 1st Tx and resistant to A, B, or AB (incidence) by region
+                    if (regions.Count > 1)
                     {
                         _specialStatInfo.RatioStatIDsTxResist[(int)r] = id;
                         int firstID = _specialStatInfo.SumStatIDsTxResist[(int)r];
@@ -828,6 +824,7 @@ namespace APACElib
                         }
                     }
                 }
+            }
 
             // annual rate of gonorrhea cases
             RatioTrajectory rate = new RatioTrajectory(
