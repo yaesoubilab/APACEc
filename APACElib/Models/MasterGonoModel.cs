@@ -61,12 +61,8 @@ namespace APACElib
     public class GonoFeatureInfo
     {        
         public List<int> FeatureIDs { get; set; }
-        public int EpiTime { get; set; }
         public int[] PercResistFirstRegion { get; set; }
         public int[] PChangeInPercResistFirstRegion { get; set; }
-        public int IfAEverSwitchedOff { get; set; }
-        public int IfBEverSwitchedOff { get; set; }
-        public int IfMEverSwtichedOff { get; set; }
 
         public void Reset(int nRegions)
         {
@@ -745,7 +741,7 @@ namespace APACElib
             int idPercFirstTxAndResist = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PercFirstTxAndResist];
 
             // add time
-            _featureInfo.EpiTime = id;
+            _featureInfo.FeatureIDs[(int)Features.Time] = id;
             _epiHist.Features.Add(new Feature_EpidemicTime("Epidemic Time", id++));
 
             // % receieved 1st Tx and resistant to A, B, or AB
