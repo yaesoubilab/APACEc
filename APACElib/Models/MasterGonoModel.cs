@@ -25,8 +25,8 @@ namespace APACElib
         public List<string> TreatedA1B1B2 { get; set; } // A1, B1, B2
         public List<string> TreatedM1M2 { get; set; } // M1, M2
 
-        public List<int> SumStatIDsTxResist { get; set; } 
-        public List<int> RatioStatIDsTxResist { get; set; } 
+        public List<int> SumStatIDsTxResistFirstRegion { get; set; } 
+        public List<int> RatioStatIDsTxResistFirstRegion { get; set; } 
 
         public void Reset(int nRegions)
         {
@@ -38,8 +38,8 @@ namespace APACElib
             TreatedAndSym = new List<string>();
             TreatedResist = new List<List<string>>();
 
-            SumStatIDsTxResist = new List<int>(new int[4]); // 4 for 0, A, B, AB
-            RatioStatIDsTxResist = new List<int>(new int[4]); // 4 for 0, A, B, AB
+            SumStatIDsTxResistFirstRegion = new List<int>(new int[4]); // 4 for 0, A, B, AB
+            RatioStatIDsTxResistFirstRegion = new List<int>(new int[4]); // 4 for 0, A, B, AB
 
             for (int i = 0; i < nRegions; i++)
             {
@@ -578,7 +578,7 @@ namespace APACElib
                     // received first-line treatment by resistance status and region
                     if (regions.Count > 1)
                     {
-                        _specialStatInfo.SumStatIDsTxResist[(int)r] = id;
+                        _specialStatInfo.SumStatIDsTxResistFirstRegion[(int)r] = id;
                         for (regionID = 0; regionID < regions.Count; regionID++)
                         {
                             _epiHist.SumTrajs.Add(
@@ -788,12 +788,11 @@ namespace APACElib
                     _epiHist.RatioTrajs.Add(firstTx);
                     id++;
 
-                    // TODO: check this
                     // % received 1st Tx and resistant to A, B, or AB (incidence) by region
                     if (regions.Count > 1)
                     {
-                        _specialStatInfo.RatioStatIDsTxResist[(int)r] = id;
-                        int firstID = _specialStatInfo.SumStatIDsTxResist[(int)r];
+                        _specialStatInfo.RatioStatIDsTxResistFirstRegion[(int)r] = id;
+                        int firstID = _specialStatInfo.SumStatIDsTxResistFirstRegion[(int)r];
                         for (int regionID = 0; regionID < regions.Count; regionID++)
                         {
                             RatioTrajectory traj = new RatioTrajectory(
@@ -861,6 +860,128 @@ namespace APACElib
             UpdateRatioStatTimeSeries();
         }
 
+        protected void AddGonoFeatures(List<string> regions)
+        {
+            int id = 0;
+            int idPercFirstTxAndResist = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PercFirstTxAndResist];
+
+            // add time
+            _featureIDs[(int)Features.Time] = id;
+            _epiHist.Features.Add(new Feature_EpidemicTime("Epidemic Time", id++));
+
+            // % receieved 1st Tx and resistant to A, B, or AB
+            _featureIDs[(int)Features.PercResist] = id;
+            foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
+            {
+                if (r != ResistStates.G_0)
+                {
+                    _epiHist.AddASpecialStatisticsFeature(
+                        name: "% received 1st Tx & resistant to " + r.ToString(),
+                        featureID: id++,
+                        specialStatID: idPercFirstTxAndResist + (int)r - 1, // 1 is to account for G_0
+                        strFeatureType: "Current Observed Value",
+                        par: 0);
+
+                    if (regions.Count > 1)
+                    {
+                        int firstID = _specialStatInfo.RatioStatIDsTxResistFirstRegion[(int)r];
+                        for (int regionID = 0; regionID < regions.Count; regionID++)
+                        {
+                            _epiHist.AddASpecialStatisticsFeature(
+                                name: "% received 1st Tx & resistant to " + r.ToString() + " | " + regions[regionID],
+                                featureID: id++,
+                                specialStatID: firstID + regionID,
+                                strFeatureType: "Current Observed Value",
+                                par: 0);
+                        }
+                    }
+                }
+            }
+
+            // change in % receieved 1st Tx and resistant to A, B, or AB
+            _featureIDs[(int)Features.ChangeInPercResist] = id;
+            foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
+            {
+                if (r != ResistStates.G_0)
+                {
+                    _epiHist.AddASpecialStatisticsFeature(
+                        name: "Change in % received 1st Tx & resistant to " + r.ToString(),
+                        featureID: id++,
+                        specialStatID: idPercFirstTxAndResist + (int)r - 1,
+                        strFeatureType: "Slope",
+                        par: 0);
+
+                    if (regions.Count > 1)
+                    {
+                        int firstID = _specialStatInfo.RatioStatIDsTxResistFirstRegion[(int)r];
+                        for (int regionID = 0; regionID < regions.Count; regionID++)
+                        {
+                            _epiHist.AddASpecialStatisticsFeature(
+                                name: "Change in % received 1st Tx & resistant to " + r.ToString() + " | " + regions[regionID],
+                                featureID: id++,
+                                specialStatID: firstID + regionID,
+                                strFeatureType: "Current Observed Value",
+                                par: 0);
+                        }
+                    }
+                }
+            }
+
+            // if A1 ever switched off 
+            _featureIDs[(int)Features.IfEverUsed] = id;
+            _epiHist.Features.Add(new Feature_Intervention(
+                name: "If A1 ever switched off",
+                featureID: id++,
+                featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
+                intervention: _decisionMaker.Interventions[(int)Interventions.A1])
+                );
+            if (regions.Count > 1)
+                for (int regionID = 0; regionID < regions.Count; regionID++)
+                {
+                    _epiHist.Features.Add(new Feature_Intervention(
+                        name: "If A1 ever switched off | " + regions[regionID],
+                        featureID: id++,
+                        featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
+                        intervention: _decisionMaker.Interventions[(int)Interventions.A1 + regionID + 1]) //TODO: update intervention 
+                        );
+                }
+
+            // if B1 ever switched off
+            _epiHist.Features.Add(new Feature_Intervention(
+                name: "If B1 ever switched off",
+                featureID: id++,
+                featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
+                intervention: _decisionMaker.Interventions[(int)Interventions.B1])
+                );
+            if (regions.Count > 1)
+                for (int regionID = 0; regionID < regions.Count; regionID++)
+                {
+                    _epiHist.Features.Add(new Feature_Intervention(
+                        name: "If B1 ever switched off | " + regions[regionID],
+                        featureID: id++,
+                        featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
+                        intervention: _decisionMaker.Interventions[(int)Interventions.B1 + regionID + 1]) //TODO: update intervention 
+                        );
+                }
+
+            // if M ever switched on
+            _epiHist.Features.Add(new Feature_Intervention(
+                name: "If M1 ever switched on",
+                featureID: id++,
+                featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOn,
+                intervention: _decisionMaker.Interventions[(int)Interventions.M1])
+                );
+            if (regions.Count > 1)
+                for (int regionID = 0; regionID < regions.Count; regionID++)
+                {
+                    _epiHist.Features.Add(new Feature_Intervention(
+                        name: "If M ever switched off | " + regions[regionID],
+                        featureID: id++,
+                        featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
+                        intervention: _decisionMaker.Interventions[(int)Interventions.M1 + regionID + 1]) //TODO: update intervention 
+                        );
+                }
+        }
 
         private Class_Normal Get_S(int id, string region, int parInitialSizeID)
         {
