@@ -914,6 +914,7 @@ namespace APACElib
             // ok condition for A, B, or both
             signs = new EnumSign[2] { EnumSign.le, EnumSign.le };
             for (int i = 0; i < 3; i++)
+            {
                 _epiHist.Conditions.Add(new Condition_OnFeatures(
                     id: id++,
                      name: drugUse[i] + "OK Condition",
@@ -924,6 +925,25 @@ namespace APACElib
                     signs: signs,
                     conclusion: EnumAndOr.And));
 
+                if (regions.Count > 1)
+                {
+                    int firstIDPerc = _featureInfo.PercResistFirstRegion[i];
+                    int firstIDChange = _featureInfo.PChangeInPercResistFirstRegion[i];
+                    for (int regionID = 0; regionID < regions.Count; regionID++)
+                    {
+                        _epiHist.Conditions.Add(new Condition_OnFeatures(
+                            id: id++,
+                            name: drugUse[i] + "OK Condition | " + regions[regionID],
+                            features: new List<Feature> {
+                                _epiHist.Features[firstIDPerc + regionID],
+                                _epiHist.Features[firstIDChange + regionID] },
+                            thresholdParams: thresholdParams,
+                            signs: signs,
+                            conclusion: EnumAndOr.Or));
+                    }
+                }
+            }
+
             // B is never used
             _epiHist.Conditions.Add(new Condition_OnFeatures(
                 id: id++,
@@ -933,6 +953,20 @@ namespace APACElib
                 signs: new EnumSign[1] { EnumSign.e },
                 thresholdParams: thresholdParams0,
                 conclusion: EnumAndOr.And));
+            if (regions.Count > 1)
+            {
+                for (int regionID = 0; regionID < regions.Count; regionID++)
+                {
+                    _epiHist.Conditions.Add(new Condition_OnFeatures(
+                        id: id++,
+                        name: "B is never used | " + regions[regionID],
+                        features: new List<Feature> {
+                                _epiHist.Features[_featureInfo.IfBEverOff + regionID + 1] },
+                        signs: new EnumSign[1] { EnumSign.e },
+                        thresholdParams: thresholdParams0,
+                        conclusion: EnumAndOr.And));
+                }
+            }
 
             // M1 is neer used
             thresholdParams = new List<Parameter> { _paramManager.Parameters[(int)DummyParam.D_0] };
@@ -944,6 +978,20 @@ namespace APACElib
                 signs: new EnumSign[1] { EnumSign.e },
                 thresholdParams: thresholdParams0,
                 conclusion: EnumAndOr.And));
+            if (regions.Count > 1)
+            {
+                for (int regionID = 0; regionID < regions.Count; regionID++)
+                {
+                    _epiHist.Conditions.Add(new Condition_OnFeatures(
+                        id: id++,
+                        name: "M1 is never used | " + regions[regionID],
+                        features: new List<Feature> {
+                                _epiHist.Features[_featureInfo.IfMEverOn + regionID + 1] },
+                        signs: new EnumSign[1] { EnumSign.e },
+                        thresholdParams: thresholdParams0,
+                        conclusion: EnumAndOr.And));
+                }
+            }
 
             // turn on A
             _epiHist.Conditions.Add(new Condition_OnFeatures(
@@ -955,6 +1003,21 @@ namespace APACElib
                 signs: new EnumSign[2] { EnumSign.qe, EnumSign.e },
                 thresholdParams: thresholdParams00,
                 conclusion: EnumAndOr.And));
+            if (regions.Count > 1)
+            {
+                for (int regionID = 0; regionID < regions.Count; regionID++)
+                {
+                    _epiHist.Conditions.Add(new Condition_OnFeatures(
+                        id: id++,
+                        name: "Drug A - Turn On | " + regions[regionID],
+                        features: new List<Feature> {
+                            _epiHist.Features[_featureInfo.FeatureIDs[(int)Features.Time]],
+                            _epiHist.Features[_featureInfo.IfAEverOff + regionID + 1] },
+                        signs: new EnumSign[2] { EnumSign.qe, EnumSign.e },
+                        thresholdParams: thresholdParams00,
+                        conclusion: EnumAndOr.And));
+                }
+            }
 
             // turn off A
             _epiHist.Conditions.Add(new Condition_OnConditions(
@@ -964,7 +1027,21 @@ namespace APACElib
                     _epiHist.Conditions[(int)Conditions.AOut],
                     _epiHist.Conditions[(int)Conditions.ABOut] },
                 conclusion: EnumAndOr.Or));
+            if (regions.Count > 1)
+            {
+                for (int regionID = 0; regionID < regions.Count; regionID++)
+                {
+                    _epiHist.Conditions.Add(new Condition_OnConditions(
+                        id: id++,
+                        name: "Drug A - Turn Off | " + regions[regionID],
+                        conditions: new List<Condition> {
+                            _epiHist.Conditions[(int)Conditions.AOut + regionID + 1],
+                            _epiHist.Conditions[(int)Conditions.ABOut + regionID + 1] },
+                        conclusion: EnumAndOr.Or));
+                }
+            }
 
+            // TODO: Continue here
             // turn on B
             _epiHist.Conditions.Add(new Condition_OnConditions(
                 id: id++,
