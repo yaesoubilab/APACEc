@@ -61,14 +61,18 @@ namespace APACElib
     public class GonoFeatureInfo
     {        
         public List<int> FeatureIDs { get; set; }
-        public int[] IDPercResistFirstRegion { get; set; }
-        public int[] IDPChangeInPercResistFirstRegion { get; set; }
+        public int EpiTime { get; set; }
+        public int[] PercResistFirstRegion { get; set; }
+        public int[] PChangeInPercResistFirstRegion { get; set; }
+        public int IfAEverSwitchedOff { get; set; }
+        public int IfBEverSwitchedOff { get; set; }
+        public int IfMEverSwtichedOff { get; set; }
 
         public void Reset(int nRegions)
         {
             FeatureIDs = new List<int>(new int[Enum.GetValues(typeof(Features)).Length]);
-            IDPercResistFirstRegion = new int[4]; // 4 for 0, A, B, AB
-            IDPChangeInPercResistFirstRegion = new int[4]; // 4 for 0, A, B, AB
+            PercResistFirstRegion = new int[4]; // 4 for 0, A, B, AB
+            PChangeInPercResistFirstRegion = new int[4]; // 4 for 0, A, B, AB
         }
 
     }
@@ -741,7 +745,7 @@ namespace APACElib
             int idPercFirstTxAndResist = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PercFirstTxAndResist];
 
             // add time
-            _featureInfo.FeatureIDs[(int)Features.Time] = id;
+            _featureInfo.EpiTime = id;
             _epiHist.Features.Add(new Feature_EpidemicTime("Epidemic Time", id++));
 
             // % receieved 1st Tx and resistant to A, B, or AB
@@ -887,8 +891,8 @@ namespace APACElib
                     conclusion: EnumAndOr.Or));
                 if (regions.Count > 1)
                 {
-                    int firstIDPerc = _featureInfo.IDPercResistFirstRegion[i];
-                    int firstIDChange = _featureInfo.IDPChangeInPercResistFirstRegion[i];
+                    int firstIDPerc = _featureInfo.PercResistFirstRegion[i];
+                    int firstIDChange = _featureInfo.PChangeInPercResistFirstRegion[i];
                     for (int regionID = 0; regionID < regions.Count; regionID++)
                     {
                         _epiHist.Conditions.Add(new Condition_OnFeatures(
