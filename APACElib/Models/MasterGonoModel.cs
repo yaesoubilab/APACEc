@@ -11,7 +11,7 @@ namespace APACElib
 {
     // used for total statis over all districts 
     enum GonoSpecialStatIDs { PopSize = 0, Prev, FirstTx, SuccessAOrB, SuccessAOrBOrM, PercFirstTxAndResist }
-    enum Features { Time, PercResist, ChangeInPercResist, IfEverUsed }
+    enum Features { Time = 0, PercResist, ChangeInPercResist}
 
     public class GonoSpecialStatInfo
     {        
@@ -27,8 +27,8 @@ namespace APACElib
         public List<string> TreatedA1B1B2 { get; set; } // A1, B1, B2
         public List<string> TreatedM1M2 { get; set; } // M1, M2
 
-        public List<int> SumStatIDsTxResistFirstRegion { get; set; } 
-        public List<int> RatioStatIDsTxResistFirstRegion { get; set; } 
+        public List<int> SumTxResistFirstRegion { get; set; } 
+        public List<int> RatioTxResistFirstRegion { get; set; } 
 
         public void Reset(int nRegions)
         {
@@ -40,8 +40,8 @@ namespace APACElib
             TreatedAndSym = new List<string>();
             TreatedResist = new List<List<string>>();
 
-            SumStatIDsTxResistFirstRegion = new List<int>(new int[4]); // 4 for 0, A, B, AB
-            RatioStatIDsTxResistFirstRegion = new List<int>(new int[4]); // 4 for 0, A, B, AB
+            SumTxResistFirstRegion = new List<int>(new int[4]); // 4 for 0, A, B, AB
+            RatioTxResistFirstRegion = new List<int>(new int[4]); // 4 for 0, A, B, AB
 
             for (int i = 0; i < nRegions; i++)
             {
@@ -63,6 +63,9 @@ namespace APACElib
         public List<int> FeatureIDs { get; set; }
         public int[] PercResistFirstRegion { get; set; }
         public int[] PChangeInPercResistFirstRegion { get; set; }
+        public int IfAEverOff { get; set; }
+        public int IfBEverOff { get; set; }
+        public int IfMEverOn { get; set; }
 
         public void Reset(int nRegions)
         {
@@ -453,7 +456,7 @@ namespace APACElib
                     // received first-line treatment by resistance status and region
                     if (regions.Count > 1)
                     {
-                        _specialStatInfo.SumStatIDsTxResistFirstRegion[(int)r] = id;
+                        _specialStatInfo.SumTxResistFirstRegion[(int)r] = id;
                         for (regionID = 0; regionID < regions.Count; regionID++)
                         {
                             _epiHist.SumTrajs.Add(
@@ -666,8 +669,8 @@ namespace APACElib
                     // % received 1st Tx and resistant to A, B, or AB (incidence) by region
                     if (regions.Count > 1)
                     {
-                        _specialStatInfo.RatioStatIDsTxResistFirstRegion[(int)r] = id;
-                        int firstID = _specialStatInfo.SumStatIDsTxResistFirstRegion[(int)r];
+                        _specialStatInfo.RatioTxResistFirstRegion[(int)r] = id;
+                        int firstID = _specialStatInfo.SumTxResistFirstRegion[(int)r];
                         for (int regionID = 0; regionID < regions.Count; regionID++)
                         {
                             RatioTrajectory traj = new RatioTrajectory(
@@ -760,7 +763,7 @@ namespace APACElib
                     if (regions.Count > 1)
                     {
                         _featureInfo.PercResistFirstRegion[(int)r] = id;
-                        int firstID = _specialStatInfo.RatioStatIDsTxResistFirstRegion[(int)r];
+                        int firstID = _specialStatInfo.RatioTxResistFirstRegion[(int)r];
                         for (int regionID = 0; regionID < regions.Count; regionID++)
                         {                            
                             _epiHist.AddASpecialStatisticsFeature(
@@ -790,7 +793,7 @@ namespace APACElib
                     if (regions.Count > 1)
                     {
                         _featureInfo.PChangeInPercResistFirstRegion[(int)r] = id;
-                        int firstID = _specialStatInfo.RatioStatIDsTxResistFirstRegion[(int)r];
+                        int firstID = _specialStatInfo.RatioTxResistFirstRegion[(int)r];
                         for (int regionID = 0; regionID < regions.Count; regionID++)
                         {
                             _epiHist.AddASpecialStatisticsFeature(
@@ -805,7 +808,7 @@ namespace APACElib
             }
 
             // if A1 ever switched off 
-            _featureInfo.FeatureIDs[(int)Features.IfEverUsed] = id;
+            _featureInfo.IfAEverOff = id;
             _epiHist.Features.Add(new Feature_Intervention(
                 name: "If A1 ever switched off",
                 featureID: id++,
@@ -824,6 +827,7 @@ namespace APACElib
                 }
 
             // if B1 ever switched off
+            _featureInfo.IfBEverOff = id;
             _epiHist.Features.Add(new Feature_Intervention(
                 name: "If B1 ever switched off",
                 featureID: id++,
@@ -842,6 +846,7 @@ namespace APACElib
                 }
 
             // if M ever switched on
+            _featureInfo.IfMEverOn = id;
             _epiHist.Features.Add(new Feature_Intervention(
                 name: "If M1 ever switched on",
                 featureID: id++,
@@ -924,7 +929,7 @@ namespace APACElib
                 id: id++,
                 name: "B is never used",
                 features: new List<Feature> {
-                        _epiHist.Features[_featureInfo.FeatureIDs[(int)Features.IfEverUsed] + 1] },
+                        _epiHist.Features[_featureInfo.IfBEverOff] },
                 signs: new EnumSign[1] { EnumSign.e },
                 thresholdParams: thresholdParams0,
                 conclusion: EnumAndOr.And));
@@ -935,7 +940,7 @@ namespace APACElib
                 id: id++,
                 name: "M1 is never used",
                 features: new List<Feature> {
-                        _epiHist.Features[_featureInfo.FeatureIDs[(int)Features.IfEverUsed] + 2] },
+                        _epiHist.Features[_featureInfo.IfMEverOn] },
                 signs: new EnumSign[1] { EnumSign.e },
                 thresholdParams: thresholdParams0,
                 conclusion: EnumAndOr.And));
@@ -946,7 +951,7 @@ namespace APACElib
                 name: "Drug A - Turn On",
                 features: new List<Feature> {
                     _epiHist.Features[_featureInfo.FeatureIDs[(int)Features.Time]],
-                    _epiHist.Features[_featureInfo.FeatureIDs[(int)Features.IfEverUsed]] },
+                    _epiHist.Features[_featureInfo.IfAEverOff] },
                 signs: new EnumSign[2] { EnumSign.qe, EnumSign.e },
                 thresholdParams: thresholdParams00,
                 conclusion: EnumAndOr.And));
