@@ -20,6 +20,7 @@ namespace APACElib.Models
         public override void BuildModel()
         {
             _specialStatInfo.Reset(1);
+            _featureInfo.Reset(1);
 
             List<string> regions = new List<string>() { "MSM" };
 
@@ -40,7 +41,7 @@ namespace APACElib.Models
             // add features
             AddGonoFeatures(regions);
             // add conditions
-            AddGonoConditions();
+            AddGonoConditions(regions);
             // add connections
             AddGonoConnections(regions);
         }
@@ -444,111 +445,7 @@ namespace APACElib.Models
 
        
 
-        private void AddGonoConditions()
-        {
-            int id = 0;
-            EnumSign[] signs;
-            List<Parameter> thresholdParams = new List<Parameter>{
-                _paramManager.Parameters[(int)DummyParam.T_Prev],
-                _paramManager.Parameters[(int)DummyParam.T_DeltaPrev]};
-            List<Parameter> thresholdParams0 = new List<Parameter> {
-                _paramManager.Parameters[(int)DummyParam.D_0] };
-            List<Parameter> thresholdParams00 = new List<Parameter> {
-                _paramManager.Parameters[(int)DummyParam.D_0],
-                _paramManager.Parameters[(int)DummyParam.D_0] };
-
-            // out condition for A, B, or both
-            signs = new EnumSign[2] { EnumSign.q, EnumSign.q };
-            for (int i = 0; i < 3; i++)
-                _epiHist.Conditions.Add(new Condition_OnFeatures(
-                    id: id++,
-                    features: new List<Feature> {
-                        _epiHist.Features[_featureIDs[(int)Features.PercResist] + i],
-                        _epiHist.Features[_featureIDs[(int)Features.ChangeInPercResist] + i] },
-                    thresholdParams: thresholdParams,
-                    signs: signs,
-                    conclusion: EnumAndOr.Or));
-
-            // ok condition for A, B, or both
-            signs = new EnumSign[2] { EnumSign.le, EnumSign.le };
-            for (int i = 0; i < 3; i++)
-                _epiHist.Conditions.Add(new Condition_OnFeatures(
-                    id: id++,
-                    features: new List<Feature> {
-                        _epiHist.Features[_featureIDs[(int)Features.PercResist] + i],
-                        _epiHist.Features[_featureIDs[(int)Features.ChangeInPercResist] + i] },
-                    thresholdParams: thresholdParams,
-                    signs: signs,
-                    conclusion: EnumAndOr.And));
-
-            // B is never used
-            _epiHist.Conditions.Add(new Condition_OnFeatures(
-                id: id++,
-                features: new List<Feature> {
-                        _epiHist.Features[_featureIDs[(int)Features.IfEverUsed] + 1] },
-                signs: new EnumSign[1] { EnumSign.e },
-                thresholdParams: thresholdParams0,
-                conclusion: EnumAndOr.And));
-
-            // M1 is neer used
-            thresholdParams = new List<Parameter> { _paramManager.Parameters[(int)DummyParam.D_0] };
-            _epiHist.Conditions.Add(new Condition_OnFeatures(
-                id: id++,
-                features: new List<Feature> {
-                        _epiHist.Features[_featureIDs[(int)Features.IfEverUsed] + 2] },
-                signs: new EnumSign[1] { EnumSign.e },
-                thresholdParams: thresholdParams0,
-                conclusion: EnumAndOr.And));
-
-            // turn on A
-            _epiHist.Conditions.Add(new Condition_OnFeatures(
-                id: id++,
-                features: new List<Feature> {
-                    _epiHist.Features[_featureIDs[(int)Features.Time]],
-                    _epiHist.Features[_featureIDs[(int)Features.IfEverUsed]] },
-                signs: new EnumSign[2] { EnumSign.qe, EnumSign.e },
-                thresholdParams: thresholdParams00,
-                conclusion: EnumAndOr.And));
-
-            // turn off A
-            _epiHist.Conditions.Add(new Condition_OnConditions(
-                id: id++,
-                conditions: new List<Condition> {
-                    _epiHist.Conditions[(int)Conditions.AOut],
-                    _epiHist.Conditions[(int)Conditions.ABOut] },
-                conclusion: EnumAndOr.Or));
-
-            // turn on B
-            _epiHist.Conditions.Add(new Condition_OnConditions(
-                id: id++,
-                conditions: new List<Condition> {
-                    _epiHist.Conditions[(int)Conditions.AOut],
-                    _epiHist.Conditions[(int)Conditions.BOk],
-                    _epiHist.Conditions[(int)Conditions.ABOk],
-                    _epiHist.Conditions[(int)Conditions.BNeverUsed],
-                    _epiHist.Conditions[(int)Conditions.MNeverUsed]},
-                conclusion: EnumAndOr.And));
-
-            // turn off B
-            _epiHist.Conditions.Add(new Condition_OnConditions(
-                id: id++,
-                conditions: new List<Condition> {
-                    _epiHist.Conditions[(int)Conditions.BOut],
-                    _epiHist.Conditions[(int)Conditions.ABOut] },
-                conclusion: EnumAndOr.Or));
-
-            // turn on M
-            _epiHist.Conditions.Add(new Condition_OnConditions(
-                id: id,
-                conditions: new List<Condition> {
-                    _epiHist.Conditions[id - 1] },
-                conclusion: EnumAndOr.And));
-            id++;
-
-            // turn off M
-            _epiHist.Conditions.Add(new Condition_AlwaysFalse(id: id++));
-
-        }
+        
 
         
     }

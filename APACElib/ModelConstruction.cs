@@ -1184,26 +1184,26 @@ namespace APACElib
                 switch (strDefinedOn)
                 {
                     case "Features":
-                        {
-                            string strFeatureIDs = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureIDs));
+                        {                            
+                            string strFeatureIDs = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureIDs));                            
                             string strSigns = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureSigns));
                             string strThresholds = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureThresholds));
                             string strConclusion = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.FeatureConclusion));
-                            _epiHist.Conditions.Add(new Condition_OnFeatures(id, _epiHist.Features, _paramManager.Parameters, strFeatureIDs, strThresholds, strSigns, strConclusion));
+                            _epiHist.Conditions.Add(new Condition_OnFeatures(id, name, _epiHist.Features, _paramManager.Parameters, strFeatureIDs, strThresholds, strSigns, strConclusion));
                         }
                         break;
                     case "Conditions":
                         {
                             string strConditions = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.Conditions));
                             string strConclusion = Convert.ToString(conditionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumConditionsColumns.ConditionsConclusions));
-                            _epiHist.Conditions.Add(new Condition_OnConditions(id, _epiHist.Conditions, strConditions, strConclusion));
+                            _epiHist.Conditions.Add(new Condition_OnConditions(id, name, _epiHist.Conditions, strConditions, strConclusion));
                         }
                         break;
                     case "Always True":
-                        _epiHist.Conditions.Add(new Condition_AlwaysTrue(id));
+                        _epiHist.Conditions.Add(new Condition_AlwaysTrue(id, name));
                         break;
                     case "Always False":
-                        _epiHist.Conditions.Add(new Condition_AlwaysFalse(id));
+                        _epiHist.Conditions.Add(new Condition_AlwaysFalse(id, name));
                         break;
                 }
             }

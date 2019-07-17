@@ -148,10 +148,12 @@ namespace APACElib
     public abstract class Condition
     {
         public int ID { get; }
+        public string Name { get; }
         public bool Value { get; protected set; }
-        public Condition(int id)
+        public Condition(int id, string name)
         {
             ID = id;
+            Name = name;
         }
 
         public abstract void Update(int epiTimeIndex, RNG rng);
@@ -159,7 +161,7 @@ namespace APACElib
 
     public class Condition_AlwaysTrue : Condition
     {
-        public Condition_AlwaysTrue(int id) : base(id) { }
+        public Condition_AlwaysTrue(int id, string name) : base(id, name) { }
 
         public override void Update(int epiTimeIndex, RNG rng)
         {
@@ -169,7 +171,7 @@ namespace APACElib
 
     public class Condition_AlwaysFalse : Condition
     {
-        public Condition_AlwaysFalse(int id) : base(id) { }
+        public Condition_AlwaysFalse(int id, string name) : base(id, name) { }
 
         public override void Update(int epiTimeIndex, RNG rng)
         {
@@ -189,12 +191,13 @@ namespace APACElib
 
         public Condition_OnFeatures(
             int id,
+            string name,
             List<Feature> allFeatures,
             List<Parameter> allParameters,
             string strFeatureIDs,
             string strThresholdParIDs,
             string strSigns,            
-            string strConclusions): base(id)
+            string strConclusions): base(id, name)
         {            
 
             int[] featureIDs = SupportProcedures.ConvertStringToIntArray(strFeatureIDs);
@@ -216,10 +219,11 @@ namespace APACElib
         }
         public Condition_OnFeatures(
             int id,
+            string name,
             List<Feature> features,
             List<Parameter> thresholdParams,
             EnumSign[] signs,
-            EnumAndOr conclusion) : base(id)
+            EnumAndOr conclusion) : base(id, name)
         {
             _features = features;
             _thresholdParams = thresholdParams;
@@ -292,9 +296,10 @@ namespace APACElib
 
         public Condition_OnConditions(
             int id,
+            string name,
             List<Condition> allConditions,
             string strConditions,
-            string strConclusions): base(id)
+            string strConclusions): base(id, name)
         {
             int[] conditionIDs = SupportProcedures.ConvertStringToIntArray(strConditions);
             for (int i = 0; i < conditionIDs.Length; i++)
@@ -307,8 +312,9 @@ namespace APACElib
         }
         public Condition_OnConditions(
             int id,
+            string name, 
             List<Condition> conditions,
-            EnumAndOr conclusion) : base(id)
+            EnumAndOr conclusion) : base(id, name)
         {
             _conditions = conditions;
             _andOr = conclusion;

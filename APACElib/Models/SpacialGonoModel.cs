@@ -19,6 +19,8 @@ namespace APACElib.Models
         public override void BuildModel()
         {
             _specialStatInfo.Reset(_sites.Count);
+            _featureInfo.Reset(_sites.Count);
+
             // add the parameters from the parameter sheet
             AddParameters();
             // add gono parameters 

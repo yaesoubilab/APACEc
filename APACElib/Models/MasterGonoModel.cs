@@ -9,7 +9,9 @@ using RandomVariateLib;
 
 namespace APACElib
 {
+    // used for total statis over all districts 
     enum GonoSpecialStatIDs { PopSize = 0, Prev, FirstTx, SuccessAOrB, SuccessAOrBOrM, PercFirstTxAndResist }
+    enum Features { Time, PercResist, ChangeInPercResist, IfEverUsed }
 
     public class GonoSpecialStatInfo
     {        
@@ -56,6 +58,21 @@ namespace APACElib
         }
     }
 
+    public class GonoFeatureInfo
+    {        
+        public List<int> FeatureIDs { get; set; }
+        public int[] IDPercResistFirstRegion { get; set; }
+        public int[] IDPChangeInPercResistFirstRegion { get; set; }
+
+        public void Reset(int nRegions)
+        {
+            FeatureIDs = new List<int>(new int[Enum.GetValues(typeof(Features)).Length]);
+            IDPercResistFirstRegion = new int[4]; // 4 for 0, A, B, AB
+            IDPChangeInPercResistFirstRegion = new int[4]; // 4 for 0, A, B, AB
+        }
+
+    }
+
 
     public abstract class GonoModel : ModelInstruction
     {
@@ -72,11 +89,11 @@ namespace APACElib
                                                                              // M2_B_AB: retreating those infected with G_B or G_AB with M after 1st line treatment failure
         protected enum DummyParam { D_0, D_1, D_Minus1, D_Inf, T_Prev, T_DeltaPrev } // 0, 1, 2, 3, 4, 5
 
-        protected enum Features { Time, PercResist, ChangeInPercResist, IfEverUsed }
         protected enum Conditions { AOut, BOut, ABOut, AOk, BOk, ABOk, BNeverUsed, MNeverUsed, AOn, AOff, BOn, BOff, MOn, MOff };
-        protected List<int> _featureIDs = new List<int>(new int[Enum.GetValues(typeof(Features)).Length]);
+        
         protected List<string> _infProfiles = new List<string>();
         protected GonoSpecialStatInfo _specialStatInfo = new GonoSpecialStatInfo();
+        protected GonoFeatureInfo _featureInfo = new GonoFeatureInfo();
 
         public GonoModel()
         {
@@ -105,148 +122,6 @@ namespace APACElib
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                     AddGonoParamSize_I(regions, s, r, infProfileID++);
 
-        }
-
-        private void AddGonoParamSize_S(string region, int parIDInitialPop, int parID1MinusPrev)
-        {
-            _paramManager.Add(new ProductParameter(
-                ID: _paramManager.Parameters.Count,
-                name: "Initial size of " + region + " | S",
-                parameters: GetParamList(new List<int>() { parIDInitialPop, parID1MinusPrev }))
-                );
-        }
-
-        private void AddGonoParamSize_I(List<string> regions, SymStates s, ResistStates r, int infProfileID)
-        {
-            List<int> paramIDs = new List<int>();
-            int parID = _paramManager.Parameters.Count;
-            int parIDInitialPopSize = _paramManager.Dic["Initial population size | " + regions[0]];
-            int parIDInitialPrevalence = _paramManager.Dic["Initial prevalence | " + regions[0]];
-            int parIDInitialSym = _paramManager.Dic["Initial symptomatic | " + regions[0]];
-            int parIDInitialAsym = _paramManager.Dic["1-Initial symptomatic | " + regions[0]];
-            int parIDInitialResistToA = _paramManager.Dic["Initial resistant to A | " + regions[0]];
-            int parIDInitialResistToB = _paramManager.Dic["Initial resistant to B | " + regions[0]];
-            int parIDInitialResistToAorB = _paramManager.Dic["1-Initial resistant to A or B | " + regions[0]];
-
-            for (int regionID = 0; regionID < regions.Count; regionID++)
-            {
-                string parName = "Initial size of " + regions[regionID] + " | I | " + _infProfiles[infProfileID];
-
-                // par ID for population size of this region
-                paramIDs.Add(parIDInitialPopSize + regionID);
-                // par ID for prevalence of gonorrhea in this region
-                paramIDs.Add(parIDInitialPrevalence + regionID);
-
-                // par ID for proportion symptomatic or asymptomatic 
-                if (s == SymStates.Sym)
-                    paramIDs.Add(parIDInitialSym + regionID);
-                else
-                    paramIDs.Add(parIDInitialAsym + regionID);
-
-                // par ID for prevalence of resistance to A, B, or AB
-                switch (r)
-                {
-                    case ResistStates.G_0:
-                        paramIDs.Add(parIDInitialResistToAorB + regionID);
-                        break;
-                    case ResistStates.G_A:
-                        paramIDs.Add(parIDInitialResistToA + regionID);
-                        break;
-                    case ResistStates.G_B:
-                        paramIDs.Add(parIDInitialResistToB + regionID);
-                        break;
-                    case ResistStates.G_AB:
-                        paramIDs.Add(0);
-                        break;
-                }
-
-                if (r == ResistStates.G_AB)
-                    _paramManager.Add(new IndependetParameter(
-                        ID: parID++,
-                        name: parName,
-                        enumRandomVariateGenerator: RandomVariateLib.SupportProcedures.ConvertToEnumRVG("Constant"),
-                        par1: 0, par2: 0, par3: 0, par4: 0)
-                        );
-                else
-                    _paramManager.Add(new ProductParameter(
-                        ID: parID++,
-                        name: parName,
-                        parameters: GetParamList(paramIDs))
-                        );
-            }
-        }
-
-        protected List<Parameter> GetParamList(string paramName)
-        {
-            return new List<Parameter>() { _paramManager.GetParameter(paramName) };
-        }
-        protected List<Parameter> GetParamList(List<int> paramIDs)
-        {
-            List<Parameter> list = new List<Parameter>();
-            foreach (int i in paramIDs)
-                list.Add(_paramManager.Parameters[i]);
-
-            return list;
-        }
-        protected List<Parameter> GetParamList(List<string> paramNames)
-        {
-            List<Parameter> list = new List<Parameter>();
-            foreach (string name in paramNames)
-                list.Add(GetParam(name));
-
-            return list;
-        }
-        protected List<Parameter> GetParamList(DummyParam dummyParam, int repeat)
-        {
-            List<Parameter> list = new List<Parameter>();
-            for (int i = 0; i < repeat; i++)
-                list.Add(_paramManager.Parameters[(int)dummyParam]);
-            return list;
-        }
-        protected List<Parameter> GetParamList(string paramName, int pos, int size, DummyParam dummyParam)
-        {
-            List<Parameter> list = new List<Parameter>();
-            for (int i = 0; i < size; i++)
-                if (i == pos)
-                    list.Add(GetParam(paramName));
-                else
-                    list.Add(_paramManager.Parameters[(int)dummyParam]);
-            return list;
-        }
-        protected List<Parameter> GetParamList(int parID, int pos, int size, DummyParam dummyParam)
-        {
-            List<Parameter> list = new List<Parameter>();
-            for (int i = 0; i < size; i++)
-                if (i == pos)
-                    list.Add(_paramManager.Parameters[parID]);
-                else
-                    list.Add(_paramManager.Parameters[(int)dummyParam]);
-            return list;
-        }
-        protected Parameter GetParam(string paramName)
-        {
-            return _paramManager.GetParameter(paramName);
-        }
-
-        protected string GetResistOrFail(ResistStates resistStat, Drugs drug)
-        {
-            string resistOrFail = "";
-            switch (resistStat)
-            {
-                case ResistStates.G_0:
-                    resistOrFail = (drug == Drugs.A1) ? "A" : "B";
-                    break;
-                case ResistStates.G_A:
-                    resistOrFail = (drug == Drugs.A1) ? "F" : "AB";
-                    break;
-                case ResistStates.G_B:
-                    resistOrFail = (drug == Drugs.A1) ? "AB" : "F";
-                    break;
-                case ResistStates.G_AB:
-                    resistOrFail = "F";
-                    break;
-            }
-            return resistOrFail;
         }
 
         protected void AddGonoClasses(List<string> regions)
@@ -333,7 +208,7 @@ namespace APACElib
 
                             if (r != ResistStates.G_0)
                                 _specialStatInfo.PrevResist[0][(int)r] += C.ID + "+";
-                            
+
                             // special statics on treatment
                             if (c == Comparts.W)
                             {
@@ -345,9 +220,9 @@ namespace APACElib
                                 {
                                     _specialStatInfo.TreatedResist[0][(int)r] += C.ID + "+";
                                     if (regions.Count > 1)
-                                        _specialStatInfo.TreatedResist[regionID+1][(int)r] += C.ID + "+";
+                                        _specialStatInfo.TreatedResist[regionID + 1][(int)r] += C.ID + "+";
                                 }
-                                
+
                             }
                         }
                         ++infProfile;
@@ -594,7 +469,7 @@ namespace APACElib
                         }
                     }
 
-                }           
+                }
 
             // sucessful treatment
             string success1st =
@@ -866,11 +741,11 @@ namespace APACElib
             int idPercFirstTxAndResist = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PercFirstTxAndResist];
 
             // add time
-            _featureIDs[(int)Features.Time] = id;
+            _featureInfo.FeatureIDs[(int)Features.Time] = id;
             _epiHist.Features.Add(new Feature_EpidemicTime("Epidemic Time", id++));
 
             // % receieved 1st Tx and resistant to A, B, or AB
-            _featureIDs[(int)Features.PercResist] = id;
+            _featureInfo.FeatureIDs[(int)Features.PercResist] = id;
             foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
             {
                 if (r != ResistStates.G_0)
@@ -899,7 +774,7 @@ namespace APACElib
             }
 
             // change in % receieved 1st Tx and resistant to A, B, or AB
-            _featureIDs[(int)Features.ChangeInPercResist] = id;
+            _featureInfo.FeatureIDs[(int)Features.ChangeInPercResist] = id;
             foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
             {
                 if (r != ResistStates.G_0)
@@ -928,7 +803,7 @@ namespace APACElib
             }
 
             // if A1 ever switched off 
-            _featureIDs[(int)Features.IfEverUsed] = id;
+            _featureInfo.FeatureIDs[(int)Features.IfEverUsed] = id;
             _epiHist.Features.Add(new Feature_Intervention(
                 name: "If A1 ever switched off",
                 featureID: id++,
@@ -981,6 +856,285 @@ namespace APACElib
                         intervention: _decisionMaker.Interventions[(int)Interventions.M1 + regionID + 1]) //TODO: update intervention 
                         );
                 }
+        }
+
+        protected void AddGonoConditions(List<string> regions)
+        {
+            int id = 0;
+            EnumSign[] signs;
+            List<Parameter> thresholdParams = new List<Parameter>{
+                _paramManager.Parameters[(int)DummyParam.T_Prev],
+                _paramManager.Parameters[(int)DummyParam.T_DeltaPrev]};
+            List<Parameter> thresholdParams0 = new List<Parameter> {
+                _paramManager.Parameters[(int)DummyParam.D_0] };
+            List<Parameter> thresholdParams00 = new List<Parameter> {
+                _paramManager.Parameters[(int)DummyParam.D_0],
+                _paramManager.Parameters[(int)DummyParam.D_0] };
+
+            // out condition for A, B, or both
+            signs = new EnumSign[2] { EnumSign.q, EnumSign.q };
+            string[] drugUse = new string[3] { "A", "B", "AB" };
+            for (int i = 0; i < 3; i++) // over A, B, or both A B out
+            {
+                _epiHist.Conditions.Add(new Condition_OnFeatures(
+                    id: id++,
+                    name: drugUse[i] + "Out Condition",
+                    features: new List<Feature> {
+                        _epiHist.Features[_featureInfo.FeatureIDs[(int)Features.PercResist] + i],
+                        _epiHist.Features[_featureInfo.FeatureIDs[(int)Features.ChangeInPercResist] + i] },
+                    thresholdParams: thresholdParams,
+                    signs: signs,
+                    conclusion: EnumAndOr.Or));
+                if (regions.Count > 1)
+                {
+                    int firstIDPerc = _featureInfo.IDPercResistFirstRegion[i];
+                    int firstIDChange = _featureInfo.IDPChangeInPercResistFirstRegion[i];
+                    for (int regionID = 0; regionID < regions.Count; regionID++)
+                    {
+                        _epiHist.Conditions.Add(new Condition_OnFeatures(
+                            id: id++,
+                            name: drugUse[i] + "Out Condition | " + regions[regionID],
+                            features: new List<Feature> {
+                                _epiHist.Features[firstIDPerc + regionID],
+                                _epiHist.Features[firstIDChange + regionID] },
+                            thresholdParams: thresholdParams,
+                            signs: signs,
+                            conclusion: EnumAndOr.Or));
+                    }
+                }
+            }
+
+            // ok condition for A, B, or both
+            signs = new EnumSign[2] { EnumSign.le, EnumSign.le };
+            for (int i = 0; i < 3; i++)
+                _epiHist.Conditions.Add(new Condition_OnFeatures(
+                    id: id++,
+                     name: drugUse[i] + "OK Condition",
+                    features: new List<Feature> {
+                        _epiHist.Features[_featureInfo.FeatureIDs[(int)Features.PercResist] + i],
+                        _epiHist.Features[_featureInfo.FeatureIDs[(int)Features.ChangeInPercResist] + i] },
+                    thresholdParams: thresholdParams,
+                    signs: signs,
+                    conclusion: EnumAndOr.And));
+
+            // B is never used
+            _epiHist.Conditions.Add(new Condition_OnFeatures(
+                id: id++,
+                name: "B is never used",
+                features: new List<Feature> {
+                        _epiHist.Features[_featureInfo.FeatureIDs[(int)Features.IfEverUsed] + 1] },
+                signs: new EnumSign[1] { EnumSign.e },
+                thresholdParams: thresholdParams0,
+                conclusion: EnumAndOr.And));
+
+            // M1 is neer used
+            thresholdParams = new List<Parameter> { _paramManager.Parameters[(int)DummyParam.D_0] };
+            _epiHist.Conditions.Add(new Condition_OnFeatures(
+                id: id++,
+                name: "M1 is never used",
+                features: new List<Feature> {
+                        _epiHist.Features[_featureInfo.FeatureIDs[(int)Features.IfEverUsed] + 2] },
+                signs: new EnumSign[1] { EnumSign.e },
+                thresholdParams: thresholdParams0,
+                conclusion: EnumAndOr.And));
+
+            // turn on A
+            _epiHist.Conditions.Add(new Condition_OnFeatures(
+                id: id++,
+                name: "Drug A - Turn On",
+                features: new List<Feature> {
+                    _epiHist.Features[_featureInfo.FeatureIDs[(int)Features.Time]],
+                    _epiHist.Features[_featureInfo.FeatureIDs[(int)Features.IfEverUsed]] },
+                signs: new EnumSign[2] { EnumSign.qe, EnumSign.e },
+                thresholdParams: thresholdParams00,
+                conclusion: EnumAndOr.And));
+
+            // turn off A
+            _epiHist.Conditions.Add(new Condition_OnConditions(
+                id: id++,
+                name: "Drug A - Turn Off",
+                conditions: new List<Condition> {
+                    _epiHist.Conditions[(int)Conditions.AOut],
+                    _epiHist.Conditions[(int)Conditions.ABOut] },
+                conclusion: EnumAndOr.Or));
+
+            // turn on B
+            _epiHist.Conditions.Add(new Condition_OnConditions(
+                id: id++,
+                name: "Drug B - Turn On",
+                conditions: new List<Condition> {
+                    _epiHist.Conditions[(int)Conditions.AOut],
+                    _epiHist.Conditions[(int)Conditions.BOk],
+                    _epiHist.Conditions[(int)Conditions.ABOk],
+                    _epiHist.Conditions[(int)Conditions.BNeverUsed],
+                    _epiHist.Conditions[(int)Conditions.MNeverUsed]},
+                conclusion: EnumAndOr.And));
+
+            // turn off B
+            _epiHist.Conditions.Add(new Condition_OnConditions(
+                id: id++,
+                name: "Drug B - Turn Off",
+                conditions: new List<Condition> {
+                    _epiHist.Conditions[(int)Conditions.BOut],
+                    _epiHist.Conditions[(int)Conditions.ABOut] },
+                conclusion: EnumAndOr.Or));
+
+            // turn on M
+            _epiHist.Conditions.Add(new Condition_OnConditions(
+                id: id,
+                name: "Drug M - Turn On",
+                conditions: new List<Condition> {
+                    _epiHist.Conditions[id - 1] },
+                conclusion: EnumAndOr.And));
+            id++;
+
+            // turn off M
+            _epiHist.Conditions.Add(new Condition_AlwaysFalse(
+                id: id++,
+                name: "Drug M - Turn Off"));
+
+        }
+
+        private void AddGonoParamSize_S(string region, int parIDInitialPop, int parID1MinusPrev)
+        {
+            _paramManager.Add(new ProductParameter(
+                ID: _paramManager.Parameters.Count,
+                name: "Initial size of " + region + " | S",
+                parameters: GetParamList(new List<int>() { parIDInitialPop, parID1MinusPrev }))
+                );
+        }
+
+        private void AddGonoParamSize_I(List<string> regions, SymStates s, ResistStates r, int infProfileID)
+        {
+            List<int> paramIDs = new List<int>();
+            int parID = _paramManager.Parameters.Count;
+            int parIDInitialPopSize = _paramManager.Dic["Initial population size | " + regions[0]];
+            int parIDInitialPrevalence = _paramManager.Dic["Initial prevalence | " + regions[0]];
+            int parIDInitialSym = _paramManager.Dic["Initial symptomatic | " + regions[0]];
+            int parIDInitialAsym = _paramManager.Dic["1-Initial symptomatic | " + regions[0]];
+            int parIDInitialResistToA = _paramManager.Dic["Initial resistant to A | " + regions[0]];
+            int parIDInitialResistToB = _paramManager.Dic["Initial resistant to B | " + regions[0]];
+            int parIDInitialResistToAorB = _paramManager.Dic["1-Initial resistant to A or B | " + regions[0]];
+
+            for (int regionID = 0; regionID < regions.Count; regionID++)
+            {
+                string parName = "Initial size of " + regions[regionID] + " | I | " + _infProfiles[infProfileID];
+
+                // par ID for population size of this region
+                paramIDs.Add(parIDInitialPopSize + regionID);
+                // par ID for prevalence of gonorrhea in this region
+                paramIDs.Add(parIDInitialPrevalence + regionID);
+
+                // par ID for proportion symptomatic or asymptomatic 
+                if (s == SymStates.Sym)
+                    paramIDs.Add(parIDInitialSym + regionID);
+                else
+                    paramIDs.Add(parIDInitialAsym + regionID);
+
+                // par ID for prevalence of resistance to A, B, or AB
+                switch (r)
+                {
+                    case ResistStates.G_0:
+                        paramIDs.Add(parIDInitialResistToAorB + regionID);
+                        break;
+                    case ResistStates.G_A:
+                        paramIDs.Add(parIDInitialResistToA + regionID);
+                        break;
+                    case ResistStates.G_B:
+                        paramIDs.Add(parIDInitialResistToB + regionID);
+                        break;
+                    case ResistStates.G_AB:
+                        paramIDs.Add(0);
+                        break;
+                }
+
+                if (r == ResistStates.G_AB)
+                    _paramManager.Add(new IndependetParameter(
+                        ID: parID++,
+                        name: parName,
+                        enumRandomVariateGenerator: RandomVariateLib.SupportProcedures.ConvertToEnumRVG("Constant"),
+                        par1: 0, par2: 0, par3: 0, par4: 0)
+                        );
+                else
+                    _paramManager.Add(new ProductParameter(
+                        ID: parID++,
+                        name: parName,
+                        parameters: GetParamList(paramIDs))
+                        );
+            }
+        }
+
+        protected List<Parameter> GetParamList(string paramName)
+        {
+            return new List<Parameter>() { _paramManager.GetParameter(paramName) };
+        }
+        protected List<Parameter> GetParamList(List<int> paramIDs)
+        {
+            List<Parameter> list = new List<Parameter>();
+            foreach (int i in paramIDs)
+                list.Add(_paramManager.Parameters[i]);
+
+            return list;
+        }
+        protected List<Parameter> GetParamList(List<string> paramNames)
+        {
+            List<Parameter> list = new List<Parameter>();
+            foreach (string name in paramNames)
+                list.Add(GetParam(name));
+
+            return list;
+        }
+        protected List<Parameter> GetParamList(DummyParam dummyParam, int repeat)
+        {
+            List<Parameter> list = new List<Parameter>();
+            for (int i = 0; i < repeat; i++)
+                list.Add(_paramManager.Parameters[(int)dummyParam]);
+            return list;
+        }
+        protected List<Parameter> GetParamList(string paramName, int pos, int size, DummyParam dummyParam)
+        {
+            List<Parameter> list = new List<Parameter>();
+            for (int i = 0; i < size; i++)
+                if (i == pos)
+                    list.Add(GetParam(paramName));
+                else
+                    list.Add(_paramManager.Parameters[(int)dummyParam]);
+            return list;
+        }
+        protected List<Parameter> GetParamList(int parID, int pos, int size, DummyParam dummyParam)
+        {
+            List<Parameter> list = new List<Parameter>();
+            for (int i = 0; i < size; i++)
+                if (i == pos)
+                    list.Add(_paramManager.Parameters[parID]);
+                else
+                    list.Add(_paramManager.Parameters[(int)dummyParam]);
+            return list;
+        }
+        protected Parameter GetParam(string paramName)
+        {
+            return _paramManager.GetParameter(paramName);
+        }
+
+        protected string GetResistOrFail(ResistStates resistStat, Drugs drug)
+        {
+            string resistOrFail = "";
+            switch (resistStat)
+            {
+                case ResistStates.G_0:
+                    resistOrFail = (drug == Drugs.A1) ? "A" : "B";
+                    break;
+                case ResistStates.G_A:
+                    resistOrFail = (drug == Drugs.A1) ? "F" : "AB";
+                    break;
+                case ResistStates.G_B:
+                    resistOrFail = (drug == Drugs.A1) ? "AB" : "F";
+                    break;
+                case ResistStates.G_AB:
+                    resistOrFail = "F";
+                    break;
+            }
+            return resistOrFail;
         }
 
         private Class_Normal Get_S(int id, string region, int parInitialSizeID)
