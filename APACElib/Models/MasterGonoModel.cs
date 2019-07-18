@@ -43,7 +43,7 @@ namespace APACElib
             SumTxResistFirstRegion = new List<int>(new int[4]); // 4 for 0, A, B, AB
             RatioTxResistFirstRegion = new List<int>(new int[4]); // 4 for 0, A, B, AB
 
-            for (int i = 0; i < nRegions; i++)
+            for (int i = 0; i < nRegions + 1; i++)
             {
                 Prev.Add("");
                 PrevSym.Add(new List<string>() { "", "" }); // Sym, Asym
@@ -177,7 +177,6 @@ namespace APACElib
             // add classes to count the treatment outcomes
             // Success with A1, B1, or B2
             foreach (Drugs d in Enum.GetValues(typeof(Drugs)))
-            {
                 for (regionID = 0; regionID < regions.Count; regionID++)
                 {
                     Class_Normal c = Get_Success(id: classID, region: regions[regionID], drug: d.ToString());
@@ -185,11 +184,9 @@ namespace APACElib
                     _dicClasses[c.Name] = classID++;
                     _specialStatInfo.TreatedA1B1B2[(int)d] += c.ID + "+";
                 }
-            }
 
             // Success with M1 or M2
             foreach (Ms m in Enum.GetValues(typeof(Ms)))
-            {
                 for (regionID = 0; regionID < regions.Count; regionID++)
                 {
                     Class_Normal c = Get_Success(id: classID, region: regions[regionID], drug: m.ToString());
@@ -197,7 +194,6 @@ namespace APACElib
                     _dicClasses[c.Name] = classID++;
                     _specialStatInfo.TreatedM1M2[(int)m] += c.ID + "+";
                 }
-            }
 
             // add death
             for (regionID = 0; regionID < regions.Count; regionID++)
@@ -251,7 +247,7 @@ namespace APACElib
                                 {
                                     _specialStatInfo.TreatedResist[0][(int)r] += C.ID + "+";
                                     if (regions.Count > 1)
-                                        _specialStatInfo.TreatedResist[regionID + 1][(int)r] += C.ID + "+";
+                                        _specialStatInfo.TreatedResist[regionID+1][(int)r] += C.ID + "+";
                                 }
 
                             }
@@ -265,7 +261,6 @@ namespace APACElib
             int classIDIfAsymp = _dicClasses[regions[0] + " | I | Asym | G_0"];
             int ifSymParID = _paramManager.Dic["Prob sym | G_0"];
             foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
-            {
                 for (regionID = 0; regionID < regions.Count; regionID++)
                 {
                     Class_Splitting ifSym = Get_IfSym(
@@ -279,7 +274,6 @@ namespace APACElib
                     _classes.Add(ifSym);
                     _dicClasses[ifSym.Name] = classID++;
                 }
-            }
 
             // if seeking retreatment after resistance or failure
             // examples "If retreat A | A --> I | Sym | G_0"
@@ -364,7 +358,7 @@ namespace APACElib
                                 s: s,
                                 drug: drug,
                                 parIDProbResist: (drug == Drugs.A1) ? parIDProbResistA : parIDProbResistB,
-                                classIDSuccess: classIDSuccess + (int)drug);
+                                classIDSuccess: classIDSuccess + (int)drug * regions.Count + regionID);
                             _classes.Add(ifResist);
                             _dicClasses[ifResist.Name] = classID++;
                         }
@@ -400,7 +394,6 @@ namespace APACElib
 
             // add Birth events
             foreach (string comp in SandIs)
-            {
                 for (regionID = 0; regionID < n; regionID++)
                 {
                     eventName = regions[regionID] + " | Birth | " + comp;
@@ -413,11 +406,9 @@ namespace APACElib
                         );
                     _dicEvents[eventName] = id++;
                 }
-            }
 
             // add Death events
             foreach (string comp in SandIs)
-            {
                 for (regionID = 0; regionID < n; regionID++)
                 {
                     eventName = regions[regionID] + " | Death | " + comp;
@@ -430,13 +421,10 @@ namespace APACElib
                         );
                     _dicEvents[eventName] = id++;
                 }
-            }
 
             // add Infection events
             int idIfSympG_0 = _dicClasses[regions[0] + " | If Sym | G_0"];
-            int i = 0;
             foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
-            {
                 for (regionID = 0; regionID < n; regionID++)
                 {
                     eventName = regions[regionID] + " | Infection | " + r.ToString();
@@ -445,12 +433,10 @@ namespace APACElib
                         ID: id,
                         IDOfActivatingIntervention: 0,
                         IDOfPathogenToGenerate: (int)r,
-                        IDOfDestinationClass: idIfSympG_0 + i * n + regionID)
+                        IDOfDestinationClass: idIfSympG_0 + (int)r * n + regionID)
                         );
                     _dicEvents[eventName] = id++;
-                    i++;
                 }
-            }
 
             // add Natual Recovery events
             inf = 0;
@@ -475,7 +461,6 @@ namespace APACElib
             // add Seeking Treatment events
             int idWSymG_0 = _dicClasses[regions[0] + " | W | Sym | G_0"];
             inf = 0;
-            i = 0;
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
@@ -487,17 +472,16 @@ namespace APACElib
                             ID: id,
                             IDOfActivatingIntervention: 0,
                             rateParameter: (s == SymStates.Sym) ? _paramManager.Parameters[seekingTreatmentRate] : _paramManager.Parameters[(int)DummyParam.D_0],
-                            IDOfDestinationClass: idWSymG_0 + i * n + regionID)
+                            IDOfDestinationClass: idWSymG_0 + (int)r * n + regionID)
                         );
                         _dicEvents[eventName] = id++;
-                        i++;
                     }
                     inf++;
                 }
 
             // add Screening events
             inf = 0;
-            i = 0;
+            int i = 0;
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
