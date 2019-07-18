@@ -92,7 +92,7 @@ namespace APACElib
                                                                              // M2_B_AB: retreating those infected with G_B or G_AB with M after 1st line treatment failure
         protected enum DummyParam { D_0, D_1, D_Minus1, D_Inf, T_Prev, T_DeltaPrev } // 0, 1, 2, 3, 4, 5
 
-        protected enum Conditions { AOut, BOut, ABOut, AOk, BOk, ABOk, BNeverUsed, MNeverUsed, AOn, AOff, BOn, BOff, MOn, MOff };
+        protected enum Conditions { AOut, BOut, ABOut, AOk, BOk, ABOk, BNeverUsed, M1NeverUsed, AOn, AOff, BOn, BOff, MOn, MOff };
         
         protected List<string> _infProfiles = new List<string>();
         protected GonoSpecialStatInfo _specialStatInfo = new GonoSpecialStatInfo();
@@ -1051,8 +1051,24 @@ namespace APACElib
                     _epiHist.Conditions[(int)Conditions.BOk],
                     _epiHist.Conditions[(int)Conditions.ABOk],
                     _epiHist.Conditions[(int)Conditions.BNeverUsed],
-                    _epiHist.Conditions[(int)Conditions.MNeverUsed]},
+                    _epiHist.Conditions[(int)Conditions.M1NeverUsed]},
                 conclusion: EnumAndOr.And));
+            if (regions.Count > 1)
+            {
+                for (int regionID = 0; regionID < regions.Count; regionID++)
+                {
+                    _epiHist.Conditions.Add(new Condition_OnConditions(
+                        id: id++,
+                        name: "Drug B - Turn On | " + regions[regionID],
+                        conditions: new List<Condition> {
+                            _epiHist.Conditions[(int)Conditions.AOut + regionID + 1],
+                            _epiHist.Conditions[(int)Conditions.BOk + regionID + 1],
+                            _epiHist.Conditions[(int)Conditions.ABOk + regionID + 1],
+                            _epiHist.Conditions[(int)Conditions.BNeverUsed + regionID + 1],
+                            _epiHist.Conditions[(int)Conditions.M1NeverUsed + regionID + 1]},
+                        conclusion: EnumAndOr.And));
+                }
+            }
 
             // turn off B
             _epiHist.Conditions.Add(new Condition_OnConditions(
@@ -1062,20 +1078,53 @@ namespace APACElib
                     _epiHist.Conditions[(int)Conditions.BOut],
                     _epiHist.Conditions[(int)Conditions.ABOut] },
                 conclusion: EnumAndOr.Or));
+            if (regions.Count > 1)
+            {
+                for (int regionID = 0; regionID < regions.Count; regionID++)
+                {
+                    _epiHist.Conditions.Add(new Condition_OnConditions(
+                        id: id++,
+                        name: "Drug B - Turn Off | " + regions[regionID],
+                        conditions: new List<Condition> {
+                            _epiHist.Conditions[(int)Conditions.BOut + regionID + 1],
+                            _epiHist.Conditions[(int)Conditions.ABOut + regionID + 1] },
+                        conclusion: EnumAndOr.Or));
+                }
+            }
 
             // turn on M
             _epiHist.Conditions.Add(new Condition_OnConditions(
-                id: id,
+                id: id++,
                 name: "Drug M - Turn On",
                 conditions: new List<Condition> {
-                    _epiHist.Conditions[id - 1] },
+                    _epiHist.Conditions[(int)Conditions.BOff] },
                 conclusion: EnumAndOr.And));
-            id++;
+            if (regions.Count > 1)
+            {
+                for (int regionID = 0; regionID < regions.Count; regionID++)
+                {
+                    _epiHist.Conditions.Add(new Condition_OnConditions(
+                        id: id++,
+                        name: "Drug M - Turn On | " + regions[regionID],
+                        conditions: new List<Condition> {
+                            _epiHist.Conditions[(int)Conditions.BOff + regionID + 1] }, // TODO: update
+                        conclusion: EnumAndOr.And));
+                }
+            }
 
             // turn off M
             _epiHist.Conditions.Add(new Condition_AlwaysFalse(
                 id: id++,
                 name: "Drug M - Turn Off"));
+            if (regions.Count > 1)
+            {
+                for (int regionID = 0; regionID < regions.Count; regionID++)
+                {
+                    _epiHist.Conditions.Add(new Condition_AlwaysFalse(
+                        id: id++,
+                        name: "Drug M - Turn Off | " + regions[regionID]));
+                }
+            }
 
         }
 
