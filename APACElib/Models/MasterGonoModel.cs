@@ -524,10 +524,11 @@ namespace APACElib
                                 else
                                     destClassName = regions[regionID] + " | If " + treatmentProfile;
 
+                                int intID = (d == Drugs.A1) ? (int)Interventions.A1 : (int)Interventions.B1;
                                 _events.Add(new Event_EpidemicIndependent(
                                     name: eventName,
                                     ID: id,
-                                    IDOfActivatingIntervention: (d == Drugs.A1) ? (int)Interventions.A1 : (int)Interventions.B1,
+                                    IDOfActivatingIntervention: intID + regionID,
                                     rateParameter: _paramManager.Parameters[infRate], // infinity rate
                                     IDOfDestinationClass: _dicClasses[destClassName])
                                     );
@@ -548,7 +549,7 @@ namespace APACElib
                         _events.Add(new Event_EpidemicIndependent(
                             name: eventName,
                             ID: id,
-                            IDOfActivatingIntervention: (int)Interventions.M1,
+                            IDOfActivatingIntervention: (int)Interventions.M1 + regionID,
                             rateParameter: _paramManager.Parameters[infRate],
                             IDOfDestinationClass: idSuccessM1 + regionID)
                             );
@@ -575,10 +576,11 @@ namespace APACElib
                         else
                             destClassName = regions[regionID] + " | If " + treatmentProfile;
 
+                        int intID = (r == ResistStates.G_A) ? (int)Interventions.B2_A + regionID : 1;
                         _events.Add(new Event_EpidemicIndependent(
                             name: eventName,
                             ID: id,
-                            IDOfActivatingIntervention: (r == ResistStates.G_A) ? (int)Interventions.B2_A : 1,
+                            IDOfActivatingIntervention: intID,
                             rateParameter: _paramManager.Parameters[seekingReTreatmentRate],
                             IDOfDestinationClass: _dicClasses[destClassName])
                             );
@@ -586,28 +588,27 @@ namespace APACElib
                     }
                 }
 
-            // add Second-Line Treatment with M2              
+            // add Second-Line Treatment with M2  
+            inf = 0;
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
-                {
                     for (regionID = 0; regionID < n; regionID++)
                     {
-                        string infProfile = s.ToString() + " | " + r.ToString();
-                        eventName = regions[regionID] + " | Tx_M2 | U | " + infProfile;
+                        eventName = regions[regionID] + " | Tx_M2 | U | " + _infProfiles[inf++];
+
+                        int intID = (r == ResistStates.G_A) ? (int)Interventions.M2_A : (int)Interventions.M2_B_AB;
                         _events.Add(new Event_EpidemicIndependent(
                             name: eventName,
                             ID: id,
-                            IDOfActivatingIntervention: (r == ResistStates.G_A) ? (int)Interventions.M2_A : (int)Interventions.M2_B_AB,
+                            IDOfActivatingIntervention: intID + regionID,
                             rateParameter: (r == ResistStates.G_A) ? _paramManager.Parameters[(int)DummyParam.D_0] : _paramManager.Parameters[seekingReTreatmentRate],
-                            IDOfDestinationClass: idSuccessM2)
+                            IDOfDestinationClass: idSuccessM2 + regionID)
                             );
                         _dicEvents[eventName] = id++;
                     }
-                }
 
             // add Leaving Success with A1, B1, or B2
             foreach (Drugs d in Enum.GetValues(typeof(Drugs)))
-            {
                 for (regionID = 0; regionID < n; regionID++)
                 {
                     eventName = regions[regionID] + " | Leaving Success with " + d.ToString();
@@ -620,7 +621,7 @@ namespace APACElib
                         );
                     _dicEvents[eventName] = id++;
                 }
-            }
+
             // add Leaving Success with M1 or M2
             foreach (Ms m in Enum.GetValues(typeof(Ms)))
             {
