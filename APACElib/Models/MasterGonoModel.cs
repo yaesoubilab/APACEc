@@ -389,7 +389,7 @@ namespace APACElib
             // add Death events
             foreach (string comp in SandIs)
             {
-                for (regionID = 0; regionID < regions.Count; regionID++)
+                for (regionID = 0; regionID < n; regionID++)
                 {
                     eventName = regions[regionID] + " | Death | " + comp;
                     _events.Add(new Event_EpidemicIndependent(
@@ -408,7 +408,7 @@ namespace APACElib
             int i = 0;
             foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
             {
-                for (regionID = 0; regionID < regions.Count; regionID++)
+                for (regionID = 0; regionID < n; regionID++)
                 {
                     eventName = regions[regionID] + " | Infection | " + r.ToString();
                     _events.Add(new Event_EpidemicDependent(
@@ -416,9 +416,10 @@ namespace APACElib
                         ID: id,
                         IDOfActivatingIntervention: 0,
                         IDOfPathogenToGenerate: (int)r,
-                        IDOfDestinationClass: idIfSympG_0 + i++)
+                        IDOfDestinationClass: idIfSympG_0 + i * n + regionID)
                         );
                     _dicEvents[eventName] = id++;
+                    i++;
                 }
             }
 
@@ -435,7 +436,7 @@ namespace APACElib
                             ID: id,
                             IDOfActivatingIntervention: 0,
                             rateParameter: _paramManager.Parameters[naturalRecoveryRate],
-                            IDOfDestinationClass: idS + regionID)
+                            IDOfDestinationClass: idS * n + regionID)
                         );
                         _dicEvents[eventName] = id++;
                     }
@@ -449,7 +450,7 @@ namespace APACElib
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
-                    for (regionID = 0; regionID < regions.Count; regionID++)
+                    for (regionID = 0; regionID < n; regionID++)
                     {
                         eventName = regions[regionID] + " | Seeking Treatment | I | " + _infProfiles[inf];
                         _events.Add(new Event_EpidemicIndependent(
@@ -457,9 +458,10 @@ namespace APACElib
                             ID: id,
                             IDOfActivatingIntervention: 0,
                             rateParameter: (s == SymStates.Sym) ? _paramManager.Parameters[seekingTreatmentRate] : _paramManager.Parameters[(int)DummyParam.D_0],
-                            IDOfDestinationClass: idWSymG_0 + i++)
+                            IDOfDestinationClass: idWSymG_0 + i * n + regionID)
                         );
                         _dicEvents[eventName] = id++;
+                        i++;
                     }
                     inf++;
                 }
@@ -470,7 +472,7 @@ namespace APACElib
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
-                    for (regionID = 0; regionID < regions.Count; regionID++)
+                    for (regionID = 0; regionID < n; regionID++)
                     {
                         eventName = regions[regionID] + " | Screening | I | " + _infProfiles[inf];
                         _events.Add(new Event_EpidemicIndependent(
@@ -478,9 +480,10 @@ namespace APACElib
                             ID: id,
                             IDOfActivatingIntervention: 0,
                             rateParameter: _paramManager.Parameters[screeningRate],
-                            IDOfDestinationClass: idWSymG_0 + i++)
+                            IDOfDestinationClass: idWSymG_0 + i * n + regionID)
                         );
                         _dicEvents[eventName] = id++;
+                        i++;
                     }
                     inf++;
                 }
@@ -492,7 +495,7 @@ namespace APACElib
                     foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                         foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                         {
-                            for (regionID = 0; regionID < regions.Count; regionID++)
+                            for (regionID = 0; regionID < n; regionID++)
                             {
                                 string resistOrFail = GetResistOrFail(resistStat: r, drug: d);
                                 string treatmentProfile = resistOrFail + " | " + d.ToString() + " --> I | " + _infProfiles[inf];
@@ -521,16 +524,19 @@ namespace APACElib
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
-                    string infProfile = s.ToString() + " | " + r.ToString();
-                    eventName = regions[0] + " | Tx_M1 | W | " + infProfile;
-                    _events.Add(new Event_EpidemicIndependent(
-                        name: eventName,
-                        ID: id,
-                        IDOfActivatingIntervention: (int)Interventions.M1,
-                        rateParameter: _paramManager.Parameters[infRate],
-                        IDOfDestinationClass: idSuccessM1)
-                        );
-                    _dicEvents[eventName] = id++;
+                    for (regionID = 0; regionID < n; regionID++)
+                    {
+                        string infProfile = s.ToString() + " | " + r.ToString();
+                        eventName = regions[regionID] + " | Tx_M1 | W | " + infProfile;
+                        _events.Add(new Event_EpidemicIndependent(
+                            name: eventName,
+                            ID: id,
+                            IDOfActivatingIntervention: (int)Interventions.M1,
+                            rateParameter: _paramManager.Parameters[infRate],
+                            IDOfDestinationClass: idSuccessM1 + regionID)
+                            );
+                        _dicEvents[eventName] = id++;
+                    }
                 }
 
             // add Second-Line Treatment with B2            
@@ -540,66 +546,79 @@ namespace APACElib
                     string resistOrFail = GetResistOrFail(resistStat: r, drug: Drugs.B2);
                     string infProfile = s.ToString() + " | " + r.ToString();
                     string treatmentProfile = resistOrFail + " | B2 --> I | " + infProfile;
-                    eventName = regions[0] + " | Tx_B2 | U | " + infProfile;
 
-                    string destClassName = "";
-                    if (resistOrFail == "F")
-                        // if treatment failure occurs, the patient will receive M2 
-                        destClassName = regions[0] + " | Success with M2";
-                    else
-                        destClassName = regions[0] + " | If " + treatmentProfile;
+                    for (regionID = 0; regionID < n; regionID++)
+                    {
+                        eventName = regions[0] + " | Tx_B2 | U | " + infProfile;
 
-                    _events.Add(new Event_EpidemicIndependent(
-                        name: eventName,
-                        ID: id,
-                        IDOfActivatingIntervention: (r == ResistStates.G_A) ? (int)Interventions.B2_A : 1,
-                        rateParameter: _paramManager.Parameters[seekingReTreatmentRate],
-                        IDOfDestinationClass: _dicClasses[destClassName])
-                        );
-                    _dicEvents[eventName] = id++;
+                        string destClassName = "";
+                        if (resistOrFail == "F")
+                            // if treatment failure occurs, the patient will receive M2 
+                            destClassName = regions[regionID] + " | Success with M2";
+                        else
+                            destClassName = regions[regionID] + " | If " + treatmentProfile;
+
+                        _events.Add(new Event_EpidemicIndependent(
+                            name: eventName,
+                            ID: id,
+                            IDOfActivatingIntervention: (r == ResistStates.G_A) ? (int)Interventions.B2_A : 1,
+                            rateParameter: _paramManager.Parameters[seekingReTreatmentRate],
+                            IDOfDestinationClass: _dicClasses[destClassName])
+                            );
+                        _dicEvents[eventName] = id++;
+                    }
                 }
 
             // add Second-Line Treatment with M2              
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
-                    string infProfile = s.ToString() + " | " + r.ToString();
-                    eventName = regions[0] + " | Tx_M2 | U | " + infProfile;
-                    _events.Add(new Event_EpidemicIndependent(
-                        name: eventName,
-                        ID: id,
-                        IDOfActivatingIntervention: (r == ResistStates.G_A) ? (int)Interventions.M2_A : (int)Interventions.M2_B_AB,
-                        rateParameter: (r == ResistStates.G_A) ? _paramManager.Parameters[(int)DummyParam.D_0] : _paramManager.Parameters[seekingReTreatmentRate],
-                        IDOfDestinationClass: idSuccessM2)
-                        );
-                    _dicEvents[eventName] = id++;
+                    for (regionID = 0; regionID < n; regionID++)
+                    {
+                        string infProfile = s.ToString() + " | " + r.ToString();
+                        eventName = regions[regionID] + " | Tx_M2 | U | " + infProfile;
+                        _events.Add(new Event_EpidemicIndependent(
+                            name: eventName,
+                            ID: id,
+                            IDOfActivatingIntervention: (r == ResistStates.G_A) ? (int)Interventions.M2_A : (int)Interventions.M2_B_AB,
+                            rateParameter: (r == ResistStates.G_A) ? _paramManager.Parameters[(int)DummyParam.D_0] : _paramManager.Parameters[seekingReTreatmentRate],
+                            IDOfDestinationClass: idSuccessM2)
+                            );
+                        _dicEvents[eventName] = id++;
+                    }
                 }
 
             // add Leaving Success with A1, B1, or B2
             foreach (Drugs d in Enum.GetValues(typeof(Drugs)))
             {
-                eventName = regions[0] + " | Leaving Success with " + d.ToString();
-                _events.Add(new Event_EpidemicIndependent(
-                    name: eventName,
-                    ID: id,
-                    IDOfActivatingIntervention: 0, // always on
-                    rateParameter: _paramManager.Parameters[(int)DummyParam.D_Inf],
-                    IDOfDestinationClass: 0) // back to S
-                    );
-                _dicEvents[eventName] = id++;
+                for (regionID = 0; regionID < n; regionID++)
+                {
+                    eventName = regions[regionID] + " | Leaving Success with " + d.ToString();
+                    _events.Add(new Event_EpidemicIndependent(
+                        name: eventName,
+                        ID: id,
+                        IDOfActivatingIntervention: 0, // always on
+                        rateParameter: _paramManager.Parameters[(int)DummyParam.D_Inf],
+                        IDOfDestinationClass: regionID) // back to S
+                        );
+                    _dicEvents[eventName] = id++;
+                }
             }
             // add Leaving Success with M1 or M2
             foreach (Ms m in Enum.GetValues(typeof(Ms)))
             {
-                eventName = regions[0] + " | Leaving Success with " + m.ToString();
-                _events.Add(new Event_EpidemicIndependent(
-                    name: eventName,
-                    ID: id,
-                    IDOfActivatingIntervention: 0, // always on
-                    rateParameter: _paramManager.Parameters[(int)DummyParam.D_Inf],
-                    IDOfDestinationClass: 0) // back to S
-                    );
-                _dicEvents[eventName] = id++;
+                for (regionID = 0; regionID < n; regionID++)
+                {
+                    eventName = regions[regionID] + " | Leaving Success with " + m.ToString();
+                    _events.Add(new Event_EpidemicIndependent(
+                        name: eventName,
+                        ID: id,
+                        IDOfActivatingIntervention: 0, // always on
+                        rateParameter: _paramManager.Parameters[(int)DummyParam.D_Inf],
+                        IDOfDestinationClass: regionID) // back to S
+                        );
+                    _dicEvents[eventName] = id++;
+                }
             }
         }
 
