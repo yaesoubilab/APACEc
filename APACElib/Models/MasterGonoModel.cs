@@ -631,39 +631,60 @@ namespace APACElib
 
             // ----------------
             // add events for I, W, U
-
-
-
+            Class_Normal C;
             i = 0;
-            int w = 0, u = 0;
-            foreach (Class c in _classes.Where(c => (c is Class_Normal)))
+            int c = 0, w = 0, u = 0;
+            while (c < _classes.Count)
             {
-                // for I
-                if (c.Name.StartsWith(regions[0] + " | I"))
+                if (!(_classes[c] is Class_Normal))
                 {
-                    ((Class_Normal)c).AddAnEvent(_events[birthID + i + 1]);
-                    ((Class_Normal)c).AddAnEvent(_events[deathID + i + 1]);
-                    ((Class_Normal)c).AddAnEvent(_events[naturalRecoveryID + i]);
-                    ((Class_Normal)c).AddAnEvent(_events[seekingTreatmentID + i]);
-                    ((Class_Normal)c).AddAnEvent(_events[screeningID + i]);
-                    ++i;
+                    c++;
+                    continue;
+                }
+
+                // for I
+                if (_classes[c].Name.StartsWith(regions[0] + " | I"))
+                {
+                    for (int regionID = 0; regionID < regions.Count; regionID++)
+                    {
+                        C = (Class_Normal)_classes[c];
+                        C.AddAnEvent(_events[birthID + i + 1]);
+                        C.AddAnEvent(_events[deathID + i + 1]);
+                        C.AddAnEvent(_events[naturalRecoveryID + i]);
+                        C.AddAnEvent(_events[seekingTreatmentID + i]);
+                        C.AddAnEvent(_events[screeningID + i]);
+                        c++;
+                    }
+                    i++;
                 }
                 // for W
-                else if (c.Name.StartsWith(regions[0] + " | W"))
+                else if (_classes[c].Name.StartsWith(regions[0] + " | W"))
                 {
-                    ((Class_Normal)c).AddAnEvent(_events[txA + w]);
-                    ((Class_Normal)c).AddAnEvent(_events[txB + w]);
-                    ((Class_Normal)c).AddAnEvent(_events[txM + w]);
+                    for (int regionID = 0; regionID < regions.Count; regionID++)
+                    {
+                        C = (Class_Normal)_classes[c];
+                        C.AddAnEvent(_events[txA + w]);
+                        C.AddAnEvent(_events[txB + w]);
+                        C.AddAnEvent(_events[txM + w]);
+                        c++;
+                    }
                     ++w;
                 }
                 // for U
-                else if (c.Name.StartsWith(regions[0] + " | U"))
+                else if (_classes[c].Name.StartsWith(regions[0] + " | U"))
                 {
-                    ((Class_Normal)c).AddAnEvent(_events[txB2 + u]);
-                    ((Class_Normal)c).AddAnEvent(_events[txM2 + u]);
+                    for (int regionID = 0; regionID < regions.Count; regionID++)
+                    {
+                        C = (Class_Normal)_classes[c];
+                        C.AddAnEvent(_events[txB2 + u]);
+                        C.AddAnEvent(_events[txM2 + u]);
+                        c++;
+                    }
                     ++u;
                 }
-            }
+                else
+                    c++;
+            }            
 
             // add leaving success with A1, B1, B2, M1, M2
             for (int j = 0; j < 5; j++)
