@@ -603,7 +603,6 @@ namespace APACElib
 
         protected void AddGonoConnections(List<string> regions)
         {
-            int i = 0;
             int birthID = _dicEvents[regions[0] + " | Birth | S"];
             int deathID = _dicEvents[regions[0] + " | Death | S"];
             int infectionID = _dicEvents[regions[0] + " | Infection | G_0"];
@@ -617,23 +616,12 @@ namespace APACElib
             int txM2 = _dicEvents[regions[0] + " | Tx_M2 | U | " + _infProfiles[0]];
             int leaveSuccess = _dicEvents[regions[0] + " | Leaving Success with A1"];
             int success = _dicClasses[regions[0] + " | Success with A1"];
+            int s = _dicClasses[regions[0] + " | S"];
 
             // ----------------
-            // add events for S
-            Class_Normal S = (Class_Normal)_classes[_dicClasses[regions[0] + " | S"]];
-            // birth and death
-            S.AddAnEvent(_events[birthID]);
-            S.AddAnEvent(_events[deathID]);
-            // infections
-            i = 0;
-            foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
-                S.AddAnEvent(_events[infectionID + i++]);
-
-            // ----------------
-            // add events for I, W, U
+            // add events for S, I, W, U
             Class_Normal C;
-            i = 0;
-            int c = 0, w = 0, u = 0;
+            int i = 0, c = 0, w = 0, u = 0;
             while (c < _classes.Count)
             {
                 if (!(_classes[c] is Class_Normal))
@@ -641,9 +629,24 @@ namespace APACElib
                     c++;
                     continue;
                 }
-
+                // for S
+                if (_classes[c].Name.StartsWith(regions[0] + " | S") && _classes[c].Name.Length==regions[0].Length + " | S".Length)
+                {
+                    for (int regionID = 0; regionID < regions.Count; regionID++)
+                    {
+                        C = (Class_Normal)_classes[c];
+                        // birth and death
+                        C.AddAnEvent(_events[birthID]);
+                        C.AddAnEvent(_events[deathID]);
+                        // infections
+                        int ri = 0;
+                        foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
+                            C.AddAnEvent(_events[infectionID + ri++]);
+                        c++;
+                    }
+                }
                 // for I
-                if (_classes[c].Name.StartsWith(regions[0] + " | I"))
+                else if (_classes[c].Name.StartsWith(regions[0] + " | I"))
                 {
                     for (int regionID = 0; regionID < regions.Count; regionID++)
                     {
