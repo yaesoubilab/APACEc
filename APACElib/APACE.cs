@@ -350,7 +350,7 @@ namespace APACElib
             else if (model == "Spatial Gonorrhea")
             {
                 for (int i = 0; i < numOfEpidemics; i++)
-                    _listModelInstr.Add(new SpacialGonoModel());
+                    _listModelInstr.Add(new SpatialGonoModel());
             }
             else
             {

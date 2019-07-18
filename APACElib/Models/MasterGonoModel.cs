@@ -106,6 +106,35 @@ namespace APACElib
                 }
         }
 
+
+        protected void BuildGonoModel(List<string> regions)
+        {
+            _specialStatInfo.Reset(regions.Count);
+            _featureInfo.Reset(regions.Count);
+
+            // add the parameters from the parameter sheet
+            AddParameters();
+            // add gono parameters 
+            AddGonoParameters(regions);
+            // add classes
+            AddGonoClasses(regions);
+            // add events
+            AddGonoEvents(regions);
+            // add interventions
+            AddGonoInterventions(regions);
+            // add summation statistics
+            AddGonoSumStats(regions);
+            // add ratio statistics
+            AddGonoRatioStatistics(regions);
+            // add features
+            AddGonoFeatures(regions);
+            // add conditions
+            AddGonoConditions(regions);
+            // add connections
+            AddGonoConnections(regions);
+        }
+
+
         protected void AddGonoParameters(List<string> regions)
         {
             int parIDInitialPop = _paramManager.Dic["Initial population size | " + regions[0]];
