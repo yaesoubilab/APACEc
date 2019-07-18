@@ -366,6 +366,7 @@ namespace APACElib
 
         protected void AddGonoEvents(List<string> regions)
         {
+            int i = 0;
             int id = 0;
             int inf = 0;
             int regionID = 0;
@@ -461,6 +462,7 @@ namespace APACElib
             // add Seeking Treatment events
             int idWSymG_0 = _dicClasses[regions[0] + " | W | Sym | G_0"];
             inf = 0;
+            i = 0;
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
@@ -472,16 +474,17 @@ namespace APACElib
                             ID: id,
                             IDOfActivatingIntervention: 0,
                             rateParameter: (s == SymStates.Sym) ? _paramManager.Parameters[seekingTreatmentRate] : _paramManager.Parameters[(int)DummyParam.D_0],
-                            IDOfDestinationClass: idWSymG_0 + (int)r * n + regionID)
+                            IDOfDestinationClass: idWSymG_0 + i * n + regionID)
                         );
                         _dicEvents[eventName] = id++;
+                        i++;
                     }
                     inf++;
                 }
 
             // add Screening events
             inf = 0;
-            int i = 0;
+            i = 0;
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
@@ -508,11 +511,12 @@ namespace APACElib
                     foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                         foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                         {
+                            string resistOrFail = GetResistOrFail(resistStat: r, drug: d);
+                            string treatmentProfile = resistOrFail + " | " + d.ToString() + " --> I | " + _infProfiles[inf];
+                            string suffix = " | Tx_" + d.ToString() + " | W | " + _infProfiles[inf];
                             for (regionID = 0; regionID < n; regionID++)
-                            {
-                                string resistOrFail = GetResistOrFail(resistStat: r, drug: d);
-                                string treatmentProfile = resistOrFail + " | " + d.ToString() + " --> I | " + _infProfiles[inf];
-                                eventName = regions[regionID] + " | Tx_" + d.ToString() + " | W | " + _infProfiles[inf];
+                            {                                
+                                eventName = regions[regionID] + suffix;
                                 string destClassName = "";
 
                                 if (resistOrFail == "F")
