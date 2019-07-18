@@ -1128,6 +1128,99 @@ namespace APACElib
 
         }
 
+        protected void AddGonoInterventions(List<string> regions)
+        {
+            // add default and always off interventions
+            AddInterventions();
+
+            int id = _decisionMaker.Interventions.Count();
+
+            // add interventions
+            foreach (Interventions intrv in Enum.GetValues(typeof(Interventions)))
+            {
+                int conditionIDToTurnOn = 0, conditionIDToTurnOff = 0;
+                switch (intrv)
+                {
+                    case Interventions.A1:
+                        {
+                            conditionIDToTurnOn = (int)Conditions.AOn;
+                            conditionIDToTurnOff = (int)Conditions.AOff;
+                        }
+                        break;
+                    case Interventions.B1:
+                        {
+                            conditionIDToTurnOn = (int)Conditions.BOn;
+                            conditionIDToTurnOff = (int)Conditions.BOff;
+                        }
+                        break;
+                    case Interventions.M1:
+                        {
+                            conditionIDToTurnOn = (int)Conditions.MOn;
+                            conditionIDToTurnOff = (int)Conditions.MOff;
+                        }
+                        break;
+                    case Interventions.B2_A:
+                        {
+                            conditionIDToTurnOn = (int)Conditions.AOn;
+                            conditionIDToTurnOff = (int)Conditions.BOff;
+                        }
+                        break;
+                    case Interventions.M2_A:
+                        {
+                            conditionIDToTurnOn = (int)Conditions.MOn;
+                            conditionIDToTurnOff = (int)Conditions.MOff;
+                        }
+                        break;
+                }
+
+                // decision rule 
+                DecisionRule simDecisionRule = null;
+                if (intrv == Interventions.M2_B_AB)
+                    simDecisionRule = new DecionRule_Predetermined(predeterminedSwitchValue: 1);
+                else
+                    simDecisionRule = new DecisionRule_ConditionBased(
+                        conditions: _epiHist.Conditions,
+                        conditionIDToTurnOn: conditionIDToTurnOn,
+                        conditionIDToTurnOff: conditionIDToTurnOff);
+
+                // intervention
+                _decisionMaker.AddAnIntervention(
+                    new Intervention(
+                        index: id++,
+                        name: intrv.ToString(),
+                        actionType: EnumInterventionType.Additive,
+                        affectingContactPattern: false,
+                        timeIndexBecomesAvailable: 0,
+                        timeIndexBecomesUnavailable: _modelSets.TimeIndexToStop,
+                        parIDDelayToGoIntoEffectOnceTurnedOn: 0,
+                        decisionRule: simDecisionRule));
+
+                if (regions.Count > 1)
+                    for (int regionID = 0; regionID < regions.Count; regionID++)
+                    {                        
+                        if (intrv == Interventions.M2_B_AB)
+                            simDecisionRule = new DecionRule_Predetermined(predeterminedSwitchValue: 1);
+                        else
+                            simDecisionRule = new DecisionRule_ConditionBased(
+                                conditions: _epiHist.Conditions,
+                                conditionIDToTurnOn: conditionIDToTurnOn + regionID + 1,
+                                conditionIDToTurnOff: conditionIDToTurnOff + regionID + 1);
+
+                        // intervention
+                        _decisionMaker.AddAnIntervention(
+                            new Intervention(
+                                index: id++,
+                                name: intrv.ToString(),
+                                actionType: EnumInterventionType.Additive,
+                                affectingContactPattern: false,
+                                timeIndexBecomesAvailable: 0,
+                                timeIndexBecomesUnavailable: _modelSets.TimeIndexToStop,
+                                parIDDelayToGoIntoEffectOnceTurnedOn: 0,
+                                decisionRule: simDecisionRule));
+                    }
+            }
+        }
+
         private void AddGonoParamSize_S(string region, int parIDInitialPop, int parID1MinusPrev)
         {
             _paramManager.Add(new ProductParameter(
