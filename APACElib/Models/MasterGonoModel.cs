@@ -481,7 +481,6 @@ namespace APACElib
 
             // add Screening events
             inf = 0;
-            int i = 0;
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
@@ -493,10 +492,9 @@ namespace APACElib
                             ID: id,
                             IDOfActivatingIntervention: 0,
                             rateParameter: _paramManager.Parameters[screeningRate],
-                            IDOfDestinationClass: idWSymG_0 + i * n + regionID)
+                            IDOfDestinationClass: idWSymG_0 + (int)r * n + regionID)
                         );
                         _dicEvents[eventName] = id++;
-                        i++;
                     }
                     inf++;
                 }
