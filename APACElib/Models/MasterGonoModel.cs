@@ -361,16 +361,18 @@ namespace APACElib
             int idSuccessM1 = _dicClasses[regions[0] + " | Success with " + Ms.M1.ToString()];
             int idSuccessM2 = _dicClasses[regions[0] + " | Success with " + Ms.M2.ToString()];
 
+            int n = regions.Count;
+
             // create a list of main compartments: S, I
-            List<string> mainComp = new List<string>();
-            mainComp.Add("S");
+            List<string> SandIs = new List<string>();
+            SandIs.Add("S");
             for (inf = 0; inf < _infProfiles.Count; inf++)
-                mainComp.Add("I | " + _infProfiles[inf]);
+                SandIs.Add("I | " + _infProfiles[inf]);
 
             // add Birth events
-            foreach (string comp in mainComp)
+            foreach (string comp in SandIs)
             {
-                for (regionID = 0; regionID < regions.Count; regionID++)
+                for (regionID = 0; regionID < n; regionID++)
                 {
                     eventName = regions[regionID] + " | Birth | " + comp;
                     _events.Add(new Event_Birth(
@@ -385,7 +387,7 @@ namespace APACElib
             }
 
             // add Death events
-            foreach (string comp in mainComp)
+            foreach (string comp in SandIs)
             {
                 for (regionID = 0; regionID < regions.Count; regionID++)
                 {
