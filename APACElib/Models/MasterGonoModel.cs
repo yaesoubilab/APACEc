@@ -603,6 +603,7 @@ namespace APACElib
 
         protected void AddGonoConnections(List<string> regions)
         {
+            int n = regions.Count;
             int birthID = _dicEvents[regions[0] + " | Birth | S"];
             int deathID = _dicEvents[regions[0] + " | Death | S"];
             int infectionID = _dicEvents[regions[0] + " | Infection | G_0"];
@@ -616,11 +617,11 @@ namespace APACElib
             int txM2 = _dicEvents[regions[0] + " | Tx_M2 | U | " + _infProfiles[0]];
             int leaveSuccess = _dicEvents[regions[0] + " | Leaving Success with A1"];
             int success = _dicClasses[regions[0] + " | Success with A1"];
-            int s = _dicClasses[regions[0] + " | S"];
 
             // ----------------
             // add events for S, I, W, U
             Class_Normal C;
+            int offset;
             int i = 0, c = 0, w = 0, u = 0;
             while (c < _classes.Count)
             {
@@ -632,30 +633,30 @@ namespace APACElib
                 // for S
                 if (_classes[c].Name.StartsWith(regions[0] + " | S") && _classes[c].Name.Length==regions[0].Length + " | S".Length)
                 {
-                    for (int regionID = 0; regionID < regions.Count; regionID++)
+                    for (int regionID = 0; regionID < n; regionID++)
                     {
                         C = (Class_Normal)_classes[c];
                         // birth and death
-                        C.AddAnEvent(_events[birthID]);
-                        C.AddAnEvent(_events[deathID]);
+                        C.AddAnEvent(_events[birthID + regionID]);
+                        C.AddAnEvent(_events[deathID + regionID]);
                         // infections
-                        int ri = 0;
                         foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
-                            C.AddAnEvent(_events[infectionID + ri++]);
+                            C.AddAnEvent(_events[infectionID + (int)r * n + regionID]);
                         c++;
                     }
                 }
                 // for I
                 else if (_classes[c].Name.StartsWith(regions[0] + " | I"))
                 {
-                    for (int regionID = 0; regionID < regions.Count; regionID++)
+                    for (int regionID = 0; regionID < n; regionID++)
                     {
+                        offset = i * n + regionID;
                         C = (Class_Normal)_classes[c];
-                        C.AddAnEvent(_events[birthID + i + 1]);
-                        C.AddAnEvent(_events[deathID + i + 1]);
-                        C.AddAnEvent(_events[naturalRecoveryID + i]);
-                        C.AddAnEvent(_events[seekingTreatmentID + i]);
-                        C.AddAnEvent(_events[screeningID + i]);
+                        C.AddAnEvent(_events[birthID + 1 + offset]);
+                        C.AddAnEvent(_events[deathID + 1 + offset]);
+                        C.AddAnEvent(_events[naturalRecoveryID + offset]);
+                        C.AddAnEvent(_events[seekingTreatmentID + offset]);
+                        C.AddAnEvent(_events[screeningID + offset]);
                         c++;
                     }
                     i++;
@@ -663,12 +664,13 @@ namespace APACElib
                 // for W
                 else if (_classes[c].Name.StartsWith(regions[0] + " | W"))
                 {
-                    for (int regionID = 0; regionID < regions.Count; regionID++)
+                    for (int regionID = 0; regionID < n; regionID++)
                     {
+                        offset = w * n + regionID;
                         C = (Class_Normal)_classes[c];
-                        C.AddAnEvent(_events[txA + w]);
-                        C.AddAnEvent(_events[txB + w]);
-                        C.AddAnEvent(_events[txM + w]);
+                        C.AddAnEvent(_events[txA + offset]);
+                        C.AddAnEvent(_events[txB + offset]);
+                        C.AddAnEvent(_events[txM + offset]);
                         c++;
                     }
                     ++w;
@@ -676,22 +678,27 @@ namespace APACElib
                 // for U
                 else if (_classes[c].Name.StartsWith(regions[0] + " | U"))
                 {
-                    for (int regionID = 0; regionID < regions.Count; regionID++)
+                    for (int regionID = 0; regionID < n; regionID++)
                     {
+                        offset = u * n + regionID;
                         C = (Class_Normal)_classes[c];
-                        C.AddAnEvent(_events[txB2 + u]);
-                        C.AddAnEvent(_events[txM2 + u]);
+                        C.AddAnEvent(_events[txB2 + offset]);
+                        C.AddAnEvent(_events[txM2 + offset]);
                         c++;
                     }
                     ++u;
                 }
                 else
                     c++;
-            }            
+            }
 
             // add leaving success with A1, B1, B2, M1, M2
             for (int j = 0; j < 5; j++)
-                ((Class_Normal)_classes[success + j]).AddAnEvent(_events[leaveSuccess + j]);
+                for (int regionID = 0; regionID < n; regionID++)
+                {
+                    offset = n * j + regionID;
+                    ((Class_Normal)_classes[success + offset]).AddAnEvent(_events[leaveSuccess + offset]);
+                }
         }
 
         protected void AddGonoSumStats(List<string> regions)
