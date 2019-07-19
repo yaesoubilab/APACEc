@@ -1251,6 +1251,7 @@ namespace APACElib
                 }
             }
 
+            // TODO: these need to be changes so that if A ever used is defined on multiple interventions 
             // if A1 ever switched off 
             _featureInfo.IfAEverOff = id;
             _epiHist.Features.Add(new Feature_Intervention(
@@ -1266,7 +1267,7 @@ namespace APACElib
                         name: "If A1 ever switched off | " + regions[regionID],
                         featureID: id++,
                         featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
-                        intervention: _decisionMaker.Interventions[(int)Interventions.A1 + regionID + 1]) //TODO: update intervention 
+                        intervention: _decisionMaker.Interventions[(int)Interventions.A1 + regionID]) //TODO: update intervention 
                         );
                 }
 
@@ -1637,7 +1638,7 @@ namespace APACElib
                     _decisionMaker.AddAnIntervention(
                         new Intervention(
                             index: id++,
-                            name: intrv.ToString(),
+                            name: intrv.ToString() + " | " + regions[regionID],
                             actionType: EnumInterventionType.Additive,
                             affectingContactPattern: false,
                             timeIndexBecomesAvailable: 0,
