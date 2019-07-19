@@ -12,6 +12,7 @@ namespace APACElib
     // used for total statis over all districts 
     enum GonoSpecialStatIDs { PopSize = 0, Prev, FirstTx, SuccessAOrB, SuccessAOrBOrM, PercFirstTxAndResist }
     enum Features { Time = 0, PercResist, ChangeInPercResist}
+    enum Conditions { AOut=0, BOut, ABOut, AOk, BOk, ABOk, BNeverUsed, M1NeverUsed, AOn, AOff, BOn, BOff, MOn, MOff };
 
     public class GonoSpecialStatInfo
     {        
@@ -75,6 +76,15 @@ namespace APACElib
         }
     }
 
+    public class GonoConditionsInfo
+    {
+        public List<int> ConditionIDs { get; set; }
+
+        public void Reset(int nRegions)
+        {
+            ConditionIDs = new List<int>(new int[Enum.GetValues(typeof(Conditions)).Length]);
+        }
+    }
 
     public abstract class GonoModel : ModelInstruction
     {
@@ -91,11 +101,11 @@ namespace APACElib
                                                                              // M2_B_AB: retreating those infected with G_B or G_AB with M after 1st line treatment failure
         protected enum DummyParam { D_0, D_1, D_Minus1, D_Inf, T_Prev, T_DeltaPrev } // 0, 1, 2, 3, 4, 5
 
-        protected enum Conditions { AOut, BOut, ABOut, AOk, BOk, ABOk, BNeverUsed, M1NeverUsed, AOn, AOff, BOn, BOff, MOn, MOff };
         
         protected List<string> _infProfiles = new List<string>();
         protected GonoSpecialStatInfo _specialStatInfo = new GonoSpecialStatInfo();
         protected GonoFeatureInfo _featureInfo = new GonoFeatureInfo();
+        protected GonoConditionsInfo _conditionInfo = new GonoConditionsInfo();
 
         public GonoModel()
         {
@@ -106,11 +116,11 @@ namespace APACElib
                 }
         }
 
-
         protected void BuildGonoModel(List<string> regions)
         {
             _specialStatInfo.Reset(regions.Count);
             _featureInfo.Reset(regions.Count);
+            _conditionInfo.Reset(regions.Count);
 
             // add the parameters from the parameter sheet
             AddParameters();
@@ -592,9 +602,10 @@ namespace APACElib
             inf = 0;
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
+                {
                     for (regionID = 0; regionID < n; regionID++)
                     {
-                        eventName = regions[regionID] + " | Tx_M2 | U | " + _infProfiles[inf++];
+                        eventName = regions[regionID] + " | Tx_M2 | U | " + _infProfiles[inf];
 
                         int intID = (r == ResistStates.G_A) ? (int)Interventions.M2_A : (int)Interventions.M2_B_AB;
                         _events.Add(new Event_EpidemicIndependent(
@@ -606,6 +617,8 @@ namespace APACElib
                             );
                         _dicEvents[eventName] = id++;
                     }
+                    inf++;
+                }
 
             // add Leaving Success with A1, B1, or B2
             foreach (Drugs d in Enum.GetValues(typeof(Drugs)))
@@ -1281,6 +1294,19 @@ namespace APACElib
             string[] drugUse = new string[3] { "A", "B", "AB" };
             for (int i = 0; i < 3; i++) // over A, B, or both A B out
             {
+                switch (i)
+                {
+                    case 0:
+                        _conditionInfo.ConditionIDs[(int)Conditions.AOut] = id;
+                        break;
+                    case 1:
+                        _conditionInfo.ConditionIDs[(int)Conditions.BOut] = id;
+                        break;
+                    case 2:
+                        _conditionInfo.ConditionIDs[(int)Conditions.ABOut] = id;
+                        break;
+                }
+
                 _epiHist.Conditions.Add(new Condition_OnFeatures(
                     id: id++,
                     name: drugUse[i] + "Out Condition",
@@ -1313,6 +1339,19 @@ namespace APACElib
             signs = new EnumSign[2] { EnumSign.le, EnumSign.le };
             for (int i = 0; i < 3; i++)
             {
+                switch (i)
+                {
+                    case 0:
+                        _conditionInfo.ConditionIDs[(int)Conditions.AOk] = id;
+                        break;
+                    case 1:
+                        _conditionInfo.ConditionIDs[(int)Conditions.BOk] = id;
+                        break;
+                    case 2:
+                        _conditionInfo.ConditionIDs[(int)Conditions.ABOk] = id;
+                        break;
+                }
+
                 _epiHist.Conditions.Add(new Condition_OnFeatures(
                     id: id++,
                      name: drugUse[i] + "OK Condition",
@@ -1343,6 +1382,7 @@ namespace APACElib
             }
 
             // B is never used
+            _conditionInfo.ConditionIDs[(int)Conditions.BNeverUsed] = id;
             _epiHist.Conditions.Add(new Condition_OnFeatures(
                 id: id++,
                 name: "B is never used",
@@ -1367,6 +1407,7 @@ namespace APACElib
             }
 
             // M1 is neer used
+            _conditionInfo.ConditionIDs[(int)Conditions.M1NeverUsed] = id;
             thresholdParams = new List<Parameter> { _paramManager.Parameters[(int)DummyParam.D_0] };
             _epiHist.Conditions.Add(new Condition_OnFeatures(
                 id: id++,
@@ -1392,6 +1433,7 @@ namespace APACElib
             }
 
             // turn on A
+            _conditionInfo.ConditionIDs[(int)Conditions.AOn] = id;
             _epiHist.Conditions.Add(new Condition_OnFeatures(
                 id: id++,
                 name: "Drug A - Turn On",
@@ -1418,6 +1460,7 @@ namespace APACElib
             }
 
             // turn off A
+            _conditionInfo.ConditionIDs[(int)Conditions.AOff] = id;
             _epiHist.Conditions.Add(new Condition_OnConditions(
                 id: id++,
                 name: "Drug A - Turn Off",
@@ -1440,6 +1483,7 @@ namespace APACElib
             }
 
             // turn on B
+            _conditionInfo.ConditionIDs[(int)Conditions.BOn] = id;
             _epiHist.Conditions.Add(new Condition_OnConditions(
                 id: id++,
                 name: "Drug B - Turn On",
@@ -1468,6 +1512,7 @@ namespace APACElib
             }
 
             // turn off B
+            _conditionInfo.ConditionIDs[(int)Conditions.BOff] = id;
             _epiHist.Conditions.Add(new Condition_OnConditions(
                 id: id++,
                 name: "Drug B - Turn Off",
@@ -1490,6 +1535,7 @@ namespace APACElib
             }
 
             // turn on M
+            _conditionInfo.ConditionIDs[(int)Conditions.MOn] = id;
             _epiHist.Conditions.Add(new Condition_OnConditions(
                 id: id++,
                 name: "Drug M - Turn On",
@@ -1510,6 +1556,7 @@ namespace APACElib
             }
 
             // turn off M
+            _conditionInfo.ConditionIDs[(int)Conditions.MOff] = id;
             _epiHist.Conditions.Add(new Condition_AlwaysFalse(
                 id: id++,
                 name: "Drug M - Turn Off"));
