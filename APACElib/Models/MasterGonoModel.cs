@@ -86,7 +86,7 @@ namespace APACElib
 
             foreach (Conditions c in Enum.GetValues(typeof(Conditions)))
             {
-                if (nRegions == 1)
+                if (nRegions > 1)
                     ConditionIDs[(int)c] = (nRegions + 1) * (int)c;
                 else
                     ConditionIDs[(int)c] = (int)c;
@@ -107,7 +107,7 @@ namespace APACElib
                                                                              // B2_A:  retreating those infected with G_A with B after 1st line treatment failure
                                                                              // M2_A:  retreating those infected with G_A with M after 1st line treatment failure
                                                                              // M2_B_AB: retreating those infected with G_B or G_AB with M after 1st line treatment failure
-        protected enum DummyParam { D_0, D_1, D_Minus1, D_Inf, T_Prev, T_DeltaPrev } // 0, 1, 2, 3, 4, 5
+        protected enum DummyParam { D_0 = 0, D_1, D_Minus1, D_Inf, T_Prev, T_DeltaPrev, N_IsolateTested, NationalLocal } // 0, 1, 2, 3, 4, 5
 
         
         protected List<string> _infProfiles = new List<string>();
@@ -975,7 +975,7 @@ namespace APACElib
             int idFirstTx = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.FirstTx];
             int idSuccessAOrB = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.SuccessAOrB];
             int idSuccessAOrBOrM = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.SuccessAOrBOrM];
-            Parameter nIsolateTested = GetParam("Number of isolates tested");
+            Parameter nIsolateTested = _paramManager.Parameters[(int)DummyParam.N_IsolateTested];
 
             // gonorrhea prevalence
             RatioTrajectory prevalence = new RatioTrajectory(
@@ -1550,8 +1550,14 @@ namespace APACElib
         {
             // add default and always off interventions
             AddInterventions();
-
             int id = _decisionMaker.Interventions.Count();
+
+            // determine if decisions are made nationally or locally (0, 1)
+            int deci;
+            if (regions.Count == 1)
+                deci = 0;
+            else
+                deci = (int)_paramManager.Parameters[(int)DummyParam.NationalLocal].Sample(time: 0, rng: new RNG(1));
 
             // add interventions
             foreach (Interventions intrv in Enum.GetValues(typeof(Interventions)))
@@ -1561,81 +1567,59 @@ namespace APACElib
                 {
                     case Interventions.A1:
                         {
-                            conditionIDToTurnOn = (int)Conditions.AOn;
-                            conditionIDToTurnOff = (int)Conditions.AOff;
+                            conditionIDToTurnOn = _conditionInfo.ConditionIDs[(int)Conditions.AOn];
+                            conditionIDToTurnOff = _conditionInfo.ConditionIDs[(int)Conditions.AOff];
                         }
                         break;
                     case Interventions.B1:
                         {
-                            conditionIDToTurnOn = (int)Conditions.BOn;
-                            conditionIDToTurnOff = (int)Conditions.BOff;
+                            conditionIDToTurnOn = _conditionInfo.ConditionIDs[(int)Conditions.BOn];
+                            conditionIDToTurnOff = _conditionInfo.ConditionIDs[(int)Conditions.BOff];
                         }
                         break;
                     case Interventions.M1:
                         {
-                            conditionIDToTurnOn = (int)Conditions.MOn;
-                            conditionIDToTurnOff = (int)Conditions.MOff;
+                            conditionIDToTurnOn = _conditionInfo.ConditionIDs[(int)Conditions.MOn];
+                            conditionIDToTurnOff = _conditionInfo.ConditionIDs[(int)Conditions.MOff];
                         }
                         break;
                     case Interventions.B2_A:
                         {
-                            conditionIDToTurnOn = (int)Conditions.AOn;
-                            conditionIDToTurnOff = (int)Conditions.BOff;
+                            conditionIDToTurnOn = _conditionInfo.ConditionIDs[(int)Conditions.AOn];
+                            conditionIDToTurnOff = _conditionInfo.ConditionIDs[(int)Conditions.BOff];
                         }
                         break;
                     case Interventions.M2_A:
                         {
-                            conditionIDToTurnOn = (int)Conditions.MOn;
-                            conditionIDToTurnOff = (int)Conditions.MOff;
+                            conditionIDToTurnOn = _conditionInfo.ConditionIDs[(int)Conditions.MOn];
+                            conditionIDToTurnOff = _conditionInfo.ConditionIDs[(int)Conditions.MOff];
                         }
                         break;
                 }
 
-                // decision rule 
-                DecisionRule simDecisionRule = null;
-                if (intrv == Interventions.M2_B_AB)
-                    simDecisionRule = new DecionRule_Predetermined(predeterminedSwitchValue: 1);
-                else
-                    simDecisionRule = new DecisionRule_ConditionBased(
-                        conditions: _epiHist.Conditions,
-                        conditionIDToTurnOn: conditionIDToTurnOn,
-                        conditionIDToTurnOff: conditionIDToTurnOff);
+                DecisionRule simDecisionRule;
+                for (int regionID = 0; regionID < regions.Count; regionID++)
+                {                        
+                    if (intrv == Interventions.M2_B_AB)
+                        simDecisionRule = new DecionRule_Predetermined(predeterminedSwitchValue: 1);
+                    else
+                        simDecisionRule = new DecisionRule_ConditionBased(
+                            conditions: _epiHist.Conditions,
+                            conditionIDToTurnOn: (deci == 0) ? conditionIDToTurnOn : (conditionIDToTurnOn + regionID + 1),
+                            conditionIDToTurnOff: (deci == 0) ? conditionIDToTurnOff : (conditionIDToTurnOff + regionID + 1));
 
-                // intervention
-                _decisionMaker.AddAnIntervention(
-                    new Intervention(
-                        index: id++,
-                        name: intrv.ToString(),
-                        actionType: EnumInterventionType.Additive,
-                        affectingContactPattern: false,
-                        timeIndexBecomesAvailable: 0,
-                        timeIndexBecomesUnavailable: _modelSets.TimeIndexToStop,
-                        parIDDelayToGoIntoEffectOnceTurnedOn: 0,
-                        decisionRule: simDecisionRule));
-
-                if (regions.Count > 1)
-                    for (int regionID = 0; regionID < regions.Count; regionID++)
-                    {                        
-                        if (intrv == Interventions.M2_B_AB)
-                            simDecisionRule = new DecionRule_Predetermined(predeterminedSwitchValue: 1);
-                        else
-                            simDecisionRule = new DecisionRule_ConditionBased(
-                                conditions: _epiHist.Conditions,
-                                conditionIDToTurnOn: conditionIDToTurnOn + regionID + 1,
-                                conditionIDToTurnOff: conditionIDToTurnOff + regionID + 1);
-
-                        // intervention
-                        _decisionMaker.AddAnIntervention(
-                            new Intervention(
-                                index: id++,
-                                name: intrv.ToString(),
-                                actionType: EnumInterventionType.Additive,
-                                affectingContactPattern: false,
-                                timeIndexBecomesAvailable: 0,
-                                timeIndexBecomesUnavailable: _modelSets.TimeIndexToStop,
-                                parIDDelayToGoIntoEffectOnceTurnedOn: 0,
-                                decisionRule: simDecisionRule));
-                    }
+                    // intervention
+                    _decisionMaker.AddAnIntervention(
+                        new Intervention(
+                            index: id++,
+                            name: intrv.ToString(),
+                            actionType: EnumInterventionType.Additive,
+                            affectingContactPattern: false,
+                            timeIndexBecomesAvailable: 0,
+                            timeIndexBecomesUnavailable: _modelSets.TimeIndexToStop,
+                            parIDDelayToGoIntoEffectOnceTurnedOn: 0,
+                            decisionRule: simDecisionRule));
+                }
             }
         }
 
