@@ -83,6 +83,14 @@ namespace APACElib
         public void Reset(int nRegions)
         {
             ConditionIDs = new List<int>(new int[Enum.GetValues(typeof(Conditions)).Length]);
+
+            foreach (Conditions c in Enum.GetValues(typeof(Conditions)))
+            {
+                if (nRegions == 1)
+                    ConditionIDs[(int)c] = (nRegions + 1) * (int)c;
+                else
+                    ConditionIDs[(int)c] = (int)c;
+            }
         }
     }
 
@@ -1294,19 +1302,6 @@ namespace APACElib
             string[] drugUse = new string[3] { "A", "B", "AB" };
             for (int i = 0; i < 3; i++) // over A, B, or both A B out
             {
-                switch (i)
-                {
-                    case 0:
-                        _conditionInfo.ConditionIDs[(int)Conditions.AOut] = id;
-                        break;
-                    case 1:
-                        _conditionInfo.ConditionIDs[(int)Conditions.BOut] = id;
-                        break;
-                    case 2:
-                        _conditionInfo.ConditionIDs[(int)Conditions.ABOut] = id;
-                        break;
-                }
-
                 _epiHist.Conditions.Add(new Condition_OnFeatures(
                     id: id++,
                     name: drugUse[i] + "Out Condition",
@@ -1339,19 +1334,6 @@ namespace APACElib
             signs = new EnumSign[2] { EnumSign.le, EnumSign.le };
             for (int i = 0; i < 3; i++)
             {
-                switch (i)
-                {
-                    case 0:
-                        _conditionInfo.ConditionIDs[(int)Conditions.AOk] = id;
-                        break;
-                    case 1:
-                        _conditionInfo.ConditionIDs[(int)Conditions.BOk] = id;
-                        break;
-                    case 2:
-                        _conditionInfo.ConditionIDs[(int)Conditions.ABOk] = id;
-                        break;
-                }
-
                 _epiHist.Conditions.Add(new Condition_OnFeatures(
                     id: id++,
                      name: drugUse[i] + "OK Condition",
@@ -1382,7 +1364,6 @@ namespace APACElib
             }
 
             // B is never used
-            _conditionInfo.ConditionIDs[(int)Conditions.BNeverUsed] = id;
             _epiHist.Conditions.Add(new Condition_OnFeatures(
                 id: id++,
                 name: "B is never used",
@@ -1407,7 +1388,6 @@ namespace APACElib
             }
 
             // M1 is neer used
-            _conditionInfo.ConditionIDs[(int)Conditions.M1NeverUsed] = id;
             thresholdParams = new List<Parameter> { _paramManager.Parameters[(int)DummyParam.D_0] };
             _epiHist.Conditions.Add(new Condition_OnFeatures(
                 id: id++,
@@ -1433,7 +1413,6 @@ namespace APACElib
             }
 
             // turn on A
-            _conditionInfo.ConditionIDs[(int)Conditions.AOn] = id;
             _epiHist.Conditions.Add(new Condition_OnFeatures(
                 id: id++,
                 name: "Drug A - Turn On",
@@ -1460,7 +1439,6 @@ namespace APACElib
             }
 
             // turn off A
-            _conditionInfo.ConditionIDs[(int)Conditions.AOff] = id;
             _epiHist.Conditions.Add(new Condition_OnConditions(
                 id: id++,
                 name: "Drug A - Turn Off",
@@ -1483,7 +1461,6 @@ namespace APACElib
             }
 
             // turn on B
-            _conditionInfo.ConditionIDs[(int)Conditions.BOn] = id;
             _epiHist.Conditions.Add(new Condition_OnConditions(
                 id: id++,
                 name: "Drug B - Turn On",
@@ -1512,7 +1489,6 @@ namespace APACElib
             }
 
             // turn off B
-            _conditionInfo.ConditionIDs[(int)Conditions.BOff] = id;
             _epiHist.Conditions.Add(new Condition_OnConditions(
                 id: id++,
                 name: "Drug B - Turn Off",
@@ -1535,7 +1511,6 @@ namespace APACElib
             }
 
             // turn on M
-            _conditionInfo.ConditionIDs[(int)Conditions.MOn] = id;
             _epiHist.Conditions.Add(new Condition_OnConditions(
                 id: id++,
                 name: "Drug M - Turn On",
@@ -1556,7 +1531,6 @@ namespace APACElib
             }
 
             // turn off M
-            _conditionInfo.ConditionIDs[(int)Conditions.MOff] = id;
             _epiHist.Conditions.Add(new Condition_AlwaysFalse(
                 id: id++,
                 name: "Drug M - Turn Off"));
