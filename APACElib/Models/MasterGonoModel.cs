@@ -28,6 +28,7 @@ namespace APACElib
         public List<string> TreatedA1B1B2 { get; set; } // A1, B1, B2
         public List<string> TreatedM1M2 { get; set; } // M1, M2
 
+        public int SumTxFirstRegion { get; set; }
         public List<int> SumTxResistFirstRegion { get; set; } 
         public List<int> RatioTxResistFirstRegion { get; set; } 
 
@@ -41,6 +42,7 @@ namespace APACElib
             TreatedAndSym = new List<string>();
             TreatedResist = new List<List<string>>();
 
+            SumTxFirstRegion = 0;
             SumTxResistFirstRegion = new List<int>(new int[4]); // 4 for 0, A, B, AB
             RatioTxResistFirstRegion = new List<int>(new int[4]); // 4 for 0, A, B, AB
 
@@ -258,6 +260,9 @@ namespace APACElib
                             if (c == Comparts.W)
                             {
                                 _specialStatInfo.Treated[0] += C.ID + "+";
+                                if (regions.Count > 1)
+                                    _specialStatInfo.Treated[1 + regionID] += C.ID + "+";
+
                                 if (s == SymStates.Sym)
                                     _specialStatInfo.TreatedAndSym[0] += C.ID + "+";
 
@@ -265,7 +270,7 @@ namespace APACElib
                                 {
                                     _specialStatInfo.TreatedResist[0][(int)r] += C.ID + "+";
                                     if (regions.Count > 1)
-                                        _specialStatInfo.TreatedResist[regionID+1][(int)r] += C.ID + "+";
+                                        _specialStatInfo.TreatedResist[1+regionID][(int)r] += C.ID + "+";
                                 }
 
                             }
@@ -835,7 +840,7 @@ namespace APACElib
                 displayInSimOutput: true,
                 warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                 nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
-            UpdateClassTimeSeries(t1st);
+            UpdateClassTimeSeries(t1st); // this is because we are collecting outcomes on this
             t1st.DeltaCostHealthCollector =
                 new DeltaTCostHealth(
                     deltaT: _modelSets.DeltaT,
@@ -846,6 +851,23 @@ namespace APACElib
             _epiHist.SumTrajs.Add(t1st);
             _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.FirstTx] = id - 1;
 
+            // received first-line treatment by region
+            if (regions.Count > 1)
+            {
+                for (regionID = 0; regionID < regions.Count; regionID++)
+                {
+                    _epiHist.SumTrajs.Add(new SumClassesTrajectory(
+                        ID: id++,
+                        name: "Received 1st Tx | " + regions[regionID],
+                        strType: "Incidence",
+                        sumFormula: _specialStatInfo.Treated[1+regionID],
+                        displayInSimOutput: true,
+                        warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
+                        );
+                }
+            }
+
             // received first-line treatment and symptomatic 
             _epiHist.SumTrajs.Add(new SumClassesTrajectory(
                 ID: id++,
@@ -855,7 +877,7 @@ namespace APACElib
                 displayInSimOutput: true,
                 warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                 nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
-                );
+                );           
 
             // received first-line treatment by resistance status
             foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
@@ -890,7 +912,6 @@ namespace APACElib
                                     );
                         }
                     }
-
                 }
 
             // sucessful treatment
