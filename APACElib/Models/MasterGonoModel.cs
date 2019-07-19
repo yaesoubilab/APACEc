@@ -10,27 +10,26 @@ using RandomVariateLib;
 namespace APACElib
 {
     // used for total statis over all districts 
-    enum GonoSpecialStatIDs { PopSize = 0, Prev, FirstTx, SuccessAOrB, SuccessAOrBOrM, PercFirstTxAndResist }
+    enum GonoSpecialStatIDs { PopSize = 0, Prev, Tx1, Tx1Sym, Tx1Resist, SuccessAOrB, SuccessAOrBOrM, PercFirstTxAndResist }
     enum Features { Time = 0, PercResist, ChangeInPercResist}
     enum Conditions { AOut=0, BOut, ABOut, AOk, BOk, ABOk, BNeverUsed, M1NeverUsed, AOn, AOff, BOn, BOff, MOn, MOff };
 
     public class GonoSpecialStatInfo
     {        
         public List<int> SpecialStatIDs { get; set; }
+
         public List<string> Prev { get; set; }
         public List<List<string>> PrevSym { get; set; } // Sym, Asym
         public List<List<string>> PrevResist { get; set; } // 0, A, B, AB
-
         public List<string> Treated { get; set; }
         public List<string> TreatedAndSym { get; set; } // Sym, Asym
         public List<List<string>> TreatedResist { get; set; } // 0, A, B, AB
-
         public List<string> TreatedA1B1B2 { get; set; } // A1, B1, B2
         public List<string> TreatedM1M2 { get; set; } // M1, M2
 
         public int SumTxFirstRegion { get; set; }
-        public List<int> SumTxResistFirstRegion { get; set; } 
-        public List<int> RatioTxResistFirstRegion { get; set; } 
+        public List<int> SumTxResistFirstRegion { get; set; } // 0, A, B, AB
+        public List<int> RatioTxResistFirstRegion { get; set; } // 0, A, B, AB 
 
         public void Reset(int nRegions)
         {
@@ -849,11 +848,12 @@ namespace APACElib
                     costPerNewMember: _paramManager.Parameters[(int)DummyParam.D_0]
                     );
             _epiHist.SumTrajs.Add(t1st);
-            _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.FirstTx] = id - 1;
+            _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.Tx1] = id - 1;
 
             // received first-line treatment by region
             if (regions.Count > 1)
             {
+                _specialStatInfo.SumTxFirstRegion = id;
                 for (regionID = 0; regionID < regions.Count; regionID++)
                 {
                     _epiHist.SumTrajs.Add(new SumClassesTrajectory(
@@ -877,9 +877,11 @@ namespace APACElib
                 displayInSimOutput: true,
                 warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                 nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
-                );           
+                );
+            _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.Tx1Sym] = id - 1;
 
             // received first-line treatment by resistance status
+            _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.Tx1Resist] = id;
             foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
                 if (r != ResistStates.G_0)
                 {
@@ -993,7 +995,7 @@ namespace APACElib
             int id = _epiHist.SumTrajs.Count();
             int idPopSize = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PopSize];
             int idPrevalence = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.Prev];
-            int idFirstTx = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.FirstTx];
+            int idFirstTx = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.Tx1];
             int idSuccessAOrB = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.SuccessAOrB];
             int idSuccessAOrBOrM = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.SuccessAOrBOrM];
             Parameter nIsolateTested = _paramManager.Parameters[(int)DummyParam.N_IsolateTested];
