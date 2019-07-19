@@ -1056,7 +1056,7 @@ namespace APACElib
                 id: id++,
                 name: "% received 1st Tx & symptomatic ",
                 strType: "Incidence/Incidence",
-                ratioFormula: (idTx1 + 1) + "/" + idTx1,
+                ratioFormula: idTx1Sym + "/" + idTx1,
                 displayInSimOutput: true,
                 warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                 nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
@@ -1081,7 +1081,7 @@ namespace APACElib
                         id: id,
                         name: "% received 1st Tx & resistant to " + r.ToString(),
                         strType: "Incidence/Incidence",
-                        ratioFormula: (idTx1 + 1 + (int)r) + "/" + idTx1,   // 1 here is for symptomatics
+                        ratioFormula: (idTx1Resist - 1 + (int)r) + "/" + idTx1, 
                         displayInSimOutput: true,
                         warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                         nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
@@ -1121,7 +1121,7 @@ namespace APACElib
                                 id: id,
                                 name: "% received 1st Tx & resistant to " + r.ToString() + " | " + regions[regionID],
                                 strType: "Incidence/Incidence",
-                                ratioFormula: (firstID + regionID) + "/" + firstID,
+                                ratioFormula: (firstID + regionID) + "/" + (idTx1 + 1 + regionID),
                                 displayInSimOutput: true,
                                 warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                                 nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
@@ -1129,7 +1129,7 @@ namespace APACElib
                             _epiHist.SurveyedIncidenceTrajs.Add(
                                 new SurveyedIncidenceTrajectory(
                                     id: id,
-                                    name: "% received 1st Tx & resistant to " + r.ToString(),
+                                    name: "% received 1st Tx & resistant to " + r.ToString() + " | " + regions[regionID],
                                     displayInSimOutput: true,
                                     firstObsMarksStartOfEpidemic: false,
                                     sumClassesTrajectory: null,
@@ -1244,7 +1244,7 @@ namespace APACElib
                                 name: "Change in % received 1st Tx & resistant to " + r.ToString() + " | " + regions[regionID],
                                 featureID: id++,
                                 specialStatID: firstID + regionID,
-                                strFeatureType: "Current Observed Value",
+                                strFeatureType: "Slope",
                                 par: 0);
                         }
                     }
