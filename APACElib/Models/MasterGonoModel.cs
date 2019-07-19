@@ -995,7 +995,9 @@ namespace APACElib
             int id = _epiHist.SumTrajs.Count();
             int idPopSize = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PopSize];
             int idPrevalence = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.Prev];
-            int idFirstTx = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.Tx1];
+            int idTx1 = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.Tx1];
+            int idTx1Sym = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.Tx1Sym];
+            int idTx1Resist = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.Tx1Resist];
             int idSuccessAOrB = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.SuccessAOrB];
             int idSuccessAOrBOrM = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.SuccessAOrBOrM];
             Parameter nIsolateTested = _paramManager.Parameters[(int)DummyParam.N_IsolateTested];
@@ -1054,7 +1056,7 @@ namespace APACElib
                 id: id++,
                 name: "% received 1st Tx & symptomatic ",
                 strType: "Incidence/Incidence",
-                ratioFormula: (idFirstTx + 1) + "/" + idFirstTx,
+                ratioFormula: (idTx1 + 1) + "/" + idTx1,
                 displayInSimOutput: true,
                 warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                 nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
@@ -1079,7 +1081,7 @@ namespace APACElib
                         id: id,
                         name: "% received 1st Tx & resistant to " + r.ToString(),
                         strType: "Incidence/Incidence",
-                        ratioFormula: (idFirstTx + 1 + (int)r) + "/" + idFirstTx,   // 1 here is for symptomatics
+                        ratioFormula: (idTx1 + 1 + (int)r) + "/" + idTx1,   // 1 here is for symptomatics
                         displayInSimOutput: true,
                         warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                         nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
@@ -1150,7 +1152,7 @@ namespace APACElib
                 id: id++,
                 name: "Annual rate of gonorrhea cases",
                 strType: "Incidence/Prevalence",
-                ratioFormula: idFirstTx + "/" + idPopSize,
+                ratioFormula: idTx1 + "/" + idPopSize,
                 displayInSimOutput: true,
                 warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                 nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
