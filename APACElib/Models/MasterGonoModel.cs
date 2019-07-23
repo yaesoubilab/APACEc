@@ -1606,7 +1606,7 @@ namespace APACElib
 
         private void AddGonoParamSize_I(List<string> regions, SymStates s, ResistStates r, int infProfileID)
         {
-            List<int> paramIDs = new List<int>();
+            
             int parID = _paramManager.Parameters.Count;
             int parIDInitialPopSize = _paramManager.Dic["Initial population size | " + regions[0]];
             int parIDInitialPrevalence = _paramManager.Dic["Initial prevalence | " + regions[0]];
@@ -1619,6 +1619,7 @@ namespace APACElib
             for (int regionID = 0; regionID < regions.Count; regionID++)
             {
                 string parName = "Initial size of " + regions[regionID] + " | I | " + _infProfiles[infProfileID];
+                List<int> paramIDs = new List<int>();
 
                 // par ID for population size of this region
                 paramIDs.Add(parIDInitialPopSize + regionID);
@@ -1772,7 +1773,7 @@ namespace APACElib
             Class_Death D = new Class_Death(id, region + " | Death");
             SetupClassStatsAndTimeSeries(
                     thisClass: D,
-                    showIncidence: true);
+                    showIncidence: false);
             return D;
         }
 
@@ -1795,8 +1796,9 @@ namespace APACElib
                 rowIndexInContactMatrix: 0);
             SetupClassStatsAndTimeSeries(
                 thisClass: C,
-                showPrevalence: (c == Comparts.I || c == Comparts.U) ? true : false,
-                showIncidence: (c == Comparts.W) ? true : false);
+                showPrevalence: (c == Comparts.I) ? true : false,
+                showIncidence: false // (c == Comparts.W) ? true : false
+                );
             return C;
         }
 
@@ -1898,7 +1900,7 @@ namespace APACElib
                 parOfProbSucess: _paramManager.Parameters[parIDProbResist],
                 destinationClassIDIfSuccess: _dicClasses[classIfResist],
                 destinationClassIDIfFailure: classIDSuccess);
-            SetupClassStatsAndTimeSeries(thisClass: ifResist, showIncidence: true);
+            SetupClassStatsAndTimeSeries(thisClass: ifResist, showIncidence: false);
             return ifResist;
         }
     }
