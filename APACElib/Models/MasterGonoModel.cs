@@ -1124,7 +1124,7 @@ namespace APACElib
                     _epiHist.AddASpecialStatisticsFeature(
                         name: "% received 1st Tx & resistant to " + r.ToString(),
                         featureID: id++,
-                        specialStatID: idPercFirstTxAndResist + (int)r - 1, // 1 is to account for G_0
+                        specialStatID: _specialStatInfo.IDRatioTxResist[(int)r],
                         strFeatureType: "Current Observed Value",
                         par: 0);
 
