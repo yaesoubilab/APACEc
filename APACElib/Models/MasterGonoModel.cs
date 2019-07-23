@@ -403,9 +403,7 @@ namespace APACElib
             // add Seeking Treatment events
             int idWSymG_0 = _dicClasses[regions[0] + " | W | Sym | G_0"];
             inf = 0;
-            i = 0;
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
-            {                
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
                     for (regionID = 0; regionID < n; regionID++)
@@ -416,18 +414,15 @@ namespace APACElib
                             ID: id,
                             IDOfActivatingIntervention: 0,
                             rateParameter: (s == SymStates.Sym) ? _paramManager.Parameters[seekingTreatmentRate] : _paramManager.Parameters[(int)DummyParam.D_0],
-                            IDOfDestinationClass: idWSymG_0 + i * n + regionID)
+                            IDOfDestinationClass: idWSymG_0 + inf * n + regionID)
                         );
                         _dicEvents[eventName] = id++;
                     }
-                    i++;
                     inf++;
                 }
-            }
 
             // add Screening events
             inf = 0;
-            i = 0;
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
@@ -439,10 +434,9 @@ namespace APACElib
                             ID: id,
                             IDOfActivatingIntervention: 0,
                             rateParameter: _paramManager.Parameters[screeningRate],
-                            IDOfDestinationClass: idWSymG_0 + i * n + regionID)
+                            IDOfDestinationClass: idWSymG_0 + inf * n + regionID)
                         );
                         _dicEvents[eventName] = id++;
-                        i++;
                     }
                     inf++;
                 }
@@ -515,7 +509,7 @@ namespace APACElib
 
                     for (regionID = 0; regionID < n; regionID++)
                     {
-                        eventName = regions[0] + " | Tx_B2 | U | " + infProfile;
+                        eventName = regions[regionID] + " | Tx_B2 | U | " + infProfile;
 
                         string destClassName = "";
                         if (resistOrFail == "F")
