@@ -1109,6 +1109,7 @@ namespace APACElib
         protected void AddGonoFeatures(List<string> regions)
         {
             int id = 0;
+            int intv = 0;
             int idPercFirstTxAndResist = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PercFirstTxAndResist];
 
             // add time
@@ -1177,11 +1178,12 @@ namespace APACElib
 
             // if A1 ever switched off 
             _featureInfo.IfAEverOff = id;
+            intv = _interventionInfo.InterventionsIDs[(int)Interventions.A1];
             _epiHist.Features.Add(new Feature_Intervention(
                 name: "If A1 ever switched off",
                 featureID: id++,
                 featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
-                intervention: _decisionMaker.Interventions[(int)Interventions.A1])
+                intervention: _decisionMaker.Interventions[intv])
                 );
             if (regions.Count > 1)
                 for (int regionID = 0; regionID < regions.Count; regionID++)
@@ -1190,17 +1192,18 @@ namespace APACElib
                         name: "If A1 ever switched off | " + regions[regionID],
                         featureID: id++,
                         featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
-                        intervention: _decisionMaker.Interventions[(int)Interventions.A1 + regionID])
+                        intervention: _decisionMaker.Interventions[intv + regionID])
                         );
                 }
 
             // if B1 ever switched off
             _featureInfo.IfBEverOff = id;
+            intv = _interventionInfo.InterventionsIDs[(int)Interventions.B1];
             _epiHist.Features.Add(new Feature_Intervention(
                 name: "If B1 ever switched off",
                 featureID: id++,
                 featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
-                intervention: _decisionMaker.Interventions[(int)Interventions.B1])
+                intervention: _decisionMaker.Interventions[intv])
                 );
             if (regions.Count > 1)
                 for (int regionID = 0; regionID < regions.Count; regionID++)
@@ -1209,17 +1212,18 @@ namespace APACElib
                         name: "If B1 ever switched off | " + regions[regionID],
                         featureID: id++,
                         featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
-                        intervention: _decisionMaker.Interventions[(int)Interventions.B1 + regionID]) 
+                        intervention: _decisionMaker.Interventions[intv + regionID]) 
                         );
                 }
 
             // if M ever switched on
             _featureInfo.IfMEverOn = id;
+            intv = _interventionInfo.InterventionsIDs[(int)Interventions.M1];
             _epiHist.Features.Add(new Feature_Intervention(
                 name: "If M1 ever switched on",
                 featureID: id++,
                 featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOn,
-                intervention: _decisionMaker.Interventions[(int)Interventions.M1])
+                intervention: _decisionMaker.Interventions[intv])
                 );
             if (regions.Count > 1)
                 for (int regionID = 0; regionID < regions.Count; regionID++)
@@ -1228,7 +1232,7 @@ namespace APACElib
                         name: "If M ever switched off | " + regions[regionID],
                         featureID: id++,
                         featureType: Feature_Intervention.EnumFeatureType.IfEverSwitchedOff,
-                        intervention: _decisionMaker.Interventions[(int)Interventions.M1 + regionID])
+                        intervention: _decisionMaker.Interventions[intv + regionID])
                         );
                 }
         }
