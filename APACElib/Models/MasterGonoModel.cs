@@ -10,14 +10,6 @@ using APACElib.Models;
 
 namespace APACElib
 {
-    // used for total statis over all districts 
-    
-    
-
-
-
-    
-
     public abstract class GonoModel : ModelInstruction
     {
         protected enum Comparts { I, W, U }; // infection, waiting for treatment, waiting for retreatment 
