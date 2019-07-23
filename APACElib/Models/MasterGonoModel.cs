@@ -1239,6 +1239,7 @@ namespace APACElib
         protected void AddGonoConditions(List<string> regions)
         {
             int id = 0;
+            int c1, c2, c3, c4, c5;
             EnumSign[] signs;
             List<Parameter> thresholdParams = new List<Parameter>{
                 _paramManager.Parameters[(int)DummyParam.T_Prev],
@@ -1400,8 +1401,8 @@ namespace APACElib
             }
 
             // turn off A
-            int c1 = _conditionInfo.ConditionIDs[(int)Conditions.AOut];
-            int c2 = _conditionInfo.ConditionIDs[(int)Conditions.ABOut];
+            c1 = _conditionInfo.ConditionIDs[(int)Conditions.AOut];
+            c2 = _conditionInfo.ConditionIDs[(int)Conditions.ABOut];
             _epiHist.Conditions.Add(new Condition_OnConditions(
                 id: id++,
                 name: "Drug A - Turn Off",
@@ -1424,15 +1425,20 @@ namespace APACElib
             }
 
             // turn on B
+            c1 = _conditionInfo.ConditionIDs[(int)Conditions.AOut];
+            c2 = _conditionInfo.ConditionIDs[(int)Conditions.BOk];
+            c3 = _conditionInfo.ConditionIDs[(int)Conditions.ABOk];
+            c4 = _conditionInfo.ConditionIDs[(int)Conditions.BNeverUsed];
+            c5 = _conditionInfo.ConditionIDs[(int)Conditions.M1NeverUsed];
             _epiHist.Conditions.Add(new Condition_OnConditions(
                 id: id++,
                 name: "Drug B - Turn On",
                 conditions: new List<Condition> {
-                    _epiHist.Conditions[(int)Conditions.AOut],
-                    _epiHist.Conditions[(int)Conditions.BOk],
-                    _epiHist.Conditions[(int)Conditions.ABOk],
-                    _epiHist.Conditions[(int)Conditions.BNeverUsed],
-                    _epiHist.Conditions[(int)Conditions.M1NeverUsed]},
+                    _epiHist.Conditions[c1],
+                    _epiHist.Conditions[c2],
+                    _epiHist.Conditions[c3],
+                    _epiHist.Conditions[c4],
+                    _epiHist.Conditions[c5]},
                 conclusion: EnumAndOr.And));
             if (regions.Count > 1)
             {
@@ -1442,11 +1448,11 @@ namespace APACElib
                         id: id++,
                         name: "Drug B - Turn On | " + regions[regionID],
                         conditions: new List<Condition> {
-                            _epiHist.Conditions[(int)Conditions.AOut + regionID + 1],
-                            _epiHist.Conditions[(int)Conditions.BOk + regionID + 1],
-                            _epiHist.Conditions[(int)Conditions.ABOk + regionID + 1],
-                            _epiHist.Conditions[(int)Conditions.BNeverUsed + regionID + 1],
-                            _epiHist.Conditions[(int)Conditions.M1NeverUsed + regionID + 1]},
+                            _epiHist.Conditions[c1 + regionID + 1],
+                            _epiHist.Conditions[c2 + regionID + 1],
+                            _epiHist.Conditions[c3 + regionID + 1],
+                            _epiHist.Conditions[c4 + regionID + 1],
+                            _epiHist.Conditions[c5 + regionID + 1]},
                         conclusion: EnumAndOr.And));
                 }
             }
