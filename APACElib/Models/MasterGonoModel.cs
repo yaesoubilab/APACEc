@@ -822,7 +822,7 @@ namespace APACElib
                     // received first-line treatment by resistance status and region
                     if (regions.Count > 1)
                     {
-                        _specialStatInfo.SumTxResistFirstRegion[(int)r] = id;
+                        _specialStatInfo.IDTxResistFirstRegion[(int)r] = id;
                         for (regionID = 0; regionID < regions.Count; regionID++)
                         {
                             _epiHist.SumTrajs.Add(
@@ -1036,8 +1036,8 @@ namespace APACElib
                     // % received 1st Tx and resistant to A, B, or AB (incidence) by region
                     if (regions.Count > 1)
                     {
-                        _specialStatInfo.RatioTxResistFirstRegion[(int)r] = id;
-                        int firstID = _specialStatInfo.SumTxResistFirstRegion[(int)r];
+                        _specialStatInfo.IDRatioTxResistFirstRegion[(int)r] = id;
+                        int firstID = _specialStatInfo.IDTxResistFirstRegion[(int)r];
                         for (int regionID = 0; regionID < regions.Count; regionID++)
                         {
                             RatioTrajectory traj = new RatioTrajectory(
@@ -1131,7 +1131,7 @@ namespace APACElib
                     if (regions.Count > 1)
                     {
                         _featureInfo.PercResistFirstRegion[(int)r] = id;
-                        int firstID = _specialStatInfo.RatioTxResistFirstRegion[(int)r];
+                        int firstID = _specialStatInfo.IDRatioTxResistFirstRegion[(int)r];
                         for (int regionID = 0; regionID < regions.Count; regionID++)
                         {                            
                             _epiHist.AddASpecialStatisticsFeature(
@@ -1161,7 +1161,7 @@ namespace APACElib
                     if (regions.Count > 1)
                     {
                         _featureInfo.PChangeInPercResistFirstRegion[(int)r] = id;
-                        int firstID = _specialStatInfo.RatioTxResistFirstRegion[(int)r];
+                        int firstID = _specialStatInfo.IDRatioTxResistFirstRegion[(int)r];
                         for (int regionID = 0; regionID < regions.Count; regionID++)
                         {
                             _epiHist.AddASpecialStatisticsFeature(

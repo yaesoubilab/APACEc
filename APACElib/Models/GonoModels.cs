@@ -74,14 +74,14 @@ namespace APACElib.Models
         public List<string> FormulaTreatedA1B1B2 { get; set; } // A1, B1, B2
         public List<string> FormulaTreatedM1M2 { get; set; } // M1, M2
 
-        public List<int> SumTxResistFirstRegion { get; set; } // 0, A, B, AB
-        public List<int> RatioTxResistFirstRegion { get; set; } // 0, A, B, AB 
+        public List<int> IDTxResistFirstRegion { get; set; } // 0, A, B, AB
+        public List<int> IDRatioTxResistFirstRegion { get; set; } // 0, A, B, AB 
 
         public void Reset(int nRegions)
         {
             SpecialStatIDs = new List<int>(new int[Enum.GetValues(typeof(GonoSpecialStatIDs)).Length]);
-            SumTxResistFirstRegion = new List<int>(new int[4]); // 4 for 0, A, B, AB
-            RatioTxResistFirstRegion = new List<int>(new int[4]); // 4 for 0, A, B, AB
+            IDTxResistFirstRegion = new List<int>(new int[4]); // 4 for 0, A, B, AB
+            IDRatioTxResistFirstRegion = new List<int>(new int[4]); // 4 for 0, A, B, AB
 
             FormulaPrev = new List<string>();
             FormulaPrevSym = new List<List<string>>();
@@ -89,8 +89,6 @@ namespace APACElib.Models
             FormulaTreated = new List<string>();
             FormulaTreatedAndSym = new List<string>();
             FormulaTreatedResist = new List<List<string>>();
-
-            
 
             for (int i = 0; i < nRegions + 1; i++)
             {
