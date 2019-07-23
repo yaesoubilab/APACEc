@@ -29,6 +29,7 @@ namespace APACElib
 
         
         protected List<string> _infProfiles = new List<string>();
+        protected GonoInterventionInfo _interventionInfo = new GonoInterventionInfo();
         protected GonoSpecialStatInfo _specialStatInfo = new GonoSpecialStatInfo();
         protected GonoFeatureInfo _featureInfo = new GonoFeatureInfo();
         protected GonoConditionsInfo _conditionInfo = new GonoConditionsInfo();
@@ -44,6 +45,7 @@ namespace APACElib
 
         protected void BuildGonoModel(List<string> regions)
         {
+            _interventionInfo.Reset(regions.Count);
             _specialStatInfo.Reset(regions.Count);
             _featureInfo.Reset(regions.Count);
             _conditionInfo.Reset(regions.Count);

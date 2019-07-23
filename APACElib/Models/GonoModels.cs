@@ -36,9 +36,9 @@ namespace APACElib.Models
             {
                 // 2 is added for the Default and Always Off interventions 
                 if (nRegions > 1)
-                    InterventionsIDs[(int)intv] = nRegions * (int)intv + 2;
+                    InterventionsIDs[(int)intv-2] = nRegions * ((int)intv - 2) + 2;
                 else
-                    InterventionsIDs[(int)intv] = (int)intv + 2;
+                    InterventionsIDs[(int)intv-2] = (int)intv;
             }
         }
     }
