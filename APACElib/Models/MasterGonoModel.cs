@@ -495,7 +495,7 @@ namespace APACElib
                         _events.Add(new Event_EpidemicIndependent(
                             name: eventName,
                             ID: id,
-                            IDOfActivatingIntervention: (int)Interventions.M1 + regionID,
+                            IDOfActivatingIntervention: _interventionInfo.InterventionsIDs[(int)Interventions.M1] + regionID,
                             rateParameter: _paramManager.Parameters[infRate],
                             IDOfDestinationClass: idSuccessM1 + regionID)
                             );
@@ -522,7 +522,12 @@ namespace APACElib
                         else
                             destClassName = regions[regionID] + " | If " + treatmentProfile;
 
-                        int intID = (r == ResistStates.G_A) ? (int)Interventions.B2_A + regionID : 1;
+                        int intID = 0;
+                        if (r == ResistStates.G_A)
+                            intID = _interventionInfo.InterventionsIDs[(int)Interventions.B2_A] + regionID;
+                        else
+                            intID = 1;
+
                         _events.Add(new Event_EpidemicIndependent(
                             name: eventName,
                             ID: id,
@@ -543,7 +548,12 @@ namespace APACElib
                     {
                         eventName = regions[regionID] + " | Tx_M2 | U | " + _infProfiles[inf];
 
-                        int intID = (r == ResistStates.G_A) ? (int)Interventions.M2_A : (int)Interventions.M2_B_AB;
+                        int intID = 0;
+                        if (r == ResistStates.G_A)
+                            intID = _interventionInfo.InterventionsIDs[(int)Interventions.M2_A];
+                        else
+                            intID = _interventionInfo.InterventionsIDs[(int)Interventions.M2_B_AB];
+
                         _events.Add(new Event_EpidemicIndependent(
                             name: eventName,
                             ID: id,
