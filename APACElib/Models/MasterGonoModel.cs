@@ -1154,7 +1154,7 @@ namespace APACElib
                     _epiHist.AddASpecialStatisticsFeature(
                         name: "Change in % received 1st Tx & resistant to " + r.ToString(),
                         featureID: id++,
-                        specialStatID: idPercFirstTxAndResist + (int)r - 1,
+                        specialStatID: _specialStatInfo.IDRatioTxResist[(int)r],
                         strFeatureType: "Slope",
                         par: 0);
 
@@ -1254,19 +1254,21 @@ namespace APACElib
             string[] drugUse = new string[3] { "A", "B", "AB" };
             for (int i = 0; i < 3; i++) // over A, B, or both A B out
             {
+                int firstIDPerc = _featureInfo.FeatureIDs[(int)Features.PercResist];
+                int firstIDChange = _featureInfo.FeatureIDs[(int)Features.ChangeInPercResist];
                 _epiHist.Conditions.Add(new Condition_OnFeatures(
                     id: id++,
                     name: drugUse[i] + "Out Condition",
                     features: new List<Feature> {
-                        _epiHist.Features[_featureInfo.FeatureIDs[(int)Features.PercResist] + i],
-                        _epiHist.Features[_featureInfo.FeatureIDs[(int)Features.ChangeInPercResist] + i] },
+                        _epiHist.Features[firstIDPerc + i],
+                        _epiHist.Features[firstIDChange + i] },
                     thresholdParams: thresholdParams,
                     signs: signs,
                     conclusion: EnumAndOr.Or));
                 if (regions.Count > 1)
                 {
-                    int firstIDPerc = _featureInfo.PercResistFirstRegion[i];
-                    int firstIDChange = _featureInfo.PChangeInPercResistFirstRegion[i];
+                    firstIDPerc = _featureInfo.PercResistFirstRegion[i+1];
+                    firstIDChange = _featureInfo.PChangeInPercResistFirstRegion[i+1];
                     for (int regionID = 0; regionID < regions.Count; regionID++)
                     {
                         _epiHist.Conditions.Add(new Condition_OnFeatures(
@@ -1286,20 +1288,22 @@ namespace APACElib
             signs = new EnumSign[2] { EnumSign.le, EnumSign.le };
             for (int i = 0; i < 3; i++)
             {
+                int firstIDPerc = _featureInfo.FeatureIDs[(int)Features.PercResist];
+                int firstIDChange = _featureInfo.FeatureIDs[(int)Features.ChangeInPercResist];
                 _epiHist.Conditions.Add(new Condition_OnFeatures(
                     id: id++,
                      name: drugUse[i] + "OK Condition",
                     features: new List<Feature> {
-                        _epiHist.Features[_featureInfo.FeatureIDs[(int)Features.PercResist] + i],
-                        _epiHist.Features[_featureInfo.FeatureIDs[(int)Features.ChangeInPercResist] + i] },
+                        _epiHist.Features[firstIDPerc + i],
+                        _epiHist.Features[firstIDChange + i] },
                     thresholdParams: thresholdParams,
                     signs: signs,
                     conclusion: EnumAndOr.And));
 
                 if (regions.Count > 1)
                 {
-                    int firstIDPerc = _featureInfo.PercResistFirstRegion[i];
-                    int firstIDChange = _featureInfo.PChangeInPercResistFirstRegion[i];
+                    firstIDPerc = _featureInfo.PercResistFirstRegion[i+1];
+                    firstIDChange = _featureInfo.PChangeInPercResistFirstRegion[i+1];
                     for (int regionID = 0; regionID < regions.Count; regionID++)
                     {
                         _epiHist.Conditions.Add(new Condition_OnFeatures(
