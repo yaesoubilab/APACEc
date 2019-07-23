@@ -1000,6 +1000,7 @@ namespace APACElib
             {
                 if (r != ResistStates.G_0)
                 {
+                    _specialStatInfo.IDRatioTxResist[(int)r] = id;
                     RatioTrajectory firstTx = new RatioTrajectory(
                         id: id,
                         name: "% received 1st Tx & resistant to " + r.ToString(),
@@ -1035,8 +1036,7 @@ namespace APACElib
 
                     // % received 1st Tx and resistant to A, B, or AB (incidence) by region
                     if (regions.Count > 1)
-                    {
-                        _specialStatInfo.IDRatioTxResistFirstRegion[(int)r] = id;
+                    {                       
                         int firstID = _specialStatInfo.IDTxResist[(int)r] + 1;
                         for (int regionID = 0; regionID < regions.Count; regionID++)
                         {
@@ -1131,7 +1131,7 @@ namespace APACElib
                     if (regions.Count > 1)
                     {
                         _featureInfo.PercResistFirstRegion[(int)r] = id;
-                        int firstID = _specialStatInfo.IDRatioTxResistFirstRegion[(int)r];
+                        int firstID = _specialStatInfo.IDRatioTxResist[(int)r] + 1;
                         for (int regionID = 0; regionID < regions.Count; regionID++)
                         {                            
                             _epiHist.AddASpecialStatisticsFeature(
@@ -1161,7 +1161,7 @@ namespace APACElib
                     if (regions.Count > 1)
                     {
                         _featureInfo.PChangeInPercResistFirstRegion[(int)r] = id;
-                        int firstID = _specialStatInfo.IDRatioTxResistFirstRegion[(int)r];
+                        int firstID = _specialStatInfo.IDRatioTxResist[(int)r] + 1;
                         for (int regionID = 0; regionID < regions.Count; regionID++)
                         {
                             _epiHist.AddASpecialStatisticsFeature(
