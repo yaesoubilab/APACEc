@@ -640,8 +640,8 @@ namespace APACElib
                     {
                         offset = i * n + regionID;
                         C = (Class_Normal)_classes[c];
-                        C.AddAnEvent(_events[birthID + 1 + offset]);
-                        C.AddAnEvent(_events[deathID + 1 + offset]);
+                        C.AddAnEvent(_events[birthID + n + offset]); // n is for birth in S
+                        C.AddAnEvent(_events[deathID + n + offset]); // n is for birth in S
                         C.AddAnEvent(_events[naturalRecoveryID + offset]);
                         C.AddAnEvent(_events[seekingTreatmentID + offset]);
                         C.AddAnEvent(_events[screeningID + offset]);
