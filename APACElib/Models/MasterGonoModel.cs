@@ -808,6 +808,7 @@ namespace APACElib
             foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
                 if (r != ResistStates.G_0)
                 {
+                    _specialStatInfo.IDTxResist[(int)r] = id;
                     _epiHist.SumTrajs.Add(
                         new SumClassesTrajectory(
                             ID: id++,
@@ -821,8 +822,7 @@ namespace APACElib
 
                     // received first-line treatment by resistance status and region
                     if (regions.Count > 1)
-                    {
-                        _specialStatInfo.IDTxResistFirstRegion[(int)r] = id;
+                    {                        
                         for (regionID = 0; regionID < regions.Count; regionID++)
                         {
                             _epiHist.SumTrajs.Add(
@@ -1004,7 +1004,7 @@ namespace APACElib
                         id: id,
                         name: "% received 1st Tx & resistant to " + r.ToString(),
                         strType: "Incidence/Incidence",
-                        ratioFormula: (idTx1Resist - 1 + (int)r) + "/" + idTx1, 
+                        ratioFormula: _specialStatInfo.IDTxResist[(int)r] + "/" + idTx1, 
                         displayInSimOutput: true,
                         warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                         nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
@@ -1037,7 +1037,7 @@ namespace APACElib
                     if (regions.Count > 1)
                     {
                         _specialStatInfo.IDRatioTxResistFirstRegion[(int)r] = id;
-                        int firstID = _specialStatInfo.IDTxResistFirstRegion[(int)r];
+                        int firstID = _specialStatInfo.IDTxResist[(int)r] + 1;
                         for (int regionID = 0; regionID < regions.Count; regionID++)
                         {
                             RatioTrajectory traj = new RatioTrajectory(
