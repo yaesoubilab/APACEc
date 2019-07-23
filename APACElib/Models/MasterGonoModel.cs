@@ -1251,70 +1251,75 @@ namespace APACElib
 
             // out condition for A, B, or both
             signs = new EnumSign[2] { EnumSign.q, EnumSign.q };
-            string[] drugUse = new string[3] { "A", "B", "AB" };
-            for (int i = 0; i < 3; i++) // over A, B, or both A B out
+            foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
             {
-                int firstIDPerc = _featureInfo.FeatureIDs[(int)Features.PercResist];
-                int firstIDChange = _featureInfo.FeatureIDs[(int)Features.ChangeInPercResist];
-                _epiHist.Conditions.Add(new Condition_OnFeatures(
-                    id: id++,
-                    name: drugUse[i] + "Out Condition",
-                    features: new List<Feature> {
-                        _epiHist.Features[firstIDPerc + i],
-                        _epiHist.Features[firstIDChange + i] },
-                    thresholdParams: thresholdParams,
-                    signs: signs,
-                    conclusion: EnumAndOr.Or));
-                if (regions.Count > 1)
+                if (r != ResistStates.G_0)
                 {
-                    firstIDPerc = _featureInfo.PercResistFirstRegion[i+1];
-                    firstIDChange = _featureInfo.PChangeInPercResistFirstRegion[i+1];
-                    for (int regionID = 0; regionID < regions.Count; regionID++)
+                    int firstIDPerc = _featureInfo.FeatureIDs[(int)Features.PercResist];
+                    int firstIDChange = _featureInfo.FeatureIDs[(int)Features.ChangeInPercResist];
+                    _epiHist.Conditions.Add(new Condition_OnFeatures(
+                        id: id++,
+                        name: r.ToString() + " Out Condition",
+                        features: new List<Feature> {
+                            _epiHist.Features[firstIDPerc + (int)r - 1],
+                            _epiHist.Features[firstIDChange + (int)r - 1] },
+                        thresholdParams: thresholdParams,
+                        signs: signs,
+                        conclusion: EnumAndOr.Or));
+                    if (regions.Count > 1)
                     {
-                        _epiHist.Conditions.Add(new Condition_OnFeatures(
-                            id: id++,
-                            name: drugUse[i] + "Out Condition | " + regions[regionID],
-                            features: new List<Feature> {
-                                _epiHist.Features[firstIDPerc + regionID],
-                                _epiHist.Features[firstIDChange + regionID] },
-                            thresholdParams: thresholdParams,
-                            signs: signs,
-                            conclusion: EnumAndOr.Or));
+                        firstIDPerc = _featureInfo.PercResistFirstRegion[(int)r];
+                        firstIDChange = _featureInfo.PChangeInPercResistFirstRegion[(int)r];
+                        for (int regionID = 0; regionID < regions.Count; regionID++)
+                        {
+                            _epiHist.Conditions.Add(new Condition_OnFeatures(
+                                id: id++,
+                                name: r.ToString() + " Out Condition | " + regions[regionID],
+                                features: new List<Feature> {
+                                    _epiHist.Features[firstIDPerc + regionID],
+                                    _epiHist.Features[firstIDChange + regionID] },
+                                thresholdParams: thresholdParams,
+                                signs: signs,
+                                conclusion: EnumAndOr.Or));
+                        }
                     }
                 }
             }
 
             // ok condition for A, B, or both
             signs = new EnumSign[2] { EnumSign.le, EnumSign.le };
-            for (int i = 0; i < 3; i++)
+            foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
             {
-                int firstIDPerc = _featureInfo.FeatureIDs[(int)Features.PercResist];
-                int firstIDChange = _featureInfo.FeatureIDs[(int)Features.ChangeInPercResist];
-                _epiHist.Conditions.Add(new Condition_OnFeatures(
-                    id: id++,
-                     name: drugUse[i] + "OK Condition",
-                    features: new List<Feature> {
-                        _epiHist.Features[firstIDPerc + i],
-                        _epiHist.Features[firstIDChange + i] },
-                    thresholdParams: thresholdParams,
-                    signs: signs,
-                    conclusion: EnumAndOr.And));
-
-                if (regions.Count > 1)
+                if (r != ResistStates.G_0)
                 {
-                    firstIDPerc = _featureInfo.PercResistFirstRegion[i+1];
-                    firstIDChange = _featureInfo.PChangeInPercResistFirstRegion[i+1];
-                    for (int regionID = 0; regionID < regions.Count; regionID++)
+                    int firstIDPerc = _featureInfo.FeatureIDs[(int)Features.PercResist];
+                    int firstIDChange = _featureInfo.FeatureIDs[(int)Features.ChangeInPercResist];
+                    _epiHist.Conditions.Add(new Condition_OnFeatures(
+                        id: id++,
+                        name: " " + "OK Condition",
+                        features: new List<Feature> {
+                        _epiHist.Features[firstIDPerc + (int)r - 1],
+                        _epiHist.Features[firstIDChange + (int)r - 1] },
+                        thresholdParams: thresholdParams,
+                        signs: signs,
+                        conclusion: EnumAndOr.And));
+
+                    if (regions.Count > 1)
                     {
-                        _epiHist.Conditions.Add(new Condition_OnFeatures(
-                            id: id++,
-                            name: drugUse[i] + "OK Condition | " + regions[regionID],
-                            features: new List<Feature> {
+                        firstIDPerc = _featureInfo.PercResistFirstRegion[(int)r];
+                        firstIDChange = _featureInfo.PChangeInPercResistFirstRegion[(int)r];
+                        for (int regionID = 0; regionID < regions.Count; regionID++)
+                        {
+                            _epiHist.Conditions.Add(new Condition_OnFeatures(
+                                id: id++,
+                                name: " " + "OK Condition | " + regions[regionID],
+                                features: new List<Feature> {
                                 _epiHist.Features[firstIDPerc + regionID],
                                 _epiHist.Features[firstIDChange + regionID] },
-                            thresholdParams: thresholdParams,
-                            signs: signs,
-                            conclusion: EnumAndOr.Or));
+                                thresholdParams: thresholdParams,
+                                signs: signs,
+                                conclusion: EnumAndOr.Or));
+                        }
                     }
                 }
             }
