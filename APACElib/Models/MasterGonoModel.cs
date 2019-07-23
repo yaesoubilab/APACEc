@@ -112,7 +112,7 @@ namespace APACElib
                     Class_Normal c = Get_Success(id: classID, region: regions[regionID], drug: d.ToString());
                     _classes.Add(c);
                     _dicClasses[c.Name] = classID++;
-                    _specialStatInfo.TreatedA1B1B2[(int)d] += c.ID + "+";
+                    _specialStatInfo.FormulaTreatedA1B1B2[(int)d] += c.ID + "+";
                 }
 
             // Success with M1 or M2
@@ -122,7 +122,7 @@ namespace APACElib
                     Class_Normal c = Get_Success(id: classID, region: regions[regionID], drug: m.ToString());
                     _classes.Add(c);
                     _dicClasses[c.Name] = classID++;
-                    _specialStatInfo.TreatedM1M2[(int)m] += c.ID + "+";
+                    _specialStatInfo.FormulaTreatedM1M2[(int)m] += c.ID + "+";
                 }
 
             // add death
@@ -157,30 +157,30 @@ namespace APACElib
                             _dicClasses[C.Name] = classID++;
 
                             // update formulas of special statistics 
-                            _specialStatInfo.Prev[0] += C.ID + "+";
+                            _specialStatInfo.FormulaPrev[0] += C.ID + "+";
                             if (s == SymStates.Sym)
-                                _specialStatInfo.PrevSym[0][0] += C.ID + "+";
+                                _specialStatInfo.FormulaPrevSym[0][0] += C.ID + "+";
                             else
-                                _specialStatInfo.PrevSym[0][1] += C.ID + "+";
+                                _specialStatInfo.FormulaPrevSym[0][1] += C.ID + "+";
 
                             if (r != ResistStates.G_0)
-                                _specialStatInfo.PrevResist[0][(int)r] += C.ID + "+";
+                                _specialStatInfo.FormulaPrevResist[0][(int)r] += C.ID + "+";
 
                             // special statics on treatment
                             if (c == Comparts.W)
                             {
-                                _specialStatInfo.Treated[0] += C.ID + "+";
+                                _specialStatInfo.FormulaTreated[0] += C.ID + "+";
                                 if (regions.Count > 1)
-                                    _specialStatInfo.Treated[1 + regionID] += C.ID + "+";
+                                    _specialStatInfo.FormulaTreated[1 + regionID] += C.ID + "+";
 
                                 if (s == SymStates.Sym)
-                                    _specialStatInfo.TreatedAndSym[0] += C.ID + "+";
+                                    _specialStatInfo.FormulaTreatedAndSym[0] += C.ID + "+";
 
                                 if (r != ResistStates.G_0)
                                 {
-                                    _specialStatInfo.TreatedResist[0][(int)r] += C.ID + "+";
+                                    _specialStatInfo.FormulaTreatedResist[0][(int)r] += C.ID + "+";
                                     if (regions.Count > 1)
-                                        _specialStatInfo.TreatedResist[1+regionID][(int)r] += C.ID + "+";
+                                        _specialStatInfo.FormulaTreatedResist[1+regionID][(int)r] += C.ID + "+";
                                 }
 
                             }
@@ -717,7 +717,7 @@ namespace APACElib
                     ID: id++,
                     name: "Prevalence",
                     strType: "Prevalence",
-                    sumFormula: _specialStatInfo.Prev[0],
+                    sumFormula: _specialStatInfo.FormulaPrev[0],
                     displayInSimOutput: true,
                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
@@ -733,7 +733,7 @@ namespace APACElib
                             ID: id++,
                             name: "Prevalence | " + s.ToString(),
                             strType: "Prevalence",
-                            sumFormula: _specialStatInfo.PrevSym[0][(int)s],
+                            sumFormula: _specialStatInfo.FormulaPrevSym[0][(int)s],
                             displayInSimOutput: true,
                             warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                             nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
@@ -748,7 +748,7 @@ namespace APACElib
                             ID: id++,
                             name: "Prevalence | " + r.ToString(),
                             strType: "Prevalence",
-                            sumFormula: _specialStatInfo.PrevResist[0][(int)r],
+                            sumFormula: _specialStatInfo.FormulaPrevResist[0][(int)r],
                             displayInSimOutput: true,
                             warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                             nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
@@ -759,7 +759,7 @@ namespace APACElib
                 ID: id++,
                 name: "Received 1st Tx",
                 strType: "Incidence",
-                sumFormula: _specialStatInfo.Treated[0],
+                sumFormula: _specialStatInfo.FormulaTreated[0],
                 displayInSimOutput: true,
                 warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                 nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
@@ -777,14 +777,13 @@ namespace APACElib
             // received first-line treatment by region
             if (regions.Count > 1)
             {
-                _specialStatInfo.SumTxFirstRegion = id;
                 for (regionID = 0; regionID < regions.Count; regionID++)
                 {
                     _epiHist.SumTrajs.Add(new SumClassesTrajectory(
                         ID: id++,
                         name: "Received 1st Tx | " + regions[regionID],
                         strType: "Incidence",
-                        sumFormula: _specialStatInfo.Treated[1+regionID],
+                        sumFormula: _specialStatInfo.FormulaTreated[1+regionID],
                         displayInSimOutput: true,
                         warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                         nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
@@ -797,7 +796,7 @@ namespace APACElib
                 ID: id++,
                 name: "Received 1st Tx & Symptomatic",
                 strType: "Incidence",
-                sumFormula: _specialStatInfo.TreatedAndSym[0],
+                sumFormula: _specialStatInfo.FormulaTreatedAndSym[0],
                 displayInSimOutput: true,
                 warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                 nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
@@ -814,7 +813,7 @@ namespace APACElib
                             ID: id++,
                             name: "Received 1st Tx & Resistant to " + r.ToString(),
                             strType: "Incidence",
-                            sumFormula: _specialStatInfo.TreatedResist[0][(int)r],
+                            sumFormula: _specialStatInfo.FormulaTreatedResist[0][(int)r],
                             displayInSimOutput: true,
                             warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                             nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
@@ -831,7 +830,7 @@ namespace APACElib
                                     ID: id++,
                                     name: "Received 1st Tx & Resistant to " + r.ToString() + " | " + regions[regionID],
                                     strType: "Incidence",
-                                    sumFormula: _specialStatInfo.TreatedResist[1 + regionID][(int)r],
+                                    sumFormula: _specialStatInfo.FormulaTreatedResist[1 + regionID][(int)r],
                                     displayInSimOutput: true,
                                     warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
@@ -842,16 +841,16 @@ namespace APACElib
 
             // sucessful treatment
             string success1st =
-                _specialStatInfo.TreatedA1B1B2[(int)Drugs.A1] +
-                _specialStatInfo.TreatedA1B1B2[(int)Drugs.B1] +
-                _specialStatInfo.TreatedM1M2[(int)Ms.M1];
+                _specialStatInfo.FormulaTreatedA1B1B2[(int)Drugs.A1] +
+                _specialStatInfo.FormulaTreatedA1B1B2[(int)Drugs.B1] +
+                _specialStatInfo.FormulaTreatedM1M2[(int)Ms.M1];
             string successAorB =
-                _specialStatInfo.TreatedA1B1B2[(int)Drugs.A1] +
-                _specialStatInfo.TreatedA1B1B2[(int)Drugs.B1] +
-                _specialStatInfo.TreatedA1B1B2[(int)Drugs.B2];
+                _specialStatInfo.FormulaTreatedA1B1B2[(int)Drugs.A1] +
+                _specialStatInfo.FormulaTreatedA1B1B2[(int)Drugs.B1] +
+                _specialStatInfo.FormulaTreatedA1B1B2[(int)Drugs.B2];
             string successM =
-                _specialStatInfo.TreatedM1M2[(int)Ms.M1] +
-                _specialStatInfo.TreatedM1M2[(int)Ms.M2];
+                _specialStatInfo.FormulaTreatedM1M2[(int)Ms.M1] +
+                _specialStatInfo.FormulaTreatedM1M2[(int)Ms.M2];
             string successAll = successAorB + successM;
 
             // # sucessfully treated with 1st line treatment 

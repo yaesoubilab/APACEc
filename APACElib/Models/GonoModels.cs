@@ -65,45 +65,45 @@ namespace APACElib.Models
     {
         public List<int> SpecialStatIDs { get; set; }
 
-        public List<string> Prev { get; set; }
-        public List<List<string>> PrevSym { get; set; } // Sym, Asym
-        public List<List<string>> PrevResist { get; set; } // 0, A, B, AB
-        public List<string> Treated { get; set; }
-        public List<string> TreatedAndSym { get; set; } // Sym, Asym
-        public List<List<string>> TreatedResist { get; set; } // 0, A, B, AB
-        public List<string> TreatedA1B1B2 { get; set; } // A1, B1, B2
-        public List<string> TreatedM1M2 { get; set; } // M1, M2
+        public List<string> FormulaPrev { get; set; }
+        public List<List<string>> FormulaPrevSym { get; set; } // Sym, Asym
+        public List<List<string>> FormulaPrevResist { get; set; } // 0, A, B, AB
+        public List<string> FormulaTreated { get; set; }
+        public List<string> FormulaTreatedAndSym { get; set; } // Sym, Asym
+        public List<List<string>> FormulaTreatedResist { get; set; } // 0, A, B, AB
+        public List<string> FormulaTreatedA1B1B2 { get; set; } // A1, B1, B2
+        public List<string> FormulaTreatedM1M2 { get; set; } // M1, M2
 
-        public int SumTxFirstRegion { get; set; }
         public List<int> SumTxResistFirstRegion { get; set; } // 0, A, B, AB
         public List<int> RatioTxResistFirstRegion { get; set; } // 0, A, B, AB 
 
         public void Reset(int nRegions)
         {
             SpecialStatIDs = new List<int>(new int[Enum.GetValues(typeof(GonoSpecialStatIDs)).Length]);
-            Prev = new List<string>();
-            PrevSym = new List<List<string>>();
-            PrevResist = new List<List<string>>();
-            Treated = new List<string>();
-            TreatedAndSym = new List<string>();
-            TreatedResist = new List<List<string>>();
-
-            SumTxFirstRegion = 0;
             SumTxResistFirstRegion = new List<int>(new int[4]); // 4 for 0, A, B, AB
             RatioTxResistFirstRegion = new List<int>(new int[4]); // 4 for 0, A, B, AB
 
+            FormulaPrev = new List<string>();
+            FormulaPrevSym = new List<List<string>>();
+            FormulaPrevResist = new List<List<string>>();
+            FormulaTreated = new List<string>();
+            FormulaTreatedAndSym = new List<string>();
+            FormulaTreatedResist = new List<List<string>>();
+
+            
+
             for (int i = 0; i < nRegions + 1; i++)
             {
-                Prev.Add("");
-                PrevSym.Add(new List<string>() { "", "" }); // Sym, Asym
-                PrevResist.Add(new List<string> { "", "", "", "" }); // 0, A, B, AB
-                Treated.Add("");
-                TreatedAndSym.Add("");
-                TreatedResist.Add(new List<string> { "", "", "", "" }); // 0, A, B, AB
+                FormulaPrev.Add("");
+                FormulaPrevSym.Add(new List<string>() { "", "" }); // Sym, Asym
+                FormulaPrevResist.Add(new List<string> { "", "", "", "" }); // 0, A, B, AB
+                FormulaTreated.Add("");
+                FormulaTreatedAndSym.Add("");
+                FormulaTreatedResist.Add(new List<string> { "", "", "", "" }); // 0, A, B, AB
             }
 
-            TreatedA1B1B2 = new List<string>() { "", "", "" };
-            TreatedM1M2 = new List<string>() { "", "" };
+            FormulaTreatedA1B1B2 = new List<string>() { "", "", "" };
+            FormulaTreatedM1M2 = new List<string>() { "", "" };
         }
     }
 
