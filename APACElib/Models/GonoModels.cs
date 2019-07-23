@@ -108,8 +108,8 @@ namespace APACElib.Models
     public class GonoFeatureInfo
     {
         public List<int> FeatureIDs { get; set; }
-        public int[] PercResistFirstRegion { get; set; }
-        public int[] PChangeInPercResistFirstRegion { get; set; }
+        public int[] IDPercResist { get; set; }
+        public int[] IDChangeInPercResist { get; set; }
         public int IfAEverOff { get; set; }
         public int IfBEverOff { get; set; }
         public int IfMEverOn { get; set; }
@@ -117,8 +117,8 @@ namespace APACElib.Models
         public void Reset(int nRegions)
         {
             FeatureIDs = new List<int>(new int[Enum.GetValues(typeof(Features)).Length]);
-            PercResistFirstRegion = new int[4]; // 4 for 0, A, B, AB
-            PChangeInPercResistFirstRegion = new int[4]; // 4 for 0, A, B, AB
+            IDPercResist = new int[4]; // 4 for 0, A, B, AB
+            IDChangeInPercResist = new int[4]; // 4 for 0, A, B, AB
         }
     }
 

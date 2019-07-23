@@ -1121,6 +1121,7 @@ namespace APACElib
             {
                 if (r != ResistStates.G_0)
                 {
+                    _featureInfo.IDPercResist[(int)r] = id;
                     _epiHist.AddASpecialStatisticsFeature(
                         name: "% received 1st Tx & resistant to " + r.ToString(),
                         featureID: id++,
@@ -1129,8 +1130,7 @@ namespace APACElib
                         par: 0);
 
                     if (regions.Count > 1)
-                    {
-                        _featureInfo.PercResistFirstRegion[(int)r] = id;
+                    {  
                         int firstID = _specialStatInfo.IDRatioTxResist[(int)r] + 1;
                         for (int regionID = 0; regionID < regions.Count; regionID++)
                         {                            
@@ -1160,7 +1160,7 @@ namespace APACElib
 
                     if (regions.Count > 1)
                     {
-                        _featureInfo.PChangeInPercResistFirstRegion[(int)r] = id;
+                        _featureInfo.IDChangeInPercResist[(int)r] = id;
                         int firstID = _specialStatInfo.IDRatioTxResist[(int)r] + 1;
                         for (int regionID = 0; regionID < regions.Count; regionID++)
                         {
@@ -1255,28 +1255,28 @@ namespace APACElib
             {
                 if (r != ResistStates.G_0)
                 {
-                    int firstIDPerc = _featureInfo.FeatureIDs[(int)Features.PercResist];
+                    int IDPerc = _featureInfo.IDPercResist[(int)r];
                     int firstIDChange = _featureInfo.FeatureIDs[(int)Features.ChangeInPercResist];
                     _epiHist.Conditions.Add(new Condition_OnFeatures(
                         id: id++,
                         name: r.ToString() + " Out Condition",
                         features: new List<Feature> {
-                            _epiHist.Features[firstIDPerc + (int)r - 1],
+                            _epiHist.Features[IDPerc],
                             _epiHist.Features[firstIDChange + (int)r - 1] },
                         thresholdParams: thresholdParams,
                         signs: signs,
                         conclusion: EnumAndOr.Or));
                     if (regions.Count > 1)
                     {
-                        firstIDPerc = _featureInfo.PercResistFirstRegion[(int)r];
-                        firstIDChange = _featureInfo.PChangeInPercResistFirstRegion[(int)r];
+                        IDPerc = _featureInfo.IDPercResist[(int)r] + 1;
+                        firstIDChange = _featureInfo.IDChangeInPercResist[(int)r];
                         for (int regionID = 0; regionID < regions.Count; regionID++)
                         {
                             _epiHist.Conditions.Add(new Condition_OnFeatures(
                                 id: id++,
                                 name: r.ToString() + " Out Condition | " + regions[regionID],
                                 features: new List<Feature> {
-                                    _epiHist.Features[firstIDPerc + regionID],
+                                    _epiHist.Features[IDPerc + regionID],
                                     _epiHist.Features[firstIDChange + regionID] },
                                 thresholdParams: thresholdParams,
                                 signs: signs,
@@ -1292,13 +1292,13 @@ namespace APACElib
             {
                 if (r != ResistStates.G_0)
                 {
-                    int firstIDPerc = _featureInfo.FeatureIDs[(int)Features.PercResist];
+                    int IDPerc = _featureInfo.IDPercResist[(int)r];
                     int firstIDChange = _featureInfo.FeatureIDs[(int)Features.ChangeInPercResist];
                     _epiHist.Conditions.Add(new Condition_OnFeatures(
                         id: id++,
                         name: " " + "OK Condition",
                         features: new List<Feature> {
-                        _epiHist.Features[firstIDPerc + (int)r - 1],
+                        _epiHist.Features[IDPerc],
                         _epiHist.Features[firstIDChange + (int)r - 1] },
                         thresholdParams: thresholdParams,
                         signs: signs,
@@ -1306,15 +1306,15 @@ namespace APACElib
 
                     if (regions.Count > 1)
                     {
-                        firstIDPerc = _featureInfo.PercResistFirstRegion[(int)r];
-                        firstIDChange = _featureInfo.PChangeInPercResistFirstRegion[(int)r];
+                        IDPerc = _featureInfo.IDPercResist[(int)r] + 1;
+                        firstIDChange = _featureInfo.IDChangeInPercResist[(int)r];
                         for (int regionID = 0; regionID < regions.Count; regionID++)
                         {
                             _epiHist.Conditions.Add(new Condition_OnFeatures(
                                 id: id++,
                                 name: " " + "OK Condition | " + regions[regionID],
                                 features: new List<Feature> {
-                                _epiHist.Features[firstIDPerc + regionID],
+                                _epiHist.Features[IDPerc + regionID],
                                 _epiHist.Features[firstIDChange + regionID] },
                                 thresholdParams: thresholdParams,
                                 signs: signs,
