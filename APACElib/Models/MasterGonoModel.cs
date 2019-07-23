@@ -554,7 +554,7 @@ namespace APACElib
                             name: eventName,
                             ID: id,
                             IDOfActivatingIntervention: intID + regionID,
-                            rateParameter: (r == ResistStates.G_A) ? _paramManager.Parameters[(int)DummyParam.D_0] : _paramManager.Parameters[seekingReTreatmentRate],
+                            rateParameter: _paramManager.Parameters[seekingReTreatmentRate],
                             IDOfDestinationClass: idSuccessM2 + regionID)
                             );
                         _dicEvents[eventName] = id++;
