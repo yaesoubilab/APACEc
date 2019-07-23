@@ -1296,7 +1296,7 @@ namespace APACElib
                     int IDChange = _featureInfo.IDChangeInPercResist[(int)r];
                     _epiHist.Conditions.Add(new Condition_OnFeatures(
                         id: id++,
-                        name: " " + "OK Condition",
+                        name: r.ToString() + " OK Condition",
                         features: new List<Feature> {
                         _epiHist.Features[IDPerc],
                         _epiHist.Features[IDChange + (int)r - 1] },
@@ -1312,7 +1312,7 @@ namespace APACElib
                         {
                             _epiHist.Conditions.Add(new Condition_OnFeatures(
                                 id: id++,
-                                name: " " + "OK Condition | " + regions[regionID],
+                                name: r.ToString() + " OK Condition | " + regions[regionID],
                                 features: new List<Feature> {
                                 _epiHist.Features[IDPerc + regionID],
                                 _epiHist.Features[IDChange + regionID] },
@@ -1400,12 +1400,14 @@ namespace APACElib
             }
 
             // turn off A
+            int c1 = _conditionInfo.ConditionIDs[(int)Conditions.AOut];
+            int c2 = _conditionInfo.ConditionIDs[(int)Conditions.ABOut];
             _epiHist.Conditions.Add(new Condition_OnConditions(
                 id: id++,
                 name: "Drug A - Turn Off",
                 conditions: new List<Condition> {
-                    _epiHist.Conditions[(int)Conditions.AOut],
-                    _epiHist.Conditions[(int)Conditions.ABOut] },
+                    _epiHist.Conditions[c1],
+                    _epiHist.Conditions[c2]},
                 conclusion: EnumAndOr.Or));
             if (regions.Count > 1)
             {
@@ -1415,8 +1417,8 @@ namespace APACElib
                         id: id++,
                         name: "Drug A - Turn Off | " + regions[regionID],
                         conditions: new List<Condition> {
-                            _epiHist.Conditions[(int)Conditions.AOut + regionID + 1],
-                            _epiHist.Conditions[(int)Conditions.ABOut + regionID + 1] },
+                            _epiHist.Conditions[c1 + regionID + 1],
+                            _epiHist.Conditions[c2 + regionID + 1] },
                         conclusion: EnumAndOr.Or));
                 }
             }
