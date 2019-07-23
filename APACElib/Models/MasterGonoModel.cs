@@ -405,6 +405,7 @@ namespace APACElib
             inf = 0;
             i = 0;
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
+            {                
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                 {
                     for (regionID = 0; regionID < n; regionID++)
@@ -418,10 +419,11 @@ namespace APACElib
                             IDOfDestinationClass: idWSymG_0 + i * n + regionID)
                         );
                         _dicEvents[eventName] = id++;
-                        i++;
                     }
+                    i++;
                     inf++;
                 }
+            }
 
             // add Screening events
             inf = 0;
