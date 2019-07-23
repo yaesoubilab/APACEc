@@ -465,7 +465,12 @@ namespace APACElib
                                 else
                                     destClassName = regions[regionID] + " | If " + treatmentProfile;
 
-                                int intID = (d == Drugs.A1) ? (int)Interventions.A1 : (int)Interventions.B1;
+                                int intID = 0;
+                                if (d == Drugs.A1)
+                                    intID = _interventionInfo.InterventionsIDs[(int)Interventions.A1];
+                                else
+                                    intID = _interventionInfo.InterventionsIDs[(int)Interventions.B1];
+
                                 _events.Add(new Event_EpidemicIndependent(
                                     name: eventName,
                                     ID: id,
