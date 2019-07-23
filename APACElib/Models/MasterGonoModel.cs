@@ -545,15 +545,17 @@ namespace APACElib
                         eventName = regions[regionID] + " | Tx_M2 | U | " + _infProfiles[inf];
 
                         int intID = 0;
-                        if (r == ResistStates.G_A)
-                            intID = _interventionInfo.InterventionsIDs[(int)Interventions.M2_A];
+                        if (r == ResistStates.G_0)
+                            intID = 1;
+                        else if (r == ResistStates.G_A)
+                            intID = _interventionInfo.InterventionsIDs[(int)Interventions.M2_A] + regionID;
                         else
-                            intID = _interventionInfo.InterventionsIDs[(int)Interventions.M2_B_AB];
+                            intID = _interventionInfo.InterventionsIDs[(int)Interventions.M2_B_AB] + regionID;
 
                         _events.Add(new Event_EpidemicIndependent(
                             name: eventName,
                             ID: id,
-                            IDOfActivatingIntervention: intID + regionID,
+                            IDOfActivatingIntervention: intID,
                             rateParameter: _paramManager.Parameters[seekingReTreatmentRate],
                             IDOfDestinationClass: idSuccessM2 + regionID)
                             );
@@ -572,7 +574,7 @@ namespace APACElib
                         ID: id,
                         IDOfActivatingIntervention: 0, // always on
                         rateParameter: _paramManager.Parameters[(int)DummyParam.D_Inf],
-                        IDOfDestinationClass: regionID) // back to S
+                        IDOfDestinationClass: idS + regionID) // back to S
                         );
                     _dicEvents[eventName] = id++;
                 }
@@ -588,7 +590,7 @@ namespace APACElib
                         ID: id,
                         IDOfActivatingIntervention: 0, // always on
                         rateParameter: _paramManager.Parameters[(int)DummyParam.D_Inf],
-                        IDOfDestinationClass: regionID) // back to S
+                        IDOfDestinationClass: idS + regionID) // back to S
                         );
                     _dicEvents[eventName] = id++;
                 }
