@@ -949,7 +949,7 @@ namespace APACElib
             // % infection symptomatic (prevalence)
             RatioTrajectory prevalenceSym = new RatioTrajectory(
                 id: id++,
-                name: "% infection symptomatic",
+                name: "% Infection Symptomatic",
                 strType: "Prevalence/Prevalence",
                 ratioFormula: (idPrevalence + 1) + "/" + idPrevalence,
                 displayInSimOutput: true,
@@ -964,7 +964,7 @@ namespace APACElib
                 {
                     RatioTrajectory prev = new RatioTrajectory(
                         id: id++,
-                        name: "% infection resistant to " + r.ToString(),
+                        name: "% Infection Resistant To " + r.ToString(),
                         strType: "Prevalence/Prevalence",
                         ratioFormula: (idPrevalence + 1 + (int)r) + "/" + idPrevalence,
                         displayInSimOutput: true,
@@ -977,7 +977,7 @@ namespace APACElib
             // % received 1st Tx and symptomatic (incidence)            
             RatioTrajectory firstTxSym = new RatioTrajectory(
                 id: id++,
-                name: "% received 1st Tx & symptomatic ",
+                name: "% Received 1st Tx & Symptomatic",
                 strType: "Incidence/Incidence",
                 ratioFormula: idTx1Sym + "/" + idTx1,
                 displayInSimOutput: true,
@@ -1003,7 +1003,7 @@ namespace APACElib
                     _specialStatInfo.IDRatioTxResist[(int)r] = id;
                     RatioTrajectory firstTx = new RatioTrajectory(
                         id: id,
-                        name: "% received 1st Tx & resistant to " + r.ToString(),
+                        name: "% Received 1st Tx & Resistant to " + r.ToString(),
                         strType: "Incidence/Incidence",
                         ratioFormula: _specialStatInfo.IDTxResist[(int)r] + "/" + idTx1, 
                         displayInSimOutput: true,
@@ -1021,7 +1021,7 @@ namespace APACElib
                     _epiHist.SurveyedIncidenceTrajs.Add(
                         new SurveyedIncidenceTrajectory(
                             id: id,
-                           name: "% received 1st Tx & resistant to " + r.ToString(),
+                           name: "% Received 1st Tx & Resistant to " + r.ToString(),
                            displayInSimOutput: true,
                            firstObsMarksStartOfEpidemic: false,
                            sumClassesTrajectory: null,
@@ -1042,7 +1042,7 @@ namespace APACElib
                         {
                             RatioTrajectory traj = new RatioTrajectory(
                                 id: id,
-                                name: "% received 1st Tx & resistant to " + r.ToString() + " | " + regions[regionID],
+                                name: "% Received 1st Tx & Resistant To " + r.ToString() + " | " + regions[regionID],
                                 strType: "Incidence/Incidence",
                                 ratioFormula: (firstID + regionID) + "/" + (idTx1 + 1 + regionID),
                                 displayInSimOutput: true,
@@ -1052,7 +1052,7 @@ namespace APACElib
                             _epiHist.SurveyedIncidenceTrajs.Add(
                                 new SurveyedIncidenceTrajectory(
                                     id: id,
-                                    name: "% received 1st Tx & resistant to " + r.ToString() + " | " + regions[regionID],
+                                    name: "% Received 1st Tx & Resistant To " + r.ToString() + " | " + regions[regionID],
                                     displayInSimOutput: true,
                                     firstObsMarksStartOfEpidemic: false,
                                     sumClassesTrajectory: null,
@@ -1073,7 +1073,7 @@ namespace APACElib
             // annual rate of gonorrhea cases
             RatioTrajectory rate = new RatioTrajectory(
                 id: id++,
-                name: "Annual rate of gonorrhea cases",
+                name: "Annual Rate of Gonorrhea Cases",
                 strType: "Incidence/Prevalence",
                 ratioFormula: idTx1 + "/" + idPopSize,
                 displayInSimOutput: true,
@@ -1093,7 +1093,7 @@ namespace APACElib
             // effective life of drugs A and B
             RatioTrajectory effLifeAandB = new RatioTrajectory(
                 id: id++,
-                name: "Effective life of A and B",
+                name: "Effective Life of A and B",
                 strType: "Incidence/Incidence",
                 ratioFormula: idSuccessAOrB + "/" + idSuccessAOrBOrM,
                 displayInSimOutput: true,
