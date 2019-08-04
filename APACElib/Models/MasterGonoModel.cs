@@ -964,7 +964,7 @@ namespace APACElib
                 {
                     RatioTrajectory prev = new RatioTrajectory(
                         id: id++,
-                        name: "% Infection Resistant To " + r.ToString(),
+                        name: "% Infection Resistant to " + r.ToString(),
                         strType: "Prevalence/Prevalence",
                         ratioFormula: (idPrevalence + 1 + (int)r) + "/" + idPrevalence,
                         displayInSimOutput: true,
@@ -1042,7 +1042,7 @@ namespace APACElib
                         {
                             RatioTrajectory traj = new RatioTrajectory(
                                 id: id,
-                                name: "% Received 1st Tx & Resistant To " + r.ToString() + " | " + regions[regionID],
+                                name: "% Received 1st Tx & Resistant to " + r.ToString() + " | " + regions[regionID],
                                 strType: "Incidence/Incidence",
                                 ratioFormula: (firstID + regionID) + "/" + (idTx1 + 1 + regionID),
                                 displayInSimOutput: true,
@@ -1052,7 +1052,7 @@ namespace APACElib
                             _epiHist.SurveyedIncidenceTrajs.Add(
                                 new SurveyedIncidenceTrajectory(
                                     id: id,
-                                    name: "% Received 1st Tx & Resistant To " + r.ToString() + " | " + regions[regionID],
+                                    name: "% Received 1st Tx & Resistant to " + r.ToString() + " | " + regions[regionID],
                                     displayInSimOutput: true,
                                     firstObsMarksStartOfEpidemic: false,
                                     sumClassesTrajectory: null,
