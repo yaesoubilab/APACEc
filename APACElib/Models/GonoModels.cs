@@ -65,6 +65,7 @@ namespace APACElib.Models
     {
         public List<int> SpecialStatIDs { get; set; }
 
+        public List<string> FormulatePopSize { get; set; }
         public List<string> FormulaPrev { get; set; }
         public List<List<string>> FormulaPrevSym { get; set; } // Sym, Asym
         public List<List<string>> FormulaPrevResist { get; set; } // 0, A, B, AB
@@ -83,6 +84,7 @@ namespace APACElib.Models
             IDTxResist = new int[4]; // 4 for 0, A, B, AB
             IDRatioTxResist = new int[4]; // 4 for 0, A, B, AB
 
+            FormulatePopSize = new List<string>();
             FormulaPrev = new List<string>();
             FormulaPrevSym = new List<List<string>>();
             FormulaPrevResist = new List<List<string>>();
@@ -92,6 +94,7 @@ namespace APACElib.Models
 
             for (int i = 0; i < nRegions + 1; i++)
             {
+                FormulatePopSize.Add("");
                 FormulaPrev.Add("");
                 FormulaPrevSym.Add(new List<string>() { "", "" }); // Sym, Asym
                 FormulaPrevResist.Add(new List<string> { "", "", "", "" }); // 0, A, B, AB
@@ -145,7 +148,7 @@ namespace APACElib.Models
 
         public override void BuildModel()
         {
-            List<string> sites = new List<string>() { "Site 1", "Site 2" };
+            List<string> sites = new List<string>() { "Boston", "New York" };
             base.BuildGonoModel(sites);
         }
     }

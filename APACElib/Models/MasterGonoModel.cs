@@ -299,7 +299,6 @@ namespace APACElib
 
         protected void AddGonoEvents(List<string> regions)
         {
-            int i = 0;
             int id = 0;
             int inf = 0;
             int regionID = 0;
@@ -710,7 +709,23 @@ namespace APACElib
                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                     );
             _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PopSize] = id - 1;
-
+            if (regions.Count > 1)
+            {
+                for (regionID = 0; regionID < regions.Count; regionID++)
+                {
+                    _epiHist.SumTrajs.Add(
+                    new SumClassesTrajectory(
+                        ID: id++,
+                        name: "Population size | " + regions[regionID],
+                        strType: "Prevalence",
+                        sumFormula: formula, // TODO: fix this
+                        displayInSimOutput: true,
+                        warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
+                        );
+                }
+            }
+            
             // gonorrhea prevalence
             _epiHist.SumTrajs.Add(
                 new SumClassesTrajectory(
@@ -1090,15 +1105,32 @@ namespace APACElib
                     minThresholdToHit: 0);
             _epiHist.RatioTrajs.Add(rate);
 
+            // annual rate of gonorrhea cases by sites
+            if (regions.Count > 1)
+            {
+                for (int regionID = 0; regionID < regions.Count; regionID++)
+                {
+                    RatioTrajectory traj = new RatioTrajectory(
+                        id: id++,
+                        name: "Annual Rate of Gonorrhea Cases" + " | " + regions[regionID],
+                        strType: "Incidence/Prevalence",
+                        ratioFormula: (idTx1 + 1 + regionID) + "/" + (idPopSize + 1 + regionID),
+                        displayInSimOutput: true,
+                        warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+                    _epiHist.RatioTrajs.Add(traj);
+                }
+            }
+
             // effective life of drugs A and B
             RatioTrajectory effLifeAandB = new RatioTrajectory(
-                id: id++,
-                name: "Effective Life of A and B",
-                strType: "Incidence/Incidence",
-                ratioFormula: idSuccessAOrB + "/" + idSuccessAOrBOrM,
-                displayInSimOutput: true,
-                warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
-                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+            id: id++,
+            name: "Effective Life of A and B",
+            strType: "Incidence/Incidence",
+            ratioFormula: idSuccessAOrB + "/" + idSuccessAOrBOrM,
+            displayInSimOutput: true,
+            warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+            nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
             _epiHist.RatioTrajs.Add(effLifeAandB);
 
             // update times series of ratio statistics
