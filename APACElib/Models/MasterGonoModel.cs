@@ -1061,7 +1061,7 @@ namespace APACElib
                                     nDeltaTsObsPeriod: _modelSets.NumOfDeltaT_inObservationPeriod,
                                     nDeltaTsDelayed: 0,
                                     noise_nOfDemoninatorSampled: nIsolateTested,
-                                    ratioNoiseN: 1 / regions.Count)
+                                    ratioNoiseN: (double) 1 / regions.Count)
                                     );
                             _epiHist.RatioTrajs.Add(traj);
                             id++;
