@@ -92,7 +92,6 @@ namespace APACElib
             int infProfile = 0; // infection profile
             int parIDSize = 0;
 
-            // TODO: add population formulas
             // add S's
             parIDSize = _paramManager.Dic["Initial size of " + regions[0] + " | S"];
             for (regionID = 0; regionID < regions.Count; regionID++)
@@ -103,6 +102,7 @@ namespace APACElib
                     parInitialSizeID: parIDSize + regionID);
                 _classes.Add(S);
                 _dicClasses[S.Name] = classID++;
+                _specialStatInfo.FormulatePopSize[regionID + 1] += S.ID + "+";
             }
 
             // add classes to count the treatment outcomes
@@ -158,6 +158,7 @@ namespace APACElib
                             _dicClasses[C.Name] = classID++;
 
                             // update formulas of special statistics 
+                            _specialStatInfo.FormulatePopSize[regionID + 1] += C.ID + "+";
                             _specialStatInfo.FormulaPrev[0] += C.ID + "+";
                             if (s == SymStates.Sym)
                                 _specialStatInfo.FormulaPrevSym[0][0] += C.ID + "+";
@@ -719,7 +720,7 @@ namespace APACElib
                         ID: id++,
                         name: "Population size | " + regions[regionID],
                         strType: "Prevalence",
-                        sumFormula: formula, // TODO: fix this
+                        sumFormula: _specialStatInfo.FormulatePopSize[regionID + 1],
                         displayInSimOutput: true,
                         warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                         nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
