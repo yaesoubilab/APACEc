@@ -92,6 +92,7 @@ namespace APACElib
             int infProfile = 0; // infection profile
             int parIDSize = 0;
 
+            // TODO: add population formulas
             // add S's
             parIDSize = _paramManager.Dic["Initial size of " + regions[0] + " | S"];
             for (regionID = 0; regionID < regions.Count; regionID++)
