@@ -1107,7 +1107,7 @@ namespace APACElib
                     lowFeasibleBound: 0.02,
                     upFeasibleBound: 0.08,
                     minThresholdToHit: 0);
-            _epiHist.RatioTrajs.Add(rate);
+            _epiHist.RatioTrajs.Add(rate); 
 
             // annual rate of gonorrhea cases by sites
             if (regions.Count > 1)
