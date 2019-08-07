@@ -91,16 +91,18 @@ namespace APACElib
             int classID = 0;
             int regionID = 0;
             int infProfile = 0; // infection profile
-            int parIDSize = 0;
+            int parIDSize = 0, parIDSusceptibility = 0;
 
             // add S's
+            parIDSusceptibility = _paramManager.Dic["Relative susceptibility | " + regions[0]];
             parIDSize = _paramManager.Dic["Initial size of " + regions[0] + " | S"];
             for (regionID = 0; regionID < regions.Count; regionID++)
             {
                 Class_Normal S = Get_S(
                     id: classID,
                     region: regions[regionID],
-                    parInitialSizeID: parIDSize + regionID);
+                    parIDSusceptibility: parIDSusceptibility + regionID,
+                    parIDInitialSize: parIDSize + regionID);
                 _classes.Add(S);
                 _dicClasses[S.Name] = classID++;
                 _specialStatInfo.FormulatePopSize[regionID + 1] += S.ID + "+";
@@ -185,7 +187,6 @@ namespace APACElib
                                     if (regions.Count > 1)
                                         _specialStatInfo.FormulaTreatedResist[1+regionID][(int)r] += C.ID + "+";
                                 }
-
                             }
                         }
                         ++infProfile;
@@ -1121,6 +1122,15 @@ namespace APACElib
                         displayInSimOutput: true,
                         warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                         nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+                    if (_modelSets.ModelUse == EnumModelUse.Calibration)
+                        rate.CalibInfo = new SpecialStatCalibrInfo(
+                            measureOfFit: "Likelihood",
+                            likelihoodFunction: "Binomial",
+                            likelihoodParam: "",
+                            ifCheckWithinFeasibleRange: true,
+                            lowFeasibleBound: 0.0,
+                            upFeasibleBound: 1,
+                            minThresholdToHit: 0);
                     _epiHist.RatioTrajs.Add(traj);
                 }
             }
@@ -1720,11 +1730,11 @@ namespace APACElib
 
             return list;
         }
-        protected List<Parameter> GetParamList(DummyParam dummyParam, int repeat)
+        protected List<Parameter> GetParamList(int parID, int repeat)
         {
             List<Parameter> list = new List<Parameter>();
             for (int i = 0; i < repeat; i++)
-                list.Add(_paramManager.Parameters[(int)dummyParam]);
+                list.Add(_paramManager.Parameters[parID]);
             return list;
         }
         protected List<Parameter> GetParamList(string paramName, int pos, int size, DummyParam dummyParam)
@@ -1773,14 +1783,14 @@ namespace APACElib
             return resistOrFail;
         }
 
-        private Class_Normal Get_S(int id, string region, int parInitialSizeID)
+        private Class_Normal Get_S(int id, string region, int parIDInitialSize, int parIDSusceptibility)
         {
             Class_Normal S = new Class_Normal(id, region + " | S");
             S.SetupInitialAndStoppingConditions(
-                initialMembersPar: _paramManager.Parameters[parInitialSizeID]);
+                initialMembersPar: _paramManager.Parameters[parIDInitialSize]);
             S.SetupTransmissionDynamicsProperties(
-                susceptibilityParams: GetParamList(dummyParam: DummyParam.D_1, repeat: 4),
-                infectivityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
+                susceptibilityParams: GetParamList(parID: parIDSusceptibility, repeat: 4),
+                infectivityParams: GetParamList(parID: (int)DummyParam.D_0, repeat: 4),
                 rowIndexInContactMatrix: 0);
             SetupClassStatsAndTimeSeries(
                 thisClass: S,
@@ -1794,8 +1804,8 @@ namespace APACElib
             c.SetupInitialAndStoppingConditions(
                 initialMembersPar: _paramManager.Parameters[(int)DummyParam.D_0]);
             c.SetupTransmissionDynamicsProperties(
-                susceptibilityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
-                infectivityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4),
+                susceptibilityParams: GetParamList(parID: (int)DummyParam.D_0, repeat: 4),
+                infectivityParams: GetParamList(parID: (int)DummyParam.D_0, repeat: 4),
                 rowIndexInContactMatrix: 0);
             SetupClassStatsAndTimeSeries(
                 thisClass: c,
@@ -1822,7 +1832,7 @@ namespace APACElib
                 initialMembersPar: _paramManager.Parameters[parIDSize],
                 ifShouldBeEmptyForEradication: false);  // to simulate until the end of the simulation hirozon
             C.SetupTransmissionDynamicsProperties(
-                susceptibilityParams: GetParamList(dummyParam: DummyParam.D_0, repeat: 4), // no reinfection in I, W, or U
+                susceptibilityParams: GetParamList(parID: (int)DummyParam.D_0, repeat: 4), // no reinfection in I, W, or U
                 infectivityParams: GetParamList(
                     parID: infectivityParID,
                     pos: (int)r,
