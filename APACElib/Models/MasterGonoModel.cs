@@ -83,7 +83,6 @@ namespace APACElib
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
                 foreach (ResistStates r in Enum.GetValues(typeof(ResistStates)))
                     AddGonoParamSize_I(regions, s, r, infProfileID++);
-
         }
 
         protected void AddGonoClasses(List<string> regions)
@@ -102,7 +101,8 @@ namespace APACElib
                     id: classID,
                     region: regions[regionID],
                     parIDSusceptibility: parIDSusceptibility + regionID,
-                    parIDInitialSize: parIDSize + regionID);
+                    parIDInitialSize: parIDSize + regionID,
+                    rowIndexInContactMatrix: regionID);
                 _classes.Add(S);
                 _dicClasses[S.Name] = classID++;
                 _specialStatInfo.FormulatePopSize[regionID + 1] += S.ID + "+";
@@ -153,6 +153,7 @@ namespace APACElib
                                 id: classID,
                                 region: regions[regionID],
                                 infProfileID: infProfile,
+                                rowIndexInContactMatrix: regionID,
                                 c: c,
                                 r: r,
                                 parIDSize: (c == Comparts.I) ? parIDSize++ : (int)DummyParam.D_0,
@@ -1783,7 +1784,7 @@ namespace APACElib
             return resistOrFail;
         }
 
-        private Class_Normal Get_S(int id, string region, int parIDInitialSize, int parIDSusceptibility)
+        private Class_Normal Get_S(int id, string region, int parIDInitialSize, int parIDSusceptibility, int rowIndexInContactMatrix)
         {
             Class_Normal S = new Class_Normal(id, region + " | S");
             S.SetupInitialAndStoppingConditions(
@@ -1791,7 +1792,7 @@ namespace APACElib
             S.SetupTransmissionDynamicsProperties(
                 susceptibilityParams: GetParamList(parID: parIDSusceptibility, repeat: 4),
                 infectivityParams: GetParamList(parID: (int)DummyParam.D_0, repeat: 4),
-                rowIndexInContactMatrix: 0);
+                rowIndexInContactMatrix: rowIndexInContactMatrix);
             SetupClassStatsAndTimeSeries(
                 thisClass: S,
                 showPrevalence: true);
@@ -1822,7 +1823,7 @@ namespace APACElib
             return D;
         }
 
-        private Class_Normal Get_I_W_U(int id, string region, int infProfileID,
+        private Class_Normal Get_I_W_U(int id, string region, int infProfileID, int rowIndexInContactMatrix,
             Comparts c, ResistStates r, int parIDSize, int infectivityParID)
         {
             Class_Normal C = new Class_Normal(
@@ -1838,7 +1839,7 @@ namespace APACElib
                     pos: (int)r,
                     size: 4,
                     dummyParam: DummyParam.D_0),
-                rowIndexInContactMatrix: 0);
+                rowIndexInContactMatrix: rowIndexInContactMatrix);
             SetupClassStatsAndTimeSeries(
                 thisClass: C,
                 showPrevalence: (c == Comparts.I) ? true : false,
