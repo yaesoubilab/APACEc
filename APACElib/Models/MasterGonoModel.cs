@@ -35,7 +35,7 @@ namespace APACElib
                 }
         }
 
-        protected void BuildGonoModel(List<string> regions)
+        protected void BuildGonoModel(List<string> regions, List<double[]> rateBounds)
         {
             _interventionInfo.Reset(regions.Count);
             _specialStatInfo.Reset(regions.Count);
@@ -55,7 +55,7 @@ namespace APACElib
             // add summation statistics
             AddGonoSumStats(regions);
             // add ratio statistics
-            AddGonoRatioStatistics(regions);
+            AddGonoRatioStatistics(regions, rateBounds);
             // add features
             AddGonoFeatures(regions);
             // add conditions
@@ -933,7 +933,7 @@ namespace APACElib
             UpdateSumStatTimeSeries();
         }
 
-        protected void AddGonoRatioStatistics(List<string> regions)
+        protected void AddGonoRatioStatistics(List<string> regions, List<double[]> rateBounds)
         {
             int id = _epiHist.SumTrajs.Count();
             int idPopSize = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PopSize];
@@ -1124,13 +1124,13 @@ namespace APACElib
                         warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                         nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
                     if (_modelSets.ModelUse == EnumModelUse.Calibration)
-                        rate.CalibInfo = new SpecialStatCalibrInfo(
+                        traj.CalibInfo = new SpecialStatCalibrInfo(
                             measureOfFit: "Likelihood",
                             likelihoodFunction: "Binomial",
                             likelihoodParam: "",
-                            ifCheckWithinFeasibleRange: true,
-                            lowFeasibleBound: 0.0,
-                            upFeasibleBound: 1,
+                            ifCheckWithinFeasibleRange: false,
+                            lowFeasibleBound: rateBounds[regionID][0],
+                            upFeasibleBound: rateBounds[regionID][1],
                             minThresholdToHit: 0);
                     _epiHist.RatioTrajs.Add(traj);
                 }
