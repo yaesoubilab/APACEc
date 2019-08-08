@@ -105,7 +105,7 @@ namespace APACElib
                     rowIndexInContactMatrix: regionID);
                 _classes.Add(S);
                 _dicClasses[S.Name] = classID++;
-                _specialStatInfo.FormulatePopSize[regionID + 1] += S.ID + "+";
+                _specialStatInfo.FormulaPopSize[regionID + 1] += S.ID + "+";
             }
 
             // add classes to count the treatment outcomes
@@ -162,7 +162,7 @@ namespace APACElib
                             _dicClasses[C.Name] = classID++;
 
                             // update formulas of special statistics 
-                            _specialStatInfo.FormulatePopSize[regionID + 1] += C.ID + "+";
+                            _specialStatInfo.FormulaPopSize[regionID + 1] += C.ID + "+";
                             _specialStatInfo.FormulaPrev[0] += C.ID + "+";
                             if (s == SymStates.Sym)
                                 _specialStatInfo.FormulaPrevSym[0][0] += C.ID + "+";
@@ -723,7 +723,7 @@ namespace APACElib
                         ID: id++,
                         name: "Population size | " + regions[regionID],
                         strType: "Prevalence",
-                        sumFormula: _specialStatInfo.FormulatePopSize[regionID + 1],
+                        sumFormula: _specialStatInfo.FormulaPopSize[regionID + 1],
                         displayInSimOutput: true,
                         warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                         nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
