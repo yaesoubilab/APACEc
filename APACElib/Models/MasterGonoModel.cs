@@ -313,7 +313,7 @@ namespace APACElib
             int birthRate = _paramManager.Dic["Annual birth rate (per pop member)"];
             int deathRate = _paramManager.Dic["Annual death rate"];
             int naturalRecoveryRate = _paramManager.Dic["Natural recovery"];
-            int screeningRate = _paramManager.Dic["Annual screening rate"];
+            int screeningRate = _paramManager.Dic["Annual screening rate | " + regions[0]];
             int seekingTreatmentRate = _paramManager.Dic["Annual rate of seeking treatment (symptomatic)"];
             int seekingReTreatmentRate = _paramManager.Dic["Annual rate of retreatment"];
 
@@ -429,7 +429,7 @@ namespace APACElib
                             name: eventName,
                             ID: id,
                             IDOfActivatingIntervention: 0,
-                            rateParameter: _paramManager.Parameters[screeningRate],
+                            rateParameter: _paramManager.Parameters[screeningRate + regionID],
                             IDOfDestinationClass: idWSymG_0 + inf * n + regionID)
                         );
                         _dicEvents[eventName] = id++;
