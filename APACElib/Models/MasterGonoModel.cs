@@ -1128,7 +1128,7 @@ namespace APACElib
                             measureOfFit: "Likelihood",
                             likelihoodFunction: "Binomial",
                             likelihoodParam: "",
-                            ifCheckWithinFeasibleRange: false,
+                            ifCheckWithinFeasibleRange: true,
                             lowFeasibleBound: rateBounds[regionID][0],
                             upFeasibleBound: rateBounds[regionID][1],
                             minThresholdToHit: 0);
