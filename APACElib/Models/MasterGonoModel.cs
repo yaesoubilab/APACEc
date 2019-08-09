@@ -164,6 +164,8 @@ namespace APACElib
                             // update formulas of special statistics 
                             _specialStatInfo.FormulaPopSize[regionID + 1] += C.ID + "+";
                             _specialStatInfo.FormulaPrev[0] += C.ID + "+";
+                            _specialStatInfo.FormulaPrev[regionID + 1] += C.ID + "+";
+
                             if (s == SymStates.Sym)
                                 _specialStatInfo.FormulaPrevSym[0][0] += C.ID + "+";
                             else
@@ -743,7 +745,23 @@ namespace APACElib
                     nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                     );
             _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.Prev] = id - 1;
-
+            if (regions.Count > 1)
+            {
+                for (regionID = 0; regionID < regions.Count; regionID++)
+                {
+                    _epiHist.SumTrajs.Add(
+                        new SumClassesTrajectory(
+                            ID: id++,
+                            name: "Prevalence | " + regions[regionID],
+                            strType: "Prevalence",
+                            sumFormula: _specialStatInfo.FormulaPrev[regionID + 1],
+                            displayInSimOutput: true,
+                            warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                            nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
+                    );
+                }
+            }
+            
             // prevalence of symptomatic gonorrhea 
             foreach (SymStates s in Enum.GetValues(typeof(SymStates)))
             {
@@ -947,7 +965,7 @@ namespace APACElib
 
             // gonorrhea prevalence
             RatioTrajectory prevalence = new RatioTrajectory(
-                id: id,
+                id: id++,
                 name: "Prevalence",
                 strType: "Prevalence/Prevalence",
                 ratioFormula: idPrevalence + "/" + idPopSize,
@@ -964,7 +982,21 @@ namespace APACElib
                     upFeasibleBound: 0.04,
                     minThresholdToHit: 0);
             _epiHist.RatioTrajs.Add(prevalence);
-            id++;
+            if (regions.Count > 1)
+            {
+                for (int regionID = 0; regionID < regions.Count; regionID++)
+                {
+                    RatioTrajectory prev = new RatioTrajectory(
+                        id: id++,
+                        name: "Prevalence | " + regions[regionID],
+                        strType: "Prevalence/Prevalence",
+                        ratioFormula: (idPrevalence + 1 + regionID) + "/" + (idPopSize + 1 + regionID),
+                        displayInSimOutput: true,
+                        warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+                    _epiHist.RatioTrajs.Add(prev);
+                }
+            }
 
             // % infection symptomatic (prevalence)
             RatioTrajectory prevalenceSym = new RatioTrajectory(
