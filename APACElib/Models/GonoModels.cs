@@ -75,12 +75,14 @@ namespace APACElib.Models
         public List<string> FormulaTreatedA1B1B2 { get; set; } // A1, B1, B2
         public List<string> FormulaTreatedM1M2 { get; set; } // M1, M2
 
+        public int[] IDPercOfPrevResist { get; set; } // 0, A, B, AB
         public int[] IDTxResist { get; set; } // 0, A, B, AB
         public int[] IDRatioTxResist { get; set; } // 0, A, B, AB 
 
         public void Reset(int nRegions)
         {
             SpecialStatIDs = new List<int>(new int[Enum.GetValues(typeof(GonoSpecialStatIDs)).Length]);
+            IDPercOfPrevResist = new int[4]; // 4 for 0, A, B, AB
             IDTxResist = new int[4]; // 4 for 0, A, B, AB
             IDRatioTxResist = new int[4]; // 4 for 0, A, B, AB
 

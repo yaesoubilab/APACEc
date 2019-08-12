@@ -781,6 +781,8 @@ namespace APACElib
             // gonorrhea prevalence by resistance 
             foreach (ResistStates r in Enum.GetValues(typeof(ResistStates))) // G_0, G_A, G_B, G_AB
                 if (r != ResistStates.G_0)
+                {
+                    _specialStatInfo.IDPercOfPrevResist[(int)r] = id;
                     _epiHist.SumTrajs.Add(
                         new SumClassesTrajectory(
                             ID: id++,
@@ -791,6 +793,7 @@ namespace APACElib
                             warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                             nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval)
                             );
+                }
 
             // received first-line treatment (= number of cases)
             SumClassesTrajectory t1st = new SumClassesTrajectory(
@@ -1018,7 +1021,7 @@ namespace APACElib
                         id: id++,
                         name: "% Infection Resistant to " + r.ToString(),
                         strType: "Prevalence/Prevalence",
-                        ratioFormula: (idPrevalence + 1 + (int)r) + "/" + idPrevalence,
+                        ratioFormula: _specialStatInfo.IDPercOfPrevResist[(int)r] + "/" + idPrevalence,
                         displayInSimOutput: true,
                         warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                         nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
