@@ -485,12 +485,13 @@ namespace APACElib
         public PrevalenceTimeSeries PrevTimeSeries { get; set; } 
         public IncidenceTimeSeries IncdTimeSeries { get; set; }
         public ObsBasedStat AveragePrevalenceStat { get; set; }
+        public double FactorToAdjustAve { get; }
         public double? Ratio { get; private set; } = null;
         public int Denom { get; private set; }  // denominator value
         public EnumType Type { get; set; }
         public bool RatioUpdated { get; private set; }
         
-        int _warmUpSimIndex;
+        int _warmUpSimIndex;        
 
         public RatioTrajectory(
             int id,
@@ -499,7 +500,8 @@ namespace APACElib
             string ratioFormula,
             bool displayInSimOutput,
             int warmUpSimIndex,
-            int nDeltaTInAPeriod)            
+            int nDeltaTInAPeriod, 
+            int factorToAdjustAve = 1)            
         {
             ID = id;
 
@@ -525,7 +527,8 @@ namespace APACElib
             int[] arrRatio = ConvertRatioFormulaToArrayOfClassIDs(ratioFormula);
             NominatorSpecialStatID = arrRatio[0];
             DenominatorSpecialStatID = arrRatio[1];
-            _warmUpSimIndex = warmUpSimIndex;
+            FactorToAdjustAve = factorToAdjustAve;
+            _warmUpSimIndex = warmUpSimIndex;            
 
             switch (Type)
             {

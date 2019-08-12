@@ -1133,7 +1133,8 @@ namespace APACElib
                 ratioFormula: idTx1 + "/" + idPopSize,
                 displayInSimOutput: true,
                 warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
-                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval, 
+                factorToAdjustAve: (int)(364/_modelSets.NumOfDeltaT_inObservationPeriod));
             if (_modelSets.ModelUse == EnumModelUse.Calibration)
                 rate.CalibInfo = new SpecialStatCalibrInfo(
                     measureOfFit: "Likelihood",
@@ -1157,7 +1158,8 @@ namespace APACElib
                         ratioFormula: (idTx1 + 1 + regionID) + "/" + (idPopSize + 1 + regionID),
                         displayInSimOutput: true,
                         warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
-                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+                        nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval,
+                        factorToAdjustAve: (int)(364 / _modelSets.NumOfDeltaT_inObservationPeriod));
                     if (_modelSets.ModelUse == EnumModelUse.Calibration)
                         traj.CalibInfo = new SpecialStatCalibrInfo(
                             measureOfFit: "Likelihood",
@@ -1173,13 +1175,13 @@ namespace APACElib
 
             // effective life of drugs A and B
             RatioTrajectory effLifeAandB = new RatioTrajectory(
-            id: id++,
-            name: "Effective Life of A and B",
-            strType: "Incidence/Incidence",
-            ratioFormula: idSuccessAOrB + "/" + idSuccessAOrBOrM,
-            displayInSimOutput: true,
-            warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
-            nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+                id: id++,
+                name: "Effective Life of A and B",
+                strType: "Incidence/Incidence",
+                ratioFormula: idSuccessAOrB + "/" + idSuccessAOrBOrM,
+                displayInSimOutput: true,
+                warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
+                nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
             _epiHist.RatioTrajs.Add(effLifeAandB);
 
             // update times series of ratio statistics
