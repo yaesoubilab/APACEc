@@ -13,9 +13,9 @@ namespace APACElib
     public abstract class GonoModel : ModelInstruction
     {
 
-        double[] PrevFeasibleRange = new double[2] { 0.005, 0.08 };
+        double[] PrevFeasibleRange = new double[2] { 0.001, 0.2 };
         double[] PercSympFeasibleRange = new double[2] { 0.5, 0.09 };
-        double[] CaseRateFeasibleRange = new double[2] { 0.2, 0.09 };
+        double[] CaseRateFeasibleRange = new double[2] { 0.2, 0.1 };
 
 
         protected enum Comparts { I, W, U }; // infection, waiting for treatment, waiting for retreatment 

@@ -151,9 +151,9 @@ namespace APACElib.Models
         {
             List<string> sites = new List<string>() { "Boston", "LA", "New York" };
             List<double[]> rateBounds = new List<double[]> {
-                new double[2] { 0.001, 0.1 }, // Boston 
+                new double[2] { 0.001, 0.25 }, // Boston 
                 new double[2] { 0.001, 0.25 }, // LA 
-                new double[2] { 0.001, 0.2 }  // New York
+                new double[2] { 0.001, 0.25 }  // New York
             };
 
             base.BuildGonoModel(sites, rateBounds);
