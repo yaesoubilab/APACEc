@@ -12,6 +12,12 @@ namespace APACElib
 {
     public abstract class GonoModel : ModelInstruction
     {
+
+        double[] PrevFeasibleRange = new double[2] { 0.005, 0.08 };
+        double[] PercSympFeasibleRange = new double[2] { 0.5, 0.09 };
+        double[] CaseRateFeasibleRange = new double[2] { 0.2, 0.09 };
+
+
         protected enum Comparts { I, W, U }; // infection, waiting for treatment, waiting for retreatment 
         protected enum Drugs { A1, B1, B2 }; // 1st line treatment with A, 1st line treatment with B, and 2nd line treatment with B
         protected enum Ms { M1, M2 };  // 1st line treatment with M, and 2nd line treatment with M
@@ -981,8 +987,8 @@ namespace APACElib
                     likelihoodFunction: "Binomial",
                     likelihoodParam: "",
                     ifCheckWithinFeasibleRange: true,
-                    lowFeasibleBound: 0.005,
-                    upFeasibleBound: 0.04,
+                    lowFeasibleBound: PrevFeasibleRange[0],
+                    upFeasibleBound: PrevFeasibleRange[1],
                     minThresholdToHit: 0);
             _epiHist.RatioTrajs.Add(prevalence);
             if (regions.Count > 1)
@@ -1044,8 +1050,8 @@ namespace APACElib
                     likelihoodFunction: "Binomial",
                     likelihoodParam: "",
                     ifCheckWithinFeasibleRange: true,
-                    lowFeasibleBound: 0.5,
-                    upFeasibleBound: 0.8,
+                    lowFeasibleBound: PercSympFeasibleRange[0],
+                    upFeasibleBound: PercSympFeasibleRange[1],
                     minThresholdToHit: 0);
             _epiHist.RatioTrajs.Add(firstTxSym);
 
@@ -1141,8 +1147,8 @@ namespace APACElib
                     likelihoodFunction: "Binomial",
                     likelihoodParam: "",
                     ifCheckWithinFeasibleRange: true,
-                    lowFeasibleBound: 0.02,
-                    upFeasibleBound: 0.08,
+                    lowFeasibleBound: CaseRateFeasibleRange[0],
+                    upFeasibleBound: CaseRateFeasibleRange[1],
                     minThresholdToHit: 0);
             _epiHist.RatioTrajs.Add(rate); 
 

@@ -15,13 +15,14 @@ namespace APACElib.Models
     enum GonoSpecialStatIDs { PopSize = 0, Prev, Tx1, Tx1Sym, Tx1Resist, SuccessAOrB, SuccessAOrBOrM, PercFirstTxAndResist }
     enum Features { Time = 0, PercResist, ChangeInPercResist }
     enum Conditions { AOut = 0, BOut, ABOut, AOk, BOk, ABOk, BNeverUsed, M1NeverUsed, AOn, AOff, BOn, BOff, MOn, MOff };
-    enum Interventions {A1=2, B1, M1, B2_A, M2_A, M2_B_AB }  
-                        // A1:    A is used for 1st line treatment
-                        // B1:    B is used for 1st line treatment
-                        // M1:    M is used for 1st line treatment
-                        // B2_A:  retreating those infected with G_A with B after 1st line treatment failure
-                        // M2_A:  retreating those infected with G_A with M after 1st line treatment failure
-                        // M2_B_AB: retreating those infected with G_B or G_AB with M after 1st line treatment failure
+    enum Interventions {A1=2, B1, M1, B2_A, M2_A, M2_B_AB }
+    // A1:    A is used for 1st line treatment
+    // B1:    B is used for 1st line treatment
+    // M1:    M is used for 1st line treatment
+    // B2_A:  retreating those infected with G_A with B after 1st line treatment failure
+    // M2_A:  retreating those infected with G_A with M after 1st line treatment failure
+    // M2_B_AB: retreating those infected with G_B or G_AB with M after 1st line treatment failure
+
 
     public class GonoInterventionInfo
     {
@@ -148,10 +149,11 @@ namespace APACElib.Models
 
         public override void BuildModel()
         {
-            List<string> sites = new List<string>() { "Boston", "New York" };
+            List<string> sites = new List<string>() { "Boston", "LA", "New York" };
             List<double[]> rateBounds = new List<double[]> {
-                new double[2] { 0.01, 0.1 }, // Boston 
-                new double[2] { 0.01, 0.15 }  // New York
+                new double[2] { 0.001, 0.1 }, // Boston 
+                new double[2] { 0.001, 0.25 }, // LA 
+                new double[2] { 0.001, 0.2 }  // New York
             };
 
             base.BuildGonoModel(sites, rateBounds);
