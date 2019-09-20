@@ -149,11 +149,28 @@ namespace APACElib.Models
 
         public override void BuildModel()
         {
-            List<string> sites = new List<string>() { "Boston", "LA", "New York" };
+            List<string> sites = new List<string>() {
+                "Atlanta", "Boston", "Chicago", "Dallas", "Houston",
+                "Los Angeles", "Miami", "Minneapolis", "New York", "Philadelphia",
+                "Phoenix", "Riverside", "San Diego", "San Francisco", "Seattle", "Washington" };
+
             List<double[]> rateBounds = new List<double[]> {
-                new double[2] { 0.001, 0.25 }, // Boston  0 - 0.25
-                new double[2] { 0.001, 0.25 }, // LA 
-                new double[2] { 0.001, 0.25 }  // New York
+                new double[2] { 0.001, 0.25 }, // 
+                new double[2] { 0.001, 0.25 }, //
+                new double[2] { 0.001, 0.25 }, //
+                new double[2] { 0.001, 0.25 }, //
+                new double[2] { 0.001, 0.25 }, //
+                new double[2] { 0.001, 0.25 }, //
+                new double[2] { 0.001, 0.25 }, //
+                new double[2] { 0.001, 0.25 }, //
+                new double[2] { 0.001, 0.25 }, //
+                new double[2] { 0.001, 0.25 }, //
+                new double[2] { 0.001, 0.25 }, //
+                new double[2] { 0.001, 0.25 }, //
+                new double[2] { 0.001, 0.25 }, //
+                new double[2] { 0.001, 0.25 }, //
+                new double[2] { 0.001, 0.25 }, //
+                new double[2] { 0.001, 0.25 }  // 
             };
 
             base.BuildGonoModel(sites, rateBounds);

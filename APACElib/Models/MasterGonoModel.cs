@@ -1884,7 +1884,7 @@ namespace APACElib
                 rowIndexInContactMatrix: rowIndexInContactMatrix);
             SetupClassStatsAndTimeSeries(
                 thisClass: C,
-                showPrevalence: (c == Comparts.I) ? true : false,
+                showPrevalence: (c == Comparts.I) ? false : false,
                 showIncidence: false // (c == Comparts.W) ? true : false
                 );
             return C;
