@@ -46,9 +46,9 @@ namespace APACElib
         // update the initial number of members
         public virtual void UpdateInitialNumOfMembers() { }
 
-        // get susceptibility and infectity values 
-        public virtual double[] GetSusceptibilityValues() { return null; }
-        public virtual double[] GetInfectivityValues() { return null; }
+        // update susceptibility and infectity values 
+        public virtual void UpdateSusceptibilityValues() { }
+        public virtual void UpdateInfectivityValues() { }
 
           // add active events
         public virtual void AddActiveEvents(int[] interventionCombination) {}
@@ -76,8 +76,8 @@ namespace APACElib
 
         private List<Parameter> _susceptibilityParams;
         private List<Parameter> _infectivityParams;
-        private double[] _susceptibilityValues;
-        private double[] _infectivityValues;
+        public double[] SusceptibilityValues { get; private set; }
+        public double[] InfectivityValues { get; private set; }
         private bool _areSusceptibilitiesTimeDep = false;
         private bool _areInfectivitiesTimDep = false;
 
@@ -134,29 +134,25 @@ namespace APACElib
         }
 
         // get susceptibility  values
-        public override double[] GetSusceptibilityValues()
+        public override void UpdateSusceptibilityValues()
         {
-            if (_susceptibilityValues is null || _areSusceptibilitiesTimeDep)
+            if (SusceptibilityValues is null || _areSusceptibilitiesTimeDep)
             {
-                _susceptibilityValues = new double[_susceptibilityParams.Count];
+                SusceptibilityValues = new double[_susceptibilityParams.Count];
                 for (int i = 0; i < _susceptibilityParams.Count; i++)
-                    _susceptibilityValues[i] = Math.Max(0, _susceptibilityParams[i].Value);
+                    SusceptibilityValues[i] = Math.Max(0, _susceptibilityParams[i].Value);
             }           
-
-            return _susceptibilityValues;
         }
 
         // update infectivity values
-        public override double[] GetInfectivityValues()
+        public override void UpdateInfectivityValues()
         {
-            if (_infectivityValues is null || _areInfectivitiesTimDep)
+            if (InfectivityValues is null || _areInfectivitiesTimDep)
             {
-                _infectivityValues = new double[_infectivityParams.Count];
+                InfectivityValues = new double[_infectivityParams.Count];
                 for (int i = 0; i < _infectivityParams.Count; i++)
-                    _infectivityValues[i] = Math.Max(0, _infectivityParams[i].Value);
+                    InfectivityValues[i] = Math.Max(0, _infectivityParams[i].Value);
             }
-
-            return _infectivityValues;
         }
         // update transmission rates affecting this class
         public override void UpdateTransmissionRates(double[] transmissionRatesByPathogen)
@@ -302,8 +298,8 @@ namespace APACElib
             MembersWaitingToDepart = false;
             ClassStat.Reset();
             ClassStat.Prevalence = InitialMembers;
-            _infectivityValues = null;
-            _susceptibilityValues = null;
+            InfectivityValues = null;
+            SusceptibilityValues = null;
                
         }
     }

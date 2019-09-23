@@ -159,6 +159,13 @@ namespace APACElib
             // find the index of current interventions in effect in the contact matrices
             int indexOfIntCombInContactMatrices = IndxInContactMatrices(intvnsInEffect);
 
+            // update infectivity and susceptibility values
+            foreach (Class C in classes)
+            {
+                C.UpdateInfectivityValues();
+                C.UpdateSusceptibilityValues();
+            }
+
             // calculate the transmission rates for each class
             double susContactInf = 0, rate = 0, infectivity = 0;
             double[] arrTransmissionRatesByPathogen = new double[_nOfPathogens];
@@ -173,10 +180,10 @@ namespace APACElib
                         // find the infectivity of infection-causing class
                         if (classes[j] is Class_Normal)
                         {
-                            infectivity = classes[j].GetInfectivityValues()[pathogenID];
+                            infectivity = ((Class_Normal)classes[j]).InfectivityValues[pathogenID];
                             if (infectivity > 0)
                             {
-                                susContactInf = thisRecievingClass.GetSusceptibilityValues()[pathogenID]
+                                susContactInf = ((Class_Normal)thisRecievingClass).SusceptibilityValues[pathogenID]
                                                 * _contactMatrices[indexOfIntCombInContactMatrices][pathogenID][thisRecievingClass.RowIndexInContactMatrix, classes[j].RowIndexInContactMatrix]
                                                 * infectivity;
 
