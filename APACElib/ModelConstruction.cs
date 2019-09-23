@@ -381,9 +381,9 @@ namespace APACElib
         protected int[] _pathogenIDs;
         protected ParameterManager _paramManager;
         protected List<Class> _classes;
-        protected  Dictionary<string, int> _dicClasses = new Dictionary<string, int>();
+        protected Dictionary<string, int> _dicClasses;
         protected List<Event> _events;
-        protected Dictionary<string, int> _dicEvents = new Dictionary<string, int>();
+        protected Dictionary<string, int> _dicEvents;
         protected EpidemicHistory _epiHist;
         protected ForceOfInfectionModel _FOIModel;
         protected DecisionMaker _decisionMaker;
@@ -403,6 +403,8 @@ namespace APACElib
             ForceOfInfectionModel FOIModel,
             DecisionMaker decisionMaker)
         {
+            _dicClasses = new Dictionary<string, int>();
+            _dicEvents = new Dictionary<string, int>();
             _modelSets = modelSets;
             _pathogenIDs = pathogenIDs;
             _paramManager = paramManager;

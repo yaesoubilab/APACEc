@@ -67,6 +67,11 @@ namespace APACElib
             AddGonoConditions(regions);
             // add connections
             AddGonoConnections(regions);
+
+            _dicClasses.Clear();
+            _dicClasses = null;
+            _dicEvents.Clear();
+            _dicEvents = null;
         }
 
 

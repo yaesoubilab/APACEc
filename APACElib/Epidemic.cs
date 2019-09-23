@@ -58,9 +58,11 @@ namespace APACElib
 
         public void CleanMemory()
         {
+            
             _decisionMaker = null;
-            _paramManager.Parameters.Clear();
+            _paramManager.ClearMemory();
             _paramManager = null;
+
             _FOIModel = null;
             _classes.Clear();
             _classes = null;

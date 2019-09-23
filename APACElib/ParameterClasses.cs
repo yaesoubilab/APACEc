@@ -21,6 +21,14 @@ namespace APACElib
 
         }
 
+        public void ClearMemory()
+        {
+            Parameters.Clear();
+            Parameters = null;
+            Dic.Clear();
+            Dic = null;
+        }
+
         public void Add(Parameter thisParam)
         {
             Parameters.Add(thisParam);
