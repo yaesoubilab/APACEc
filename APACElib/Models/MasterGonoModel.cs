@@ -1006,7 +1006,8 @@ namespace APACElib
                 }
             }
 
-            // % infection symptomatic (prevalence)
+            //TODO: check this
+            // % infection symptomatic (prevalence) 
             RatioTrajectory prevalenceSym = new RatioTrajectory(
                 id: id++,
                 name: "% Infection Symptomatic",
