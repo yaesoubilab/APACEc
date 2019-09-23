@@ -1006,13 +1006,12 @@ namespace APACElib
                 }
             }
 
-            //TODO: check this
             // % infection symptomatic (prevalence) 
             RatioTrajectory prevalenceSym = new RatioTrajectory(
                 id: id++,
                 name: "% Infection Symptomatic",
                 strType: "Prevalence/Prevalence",
-                ratioFormula: (idPrevalence + 1) + "/" + idPrevalence,
+                ratioFormula: (idPrevalence + 1 + regions.Count) + "/" + idPrevalence,
                 displayInSimOutput: true,
                 warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                 nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
