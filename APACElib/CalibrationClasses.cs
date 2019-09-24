@@ -203,7 +203,7 @@ namespace APACElib
             SortedResults = SimEpiResults.OrderByDescending(o => o.Prob).ToList();
 
             // prepare results for Excel
-            foreach (ResulOfASimEpi s in SortedResults.Where(s=>s.Prob > 0))
+            foreach (ResulOfASimEpi s in SortedResults.Where(s=>s.Prob >= 0))
             {
                 ResultsForExcel.SimItrs.Add(s.SimItr);
                 ResultsForExcel.RndSeeds.Add(s.Seed);
