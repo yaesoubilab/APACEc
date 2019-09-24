@@ -12,10 +12,10 @@ namespace APACElib
 {
     public abstract class GonoModel : ModelInstruction
     {
-        bool CheckFeasibiliyOfRegionalRates = false;
-        double[] PrevFeasibleRange = new double[2] { 0.001, 0.2 }; // { 0.001, 0.2 }
+        bool CheckFeasibiliyOfRegionalRates = true;
+        double[] PrevFeasibleRange = new double[2] { 0.005, 0.15 }; // { 0.001, 0.2 }
         double[] PercSympFeasibleRange = new double[2] { 0.5, 0.9 }; // { 0.5, 0.9 }
-        double[] CaseRateFeasibleRange = new double[2] { 0.001, 0.2 };  // { 0.0, 0.2 }
+        double[] CaseRateFeasibleRange = new double[2] { 0.005, 0.15 };  // { 0.0, 0.2 }
         
         protected enum Comparts { I, W, U }; // infection, waiting for treatment, waiting for retreatment 
         protected enum Drugs { A1, B1, B2 }; // 1st line treatment with A, 1st line treatment with B, and 2nd line treatment with B
