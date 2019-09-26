@@ -154,7 +154,7 @@ namespace APACElib.Models
                 "Los Angeles", "Miami", "Minneapolis", "New York", "Philadelphia",
                 "Phoenix", "Riverside", "San Diego", "San Francisco", "Seattle", "Washington" };
 
-            double MIN = 0.001, MAX = 0.25;
+            double MIN = 0.001, MAX = 0.2;
 
             List<double[]> rateBounds = new List<double[]> {
                 new double[2] { MIN, MAX }, // 

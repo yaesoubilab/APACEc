@@ -12,8 +12,8 @@ namespace APACElib
 {
     public abstract class GonoModel : ModelInstruction
     {
-        bool CheckFeasibiliyOfRegionalRates = true;
-        bool CheckMinResistance = false;
+        bool CheckFeasibiliyOfRegionalRates = false;
+        bool CheckMinResistance = true;
         double[] PrevFeasibleRange = new double[2] { 0.01, 0.15 }; // { 0.001, 0.2 }
         double[] PercSympFeasibleRange = new double[2] { 0.5, 0.9 }; // { 0.5, 0.9 }
         double[] CaseRateFeasibleRange = new double[2] { 0.01, 0.15 };  // { 0.0, 0.2 }
