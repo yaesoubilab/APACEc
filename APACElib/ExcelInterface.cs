@@ -971,7 +971,7 @@ namespace APACElib
             int rowIndex1 = 2;
             int colIndex1 = 1;
             int rowIndex2 = Math.Max(LastRowWithDataInThisColumn(1), 3);
-            int colIndex2 = ColIndex("simulationOutput", enumRangeDirection.RightEnd) + 1;
+            int colIndex2 = LastColWithDataInThisRow(2); // ColIndex("simulationOutput", enumRangeDirection.RightEnd) + 1;
             
             //clear content and format
             if (_makeSimulationOutputHeader == true)
