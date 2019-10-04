@@ -10,13 +10,19 @@ using APACElib.Models;
 
 namespace APACElib
 {
+    public class FeasibleRanges
+    {
+        public bool CheckFeasibiliyOfRegionalRates { get; set; } = false;
+        public bool CheckMinResistance { get; set; } = true;
+        public double[] Prevalencee { get; set; } = new double[2] { 0.01, 0.15 }; // { 0.001, 0.2 }
+        public double[] PercSymp { get; set; } = new double[2] { 0.5, 0.9 }; // { 0.5, 0.9 }
+        public double[] CaseRate { get; set; } = new double[2] { 0.01, 0.15 };  // { 0.0, 0.2 } 
+        public List<double[]> RegionalCaseRate { get; set; }
+    }
+
     public abstract class GonoModel : ModelInstruction
     {
-        bool CheckFeasibiliyOfRegionalRates = false;
-        bool CheckMinResistance = true;
-        double[] PrevFeasibleRange = new double[2] { 0.01, 0.15 }; // { 0.001, 0.2 }
-        double[] PercSympFeasibleRange = new double[2] { 0.5, 0.9 }; // { 0.5, 0.9 }
-        double[] CaseRateFeasibleRange = new double[2] { 0.01, 0.15 };  // { 0.0, 0.2 }
+               
         
         protected enum Comparts { I, W, U }; // infection, waiting for treatment, waiting for retreatment 
         protected enum Drugs { A1, B1, B2 }; // 1st line treatment with A, 1st line treatment with B, and 2nd line treatment with B
@@ -41,7 +47,7 @@ namespace APACElib
                 }
         }
 
-        protected void BuildGonoModel(List<string> regions, List<double[]> rateBounds)
+        protected void BuildGonoModel(List<string> regions, FeasibleRanges feasibleRanges)
         {
             _interventionInfo.Reset(regions.Count);
             _specialStatInfo.Reset(regions.Count);
@@ -61,7 +67,7 @@ namespace APACElib
             // add summation statistics
             AddGonoSumStats(regions);
             // add ratio statistics
-            AddGonoRatioStatistics(regions, rateBounds);
+            AddGonoRatioStatistics(regions, feasibleRanges);
             // add features
             AddGonoFeatures(regions);
             // add conditions
@@ -965,7 +971,7 @@ namespace APACElib
             UpdateSumStatTimeSeries();
         }
 
-        protected void AddGonoRatioStatistics(List<string> regions, List<double[]> rateBounds)
+        protected void AddGonoRatioStatistics(List<string> regions, FeasibleRanges feasibleRanges)
         {
             int id = _epiHist.SumTrajs.Count();
             int idPopSize = _specialStatInfo.SpecialStatIDs[(int)GonoSpecialStatIDs.PopSize];
@@ -992,8 +998,8 @@ namespace APACElib
                     likelihoodFunction: "Binomial",
                     likelihoodParam: "",
                     ifCheckWithinFeasibleRange: true,
-                    lowFeasibleBound: PrevFeasibleRange[0],
-                    upFeasibleBound: PrevFeasibleRange[1],
+                    lowFeasibleBound: feasibleRanges.Prevalencee[0],
+                    upFeasibleBound: feasibleRanges.Prevalencee[1],
                     minThresholdToHit: 0);
             _epiHist.RatioTrajs.Add(prevalence);
             if (regions.Count > 1)
@@ -1055,8 +1061,8 @@ namespace APACElib
                     likelihoodFunction: "Binomial",
                     likelihoodParam: "",
                     ifCheckWithinFeasibleRange: true,
-                    lowFeasibleBound: PercSympFeasibleRange[0],
-                    upFeasibleBound: PercSympFeasibleRange[1],
+                    lowFeasibleBound: feasibleRanges.PercSymp[0],
+                    upFeasibleBound: feasibleRanges.PercSymp[1],
                     minThresholdToHit: 0);
             _epiHist.RatioTrajs.Add(firstTxSym);
 
@@ -1083,7 +1089,7 @@ namespace APACElib
                             ifCheckWithinFeasibleRange: true,
                             lowFeasibleBound: 0,
                             upFeasibleBound: 1,
-                            minThresholdToHit: CheckMinResistance ? 0.05 : 0);
+                            minThresholdToHit: feasibleRanges.CheckMinResistance ? 0.05 : 0);
                     _epiHist.SurveyedIncidenceTrajs.Add(
                         new SurveyedIncidenceTrajectory(
                             id: id,
@@ -1152,8 +1158,8 @@ namespace APACElib
                     likelihoodFunction: "Binomial",
                     likelihoodParam: "",
                     ifCheckWithinFeasibleRange: true,
-                    lowFeasibleBound: CaseRateFeasibleRange[0],
-                    upFeasibleBound: CaseRateFeasibleRange[1],
+                    lowFeasibleBound: feasibleRanges.CaseRate[0],
+                    upFeasibleBound: feasibleRanges.CaseRate[1],
                     minThresholdToHit: 0);
             _epiHist.RatioTrajs.Add(rate); 
 
@@ -1176,9 +1182,9 @@ namespace APACElib
                             measureOfFit: "Likelihood",
                             likelihoodFunction: "Binomial",
                             likelihoodParam: "",
-                            ifCheckWithinFeasibleRange: CheckFeasibiliyOfRegionalRates,
-                            lowFeasibleBound: rateBounds[regionID][0],
-                            upFeasibleBound: rateBounds[regionID][1],
+                            ifCheckWithinFeasibleRange: feasibleRanges.CheckFeasibiliyOfRegionalRates,
+                            lowFeasibleBound: feasibleRanges.RegionalCaseRate[regionID][0],
+                            upFeasibleBound: feasibleRanges.RegionalCaseRate[regionID][1],
                             minThresholdToHit: 0);
                     _epiHist.RatioTrajs.Add(traj);
                 }

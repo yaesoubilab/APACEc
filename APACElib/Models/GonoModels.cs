@@ -137,7 +137,15 @@ namespace APACElib.Models
         public override void BuildModel()
         {
             List<string> regions = new List<string>() { "MSM" };
-            base.BuildGonoModel(regions, new List<double[]>());
+
+            FeasibleRanges feasibleRanges = new FeasibleRanges();
+            feasibleRanges.CheckMinResistance = true;
+            feasibleRanges.Prevalencee = new double[2] { 0.005, 0.05 }; // { 0.001, 0.2 }
+            feasibleRanges.CaseRate = new double[2] { 0.01, 0.09 };
+            feasibleRanges.PercSymp = new double[2] { 0.5, 0.9 }; // { 0.5, 0.9 }
+            
+
+            base.BuildGonoModel(regions, feasibleRanges);
         }
     }
 
@@ -154,9 +162,15 @@ namespace APACElib.Models
                 "Los Angeles", "Miami", "Minneapolis", "New York", "Philadelphia",
                 "Phoenix", "Riverside", "San Diego", "San Francisco", "Seattle", "Washington" };
 
-            double MIN = 0.001, MAX = 0.2;
+            FeasibleRanges feasibleRanges = new FeasibleRanges();
+            feasibleRanges.CheckFeasibiliyOfRegionalRates = false;
+            feasibleRanges.CheckMinResistance = true;
+            feasibleRanges.Prevalencee = new double[2] { 0.01, 0.15 }; // { 0.001, 0.2 }
+            feasibleRanges.PercSymp = new double[2] { 0.5, 0.9 }; // { 0.5, 0.9 }
+            feasibleRanges.CaseRate = new double[2] { 0.01, 0.15 };
 
-            List<double[]> rateBounds = new List<double[]> {
+            double MIN = 0.001, MAX = 0.2;
+            feasibleRanges.RegionalCaseRate = new List<double[]> {
                 new double[2] { MIN, MAX }, // 
                 new double[2] { MIN, MAX }, //
                 new double[2] { MIN, MAX }, //
@@ -175,7 +189,7 @@ namespace APACElib.Models
                 new double[2] { MIN, MAX }  // 
             };
 
-            base.BuildGonoModel(sites, rateBounds);
+            base.BuildGonoModel(sites, feasibleRanges);
         }
     }
 }
