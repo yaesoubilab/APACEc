@@ -197,13 +197,19 @@ namespace APACElib
             }
             // calculate probabilities
             foreach (ResulOfASimEpi s in SimEpiResults)
-                s.Prob /= sum;
+            {
+                if (double.IsNaN(sum))
+                    s.Prob = double.NaN;
+                else
+                    s.Prob /= sum;
+            }
+            
 
             // sort
             SortedResults = SimEpiResults.OrderByDescending(o => o.Prob).ToList();
 
             // prepare results for Excel
-            foreach (ResulOfASimEpi s in SortedResults.Where(s=>s.Prob >= 0))
+            foreach (ResulOfASimEpi s in SortedResults) //SortedResults.Where(s=>s.Prob >= 0))
             {
                 ResultsForExcel.SimItrs.Add(s.SimItr);
                 ResultsForExcel.RndSeeds.Add(s.Seed);

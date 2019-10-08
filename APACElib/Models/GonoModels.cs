@@ -140,8 +140,8 @@ namespace APACElib.Models
 
             FeasibleRanges feasibleRanges = new FeasibleRanges();
             feasibleRanges.CheckMinResistance = true;
-            feasibleRanges.Prevalencee = new double[2] { 0.005, 0.05 }; // { 0.001, 0.2 }
-            feasibleRanges.CaseRate = new double[2] { 0.01, 0.09 };
+            feasibleRanges.Prevalencee = new double[2] { 0.01, 0.09 }; // { 0.01, 0.09 } { 0.005, 0.05 }
+            feasibleRanges.CaseRate = new double[2] { 0.01, 0.09 }; // { 0.01, 0.09 }
             feasibleRanges.PercSymp = new double[2] { 0.5, 0.9 }; // { 0.5, 0.9 }
             
 

@@ -1081,15 +1081,27 @@ namespace APACElib
                         displayInSimOutput: true,
                         warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                         nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
-                    if (_modelSets.ModelUse == EnumModelUse.Calibration && r != ResistStates.G_AB)
-                        firstTx.CalibInfo = new SpecialStatCalibrInfo(
-                            measureOfFit: "Feasible Range Only",
-                            likelihoodFunction: "",
-                            likelihoodParam: "",
-                            ifCheckWithinFeasibleRange: true,
-                            lowFeasibleBound: 0,
-                            upFeasibleBound: 1,
-                            minThresholdToHit: feasibleRanges.CheckMinResistance ? 0.05 : 0);
+                    if (_modelSets.ModelUse == EnumModelUse.Calibration)
+                    {
+                        if (r == ResistStates.G_A) // r != ResistStates.G_AB)
+                            firstTx.CalibInfo = new SpecialStatCalibrInfo(
+                                measureOfFit: "Feasible Range Only",
+                                likelihoodFunction: "",
+                                likelihoodParam: "",
+                                ifCheckWithinFeasibleRange: true,
+                                lowFeasibleBound: 0,
+                                upFeasibleBound: 1,
+                                minThresholdToHit: feasibleRanges.CheckMinResistance ? 0.05 : 0);
+                        else if (r == ResistStates.G_B)
+                            firstTx.CalibInfo = new SpecialStatCalibrInfo(
+                               measureOfFit: "Feasible Range Only",
+                               likelihoodFunction: "",
+                               likelihoodParam: "",
+                               ifCheckWithinFeasibleRange: true,
+                               lowFeasibleBound: 0,
+                               upFeasibleBound: 1,
+                               minThresholdToHit: feasibleRanges.CheckMinResistance ? 0.0 : 0);
+                    }  
                     _epiHist.SurveyedIncidenceTrajs.Add(
                         new SurveyedIncidenceTrajectory(
                             id: id,
