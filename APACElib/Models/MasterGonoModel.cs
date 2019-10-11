@@ -87,7 +87,6 @@ namespace APACElib
             int parIDInitialPop = _paramManager.Dic["Initial population size | " + regions[0]];
             int parID1MinusPrev = _paramManager.Dic["1-Initial prevalence | " + regions[0]];
 
-
             // initial size of S
             for (int i = 0; i < regions.Count; i++)
                 AddGonoParamSize_S(

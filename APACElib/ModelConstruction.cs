@@ -518,6 +518,10 @@ namespace APACElib
                         thisParameter = new CorrelatedParameter(parameterID, name,
                             _paramManager.Parameters[(int)par1], par2, par3);
                         break;
+                    case Parameter.EnumType.TenToPower:
+                        thisParameter = new TenToPowerParameter(parameterID, name,
+                            _paramManager.Parameters[(int)par1]);
+                        break;
                     case Parameter.EnumType.Multiplicative:
                         thisParameter = new MultiplicativeParameter(parameterID, name,
                             _paramManager.Parameters[(int)par1], _paramManager.Parameters[(int)par2], (bool)(par3 == 1));

@@ -140,9 +140,9 @@ namespace APACElib.Models
 
             FeasibleRanges feasibleRanges = new FeasibleRanges();
             feasibleRanges.CheckMinResistance = true;
-            feasibleRanges.Prevalencee = new double[2] { 0.01, 0.09 }; // { 0.01, 0.09 } { 0.005, 0.05 }
+            feasibleRanges.Prevalencee = new double[2] { 0.005, 0.06 }; // { 0.01, 0.09 } { 0.005, 0.05 }
             feasibleRanges.CaseRate = new double[2] { 0.01, 0.09 }; // { 0.01, 0.09 }
-            feasibleRanges.PercSymp = new double[2] { 0.5, 0.9 }; // { 0.5, 0.9 }
+            feasibleRanges.PercSymp = new double[2] { 0.5, 1 }; // { 0.5, 0.9 }
             
 
             base.BuildGonoModel(regions, feasibleRanges);
