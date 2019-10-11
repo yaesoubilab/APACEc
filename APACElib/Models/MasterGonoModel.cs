@@ -14,6 +14,7 @@ namespace APACElib
     {
         public bool CheckFeasibiliyOfRegionalRates { get; set; } = false;
         public bool CheckMinResistance { get; set; } = true;
+        public double[] MinResistanceReached { get; set; } = new double[2] { 0.05, 0.05 }; // for drug A and B
         public double[] Prevalencee { get; set; } = new double[2] { 0.01, 0.15 }; // { 0.001, 0.2 }
         public double[] PercSymp { get; set; } = new double[2] { 0.5, 0.9 }; // { 0.5, 0.9 }
         public double[] CaseRate { get; set; } = new double[2] { 0.01, 0.15 };  // { 0.0, 0.2 } 
@@ -22,7 +23,6 @@ namespace APACElib
 
     public abstract class GonoModel : ModelInstruction
     {
-               
         
         protected enum Comparts { I, W, U }; // infection, waiting for treatment, waiting for retreatment 
         protected enum Drugs { A1, B1, B2 }; // 1st line treatment with A, 1st line treatment with B, and 2nd line treatment with B
@@ -1090,7 +1090,7 @@ namespace APACElib
                                 ifCheckWithinFeasibleRange: true,
                                 lowFeasibleBound: 0,
                                 upFeasibleBound: 1,
-                                minThresholdToHit: feasibleRanges.CheckMinResistance ? 0.05 : 0);
+                                minThresholdToHit: feasibleRanges.CheckMinResistance ? feasibleRanges.MinResistanceReached[0]: 0);
                         else if (r == ResistStates.G_B)
                             firstTx.CalibInfo = new SpecialStatCalibrInfo(
                                measureOfFit: "Feasible Range Only",
@@ -1099,7 +1099,7 @@ namespace APACElib
                                ifCheckWithinFeasibleRange: true,
                                lowFeasibleBound: 0,
                                upFeasibleBound: 1,
-                               minThresholdToHit: feasibleRanges.CheckMinResistance ? 0.0 : 0);
+                               minThresholdToHit: feasibleRanges.CheckMinResistance ? feasibleRanges.MinResistanceReached[1] : 0);
                     }  
                     _epiHist.SurveyedIncidenceTrajs.Add(
                         new SurveyedIncidenceTrajectory(
