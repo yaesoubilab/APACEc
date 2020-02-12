@@ -78,7 +78,7 @@ namespace APACElib
         public double TotalDiscountedDALY { get; set; }
         private double _deltaTCost;
         private double _deltaTDALY;
-        private int _currentSimIndex;
+        private int _lastSimIndex;  // last simulation time cost and DALY recorded
 
         double _deltaTDiscountRate;
         double _warmUpSimIndex;
@@ -87,7 +87,7 @@ namespace APACElib
         {
             _deltaTDiscountRate = deltaTDiscountRate;
             _warmUpSimIndex = warmUpSimIndex;
-            _currentSimIndex = 0;
+            _lastSimIndex = 0;
         }
 
         public void Add(int simIndex, double deltaTCost, double deltaTDALY)
@@ -95,11 +95,11 @@ namespace APACElib
             if (simIndex >= _warmUpSimIndex)
             {
                 // if we have moved to a new deltaT
-                if (simIndex > _currentSimIndex)
+                if (simIndex > _lastSimIndex)
                 {
                     // discount health and cost outcomes over the past deltaT
                     UpdateDiscountedOutcomes(simIndex);
-                    _currentSimIndex = simIndex;
+                    _lastSimIndex = simIndex;
                     // reset the accumulated cost and health outcomes (over the next deltaT)
                     _deltaTCost = deltaTCost;
                     _deltaTDALY = deltaTDALY;
@@ -158,7 +158,7 @@ namespace APACElib
 
         public void Reset()
         {
-            _currentSimIndex = 0;
+            _lastSimIndex = 0;
             _deltaTDALY = 0;
             _deltaTCost = 0;
             TotalDisountedCost = 0;
