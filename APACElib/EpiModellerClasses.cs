@@ -220,6 +220,11 @@ namespace APACElib
             Calibration = new Calibration(_modelSet.Sheets.ObservedHistory);
             Calibration.AddCalibTargets(_parentEpidemic.EpiHist.SumTrajs, _parentEpidemic.EpiHist.RatioTrajs);
 
+            // assign the initial seed of each epidemic
+            SeedGenerator.ResampleSeeds(_rng, Epidemics.Count);
+            foreach (Epidemic epi in Epidemics)
+                epi.InitialSeed = SeedGenerator.FindRNDSeed(epi.ID);
+
             // use parallel computing? 
             if (_modelSet.UseParallelComputing == false)
                 foreach(Epidemic epi in Epidemics)
@@ -859,6 +864,11 @@ namespace APACElib
                 case EnumSimRNDSeedsSource.StartFrom0:
                     {
                         // _sampledSeeds will remain 0 and the seeds will be determined when simulation starts
+                        RNG seedGenerator = new RNG(_modelSet.FirstRNGSeed);
+                        for(int i = 0; i < numOfEpidemics; i++)
+                        {
+                            _sampledSeeds[i] = seedGenerator.Next();
+                        }
                     }
                     break;
                 case EnumSimRNDSeedsSource.Prespecified:

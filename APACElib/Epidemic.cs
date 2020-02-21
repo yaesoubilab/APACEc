@@ -83,14 +83,8 @@ namespace APACElib
 
             // identify the first seed to try
             int seed = 0;
-            RNG seedGenerator = new RNG(ID);
-            // if the first seed is not specified
-            if (InitialSeed == 0)
-                // get a new seed
-                seed = seedGenerator.Next();
-            else
-                // otherwise, use the specified seed
-                seed = InitialSeed;           
+            RNG seedGenerator = new RNG(InitialSeed);
+            seed = InitialSeed;           
             
             Timer.Start();       // reset the timer 
             while (!acceptableTrajFound && tries <= maxTries)// && seed <= stopSeed)
