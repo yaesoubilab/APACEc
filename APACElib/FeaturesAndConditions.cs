@@ -87,7 +87,7 @@ namespace APACElib
             switch (_featureType)
             {
                 case EnumFeatureType.CurrentObservedValue:
-                    Value = _surveyedTraj.GetLastObs(epiTimeIndex);
+                    Value = _surveyedTraj.GetLastObs();
                     break;
 
                 case EnumFeatureType.Slope:

@@ -379,9 +379,9 @@ namespace APACElib
 
                 case EnumMarkOfEpidemicStartTime.TimeOfFirstObservation:
                     {
-                        if (EpiHist.IfFirstEpiObsObtained)
+                        if (EpiHist.IfSpreadDetected)
                         {
-                            ratio = (_simTimeIndex - EpiHist.SimTimeIndexOfFirstObs) / _modelSets.NumOfDeltaT_inObservationPeriod;
+                            ratio = (_simTimeIndex - EpiHist.SimTimeIndexOfSpreadDetection) / _modelSets.NumOfDeltaT_inObservationPeriod;
                             _epiTimeIndex = (int)Math.Floor(ratio)* _modelSets.NumOfDeltaT_inObservationPeriod;
 
                              //_epiTimeIndex = _simTimeIndex - EpiHist.SimTimeIndexOfFirstObs
