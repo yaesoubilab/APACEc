@@ -44,8 +44,7 @@ namespace APACElib
         private int _numOfClasses;        
         private int _simTimeIndex;  // simulation time index
         private int _epiTimeIndex;  // time indeces since the detection of epidemic
-        private bool _firstObservationObtained;
-        public int SimTimeIndexOfFirstObs { get; private set; }
+        
         private bool _thereAreClassesWithEradicationCondition = false;
         public bool StoppedDueToEradication { get; private set; }
         public int SeedProducedAcceptibleTraj { get; private set; }
@@ -338,8 +337,6 @@ namespace APACElib
 
             // reset time
             _simTimeIndex = 0;
-            SimTimeIndexOfFirstObs = 0;
-            _firstObservationObtained = false;
             UpdateEpiTimeIndex();
 
             // resample parameters 
@@ -381,8 +378,8 @@ namespace APACElib
 
                 case EnumMarkOfEpidemicStartTime.TimeOfFirstObservation:
                     {
-                        if (_firstObservationObtained)
-                            _epiTimeIndex = _simTimeIndex - SimTimeIndexOfFirstObs + _modelSets.NumOfDeltaT_inObservationPeriod;
+                        if (EpiHist.IfFirstEpiObsObtained)
+                            _epiTimeIndex = _simTimeIndex - EpiHist.SimTimeIndexOfFirstObs + _modelSets.NumOfDeltaT_inObservationPeriod;
                         else
                             _epiTimeIndex = int.MinValue;
                     }

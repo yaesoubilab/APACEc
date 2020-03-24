@@ -222,14 +222,14 @@ namespace APACElib
                     _contactMatrices[intCombIndex] = _baseContactMatrices;
                 else
                 {
-                    int[] onOfStatusOfIntrvnAffectingContacts 
+                    int[] onOffStatusOfIntrvnAffectingContacts 
                         = SupportFunctions.ConvertToBase2FromBase10(intCombIndex, NumOfIntrvnAffectingContacts);
                     for (int intrvn = 0; intrvn < NumOfIntrvnAffectingContacts; ++intrvn)
                     {
                         // initialize contact matrices
                         _contactMatrices[intCombIndex] = new double[_nOfPathogens][,];
 
-                        if (onOfStatusOfIntrvnAffectingContacts[intrvn] == 1)
+                        if (onOffStatusOfIntrvnAffectingContacts[intrvn] == 1)
                         {
                             for (int pathogenID = 0; pathogenID < _nOfPathogens; pathogenID++)
                             {
@@ -240,8 +240,8 @@ namespace APACElib
                                     for (int j = 0; j < contactMatrixSize; ++j)
                                         _contactMatrices[intCombIndex][pathogenID][i, j] 
                                             = _baseContactMatrices[pathogenID][i, j] +
-                                            _baseContactMatrices[pathogenID][i, j] * _paramManager.ParameterValues
-                                                [_parID_percentageChangeInContactMatrices[intrvn][pathogenID][i, j]];
+                                            _baseContactMatrices[pathogenID][i, j] 
+                                            * _paramManager.ParameterValues[_parID_percentageChangeInContactMatrices[intrvn][pathogenID][i, j]];
                             }
                         }
                     }

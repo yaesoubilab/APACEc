@@ -672,6 +672,8 @@ namespace APACElib
         protected Parameter _noise_nOfDemoninatorSampled;
         protected double _ratioNoiseRatio = 1;
         public bool FirstObsMarksStartOfEpidemic { get; private set; }
+        public bool FirstObsObtained { get; protected set; } = false;
+        public int SimTimeIndexOfFirstObs { get; protected set; }
 
         public SurveyedTrajectory(
             int id,
@@ -689,7 +691,7 @@ namespace APACElib
             _nObsPeriodsDelay = nDeltaTsDelayed / nDeltaTsObsPeriod;
         }
 
-        public abstract void Update(int epiTimeIndex, RNG rnd);
+        public abstract void Update(int simTimeIndex, RNG rnd);
         public abstract double? GetLastObs(int epiTimeIndex);
         public abstract double? GetIncrementalChange(int epiTimeIndex);
     }
@@ -727,9 +729,9 @@ namespace APACElib
                 _timeSeries = new IncidenceTimeSeries(nDeltaTsObsPeriod);
         }
 
-        public override void Update(int epiTimeIndex, RNG rnd)
+        public override void Update(int simTimeIndex, RNG rnd)
         {
-            if (epiTimeIndex == 0)
+            if (simTimeIndex == 0)
                 return;
 
             double? obsValue = null;
@@ -747,7 +749,7 @@ namespace APACElib
             {
                 if (_ratioTraj.RatioUpdated)
                 {
-                    int n = (int)(_noise_nOfDemoninatorSampled.Sample(time: epiTimeIndex, rng: rnd) * _ratioNoiseRatio);
+                    int n = (int)(_noise_nOfDemoninatorSampled.Sample(time: simTimeIndex, rng: rnd) * _ratioNoiseRatio);
                     // check if there is noise (0 implies that all are sampled)
                     if (n > 0
                         && _ratioTraj.Ratio.HasValue 
@@ -762,6 +764,13 @@ namespace APACElib
                     _timeSeries.Record(obsValue);
                 }
             }
+
+            if (!FirstObsObtained && obsValue > 0)
+            {
+                FirstObsObtained = true;
+                SimTimeIndexOfFirstObs = simTimeIndex;
+            }
+
         }
         public override double? GetLastObs(int epiTimeIndex)
         {
@@ -1173,7 +1182,10 @@ namespace APACElib
         public List<SurveyedPrevalenceTrajectory> _survPrevalenceTrajs = new List<SurveyedPrevalenceTrajectory>();
         public List<SurveyedIncidenceTrajectory> SurveyedIncidenceTrajs { get => _survIncidenceTrajs; set => _survIncidenceTrajs = value; }
         public List<SurveyedPrevalenceTrajectory> SurveyedPrevalenceTrajs { get => _survPrevalenceTrajs; set => _survPrevalenceTrajs = value; }
-        
+
+        public bool IfFirstEpiObsObtained { get; private set; } = false;
+        public int SimTimeIndexOfFirstObs { get; private set; }
+
         // all trajectories prepared for simulation output 
         public ExcelOutputTrajs_Sim SimOutputTrajs { get; private set; }
         public ExcelOutputTrajs_Surveyed SurveyedOutputTrajs { get; private set; }
@@ -1262,10 +1274,18 @@ namespace APACElib
                     ifFeasibleRangesViolated = true;
             // update surveyed incidence            
             foreach (SurveyedIncidenceTrajectory survIncdTraj in SurveyedIncidenceTrajs)
-                survIncdTraj.Update(epiTimeIndex, rnd);
+            {
+                survIncdTraj.Update(simTimeIndex, rnd);
+                if (survIncdTraj.FirstObsMarksStartOfEpidemic && survIncdTraj.FirstObsObtained)
+                {
+                    IfFirstEpiObsObtained = true;
+                    SimTimeIndexOfFirstObs = survIncdTraj.SimTimeIndexOfFirstObs;
+                }
+            }
             // update surveyed prevalence 
             foreach (SurveyedPrevalenceTrajectory survPrevTraj in SurveyedPrevalenceTrajs)
-                survPrevTraj.Update(epiTimeIndex, rnd);
+                survPrevTraj.Update(simTimeIndex, rnd);
+
             // update features
             foreach (Feature f in Features)
                 f.Update(epiTimeIndex);
@@ -1310,7 +1330,9 @@ namespace APACElib
                 survPrevTraj.Reset();
 
             SimOutputTrajs.Reset();
-            SurveyedOutputTrajs.Reset();            
+            SurveyedOutputTrajs.Reset();
+            IfFirstEpiObsObtained = false;
+            SimTimeIndexOfFirstObs = 0;
         }
 
         public void Clean()
