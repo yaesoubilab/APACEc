@@ -71,7 +71,10 @@ namespace APACElib
             else
             {
                 // increment the observation in the current period
-                Recordings[Recordings.Count-1] += value;
+                if (Recordings[Recordings.Count - 1] == null)
+                    Recordings[Recordings.Count - 1] = value;
+                else
+                    Recordings[Recordings.Count - 1] += value;
                 ++_nRecordingsInThisPeriod;
             }
         }
@@ -738,12 +741,10 @@ namespace APACElib
             if (!(_sumClassesTraj is null))
             {
                 obsValue = _sumClassesTraj.NumOfNewMembersOverPastPeriod;
-                _timeSeries.Record(obsValue);
             }
             else if (!(_sumEventsTraj is null))
             {
                 obsValue = _sumEventsTraj.NumOfNewMembersOverPastPeriod;
-                _timeSeries.Record(obsValue);
             }
             else if (!(_ratioTraj is null))
             {
@@ -760,16 +761,31 @@ namespace APACElib
                     }
                     else
                         obsValue = _ratioTraj.IncdTimeSeries.GetLastRecording();
-
-                    _timeSeries.Record(obsValue);
                 }
             }
 
-            if (!FirstObsObtained && obsValue > 0)
+            if (FirstObsMarksStartOfEpidemic)
             {
-                FirstObsObtained = true;
-                SimTimeIndexOfFirstObs = simTimeIndex;
+                if (!FirstObsObtained)
+                {
+                    if (obsValue == 0)
+                    {
+                        _timeSeries.Record(null);
+                    }
+                    else
+                    {
+                        _timeSeries.Record(obsValue);
+                        FirstObsObtained = true;
+                        SimTimeIndexOfFirstObs = simTimeIndex;
+                    }
+                }
+                else
+                {
+                    _timeSeries.Record(obsValue);
+                }
             }
+            else
+                _timeSeries.Record(obsValue);
 
         }
         public override double? GetLastObs(int epiTimeIndex)

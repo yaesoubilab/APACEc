@@ -368,6 +368,7 @@ namespace APACElib
         // update current epidemic time
         private void UpdateEpiTimeIndex()
         {
+            double ratio;
             switch (_modelSets.MarkOfEpidemicStartTime)
             {
                 case EnumMarkOfEpidemicStartTime.TimeZero:
@@ -379,7 +380,13 @@ namespace APACElib
                 case EnumMarkOfEpidemicStartTime.TimeOfFirstObservation:
                     {
                         if (EpiHist.IfFirstEpiObsObtained)
-                            _epiTimeIndex = _simTimeIndex - EpiHist.SimTimeIndexOfFirstObs + _modelSets.NumOfDeltaT_inObservationPeriod;
+                        {
+                            ratio = (_simTimeIndex - EpiHist.SimTimeIndexOfFirstObs) / _modelSets.NumOfDeltaT_inObservationPeriod;
+                            _epiTimeIndex = (int)Math.Floor(ratio)* _modelSets.NumOfDeltaT_inObservationPeriod;
+
+                             //_epiTimeIndex = _simTimeIndex - EpiHist.SimTimeIndexOfFirstObs
+                             //    + _modelSets.NumOfDeltaT_inObservationPeriod;
+                        }
                         else
                             _epiTimeIndex = int.MinValue;
                     }
