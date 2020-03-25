@@ -131,7 +131,7 @@ namespace APACElib
             CostOverThisDecisionPeriod = 0; // reset cost over the next decision period
 
             // if there is a change in decisoin
-            if (ifThereIsAChange || epiTimeIndex ==0)
+            if (ifThereIsAChange || epiTimeIndex == 0)
             {
                 int i = 0;
                 foreach (Intervention a in Interventions)
@@ -142,7 +142,8 @@ namespace APACElib
                         a.NumOfSwitchesOccured += 1;
 
                     // if turning on
-                    if (CurrentDecision[i] == 0 && newDecision[i] == 1) {
+                    if (CurrentDecision[i] == 0 && newDecision[i] == 1)
+                    {
                         a.IfEverTurnedOnBefore = true;
                         a.IfEverTurnedOffBefore = a.IfEverTurnedOffBefore; // unchanged
 
@@ -152,7 +153,8 @@ namespace APACElib
                         a.EpiTimeIndexLastTurnedOff = int.MaxValue;
                     }
                     // if the intervention is turning off
-                    else if (CurrentDecision[i] == 1 && newDecision[i] == 0) {
+                    else if (CurrentDecision[i] == 1 && newDecision[i] == 0)
+                    {
                         a.IfEverTurnedOnBefore = a.IfEverTurnedOnBefore; //unchagned
                         a.IfEverTurnedOffBefore = true;
 
@@ -170,15 +172,10 @@ namespace APACElib
                         CostOverThisDecisionPeriod += a.FixedCost;
 
                     // calculate the penalty cost for switching from on to off
-                    if (a.PenaltyForSwitchingFromOnToOff > 0)  {
+                    if (a.PenaltyForSwitchingFromOnToOff > 0)
+                    {
                         if (CurrentDecision[i] == 1 && newDecision[i] == 0)
                             CostOverThisDecisionPeriod += a.PenaltyForSwitchingFromOnToOff;
-                    }
-
-                    // update the cost per unit of time for this action combination
-                    if (newDecision[i] == 1) {
-                        CostOverThisDecisionPeriod += a.CostPerDecisionPeriod;
-                        ++a.NumOfDecisionPeriodsUsedOver;
                     }
 
                     // update the new action
@@ -187,6 +184,16 @@ namespace APACElib
 
                 // find the epidemic time index to change the interventions that are in effect
                 EpiTimeIndexToChangeIntervetionsInEffect = FindNextEpiTimeIndexToChangeInterventionsInEffect();
+            }
+
+            foreach (Intervention a in Interventions)
+            {
+                // update the cost per unit of time for this action combination
+                if (newDecision[a.Index] == 1)
+                {
+                    CostOverThisDecisionPeriod += a.CostPerDecisionPeriod;
+                    ++a.NumOfDecisionPeriodsUsedOver;
+                }
             }
         }
 
