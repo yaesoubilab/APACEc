@@ -9,6 +9,7 @@ using RandomVariateLib;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using APACElib.Models;
+using APACElib.Optimization;
 
 namespace APACElib
 {
@@ -93,7 +94,11 @@ namespace APACElib
                     {
                         // optimize 
                         _statusBox.AddText("Optimization started.");
-                        Optimize();
+                        if (model == "Gonorrhea")
+                            OptimizeGono();
+                        else
+                            OptimizeCOVID();
+
                         _statusBox.AddText("Optimization ended.");
                         break;
                     }
@@ -145,7 +150,7 @@ namespace APACElib
             ReportCalibrationResult();
         }
 
-        private void Optimize()
+        private void OptimizeGono()
         {
             // read optimization settings
            // _modelSettings.ReadOptimizationSettings(ref _excelInterface);
@@ -159,6 +164,11 @@ namespace APACElib
             optimizer.Run(_excelInterface, _modelSettings, _listModelInstr);
 
             ExcelIntface.ReportOptimization(optimizer.Summary);
+        }
+
+        private void OptimizeCOVID()
+        {
+
         }
         
         // optimize the dynamic policy

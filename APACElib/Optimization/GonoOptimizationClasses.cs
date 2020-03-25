@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using ComputationLib;
 using MathNet.Numerics.LinearAlgebra;
 
-namespace APACElib
+namespace APACElib.Optimization
 {
     public abstract class Policy
     {
@@ -87,7 +87,6 @@ namespace APACElib
         /// prevalence threshold:            tau 
         /// change in prevalence threshold:  theta 
         /// </summary>
-
         const double MAX_THRESHOLD = 0.5;
         private double _tau;
         private double _theta;
@@ -438,7 +437,8 @@ namespace APACElib
                                 policy: new PolicyExponential(modelSets.OptmzSets.Penalty))
                             );
 
-            // create a multi stochastic approximation object            // it runs the optimization algorithm for all combinations of (a0's, b's, c0's)
+            // create a multi stochastic approximation object            
+            // it runs the optimization algorithm for all combinations of (a0's, b's, c0's)
             MultipleStochasticApproximation multOptimizer = new MultipleStochasticApproximation(
                 simModels: epiModels,
                 stepSizeGH_a0s: modelSets.OptmzSets.StepSize_GH_a0s,
@@ -462,31 +462,6 @@ namespace APACElib
 
             // store the summary of the optimization
             Summary = multOptimizer.GetSummary(f_digits:1, x_digits:4);
-
-            //// store results
-            //PolicyExponential policy = new PolicyExponential(modelSets.OptmzSets.Penalty);
-            //((GonorrheaEpiModeller)epiModels[0]).Policy.UpdateParameters(multOptimizer.xStar, 0);
-
-            //// optimal policy parameters
-            //double[] optParam = multOptimizer.xStar.ToArray();
-            //foreach (double v in optParam)
-            //    OptimalParamValues = OptimalParamValues + v + ',';
-            //OptimalParamValues = OptimalParamValues.Substring(0, OptimalParamValues.Length - 1);
-
-            //foreach (double wtp in wtps)
-            //{
-            //    // 1 for wtp, 1 for fStar, 1 for a0, 1 for b 1 for c0
-            //    double[] result = new double[NUM_OF_THRESHOLDS + 5]; 
-            //    result[0] = wtp;
-            //    result[1] = multOptimizer.a0Star;
-            //    result[2] = multOptimizer.bStar;
-            //    result[3] = multOptimizer.c0Star;
-            //    result[4] = multOptimizer.fStar;                
-            //    double[] t = ((GonorrheaEpiModeller)epiModels[0]).Policy.GetTauAndTheta(wtp);
-            //    result[5] = t[0];
-            //    result[6] = t[1];
-            //    Summary.Add(result);
-            //}
         }
     }
 
