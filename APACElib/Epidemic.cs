@@ -152,6 +152,7 @@ namespace APACElib
             {
                 // update epidemic history
                 ifFeasibleRangesViolated = EpiHist.Update(_simTimeIndex, _epiTimeIndex, false, _rngNoise);
+                UpdateEpiTimeIndex();
 
                 // update cost and health outcomes
                 UpdateCostAndHealthOutcomes(false);
@@ -195,8 +196,7 @@ namespace APACElib
                 CheckIfEradicated();
 
                 // advance time  
-                _simTimeIndex += 1;
-                UpdateEpiTimeIndex();
+                _simTimeIndex += 1;                
 
                 // check if stopping rules are satisfied 
                 if (_epiTimeIndex >= timeIndexToStop || StoppedDueToEradication == true)
@@ -368,7 +368,7 @@ namespace APACElib
         // update current epidemic time
         private void UpdateEpiTimeIndex()
         {
-            double ratio;
+            int baseIndex;
             switch (_modelSets.MarkOfEpidemicStartTime)
             {
                 case EnumMarkOfEpidemicStartTime.TimeZero:
@@ -381,11 +381,13 @@ namespace APACElib
                     {
                         if (EpiHist.IfSpreadDetected)
                         {
-                            ratio = (_simTimeIndex - EpiHist.SimTimeIndexOfSpreadDetection) / _modelSets.NumOfDeltaT_inObservationPeriod;
-                            _epiTimeIndex = (int)Math.Floor(ratio)* _modelSets.NumOfDeltaT_inObservationPeriod;
+                            //baseIndex = (EpiHist.SimTimeIndexOfSpreadDetection / _modelSets.NumOfDeltaT_inObservationPeriod) 
+                            //    * _modelSets.NumOfDeltaT_inObservationPeriod;
+                            _epiTimeIndex = (_simTimeIndex - EpiHist.SimTimeIndexOfSpreadDetection); //+ baseIndex;
 
-                             //_epiTimeIndex = _simTimeIndex - EpiHist.SimTimeIndexOfFirstObs
-                             //    + _modelSets.NumOfDeltaT_inObservationPeriod;
+                            // //_epiTimeIndex = _simTimeIndex - EpiHist.SimTimeIndexOfFirstObs
+                            // //    + _modelSets.NumOfDeltaT_inObservationPeriod;
+                            // _epiTimeIndex = _simTimeIndex - EpiHist.SimTimeIndexOfSpreadDetection;
                         }
                         else
                             _epiTimeIndex = int.MinValue;
