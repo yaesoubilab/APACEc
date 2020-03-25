@@ -897,12 +897,12 @@ namespace APACElib
             _simRepIndex = simRepIndex;
             _deltaT = deltaT;
             _decisionMaker = decisionMaker;
-            _nextTimeIndexToStore = 0;
         }
 
-        public void Reset()
-        {
-            _nextTimeIndexToStore = 0;
+        public abstract void Reset();
+
+        protected void ResetCommon()
+        {            
             SimRepIndeces = new int[0][];
             InterventionCombinations = new int[0][];
             SimPrevalenceOutputs = new double[0][];
@@ -966,6 +966,12 @@ namespace APACElib
             _ratioTrajectories = ratioTrajectories;
 
             FindNumOfOutputsAndHeaders(findHeader);
+        }
+
+        public override void Reset()
+        {
+            _nextTimeIndexToStore = 0;
+            base.ResetCommon();
         }
 
         protected override void FillIn(int timeIndex, ref double[][] thisIncidenceOutputs, ref double[][] thisPrevalenceOutputs, ref int[][] thisActionCombination)
@@ -1124,6 +1130,7 @@ namespace APACElib
             ref List<SurveyedPrevalenceTrajectory> surveyedPrevalenceTrajectories,
             bool findHeader = false) : base(simReplication, deltaT, ref decisionMaker, findHeader)
         {
+            _nextTimeIndexToStore = _nDeltaTInObsInterval;
             _nDeltaTInObsInterval = nDeltaTInObsInterval;
             _surveyIncidenceTrajs = surveyedIncidenceTrajectories;
             _surveyPrevalenceTrajs = surveyedPrevalenceTrajectories;
@@ -1131,11 +1138,16 @@ namespace APACElib
             FindNumOfOutputsAndHeaders(findHeader);
         }
 
-        protected override void FillIn(int simTimeIndex, ref double[][] thisIncidenceOutputs, ref double[][] thisPrevalenceOutputs, ref int[][] thisActionCombination)
+        public override void Reset()
         {
+            _nextTimeIndexToStore = _nDeltaTInObsInterval;
+            base.ResetCommon();
+        }
 
+        protected override void FillIn(int timeIndex, ref double[][] thisIncidenceOutputs, ref double[][] thisPrevalenceOutputs, ref int[][] thisActionCombination)
+        {
             // return if epidemic has not started yet
-            if (simTimeIndex < 0)
+            if (timeIndex < 0)
                 return;
 
             int colIndexPrevalenceOutputs = 0;
@@ -1145,8 +1157,8 @@ namespace APACElib
 
             // store the current time and the current interval            
             thisIncidenceOutputs[0][colIndexIncidenceOutputs++]
-                = Math.Floor((double)(simTimeIndex) / _nDeltaTInObsInterval) + 1;
-            thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = simTimeIndex * _deltaT;
+                = Math.Floor((double)(timeIndex) / _nDeltaTInObsInterval);
+            thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = timeIndex * _deltaT;
 
             foreach (SurveyedIncidenceTrajectory incdTraj in _surveyIncidenceTrajs.Where(i => i.DisplayInSimOut))
                 thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = 
@@ -1334,7 +1346,7 @@ namespace APACElib
         public void Record(int simTimeIndex, int epiTimeIndex, bool endOfSim)
         {
             SimOutputTrajs.Record(simTimeIndex, endOfSim);
-            SurveyedOutputTrajs.Record(simTimeIndex, endOfSim);
+            SurveyedOutputTrajs.Record(epiTimeIndex, endOfSim);
         }
 
         public void Reset()

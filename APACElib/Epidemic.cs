@@ -381,9 +381,9 @@ namespace APACElib
                     {
                         if (EpiHist.IfSpreadDetected)
                         {
-                            //baseIndex = (EpiHist.SimTimeIndexOfSpreadDetection / _modelSets.NumOfDeltaT_inObservationPeriod) 
-                            //    * _modelSets.NumOfDeltaT_inObservationPeriod;
-                            _epiTimeIndex = (_simTimeIndex - EpiHist.SimTimeIndexOfSpreadDetection); //+ baseIndex;
+                            baseIndex = (EpiHist.SimTimeIndexOfSpreadDetection / _modelSets.NumOfDeltaT_inObservationPeriod) 
+                                * _modelSets.NumOfDeltaT_inObservationPeriod;
+                            _epiTimeIndex = _simTimeIndex - baseIndex;
 
                             // //_epiTimeIndex = _simTimeIndex - EpiHist.SimTimeIndexOfFirstObs
                             // //    + _modelSets.NumOfDeltaT_inObservationPeriod;
