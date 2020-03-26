@@ -104,7 +104,8 @@ namespace APACElib
         public enum EnumFeatureType
         {
             IfEverSwitchedOff = 0,
-            IfEverSwitchedOn = 1
+            IfEverSwitchedOn = 1,
+            SwitchStatus = 2
         }
 
         private Intervention _intervention; // pointer
@@ -119,6 +120,9 @@ namespace APACElib
                     break;
                 case "If Ever Switched On":
                     _featureType = EnumFeatureType.IfEverSwitchedOn;
+                    break;
+                case "Swich Status":
+                    _featureType = EnumFeatureType.SwitchStatus;
                     break;
                 default:
                     throw new Exception("Invalid value for feature type defined on intervention.");
@@ -140,6 +144,9 @@ namespace APACElib
                     break;
                 case EnumFeatureType.IfEverSwitchedOn:
                     Value = Convert.ToDouble(_intervention.IfEverTurnedOnBefore);
+                    break;
+                case EnumFeatureType.SwitchStatus:
+                    Value = _intervention.OnOffStatus;
                     break;
             }
         }

@@ -35,6 +35,7 @@ namespace APACElib
         public int Index { get; private set; }   // 0, 1, 2, ...
         public string Name { get; private set; }
         public EnumInterventionType Type { get; private set; }  // default or additive
+        public int OnOffStatus { get; set; }
         public DecisionRule DecisionRule { get; private set; }   // pointer to the decision rule that guides the employment of this action
         public bool IfAffectingContactPattern { get; set; }
 

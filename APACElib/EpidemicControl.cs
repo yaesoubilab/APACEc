@@ -58,25 +58,37 @@ namespace APACElib
             _presetDecisionsOverDecisionsPeriods = prespecifiedDecisionsOverDecisionsPeriods;
         }
 
-        // make the first decision (at time zero)
-        public void MakeTheFirstDecision(int epiTimeIndex, RNG rng)
+        // update conditions and make a decision
+        private int[] UpdateConditionsAndMakeADecision(int epiTimeIndex, RNG rng)
         {
-            int[] newDecision = new int[NumOfInterventions];
-            CurrentDecision = new int[NumOfInterventions];
-
             // update conditions
             foreach (Condition c in Conditions)
                 c.Update(epiTimeIndex, rng);
 
             // check if decisions are not prespecified
+            int[] newDecision = new int[NumOfInterventions];
             if (_presetDecisionsOverDecisionsPeriods == null)
             {
                 // find the switch status of each action
                 foreach (Intervention intv in Interventions)
-                    newDecision[intv.Index] = intv.FindSwitchStatus(CurrentDecision[intv.Index], epiTimeIndex);
+                {
+                    intv.OnOffStatus = intv.FindSwitchStatus(CurrentDecision[intv.Index], epiTimeIndex);
+                    newDecision[intv.Index] = intv.OnOffStatus;
+                }
             }
             else // if decisions are prespecified
                 newDecision = _presetDecisionsOverDecisionsPeriods[DecisionIntervalIndex];
+
+            return newDecision;
+        }
+
+        // make the first decision (at time zero)
+        public void MakeTheFirstDecision(int epiTimeIndex, RNG rng)
+        {           
+            CurrentDecision = new int[NumOfInterventions];
+            
+            // make a decision
+            int[] newDecision = UpdateConditionsAndMakeADecision(epiTimeIndex, rng);
 
             // update the current intervention combination to the new one
             UpdateCurrentDecision(newDecision, epiTimeIndex, ifThereIsAChange: true);
@@ -92,21 +104,8 @@ namespace APACElib
             if (epiTimeIndex != _nextEpiTimeIndexToMakeDecision)
                 return; // no change in decision 
 
-            // update conditions
-            foreach (Condition c in Conditions)
-                c.Update(epiTimeIndex, rng);
-
-            int[] newDecision = new int[NumOfInterventions];
-
-            // check if decisions are not prespecified
-            if (_presetDecisionsOverDecisionsPeriods == null)
-            {
-                // find the switch status of each action
-                foreach (Intervention intv in Interventions)
-                    newDecision[intv.Index] = intv.FindSwitchStatus(CurrentDecision[intv.Index], epiTimeIndex);
-            }
-            else // if decisions are prespecified
-                newDecision = _presetDecisionsOverDecisionsPeriods[DecisionIntervalIndex];
+            // make a decision 
+            int[] newDecision = UpdateConditionsAndMakeADecision(epiTimeIndex, rng);
 
             // check if this new intervention combination is the same as the current one
             bool ifThereIsAChange = false;

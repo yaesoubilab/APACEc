@@ -1144,7 +1144,8 @@ namespace APACElib
             base.ResetCommon();
         }
 
-        protected override void FillIn(int timeIndex, ref double[][] thisIncidenceOutputs, ref double[][] thisPrevalenceOutputs, ref int[][] thisActionCombination)
+        protected override void FillIn(int timeIndex, ref double[][] thisIncidenceOutputs, 
+            ref double[][] thisPrevalenceOutputs, ref int[][] thisActionCombination)
         {
             // return if epidemic has not started yet
             if (timeIndex < 0)
