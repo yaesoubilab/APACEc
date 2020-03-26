@@ -1149,7 +1149,7 @@ namespace APACElib
 
                 int specialStatID;
                 string strSpecialStatFeatureType;
-                double par;
+                int parID;
                 int interventionID;
                 string strInterventionFeatureType;
 
@@ -1162,9 +1162,10 @@ namespace APACElib
                 {
                     specialStatID = Convert.ToInt32(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.SpecialStatID));
                     strSpecialStatFeatureType = Convert.ToString(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.SpecialStatFeatureType));
-                    par = Convert.ToDouble(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.Par));
+                    parID = Convert.ToInt32(featuresSheet.GetValue(rowIndex, (int)ExcelInterface.enumFeaturesColumns.Par));
                     // create a feature
-                    _epiHist.AddASpecialStatisticsFeature(name, id, specialStatID, strSpecialStatFeatureType, par);
+                    _epiHist.AddASpecialStatisticsFeature(name, id, specialStatID, strSpecialStatFeatureType, 
+                        _paramManager.Parameters[parID]);
                 }
                 else if (strFeatureObs == "Intervention")
                 {

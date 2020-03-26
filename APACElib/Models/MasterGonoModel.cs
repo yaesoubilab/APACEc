@@ -1238,7 +1238,7 @@ namespace APACElib
                         featureID: id++,
                         specialStatID: _specialStatInfo.IDRatioTxResist[(int)r],
                         strFeatureType: "Current Observed Value",
-                        par: 0);
+                        multiplierPar: _paramManager.Parameters[(int)DummyParam.D_1]);
 
                     if (regions.Count > 1)
                     {  
@@ -1250,7 +1250,7 @@ namespace APACElib
                                 featureID: id++,
                                 specialStatID: firstID + regionID,
                                 strFeatureType: "Current Observed Value",
-                                par: 0);
+                                multiplierPar: _paramManager.Parameters[(int)DummyParam.D_1]);
                         }
                     }
                 }
@@ -1268,7 +1268,7 @@ namespace APACElib
                         featureID: id++,
                         specialStatID: _specialStatInfo.IDRatioTxResist[(int)r],
                         strFeatureType: "Slope",
-                        par: 0);
+                        multiplierPar: _paramManager.Parameters[(int)DummyParam.D_1]);
 
                     if (regions.Count > 1)
                     {
@@ -1280,7 +1280,7 @@ namespace APACElib
                                 featureID: id++,
                                 specialStatID: firstID + regionID,
                                 strFeatureType: "Slope",
-                                par: 0);
+                                multiplierPar: _paramManager.Parameters[(int)DummyParam.D_1]);
                         }
                     }
                 }

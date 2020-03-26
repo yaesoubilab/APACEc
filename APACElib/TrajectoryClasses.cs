@@ -1257,7 +1257,8 @@ namespace APACElib
                 extractOutputHeaders);
         }
 
-        public void AddASpecialStatisticsFeature(string name, int featureID, int specialStatID, string strFeatureType, double par)
+        public void AddASpecialStatisticsFeature(string name, int featureID, 
+            int specialStatID, string strFeatureType, Parameter multiplierPar)
         {
             bool ifFound = false;
             SurveyedTrajectory survTraj = null;
@@ -1282,8 +1283,10 @@ namespace APACElib
                     }
                 }
             }
+            if (ifFound == false)
+                throw new System.InvalidOperationException("No surveyed time-series found.");
 
-            Features.Add(new Feature_SpecialStats(name, featureID, strFeatureType, survTraj, par));
+            Features.Add(new Feature_SpecialStats(name, featureID, strFeatureType, survTraj, multiplierPar));
         }
 
         public bool Update(int simTimeIndex, int epiTimeIndex, bool endOfSim, RNG rnd)

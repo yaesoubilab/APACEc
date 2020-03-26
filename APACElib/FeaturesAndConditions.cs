@@ -59,9 +59,10 @@ namespace APACElib
 
         private EnumFeatureType _featureType;
         private SurveyedTrajectory _surveyedTraj; // pointer 
-        //private double _par;
+        private Parameter _multiplierPar;
 
-        public Feature_SpecialStats(string name, int featureID, string strFeatureType, SurveyedTrajectory surveyedTraj, double par) 
+        public Feature_SpecialStats(string name, int featureID, string strFeatureType, 
+            SurveyedTrajectory surveyedTraj, Parameter multiplierPar) 
             : base(name, featureID)
         {
             switch (strFeatureType)
@@ -74,12 +75,15 @@ namespace APACElib
                     break;
             }
             _surveyedTraj = surveyedTraj;
+            _multiplierPar = multiplierPar;
         }
-        public Feature_SpecialStats(string name, int featureID, EnumFeatureType featureType, SurveyedTrajectory surveyedTraj, double par)
+        public Feature_SpecialStats(string name, int featureID, EnumFeatureType featureType, 
+            SurveyedTrajectory surveyedTraj, Parameter multiplierPar)
             : base(name, featureID)
         {
             _featureType = featureType;
             _surveyedTraj = surveyedTraj;
+            _multiplierPar = multiplierPar;
         }
 
         public override void Update(int epiTimeIndex)
@@ -87,11 +91,11 @@ namespace APACElib
             switch (_featureType)
             {
                 case EnumFeatureType.CurrentObservedValue:
-                    Value = _surveyedTraj.GetLastObs();
+                    Value = _surveyedTraj.GetLastObs() * _multiplierPar.Value;
                     break;
 
                 case EnumFeatureType.Slope:
-                    Value = _surveyedTraj.GetIncrementalChange(epiTimeIndex);
+                    Value = _surveyedTraj.GetIncrementalChange(epiTimeIndex) * _multiplierPar.Value;
                     break;
             }
 
@@ -188,8 +192,8 @@ namespace APACElib
 
     public class Condition_OnFeatures : Condition
     {
-        private List<Feature> _features;
-        private List<Parameter> _thresholdParams;
+        private List<Feature> _features = new List<Feature>();
+        private List<Parameter> _thresholdParams = new List<Parameter>();
 
         private double[] _thresholdValues;
         private bool _ifTresholdSetOutside = false;
@@ -224,6 +228,7 @@ namespace APACElib
             else
                 _andOr = EnumAndOr.Or;
         }
+
         public Condition_OnFeatures(
             int id,
             string name,
