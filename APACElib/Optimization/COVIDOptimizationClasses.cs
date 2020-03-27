@@ -140,10 +140,10 @@ namespace APACElib.Optimization
                     double t_on = Policy.GetThresholdOn(wtp);
 
                     // update the threshold for the epidemic at index epi_i
-                    ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i].DecisionMaker.Conditions[4])
-                            .UpdateThresholds(new double[1] { t_on });
-                    ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i].DecisionMaker.Conditions[5])
+                    ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i].DecisionMaker.Conditions[0])
                             .UpdateThresholds(new double[1] { t_off });
+                    ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i].DecisionMaker.Conditions[1])
+                            .UpdateThresholds(new double[1] { t_on });
 
                     epi_i++;
                 }
@@ -201,6 +201,24 @@ namespace APACElib.Optimization
         {
             if (!(EpiModeller is null))
                 EpiModeller.ResetRNG(seed: _seed);
+        }
+    }
+
+    public class COVIDOptimizer : Optimizer
+    {
+        public COVIDOptimizer(ExcelInterface excelInterface,
+            ModelSettings modelSets, List<ModelInstruction> listModelInstr)
+            : base(excelInterface, modelSets, listModelInstr) { }
+
+        protected override SimModel GetASimModel(int epiID)
+        {
+            return new COVIDSimModel(
+                id: epiID,
+                excelInterface: EexcelInterface,
+                modelSets: ModelSets,
+                listModelInstr: ListModelInstr,
+                wtps: ModelSets.OptmzSets.WTPs,
+                policy: new COVIDAdaptivePolicy(ModelSets.OptmzSets.Penalty));
         }
     }
 }

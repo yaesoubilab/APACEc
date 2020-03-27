@@ -71,4 +71,72 @@ namespace APACElib.Optimization
             return penalty;
         }
     }
+
+    public abstract class Optimizer
+    {
+        public string OptimalParamValues { get; set; }
+        public string[,] Summary { get; protected set; }
+        public ExcelInterface EexcelInterface { get; protected set; }
+        public ModelSettings ModelSets { get; protected set; }
+        public List<ModelInstruction> ListModelInstr { get; protected set; }
+        public Vector<double> x0 { get; protected set; }
+        public Vector<double> xScale { get; protected set; }
+
+        public Optimizer(ExcelInterface excelInterface, ModelSettings modelSets, List<ModelInstruction> listModelInstr)
+        {
+            EexcelInterface = excelInterface;
+            ModelSets = modelSets;
+            ListModelInstr = listModelInstr;
+
+            // initial values of policy parameters 
+            // (this could be different from or the same as the status quo parameters)
+            double[] arrX0 = ModelSets.OptmzSets.X0;
+            x0 = Vector<double>.Build.DenseOfArray(arrX0);
+
+            // scale of policy parameters
+            double[] arrXScale = ModelSets.OptmzSets.XScale;
+            xScale = Vector<double>.Build.DenseOfArray(arrXScale);
+        }
+
+        protected abstract SimModel GetASimModel(int epiID);
+
+        public void Minimize()
+        {
+            // build epidemic models to evaluate structured policies 
+            // build as many as a0's * b's * c0's
+            int epiID = 0;
+            List<SimModel> epiModels = new List<SimModel>();
+            foreach (double a0 in ModelSets.OptmzSets.StepSize_GH_a0s)
+                foreach (double b in ModelSets.OptmzSets.StepSize_GH_bs)
+                    foreach (double c0 in ModelSets.OptmzSets.DerivativeStep_cs)
+                        epiModels.Add(GetASimModel(epiID++));
+
+            // create a multi stochastic approximation object            
+            // it runs the optimization algorithm for all combinations of (a0's, b's, c0's)
+            MultipleStochasticApproximation multOptimizer = new MultipleStochasticApproximation(
+                simModels: epiModels,
+                stepSizeGH_a0s: ModelSets.OptmzSets.StepSize_GH_a0s,
+                stepSizeGH_bs: ModelSets.OptmzSets.StepSize_GH_bs,
+                stepSizeDf_cs: ModelSets.OptmzSets.DerivativeStep_cs
+                );
+
+            // minimize 
+            multOptimizer.Minimize(
+                nItrs: ModelSets.OptmzSets.NOfItrs,
+                nLastItrsToAve: ModelSets.OptmzSets.NOfLastItrsToAverage,
+                x0: x0,
+                xScale: xScale,
+                ifParallel: false, // combinations of (a0's, b's, c0's) will run sequentially 
+                modelProvidesDerivatives: true
+                );
+
+            // export results
+            if (ModelSets.OptmzSets.IfExportResults)
+                multOptimizer.ExportResultsToCSV("");
+
+            // store the summary of the optimization
+            Summary = multOptimizer.GetSummary(f_digits: 1, x_digits: 4);
+        }
+        
+    }
 }

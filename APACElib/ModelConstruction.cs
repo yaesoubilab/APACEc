@@ -126,7 +126,7 @@ namespace APACElib
                     nModels = NumOfSimItrs;
                     break;
                 case EnumModelUse.Optimization:
-                    nModels = -1; // this is determined based on how many parameters the policy has
+                    nModels = 1; // this is determined based on how many parameters the policy has
                     break;
                 case EnumModelUse.Calibration:
                     nModels = NumOfTrajsInParallelForCalibr;

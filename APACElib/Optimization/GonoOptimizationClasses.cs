@@ -340,148 +340,96 @@ namespace APACElib.Optimization
         }
     }
 
-    public abstract class GonoOptimizer
-    {
-        public string OptimalParamValues { get; set; }
-        protected int NUM_OF_THRESHOLDS { get; } = 2;
-        public string[,] Summary { get; protected set; }
-    }
+    public class OptimizeGonohrrea_StructuredPolicy : Optimizer
+    {   
+        public OptimizeGonohrrea_StructuredPolicy(ExcelInterface excelInterface, 
+            ModelSettings modelSets, List<ModelInstruction> listModelInstr) 
+            : base(excelInterface, modelSets, listModelInstr)
+        {  }
 
-    public class OptimizeGonohrrea_StructuredPolicy : GonoOptimizer
-    {                
-        public void Run(ExcelInterface excelInterface, ModelSettings modelSets, List<ModelInstruction> listModelInstr)
+        protected override SimModel GetASimModel(int epiID)
         {
-            //if (listModelInstr == null)
-            //{
-            //    listModelInstr = new List<ModelInstruction>();
-            //    for (int i = 0; i < modelSets.GetNumModelsToBuild(); i++)
-            //        listModelInstr.Add(new ModelInstruction());
-            //}
-
-            // initial values of policy parameters 
-            // (this could be different from or the same as the status quo parameters)
-            double[] arrX0 = modelSets.OptmzSets.X0;
-            Vector<double> x0 = Vector<double>.Build.DenseOfArray(arrX0);
-
-            // scale of policy parameters
-            double[] arrXScale = modelSets.OptmzSets.XScale;
-            Vector<double> xScale = Vector<double>.Build.DenseOfArray(arrXScale);
-                
-            // build epidemic models to evaluate structured policies 
-            // build as many as a0's * b's * c0's
-            int epiID = 0;
-            List<SimModel> epiModels = new List<SimModel>();
-            foreach (double a0 in modelSets.OptmzSets.StepSize_GH_a0s)
-                foreach (double b in modelSets.OptmzSets.StepSize_GH_bs)
-                    foreach (double c0 in modelSets.OptmzSets.DerivativeStep_cs)
-                        epiModels.Add(
-                            new GonorrheaSimModel(
-                                id: epiID++, 
-                                excelInterface: excelInterface, 
-                                modelSets: modelSets, 
-                                listModelInstr: listModelInstr,
-                                wtps: modelSets.OptmzSets.WTPs, 
-                                policy: new PolicyExponential(modelSets.OptmzSets.Penalty))
-                            );
-
-            // create a multi stochastic approximation object            
-            // it runs the optimization algorithm for all combinations of (a0's, b's, c0's)
-            MultipleStochasticApproximation multOptimizer = new MultipleStochasticApproximation(
-                simModels: epiModels,
-                stepSizeGH_a0s: modelSets.OptmzSets.StepSize_GH_a0s,
-                stepSizeGH_bs: modelSets.OptmzSets.StepSize_GH_bs,
-                stepSizeDf_cs: modelSets.OptmzSets.DerivativeStep_cs
-                );
-
-            // minimize 
-            multOptimizer.Minimize(
-                nItrs: modelSets.OptmzSets.NOfItrs,
-                nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
-                x0: x0,
-                xScale: xScale,
-                ifParallel: false, // combinations of (a0's, b's, c0's) will run sequentially 
-                modelProvidesDerivatives: true 
-                );
-
-            // export results
-            if (modelSets.OptmzSets.IfExportResults)
-                multOptimizer.ExportResultsToCSV("");
-
-            // store the summary of the optimization
-            Summary = multOptimizer.GetSummary(f_digits:1, x_digits:4);
+            return new GonorrheaSimModel(
+                id: epiID,
+                excelInterface: EexcelInterface,
+                modelSets: ModelSets,
+                listModelInstr: ListModelInstr,
+                wtps: ModelSets.OptmzSets.WTPs,
+                policy: new PolicyExponential(ModelSets.OptmzSets.Penalty));
         }
+
     }
 
-    public class OptimizeGonohrrea_FixedWTPs : GonoOptimizer
-    {
+    //public class OptimizeGonohrrea_FixedWTPs : Optimizer
+    //{
 
-        public void Run(ExcelInterface excelInterface, ModelSettings modelSets, List<ModelInstruction> listModelInstr)
-        { 
-            // initial thresholds for the initial WTP 
-            double[] arrX0 = modelSets.OptmzSets.X0;
-            Vector<double> x0 = Vector<double>.Build.DenseOfArray(arrX0);
+    //    public void Run(ExcelInterface excelInterface, ModelSettings modelSets, List<ModelInstruction> listModelInstr)
+    //    { 
+    //        // initial thresholds for the initial WTP 
+    //        double[] arrX0 = modelSets.OptmzSets.X0;
+    //        Vector<double> x0 = Vector<double>.Build.DenseOfArray(arrX0);
 
-            // scale of policy parameters
-            double[] arrXScale = modelSets.OptmzSets.XScale;
-            Vector<double> xScale = Vector<double>.Build.DenseOfArray(arrXScale);
+    //        // scale of policy parameters
+    //        double[] arrXScale = modelSets.OptmzSets.XScale;
+    //        Vector<double> xScale = Vector<double>.Build.DenseOfArray(arrXScale);
 
-            // for all wtp values
-            int epiID = 0;
-            foreach (double wtp in modelSets.OptmzSets.WTPs)
-            {
-                // build epidemic models                
-                List<SimModel> epiModels = new List<SimModel>();
-                foreach (double a0 in modelSets.OptmzSets.StepSize_GH_a0s)
-                    foreach (double b in modelSets.OptmzSets.StepSize_GH_bs)
-                        foreach (double c0 in modelSets.OptmzSets.DerivativeStep_cs)
-                            epiModels.Add(
-                                new GonorrheaSimModel(
-                                    epiID++, 
-                                    excelInterface, 
-                                    modelSets,
-                                    listModelInstr,
-                                    new double[1] { wtp },
-                                    new PolicyPoint(modelSets.OptmzSets.Penalty))
-                                );
+    //        // for all wtp values
+    //        int epiID = 0;
+    //        foreach (double wtp in modelSets.OptmzSets.WTPs)
+    //        {
+    //            // build epidemic models                
+    //            List<SimModel> epiModels = new List<SimModel>();
+    //            foreach (double a0 in modelSets.OptmzSets.StepSize_GH_a0s)
+    //                foreach (double b in modelSets.OptmzSets.StepSize_GH_bs)
+    //                    foreach (double c0 in modelSets.OptmzSets.DerivativeStep_cs)
+    //                        epiModels.Add(
+    //                            new GonorrheaSimModel(
+    //                                epiID++, 
+    //                                excelInterface, 
+    //                                modelSets,
+    //                                listModelInstr,
+    //                                new double[1] { wtp },
+    //                                new PolicyPoint(modelSets.OptmzSets.Penalty))
+    //                            );
 
-                // create a stochastic approximation object
-                MultipleStochasticApproximation multOptimizer = new MultipleStochasticApproximation(
-                    simModels: epiModels,
-                    stepSizeGH_a0s: modelSets.OptmzSets.StepSize_GH_a0s,
-                    stepSizeGH_bs: modelSets.OptmzSets.StepSize_GH_bs,
-                    stepSizeDf_cs: modelSets.OptmzSets.DerivativeStep_cs
-                    );
+    //            // create a stochastic approximation object
+    //            MultipleStochasticApproximation multOptimizer = new MultipleStochasticApproximation(
+    //                simModels: epiModels,
+    //                stepSizeGH_a0s: modelSets.OptmzSets.StepSize_GH_a0s,
+    //                stepSizeGH_bs: modelSets.OptmzSets.StepSize_GH_bs,
+    //                stepSizeDf_cs: modelSets.OptmzSets.DerivativeStep_cs
+    //                );
 
-                // minimize 
-                multOptimizer.Minimize(
-                    nItrs: modelSets.OptmzSets.NOfItrs,
-                    nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
-                    x0: x0,
-                    xScale: xScale,
-                    ifParallel: true,
-                    modelProvidesDerivatives: true
-                    );
+    //            // minimize 
+    //            multOptimizer.Minimize(
+    //                nItrs: modelSets.OptmzSets.NOfItrs,
+    //                nLastItrsToAve: modelSets.OptmzSets.NOfLastItrsToAverage,
+    //                x0: x0,
+    //                xScale: xScale,
+    //                ifParallel: true,
+    //                modelProvidesDerivatives: true
+    //                );
 
-                // export results
-                if (modelSets.OptmzSets.IfExportResults)
-                    multOptimizer.ExportResultsToCSV("wtp" + wtp + "-");
+    //            // export results
+    //            if (modelSets.OptmzSets.IfExportResults)
+    //                multOptimizer.ExportResultsToCSV("wtp" + wtp + "-");
 
-                // use this xStar as the intial variable for the next wtp
-                x0 = multOptimizer.xStar;
+    //            // use this xStar as the intial variable for the next wtp
+    //            x0 = multOptimizer.xStar;
 
-                //// store results
-                //double[] result = new double[NUM_OF_THRESHOLDS + 5]; // 1 for wtp, 1 for fStar, 1 for a0, 1 for b 1 for c0
-                //result[0] = wtp;
-                //result[1] = multOptimizer.a0Star;
-                //result[2] = multOptimizer.bStar;
-                //result[3] = multOptimizer.c0Star;
-                //result[4] = multOptimizer.fStar;
-                //result[5] = multOptimizer.xStar[0];
-                //result[6] = multOptimizer.xStar[1];
-                //Summary.Add(result);
-            }
-        }
+    //            //// store results
+    //            //double[] result = new double[NUM_OF_THRESHOLDS + 5]; // 1 for wtp, 1 for fStar, 1 for a0, 1 for b 1 for c0
+    //            //result[0] = wtp;
+    //            //result[1] = multOptimizer.a0Star;
+    //            //result[2] = multOptimizer.bStar;
+    //            //result[3] = multOptimizer.c0Star;
+    //            //result[4] = multOptimizer.fStar;
+    //            //result[5] = multOptimizer.xStar[0];
+    //            //result[6] = multOptimizer.xStar[1];
+    //            //Summary.Add(result);
+    //        }
+    //    }
         
-    }
+    //}
 
 }

@@ -152,23 +152,29 @@ namespace APACElib
 
         private void OptimizeGono()
         {
-            // read optimization settings
-           // _modelSettings.ReadOptimizationSettings(ref _excelInterface);
 
             // making sure seeds are correctly sampled
             if (_modelSettings.SimRNDSeedsSource == EnumSimRNDSeedsSource.Prespecified)
                 _modelSettings.SimRNDSeedsSource = EnumSimRNDSeedsSource.RandomUnweighted;
 
-            //OptimizeGonohrreaRandomizedWTP optimizer = new OptimizeGonohrreaRandomizedWTP();
-            OptimizeGonohrrea_StructuredPolicy optimizer = new OptimizeGonohrrea_StructuredPolicy();
-            optimizer.Run(_excelInterface, _modelSettings, _listModelInstr);
+            OptimizeGonohrrea_StructuredPolicy optimizer = 
+                new OptimizeGonohrrea_StructuredPolicy(_excelInterface, _modelSettings, _listModelInstr);
+            optimizer.Minimize();
 
             ExcelIntface.ReportOptimization(optimizer.Summary);
         }
 
         private void OptimizeCOVID()
         {
+            // making sure seeds are correctly sampled
+            if (_modelSettings.SimRNDSeedsSource == EnumSimRNDSeedsSource.Prespecified)
+                _modelSettings.SimRNDSeedsSource = EnumSimRNDSeedsSource.RandomUnweighted;
 
+            COVIDOptimizer optimizer =
+                new COVIDOptimizer(_excelInterface, _modelSettings, _listModelInstr);
+            optimizer.Minimize();
+
+            ExcelIntface.ReportOptimization(optimizer.Summary);
         }
         
         // optimize the dynamic policy
@@ -351,8 +357,8 @@ namespace APACElib
                 if (_modelSettings.ModelUse == EnumModelUse.Optimization)
                 {
                     // 2 for f and Df, and 2 * (number of policy parameters) for 2-direction derivatives 
-                    PolicyExponential.NOfPolicyParameters = 3;
-                    numOfEpidemics = _modelSettings.OptmzSets.WTPs.Count() * (2 + 2 * PolicyExponential.NOfPolicyParameters);
+                    //PolicyExponential.NOfPolicyParameters = 3;
+                    numOfEpidemics = _modelSettings.OptmzSets.WTPs.Count() * (2 + 2 * _modelSettings.OptmzSets.X0.Length); // PolicyExponential.NOfPolicyParameters);
                 }
                 for (int i = 0; i < numOfEpidemics; i++)
                     _listModelInstr.Add(new MSMGonoModel());
@@ -364,6 +370,9 @@ namespace APACElib
             }
             else
             {
+                if (_modelSettings.ModelUse == EnumModelUse.Optimization)
+                    numOfEpidemics = _modelSettings.OptmzSets.WTPs.Count() * (2 + 2 * _modelSettings.OptmzSets.X0.Length);
+
                 for (int i = 0; i < numOfEpidemics; i++)
                     _listModelInstr.Add(new ModelInstruction());
             }

@@ -258,7 +258,7 @@ namespace APACElib
             if (_ifTresholdSetOutside == false)
             {
                 for (int i = 0; i < _thresholdParams.Count(); i++)
-                    _thresholdValues[i] = _thresholdParams[i].Sample(epiTimeIndex, rng);
+                    _thresholdValues[i] = _thresholdParams[i].Value; // .Sample(epiTimeIndex, rng);
             }
 
             switch (_andOr)
