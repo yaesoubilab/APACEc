@@ -56,7 +56,7 @@ namespace APACElib
             SeedGenerator = new RNDSeedGenerator(_modelSet);
 
             // simulatoin summary
-            SimSummary = new SimSummary(ref _modelSet, ref _parentEpidemic);
+            SimSummary = new SimSummary(ref _modelSet, ref _parentEpidemic, listModelInstr.Count);
         }
 
         // build epidemics (without simulating)
@@ -523,10 +523,10 @@ namespace APACElib
         public ObsBasedStat TimeStat { get; private set; } = new ObsBasedStat("Time used to simulate a trajectory");
         public double TimeToSimulateAllEpidemics { get; set; } = 0;
 
-        public SimSummary(ref ModelSettings settings, ref Epidemic parentEpidemic)
+        public SimSummary(ref ModelSettings settings, ref Epidemic parentEpidemic, int numOfSimItrs)
         {
             _set = settings;
-            _nSim = settings.NumOfSimItrs;   // number of simulated epidemics
+            _nSim = numOfSimItrs; // settings.NumOfSimItrs;   // number of simulated epidemics
 
             // summary statistics on classes
             foreach (Class thisClass in parentEpidemic.Classes)
