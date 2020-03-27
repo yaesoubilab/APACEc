@@ -10,8 +10,6 @@ namespace APACElib.Optimization
 {
     public abstract class ThresholdPolicy : Policy
     {
-        public Vector<double> StatusQuoParamValues { get; protected set; } // parameter values under the status quo
-
         public ThresholdPolicy(double penalty) : base(penalty)
         {
             Penalty = penalty;
@@ -342,14 +340,14 @@ namespace APACElib.Optimization
         }
     }
 
-    public abstract class OptimizeGonohrrea
+    public abstract class GonoOptimizer
     {
         public string OptimalParamValues { get; set; }
         protected int NUM_OF_THRESHOLDS { get; } = 2;
         public string[,] Summary { get; protected set; }
     }
 
-    public class OptimizeGonohrrea_StructuredPolicy : OptimizeGonohrrea
+    public class OptimizeGonohrrea_StructuredPolicy : GonoOptimizer
     {                
         public void Run(ExcelInterface excelInterface, ModelSettings modelSets, List<ModelInstruction> listModelInstr)
         {
@@ -414,7 +412,7 @@ namespace APACElib.Optimization
         }
     }
 
-    public class OptimizeGonohrrea_FixedWTPs : OptimizeGonohrrea
+    public class OptimizeGonohrrea_FixedWTPs : GonoOptimizer
     {
 
         public void Run(ExcelInterface excelInterface, ModelSettings modelSets, List<ModelInstruction> listModelInstr)

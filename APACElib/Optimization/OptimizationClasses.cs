@@ -12,6 +12,7 @@ namespace APACElib.Optimization
     {
         public double Penalty { get; protected set; }  // penalty factor when parameter values are out of range
         public static int NOfPolicyParameters { get; set; } // number of parameters of this policy
+        public Vector<double> StatusQuoParamValues { get; protected set; } // parameter values under the status quo
 
         public Policy(double penalty)
         {
