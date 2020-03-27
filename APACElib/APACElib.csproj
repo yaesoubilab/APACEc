@@ -64,6 +64,7 @@
     <Compile Include="EconEvalClasses.cs" />
     <Compile Include="Optimization\COVIDOptimizationClasses.cs" />
     <Compile Include="Optimization\GonoOptimizationClasses.cs" />
+    <Compile Include="Optimization\OptimizationClasses.cs" />
     <Compile Include="ParameterClasses.cs" />
     <Compile Include="TrajectoryClasses.cs" />
     <Compile Include="Epidemic.cs" />

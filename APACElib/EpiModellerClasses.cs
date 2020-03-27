@@ -35,21 +35,6 @@ namespace APACElib
         {
             this.ID = ID;
             _modelSet = modelSettings;
-
-            //// find how many epi models to create
-            //int numOfEpidemics = 0;
-            //if (_modelSet.ModelUse == EnumModelUse.Optimization)
-            //    numOfEpidemics = numOfEpis;
-            //else
-            //    numOfEpidemics = _modelSet.GetNumModelsToBuild();
-
-            //if (listModelInstr==null || listModelInstr.Count == 0)
-            //{
-            //    _listModelInstr = new List<ModelInstruction>();
-            //    for (int i = 0; i < numOfEpidemics; i++)
-            //        _listModelInstr.Add(new ModelInstruction());
-            //}
-            //else
             _listModelInstr = listModelInstr;
 
             // build a parent epidemic model 

@@ -86,27 +86,6 @@ namespace APACElib
             }
         }
 
-        //// update susceptibility and infectivity of classes
-        //public void UpdateClassesSusceptInfect(int simTimeIndex, ref List<Class> classes)
-        //{
-        //    // calculate only at the initialization or when there are time depedent susceptibility or infectivity parameters
-        //    if (!(simTimeIndex == 0 || ThereAreTimeDepParms_susceptibilities || ThereAreTimeDepParms_infectivities))
-        //        return;
-
-        //    if (ThereAreTimeDepParms_susceptibilities || simTimeIndex == 0)
-        //    {
-        //        // only susceptibility
-        //        foreach (Class thisClass in classes.Where(c => c.IsEpiDependentEventActive))
-        //            thisClass.UpdateSusceptibilityParams(ParameterValues);
-        //    }
-        //    if (ThereAreTimeDepParms_infectivities || simTimeIndex == 0)
-        //    {
-        //        // only infectivity
-        //        foreach (Class thisClass in classes)
-        //            thisClass.UpdateInfectivityParams(ParameterValues);
-        //    }
-        //}
-
         public void SampleAllParameters(RNG rng, double time)
         {
             // sample from parameters

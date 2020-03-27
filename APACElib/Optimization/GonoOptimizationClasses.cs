@@ -8,80 +8,29 @@ using MathNet.Numerics.LinearAlgebra;
 
 namespace APACElib.Optimization
 {
-    public abstract class Policy
+    public abstract class ThresholdPolicy : Policy
     {
-        protected double Penalty { get; }  // penalty factor when parameter values are out of range
-        public static int NOfPolicyParameters { get;  set; } // number of parameters of this policy
         public Vector<double> StatusQuoParamValues { get; protected set; } // parameter values under the status quo
 
-        public Policy(double penalty) {
+        public ThresholdPolicy(double penalty) : base(penalty)
+        {
             Penalty = penalty;
         }
 
-        public abstract double UpdateParameters(Vector<double> paramValues, double wtp, bool checkFeasibility = true);
         /// <returns> tau: prevalence threshold to switch </returns>
         public abstract double GetTau(double wtp);
         /// <returns> theta: threshold of change in prevalence to switch </returns>
         public abstract double GetTheta(double wtp);
-        /// <returns> text of policy params </returns>
-        public virtual string GetParams() { return ""; }
         /// <returns> [tau, theta] </returns>
         public double[] GetTauAndTheta(double wtp)
         {
             double tau = GetTau(wtp);
             double theta = GetTheta(wtp);
             return new double[2] { tau, theta };
-        }
-
-        /// <summary>
-        /// change the value to make sure it is between min and max, 
-        /// and returns (penalty factor) * (value - max)^2 if value > max 
-        /// or (penalty factor) * (value - min)^2 if value < min
-        /// </summary>
-        /// <param name="value"> current parameter value </param>
-        /// <param name="min"> acceptable min </param>
-        /// <param name="max"> acceptable max </param>
-        /// <returns> penalty </returns>
-        protected double EnsureFeasibility(ref double value, double min, double max)
-        {
-            double penalty = 0;
-            if (value < min)
-            {
-                penalty += Penalty * Math.Pow(min - value, 2);
-                value = min;
-            }
-            else if (value > max)
-            {
-                penalty += Penalty * Math.Pow(value - max, 2);
-                value = max;
-            }
-            return penalty;
-        }
-        // see EnsureFeasibility
-        protected double EnsureLessThan (ref double value, double upperBound)
-        {
-            double penalty = 0;
-            if (value > upperBound)
-            {
-                penalty += Penalty * Math.Pow(value - upperBound, 2);
-                value = upperBound;
-            }
-            return penalty;
-        }
-        // see EnsureFeasibility
-        protected double EnsureGreaterThan(ref double value, double lowerBound)
-        {
-            double penalty = 0;
-            if (value < lowerBound)
-            {
-                penalty += Penalty * Math.Pow(value - lowerBound, 2);
-                value = lowerBound;
-            }
-            return penalty;
-        }
+        }        
     }
 
-    public class PolicyPoint : Policy
+    public class PolicyPoint : ThresholdPolicy
     {
         /// <summary>
         /// prevalence threshold:            tau 
@@ -128,7 +77,7 @@ namespace APACElib.Optimization
         }        
     }
 
-    public class PolicyExponential : Policy
+    public class PolicyExponential : ThresholdPolicy
     {
         /// <summary>
         /// prevalence threshold:            tau(wtp)   = tau0*exp(tau1 * wtp)
@@ -190,7 +139,7 @@ namespace APACElib.Optimization
         }
     }
 
-    public class PolicyPower : Policy
+    public class PolicyPower : ThresholdPolicy
     {
         // *** should be updated ***
         /// <summary>
@@ -265,11 +214,11 @@ namespace APACElib.Optimization
                                    // index > 1 -> Df()
         private Vector<double> _DfValues; // Df at the current value of policy parameters 
 
-        public Policy Policy { get; private set; }
+        public ThresholdPolicy Policy { get; private set; }
         public EpidemicModeller EpiModeller { get; private set; } // epi modeller to estimate derivatives of f
 
         public GonorrheaSimModel(int id, ExcelInterface excelInterface, ModelSettings modelSets, 
-            List<ModelInstruction> listModelInstr, double[] wtps, Policy policy)
+            List<ModelInstruction> listModelInstr, double[] wtps, ThresholdPolicy policy)
         {
             _seed = id;
             Policy = policy;
@@ -305,7 +254,7 @@ namespace APACElib.Optimization
             // x for current policy
             xValues.Add(x);
             // x for derivatives at current policy
-            for (int x_i = 0; x_i < Policy.NOfPolicyParameters; x_i++)
+            for (int x_i = 0; x_i < ThresholdPolicy.NOfPolicyParameters; x_i++)
             {
                 xValues.Add(x - epsilonMatrix.Row(x_i) * xScale[x_i]);
                 xValues.Add(x + epsilonMatrix.Row(x_i) * xScale[x_i]);
