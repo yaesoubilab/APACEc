@@ -45,6 +45,12 @@ namespace APACElib.Optimization
                 accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.t_on_0], 0);
                 // t_on_1 should be less than 0
                 accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.t_on_1], 0);
+                // t_off should be greateer than t_on 
+                accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.t_on_0], _paramValues[(int)Par.t_off_0]);
+                accumPenalty += base.EnsureLessThan(
+                    ref _paramValues[(int)Par.t_on_1],
+                    _paramValues[(int)Par.t_off_1] + (1/wtp) * Math.Log(_paramValues[(int)Par.t_off_0]/ _paramValues[(int)Par.t_on_0])
+                    );
             }
             return accumPenalty;
         }
@@ -177,7 +183,7 @@ namespace APACElib.Optimization
                 if (i == 0)
                     _fValues[i] = _fValues[i] / _wtps.Count();
                 else
-                    _fValues[i] = _fValues[i] / _wtps.Count() - _fValues[0];
+                    _fValues[i] = _fValues[i] / _wtps.Count()  - _fValues[0];
             }
 
             // calculate derivatives
