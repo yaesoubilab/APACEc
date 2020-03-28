@@ -135,7 +135,7 @@ namespace APACElib.Optimization
                 multOptimizer.ExportResultsToCSV("");
 
             // store the summary of the optimization
-            Summary = multOptimizer.GetSummary(f_digits: 1, x_digits: 4);
+            Summary = multOptimizer.GetSummary(f_digits: 1, x_digits: 6);
         }
         
     }
