@@ -100,7 +100,7 @@ namespace APACElib.Optimization
 
         protected abstract SimModel GetASimModel(int epiID);
 
-        public void Minimize()
+        public void Minimize(int digits)
         {
             // build epidemic models to evaluate structured policies 
             // build as many as a0's * b's * c0's
@@ -135,7 +135,7 @@ namespace APACElib.Optimization
                 multOptimizer.ExportResultsToCSV("");
 
             // store the summary of the optimization
-            Summary = multOptimizer.GetSummary(f_digits: 1, x_digits: 6);
+            Summary = multOptimizer.GetSummary(f_digits: 1, x_digits: digits);
         }
         
     }

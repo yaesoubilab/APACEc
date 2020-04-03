@@ -340,6 +340,7 @@ namespace APACElib
         public double[] X0 { get; } 
         public double[] XScale { get; }
         public bool IfExportResults { get; }
+        public int XDigits { get; }
 
         public double[] StepSize_GH_a0s { get; }
         public double[] StepSize_GH_bs { get; }
@@ -359,6 +360,7 @@ namespace APACElib
             XScale = Array.ConvertAll(strXScale.Split(','), Convert.ToDouble);            
 
             IfExportResults = SupportFunctions.ConvertYesNoToBool(excelInterface.GetCellValue("General Settings", "ifExportOptResults").ToString());
+            XDigits = (int)(double)excelInterface.GetCellValue("General Settings", "optXDigits"); 
 
             string str_a0s = excelInterface.GetCellValue("General Settings", "stepSize_GH_a0s").ToString();
             StepSize_GH_a0s = Array.ConvertAll(str_a0s.Split(','), Convert.ToDouble);

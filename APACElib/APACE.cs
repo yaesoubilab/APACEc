@@ -159,7 +159,7 @@ namespace APACElib
 
             OptimizeGonohrrea_StructuredPolicy optimizer = 
                 new OptimizeGonohrrea_StructuredPolicy(_excelInterface, _modelSettings, _listModelInstr);
-            optimizer.Minimize();
+            optimizer.Minimize(_modelSettings.OptmzSets.XDigits);
 
             ExcelIntface.ReportOptimization(optimizer.Summary);
         }
@@ -172,7 +172,7 @@ namespace APACElib
 
             COVIDOptimizer optimizer =
                 new COVIDOptimizer(_excelInterface, _modelSettings, _listModelInstr);
-            optimizer.Minimize();
+            optimizer.Minimize(_modelSettings.OptmzSets.XDigits);
 
             ExcelIntface.ReportOptimization(optimizer.Summary);
         }
