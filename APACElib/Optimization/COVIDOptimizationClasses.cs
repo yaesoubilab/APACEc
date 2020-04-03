@@ -12,21 +12,21 @@ namespace APACElib.Optimization
     {
         /// <summary>
         /// R_eff threshold under no social distancing:  t_off(wtp) = t_off_0 * exp(t_off_1 * wtp)
-        /// R_eff threshold under social distancing:     t_on(wtp)  = t_on_0 * exp(t_on_1 * wtp)  
-        /// parameter values = [t_off_0, t_off_1, t_on_0, t_on_1]
+        /// R_eff threshold under social distancing:     t_on(wtp)  = r_on_0 * t_off(wtp)
+        /// parameter values = [t_off_0, t_off_1, t_on_0]
         /// </summary>
         /// 
 
-        enum Par { t_off_0, t_off_1, t_on_0, t_on_1 }
+        enum Par { t_off_0, t_off_1, r_on_0 }
         private double[] _paramValues;
 
         public COVIDAdaptivePolicy(double penalty) : base(penalty)
         {
-            NOfPolicyParameters = 4;
+            NOfPolicyParameters = 3;
             // status quo parameter values: 
             // R_eff threshold under no social distancing = 100 (a large number so that social distancing is never used)
             // R_eff threshold under social distancing = 0 (turn off social distancing immediately)
-            _paramValues = new double[4] { 100, 0, 1, 0 };
+            _paramValues = new double[3] { 100, 0, 1};
             StatusQuoParamValues = Vector<double>.Build.Dense(_paramValues);
         }
 
@@ -41,24 +41,23 @@ namespace APACElib.Optimization
                 accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.t_off_0], 0);
                 // t_off_1 should be less than 0
                 accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.t_off_1], 0);
-                // t_on_0 should be greater than 0
-                accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.t_on_0], 0);
-                // t_on_1 should be less than 0
-                accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.t_on_1], 0);
+                // r_on_0 should be between 0 and 1
+                 accumPenalty += base.EnsureFeasibility(ref _paramValues[(int)Par.r_on_0], 0, 1);
 
-                // t_on should be less than 5 at any wtp value
-                accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.t_off_0], 5 / Math.Exp(wtp * _paramValues[(int)Par.t_off_1]));
 
-                // t_off should be greateer than t_on 
-                accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.t_on_0], _paramValues[(int)Par.t_off_0]);
+                //// t_on should be less than 5 at any wtp value
+                //accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.t_off_0], 5 / Math.Exp(wtp * _paramValues[(int)Par.t_off_1]));
 
-                accumPenalty += base.EnsureLessThan(
-                    ref _paramValues[(int)Par.t_on_1],
-                    _paramValues[(int)Par.t_off_1] + (1/wtp) * Math.Log(_paramValues[(int)Par.t_off_0]/ _paramValues[(int)Par.t_on_0])
-                    );
+                //// t_off should be greateer than t_on 
+                //accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.t_on_0], _paramValues[(int)Par.t_off_0]);
 
-                if (_paramValues[(int)Par.t_on_1] > 0 )
-                    throw new System.ArgumentException("Parameter cannot be null", "original");
+                //accumPenalty += base.EnsureLessThan(
+                //    ref _paramValues[(int)Par.t_on_1],
+                //    _paramValues[(int)Par.t_off_1] + (1/wtp) * Math.Log(_paramValues[(int)Par.t_off_0]/ _paramValues[(int)Par.t_on_0])
+                //    );
+
+                //if (_paramValues[(int)Par.t_on_1] > 0 )
+                //    throw new System.ArgumentException("Parameter cannot be null", "original");
             }
             return accumPenalty;
         }
@@ -68,7 +67,7 @@ namespace APACElib.Optimization
         }
         public double GetThresholdOn(double wtp)
         {
-            return _paramValues[(int)Par.t_on_0] * Math.Exp(wtp * _paramValues[(int)Par.t_on_1]);
+            return GetThresholdOff(wtp)* _paramValues[(int)Par.r_on_0] ;
         }
     }
 
