@@ -45,12 +45,20 @@ namespace APACElib.Optimization
                 accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.t_on_0], 0);
                 // t_on_1 should be less than 0
                 accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.t_on_1], 0);
+
+                // t_on should be less than 5 at any wtp value
+                accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.t_off_0], 5 / Math.Exp(wtp * _paramValues[(int)Par.t_off_1]));
+
                 // t_off should be greateer than t_on 
                 accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.t_on_0], _paramValues[(int)Par.t_off_0]);
+
                 accumPenalty += base.EnsureLessThan(
                     ref _paramValues[(int)Par.t_on_1],
                     _paramValues[(int)Par.t_off_1] + (1/wtp) * Math.Log(_paramValues[(int)Par.t_off_0]/ _paramValues[(int)Par.t_on_0])
                     );
+
+                if (_paramValues[(int)Par.t_on_1] > 0 )
+                    throw new System.ArgumentException("Parameter cannot be null", "original");
             }
             return accumPenalty;
         }
