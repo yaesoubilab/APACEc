@@ -910,7 +910,7 @@ namespace APACElib
         }
 
         // store selected outputs while simulating
-        public void Record(int timeIndex, bool endOfSim)
+        public void Record(int timeIndex, bool endOfSim, bool ifSpreadDetected)
         {
             // check if it is time to store output
             if (timeIndex < _nextTimeIndexToStore && !endOfSim)
@@ -1140,26 +1140,32 @@ namespace APACElib
 
         public override void Reset()
         {
-            _nextTimeIndexToStore = _nDeltaTInObsInterval;
+            _nextTimeIndexToStore = 0; // _nDeltaTInObsInterval;
             base.ResetCommon();
         }
 
         protected override void FillIn(int timeIndex, ref double[][] thisIncidenceOutputs, 
             ref double[][] thisPrevalenceOutputs, ref int[][] thisActionCombination)
         {
-            // return if epidemic has not started yet
-            if (timeIndex < 0)
-                return;
-
+            
             int colIndexPrevalenceOutputs = 0;
             int colIndexIncidenceOutputs = 0;
             thisPrevalenceOutputs[0] = new double[NumOfPrevalenceOutputsToReport];
             thisIncidenceOutputs[0] = new double[NumOfIncidenceOutputsToReport];
 
-            // store the current time and the current interval            
-            thisIncidenceOutputs[0][colIndexIncidenceOutputs++]
-                = Math.Floor((double)(timeIndex) / _nDeltaTInObsInterval);
-            thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = timeIndex * _deltaT;
+            // store the current time and the current interval     
+            // return if epidemic has not started yet
+            if (timeIndex < 0)
+            {
+                thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = -1;
+                thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = -1;
+            }
+            else
+            {
+                thisIncidenceOutputs[0][colIndexIncidenceOutputs++]
+                    = Math.Floor((double)(timeIndex) / _nDeltaTInObsInterval);
+                thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = timeIndex * _deltaT;
+            }
 
             foreach (SurveyedIncidenceTrajectory incdTraj in _surveyIncidenceTrajs.Where(i => i.DisplayInSimOut))
                 thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = 
@@ -1212,7 +1218,8 @@ namespace APACElib
         public List<SurveyedIncidenceTrajectory> SurveyedIncidenceTrajs { get => _survIncidenceTrajs; set => _survIncidenceTrajs = value; }
         public List<SurveyedPrevalenceTrajectory> SurveyedPrevalenceTrajs { get => _survPrevalenceTrajs; set => _survPrevalenceTrajs = value; }
 
-        public bool IfSpreadDetected { get; private set; } = false;
+        private bool _defaultIfSpreadDetected;
+        public bool IfSpreadDetected { get; private set; }
         public int SimTimeIndexOfSpreadDetection { get; private set; }
 
         // all trajectories prepared for simulation output 
@@ -1223,10 +1230,12 @@ namespace APACElib
         public List<Feature> Features { set; get; } = new List<Feature>();
         public List<Condition> Conditions { set; get; } = new List<Condition>();   
 
-        public EpidemicHistory(List<Class> classes, List<Event> events)
+        public EpidemicHistory(List<Class> classes, List<Event> events, bool defaultIfSpreadDetected)
         {
             _classes = classes;
             _events = events;
+            _defaultIfSpreadDetected = defaultIfSpreadDetected;
+            IfSpreadDetected = defaultIfSpreadDetected;
         }
 
         public void SetupSimOutputTrajs(
@@ -1349,8 +1358,8 @@ namespace APACElib
 
         public void Record(int simTimeIndex, int epiTimeIndex, bool endOfSim)
         {
-            SimOutputTrajs.Record(simTimeIndex, endOfSim);
-            SurveyedOutputTrajs.Record(epiTimeIndex, endOfSim);
+            SimOutputTrajs.Record(simTimeIndex, endOfSim, IfSpreadDetected);
+            SurveyedOutputTrajs.Record(epiTimeIndex, endOfSim, IfSpreadDetected);
         }
 
         public void Reset()
@@ -1366,7 +1375,7 @@ namespace APACElib
 
             SimOutputTrajs.Reset();
             SurveyedOutputTrajs.Reset();
-            IfSpreadDetected = false;
+            IfSpreadDetected = _defaultIfSpreadDetected;
             SimTimeIndexOfSpreadDetection = 0;
         }
 

@@ -404,8 +404,12 @@ namespace APACElib
             // model settings
             _modelSets = modelSettings;
 
+            bool defaultIfSpreadDetected = true;
+            if (_modelSets.MarkOfEpidemicStartTime == EnumMarkOfEpidemicStartTime.TimeOfFirstObservation)
+                defaultIfSpreadDetected = false;
+
             // epidemic history
-            EpiHist = new EpidemicHistory(_classes, _events);
+            EpiHist = new EpidemicHistory(_classes, _events, defaultIfSpreadDetected);
             // decision maker
             _decisionMaker = new DecisionMaker(
                 _modelSets.EpidemicTimeIndexToStartDecisionMaking,
