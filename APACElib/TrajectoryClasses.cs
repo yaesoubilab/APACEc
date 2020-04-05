@@ -804,6 +804,7 @@ namespace APACElib
         public void Reset()
         {
             _timeSeries.Reset();
+            FirstNonZeroObsObtained = false;
         }
     }
 
@@ -910,10 +911,10 @@ namespace APACElib
         }
 
         // store selected outputs while simulating
-        public void Record(int timeIndex, bool endOfSim, bool ifSpreadDetected)
+        public void Record(int simTimeIndex, int epiTimeIndex, bool endOfSim, bool ifSpreadDetected)
         {
             // check if it is time to store output
-            if (timeIndex < _nextTimeIndexToStore && !endOfSim)
+            if (simTimeIndex < _nextTimeIndexToStore && !endOfSim)
                 return;
 
             // define the jagged array to store current observation
@@ -929,7 +930,10 @@ namespace APACElib
             thisActionCombination[0] = (int[])_decisionMaker.CurrentDecision.Clone();
 
             // fill in the rest
-            FillIn(timeIndex, ref thisIncidenceOutputs, ref thisPrevalenceOutputs, ref thisActionCombination);
+            if (this is ExcelOutputTrajs_Sim)
+                FillIn(simTimeIndex, ref thisIncidenceOutputs, ref thisPrevalenceOutputs, ref thisActionCombination);
+            else if (this is ExcelOutputTrajs_Surveyed)
+                FillIn(epiTimeIndex, ref thisIncidenceOutputs, ref thisPrevalenceOutputs, ref thisActionCombination);
 
             // concatenate this row 
             SimRepIndeces = SupportFunctions.ConcatJaggedArray(SimRepIndeces, thisSimRepIndeces);
@@ -1155,7 +1159,7 @@ namespace APACElib
 
             // store the current time and the current interval     
             // return if epidemic has not started yet
-            if (timeIndex < 0)
+            if (timeIndex <= 0)
             {
                 thisIncidenceOutputs[0][colIndexIncidenceOutputs++] = -1;
                 thisPrevalenceOutputs[0][colIndexPrevalenceOutputs++] = -1;
@@ -1358,8 +1362,8 @@ namespace APACElib
 
         public void Record(int simTimeIndex, int epiTimeIndex, bool endOfSim)
         {
-            SimOutputTrajs.Record(simTimeIndex, endOfSim, IfSpreadDetected);
-            SurveyedOutputTrajs.Record(epiTimeIndex, endOfSim, IfSpreadDetected);
+            SimOutputTrajs.Record(simTimeIndex, epiTimeIndex, endOfSim, IfSpreadDetected);
+            SurveyedOutputTrajs.Record(simTimeIndex, epiTimeIndex, endOfSim, IfSpreadDetected);
         }
 
         public void Reset()
