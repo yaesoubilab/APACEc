@@ -8,7 +8,7 @@ using MathNet.Numerics.LinearAlgebra;
 
 namespace APACElib.Optimization
 {
-    public class COVIDAdaptivePolicy : Policy
+    public class COVIDPolicyRt : Policy
     {
         /// <summary>
         /// R_eff threshold under no social distancing:  t_off(wtp) = t_off_0 * exp(t_off_1 * wtp)
@@ -19,10 +19,12 @@ namespace APACElib.Optimization
 
         enum Par { t_off_0, t_off_1, r_on_0 }
         private double[] _paramValues;
+        private double _scale;
 
-        public COVIDAdaptivePolicy(double penalty) : base(penalty)
+        public COVIDPolicyRt(double penalty, double wtpScale) : base(penalty)
         {
             NOfPolicyParameters = 3;
+            _scale = wtpScale;
             // status quo parameter values: 
             // R_eff threshold under no social distancing = 100 (a large number so that social distancing is never used)
             // R_eff threshold under social distancing = 0 (turn off social distancing immediately)
@@ -63,7 +65,7 @@ namespace APACElib.Optimization
         }
         public double GetThresholdOff(double wtp)
         {
-            return _paramValues[(int)Par.t_off_0] * Math.Exp(wtp * _paramValues[(int)Par.t_off_1]);
+            return _paramValues[(int)Par.t_off_0] * Math.Exp(wtp * _paramValues[(int)Par.t_off_1]/ _scale);
         }
         public double GetThresholdOn(double wtp)
         {
@@ -85,11 +87,11 @@ namespace APACElib.Optimization
                                    // index > 0 -> Df()
         private Vector<double> _DfValues; // Df at the current value of policy parameters 
 
-        public COVIDAdaptivePolicy Policy { get; private set; }
+        public COVIDPolicyRt Policy { get; private set; }
         public EpidemicModeller EpiModeller { get; private set; } // epi modeller to estimate derivatives of f
 
         public COVIDSimModel(int id, ExcelInterface excelInterface, ModelSettings modelSets,
-            List<ModelInstruction> listModelInstr, double[] wtps, COVIDAdaptivePolicy policy)
+            List<ModelInstruction> listModelInstr, double[] wtps, COVIDPolicyRt policy)
         {
             _seed = id;
             Policy = policy;
@@ -225,13 +227,18 @@ namespace APACElib.Optimization
 
         protected override SimModel GetASimModel(int epiID)
         {
+
+            double scale = (ModelSets.OptmzSets.WTPs[0] + ModelSets.OptmzSets.WTPs.Last()) / 2;
+
             return new COVIDSimModel(
                 id: epiID,
                 excelInterface: EexcelInterface,
                 modelSets: ModelSets,
                 listModelInstr: ListModelInstr,
                 wtps: ModelSets.OptmzSets.WTPs,
-                policy: new COVIDAdaptivePolicy(ModelSets.OptmzSets.Penalty));
+                policy: new COVIDPolicyRt(
+                    penalty: ModelSets.OptmzSets.Penalty,
+                    wtpScale: scale));
         }
     }
 }
