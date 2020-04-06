@@ -371,7 +371,7 @@ namespace APACElib
             else
             {
                 if (_modelSettings.ModelUse == EnumModelUse.Optimization)
-                    numOfEpidemics = _modelSettings.OptmzSets.WTPs.Count() * (2 + 2 * _modelSettings.OptmzSets.X0.Length);
+                    numOfEpidemics = _modelSettings.OptmzSets.NOfSimsPerOptItr * (_modelSettings.OptmzSets.WTPs.Count() * (2 + 2 * _modelSettings.OptmzSets.X0.Length));
 
                 for (int i = 0; i < numOfEpidemics; i++)
                     _listModelInstr.Add(new ModelInstruction());

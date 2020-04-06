@@ -86,6 +86,7 @@ namespace APACElib.Optimization
                                    // index = 0 -> f(current value of policy parameters)
                                    // index > 0 -> Df()
         private Vector<double> _DfValues; // Df at the current value of policy parameters 
+        private int _nSimsPerOptItr; 
 
         public COVIDPolicyRt Policy { get; private set; }
         public EpidemicModeller EpiModeller { get; private set; } // epi modeller to estimate derivatives of f
@@ -94,6 +95,7 @@ namespace APACElib.Optimization
             List<ModelInstruction> listModelInstr, double[] wtps, COVIDPolicyRt policy)
         {
             _seed = id;
+            _nSimsPerOptItr = modelSets.OptmzSets.NOfSimsPerOptItr;
             Policy = policy;
             _wtps = wtps;
 
@@ -124,6 +126,7 @@ namespace APACElib.Optimization
             // find x-values to calculate f(status quo), f(current policy), and Df(current policy)
             List<Vector<double>> xValues = new List<Vector<double>>();
 
+
             // x for status quo
             xValues.Add(Policy.StatusQuoParamValues);
             // x for current policy
@@ -139,27 +142,29 @@ namespace APACElib.Optimization
             // record the penalty if a policy parameter is out of the feasible range
             epi_i = 0;
             _fValues = new double[xValues.Count()];
-            for (int i = 0; i < xValues.Count(); i++)
+            for (int x_index = 0; x_index < xValues.Count(); x_index++)
             {
                 foreach (int wtp in _wtps)
                 {
                     // update the policy parameters and record the penalty if any
                     // it multiplies the penalty by (wtp + 1) to account for the level of wtp in calcualting the penalty
-                    _fValues[i] += (wtp + 1) * Policy.UpdateParameters(
-                        paramValues: xValues[i],
+                    _fValues[x_index] += (wtp + 1) * Policy.UpdateParameters(
+                        paramValues: xValues[x_index],
                         wtp: wtp,
-                        checkFeasibility: i != 0);
+                        checkFeasibility: x_index != 0);
 
                     // find thresholds (tau and theta) for this wtp
                     double t_off = Policy.GetThresholdOff(wtp);
                     double t_on = Policy.GetThresholdOn(wtp);
 
                     // update the threshold for the epidemic at index epi_i
-                    ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i].DecisionMaker.Conditions[0])
+                    for (int sim_i = 0; sim_i < _nSimsPerOptItr; sim_i++)
+                    {
+                        ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].DecisionMaker.Conditions[0])
                             .UpdateThresholds(new double[1] { t_off });
-                    ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i].DecisionMaker.Conditions[1])
-                            .UpdateThresholds(new double[1] { t_on });
-
+                        ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].DecisionMaker.Conditions[1])
+                                .UpdateThresholds(new double[1] { t_on });
+                    }
                     epi_i++;
                 }
             }
@@ -168,7 +173,7 @@ namespace APACElib.Optimization
             EpiModeller.AssignInitialSeeds();
             // make sure all epidemics have the same seed
             foreach (Epidemic epi in EpiModeller.Epidemics)
-                epi.InitialSeed = EpiModeller.Epidemics[0].InitialSeed;
+                epi.InitialSeed = EpiModeller.Epidemics[epi.ID % _nSimsPerOptItr].InitialSeed;
 
             // simulate all epidemics 
             // without resampling seeds (seeds are already assigned above, assumed to be the same for all epidemics
@@ -176,23 +181,26 @@ namespace APACElib.Optimization
 
             // update f values
             epi_i = 0;
-            for (int i = 0; i < xValues.Count(); i++)
+            for (int x_index = 0; x_index < xValues.Count(); x_index++)
             {
                 // store net monetary values 
                 foreach (int wtp in _wtps)
                 {
-                    _fValues[i] +=
-                        wtp * EpiModeller.Epidemics[epi_i].EpidemicCostHealth.TotalDiscountedDALY
-                        + EpiModeller.Epidemics[epi_i].EpidemicCostHealth.TotalDisountedCost;
+                    for (int sim_i = 0; sim_i < _nSimsPerOptItr; sim_i++)
+                    {
+                        _fValues[x_index] +=
+                        wtp * EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].EpidemicCostHealth.TotalDiscountedDALY
+                        + EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].EpidemicCostHealth.TotalDisountedCost;
+                    }
                     epi_i++;
                 }
 
                 // store f values (average over wpt values)
                 // index = 0 is the status quoe
-                if (i == 0)
-                    _fValues[i] = _fValues[i] / _wtps.Count();
+                if (x_index == 0)
+                    _fValues[x_index] = _fValues[x_index] / _wtps.Count() / _nSimsPerOptItr;
                 else
-                    _fValues[i] = _fValues[i] / _wtps.Count()  - _fValues[0];
+                    _fValues[x_index] = _fValues[x_index] / _wtps.Count() /_nSimsPerOptItr  - _fValues[0];
             }
 
             // calculate derivatives

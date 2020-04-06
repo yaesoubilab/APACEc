@@ -336,6 +336,7 @@ namespace APACElib
     public class OptimizationSettings
     {
         public int NOfItrs { get; }
+        public int NOfSimsPerOptItr { get; }
         public int NOfLastItrsToAverage { get; }
         public double[] X0 { get; } 
         public double[] XScale { get; }
@@ -351,6 +352,7 @@ namespace APACElib
         public OptimizationSettings(ref ExcelInterface excelInterface)
         {            
             NOfItrs = (int)(double)excelInterface.GetCellValue("General Settings", "numOfOptIterations");
+            NOfSimsPerOptItr = (int)(double)excelInterface.GetCellValue("General Settings", "nOfSimPerOptIteration"); 
             NOfLastItrsToAverage = (int)(double)excelInterface.GetCellValue("General Settings", "numOfLastOptmItrsToAve");
 
             string strX0 = excelInterface.GetCellValue("General Settings", "initialX").ToString();
