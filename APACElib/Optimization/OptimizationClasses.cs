@@ -39,12 +39,12 @@ namespace APACElib.Optimization
             if (value < min)
             {
                 penalty += Penalty * Math.Pow(min - value, 2);
-                value = min;
+                //value = min;
             }
             else if (value > max)
             {
                 penalty += Penalty * Math.Pow(value - max, 2);
-                value = max;
+                //value = max;
             }
             return penalty;
         }
@@ -55,7 +55,7 @@ namespace APACElib.Optimization
             if (value > upperBound)
             {
                 penalty += Penalty * Math.Pow(value - upperBound, 2);
-                value = upperBound;
+                //value = upperBound;
             }
             return penalty;
         }
@@ -66,7 +66,7 @@ namespace APACElib.Optimization
             if (value < lowerBound)
             {
                 penalty += Penalty * Math.Pow(value - lowerBound, 2);
-                value = lowerBound;
+                //value = lowerBound;
             }
             return penalty;
         }
