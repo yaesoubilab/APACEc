@@ -754,24 +754,28 @@ namespace APACElib
             string[] strSummaryStatistics = null;
             string[] strClassAndSumStatistics = null;
             string[] strRatioStatistics = null;
+            string[] strInterventionUtilizationStatistics = null;
             string[] strComputationStatistics = null;
             string[] strIterationOutcomes = null;
             double[][] arrSummaryStatistics = null;
             double[][] arrClassAndSumStatistics = null;
             double[][] arrRatioStatistics = null;
+            double[][] arrInterventionUtilizationStatistics = null;
             double[,] arrComputationStatistics = null;
             double[][] arrIterationOutcomes = null;
 
             // get these statistics
             epiModeller.SimSummary.GetSummaryOutcomes(
-                ref strSummaryStatistics, 
-                ref strClassAndSumStatistics, 
-                ref strRatioStatistics, 
+                ref strSummaryStatistics,
+                ref strClassAndSumStatistics,
+                ref strRatioStatistics,
+                ref strInterventionUtilizationStatistics,
                 ref strComputationStatistics, 
                 ref strIterationOutcomes,
                 ref arrSummaryStatistics, 
                 ref arrClassAndSumStatistics, 
                 ref arrRatioStatistics, 
+                ref arrInterventionUtilizationStatistics,
                 ref arrComputationStatistics, 
                 ref arrIterationOutcomes);
 
@@ -780,6 +784,7 @@ namespace APACElib
                 strSummaryStatistics, SupportFunctions.ConvertJaggedArrayToRegularArray(arrSummaryStatistics, 3),
                 strClassAndSumStatistics, SupportFunctions.ConvertJaggedArrayToRegularArray(arrClassAndSumStatistics, 3),
                 strRatioStatistics, SupportFunctions.ConvertJaggedArrayToRegularArray(arrRatioStatistics, 3), 
+                strInterventionUtilizationStatistics, SupportFunctions.ConvertJaggedArrayToRegularArray(arrInterventionUtilizationStatistics, 3),
                 strComputationStatistics, arrComputationStatistics,
                 strIterationOutcomes, SupportFunctions.ConvertJaggedArrayToRegularArray(arrIterationOutcomes,arrIterationOutcomes[0].Length));
 

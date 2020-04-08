@@ -1076,6 +1076,7 @@ namespace APACElib
             string[] strSummaryStatistics, double[,] summaryStatistics,
             string[] strClassAndSumStatistics, double[,] classAndSumStatistics,
             string[] strRatioStatistics, double[,] ratioStatistics,
+            string[] strInterventionUtilizationStatistics, double[,] interventionUtilizationStatistics,
             string[] strComputationStatistics, double[,] computationStatistics,
             string[] strSimulationIterationStatistics, double[,] simulationIterationStatistics
             )
@@ -1153,6 +1154,19 @@ namespace APACElib
                 rowIndex, (int)enumSimulationStatisticsColumns.Mean + 1,
                 rowIndex + strRatioStatistics.Length, (int)enumSimulationStatisticsColumns.StError + 1,
                 "0.00%");
+
+            // report utilization of intervention statistics
+            rowIndex = base.LastRowWithDataInThisColumn((int)enumSimulationStatisticsColumns.Name + 1) + 2;
+            base.WriteToColumn(strInterventionUtilizationStatistics, rowIndex, (int)enumSimulationStatisticsColumns.Name + 1);
+            base.WriteToMatrix(interventionUtilizationStatistics, rowIndex, (int)enumSimulationStatisticsColumns.Mean + 1);
+            base.Align(
+                rowIndex, (int)enumSimulationStatisticsColumns.Mean + 1,
+                rowIndex + strInterventionUtilizationStatistics.Length, (int)enumSimulationStatisticsColumns.StError + 1,
+                enumAlignment.Center);
+            base.FormatNumber(
+                rowIndex, (int)enumSimulationStatisticsColumns.Mean + 1,
+                rowIndex + strInterventionUtilizationStatistics.Length, (int)enumSimulationStatisticsColumns.StError + 1,
+                "#,##0.0");
 
             // report computational statistics
             rowIndex = base.LastRowWithDataInThisColumn((int)enumSimulationStatisticsColumns.Name + 1) + 2;

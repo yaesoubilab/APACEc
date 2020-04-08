@@ -25,6 +25,7 @@ namespace APACElib
         public int[] CurrentDecision { get; set; } = new int[0];   // array of 0 and 1 to represent which action is on or off
         public int[] DefaultDecision { get; set; } = new int[0];   // if all other actions become unavailable, we will use this action combination 
         public double CostOverThisDecisionPeriod { get; set; } = 0; // cost actions and decision making
+        public int NumOFSwitches { get; private set; } = 0; // number of swtiches between interventions
         
         // Instantiation
         public DecisionMaker(int epiTimeIndexToStartDecisionMaking, int nOfDeltaTsInADecisionInterval, List<Condition> conditions)
@@ -112,7 +113,10 @@ namespace APACElib
             if (CurrentDecision.SequenceEqual(newDecision))
                 ifThereIsAChange = false;
             else
-                ifThereIsAChange = true;              
+            {
+                ifThereIsAChange = true;
+                ++NumOFSwitches;
+            }
 
             // update the current intervention combination to the new one
             UpdateCurrentDecision(newDecision, epiTimeIndex, ifThereIsAChange);
@@ -207,6 +211,7 @@ namespace APACElib
             DecisionIntervalIndex = 0;
             CostOverThisDecisionPeriod = 0;
             CurrentDecision = new int[NumOfInterventions];// (int[])DefaultDecision.Clone();
+            NumOFSwitches = 0;
 
             foreach (Intervention thisIntervention in Interventions)
                 thisIntervention.Reset();
