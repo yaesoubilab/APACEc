@@ -507,6 +507,7 @@ namespace APACElib
         public List<ObsBasedStat> IncidenceStats { get; private set; } = new List<ObsBasedStat>();
         public List<ObsBasedStat> PrevalenceStats { get; private set; } = new List<ObsBasedStat>();
         public List<ObsBasedStat> RatioStats { get; private set; } = new List<ObsBasedStat>();
+        public List<ObsBasedStat> InterventionUtilizationStats { get; private set; } = new List<ObsBasedStat>();
         public List<ObsBasedStat> ComputationStats { get; private set; } = new List<ObsBasedStat>();
 
         public double[] Costs;
@@ -514,6 +515,7 @@ namespace APACElib
         public double[] DALYs;
         public double[] NMBs;
         public double[] NHBs;
+        public double[] NumOfSwitches;
         public ObsBasedStat CostStat { get; private set; } = new ObsBasedStat("Total cost");
         public ObsBasedStat AnnualCostStat { get; private set; } = new ObsBasedStat("Annual cost");
         public ObsBasedStat DALYStat { get; private set; } = new ObsBasedStat("Total DALY");
@@ -551,6 +553,10 @@ namespace APACElib
             foreach (RatioTrajectory thisRatioTaj in parentEpidemic.EpiHist.RatioTrajs)
                 RatioStats.Add(new ObsBasedStat("Average ratio: " + thisRatioTaj.Name, _nSim));
 
+            // summary statistics on intervention utilization
+            foreach (Intervention thisInt in parentEpidemic.DecisionMaker.Interventions)
+                InterventionUtilizationStats.Add(new ObsBasedStat("Utilization (unit of time): " + thisInt.Name, _nSim));
+
             // trajectories
             SimSummaryTrajs = new SimSummaryTrajs();
             
@@ -577,6 +583,7 @@ namespace APACElib
                 (int)(_set.TimeIndexToStop * _set.DeltaT)));
             NHBStat.Record(simulatedEpi.EpidemicCostHealth.GetDiscountedNHB(_set.WTPForHealth));
             NMBStat.Record(simulatedEpi.EpidemicCostHealth.GetDiscountedNMB(_set.WTPForHealth));
+            NumSwitchesStat.Record(simulatedEpi.DecisionMaker.NumOFSwitches);
             TimeStat.Record(simulatedEpi.Timer.TimePassed);
 
             // incidence and prevalence statistics
@@ -612,6 +619,10 @@ namespace APACElib
                 }
                 ++ratioStatIndex;
             }
+            foreach (Intervention thisInt in simulatedEpi.DecisionMaker.Interventions)
+            {
+                InterventionUtilizationStats[thisInt.Index].Record((double)thisInt.NumOfDecisionPeriodsUsedOver, simItr);
+            }
 
             // statistics on individual simulation
             SimItrs[simItr] = simItr;
@@ -624,17 +635,19 @@ namespace APACElib
                 _set.AnnualDiscountRate,
                 (int)(_set.WarmUpPeriodSimTIndex * _set.DeltaT),
                 (int)(_set.TimeIndexToStop * _set.DeltaT));
+            NumOfSwitches[simItr] = simulatedEpi.DecisionMaker.NumOFSwitches;
         }
 
         // get simulation iteration outcomes
         public void GetIndvEpidemicOutcomes(ref string[] strItrOutcomeLabels, ref double[][] itrOutcomes)
         {
             // header
-            strItrOutcomeLabels = new string[4];
+            strItrOutcomeLabels = new string[5];
             strItrOutcomeLabels[0] = "RNG Seed";
             strItrOutcomeLabels[1] = "DALY";
             strItrOutcomeLabels[2] = "Total Cost";
             strItrOutcomeLabels[3] = "Annual Cost";
+            strItrOutcomeLabels[4] = "Number of Switches";
 
             foreach (ObsBasedStat thisObs in IncidenceStats)
                 SupportFunctions.AddToEndOfArray(ref strItrOutcomeLabels, thisObs.Name);
@@ -643,6 +656,9 @@ namespace APACElib
                 SupportFunctions.AddToEndOfArray(ref strItrOutcomeLabels, thisObs.Name);
 
             foreach (ObsBasedStat thisObs in RatioStats)
+                SupportFunctions.AddToEndOfArray(ref strItrOutcomeLabels, thisObs.Name);
+
+            foreach (ObsBasedStat thisObs in InterventionUtilizationStats)
                 SupportFunctions.AddToEndOfArray(ref strItrOutcomeLabels, thisObs.Name);
 
             // individual observations 
@@ -654,24 +670,31 @@ namespace APACElib
                 itrOutcomes[i][1] = DALYs[i];
                 itrOutcomes[i][2] = Costs[i];
                 itrOutcomes[i][3] = AnnualCosts[i];
+                itrOutcomes[i][4] = NumOfSwitches[i];
             }
             int colIndex = 0;
             foreach (ObsBasedStat thisObs in IncidenceStats)
             {
                 for (int i = 0; i < _nSim; i++)
-                    itrOutcomes[i][4 + colIndex] = thisObs.Observations[i];
+                    itrOutcomes[i][5 + colIndex] = thisObs.Observations[i];
                 ++colIndex;
             }
             foreach (ObsBasedStat thisObs in PrevalenceStats)
             {
                 for (int i = 0; i < _nSim; i++)
-                    itrOutcomes[i][4 + colIndex] = thisObs.Observations[i];
+                    itrOutcomes[i][5 + colIndex] = thisObs.Observations[i];
                 ++colIndex;
             }
             foreach (ObsBasedStat thisObs in RatioStats)
             {
                 for (int i = 0; i < _nSim; i++)
-                    itrOutcomes[i][4 + colIndex] = thisObs.Observations[i];
+                    itrOutcomes[i][5 + colIndex] = thisObs.Observations[i];
+                ++colIndex;
+            }
+            foreach (ObsBasedStat thisObs in InterventionUtilizationStats)
+            {
+                for (int i = 0; i < _nSim; i++)
+                    itrOutcomes[i][5 + colIndex] = thisObs.Observations[i];
                 ++colIndex;
             }
         }
@@ -680,23 +703,27 @@ namespace APACElib
         public void GetSummaryOutcomes(
             ref string[] strSummaryStatistics, 
             ref string[] strClassAndSumStatistics,
-            ref string[] strRatioStatistics, 
+            ref string[] strRatioStatistics,
+            ref string[] strInterventionStatistics,
             ref string[] strComputationStatistics, 
             ref string[] strIterationOutcomes,
             ref double[][] arrSummaryStatistics, 
             ref double[][] arrClassAndSumStatistics,
             ref double[][] arrRatioStatistics, 
+            ref double[][] arrInterventionStatistics,
             ref double[,] arrComputationStatistics, 
             ref double[][] arrIterationOutcomes)
         {
             strSummaryStatistics = new string[6];
             strClassAndSumStatistics = new string[0];
             strRatioStatistics = new string[0];
+            strInterventionStatistics = new string[0];
             strComputationStatistics = new string[2];
 
-            arrSummaryStatistics = new double[5][];
+            arrSummaryStatistics = new double[6][];
             arrClassAndSumStatistics = new double[0][];
             arrRatioStatistics = new double[0][];
+            arrInterventionStatistics = new double[0][];
             arrComputationStatistics = new double[2, 3];
 
             #region summary statistics
@@ -715,7 +742,7 @@ namespace APACElib
             arrSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.NHB - 1] = NHBStat.GetMeanStDevStErr();
             arrSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.NMB - 1] = NMBStat.GetMeanStDevStErr();
             // Number of switches
-            //arrSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.NumOfSwitches - 1] = NumSwitchesStat.GetMeanStDevStErr();
+            arrSummaryStatistics[(int)ExcelInterface.EnumSimStatsRows.NumOfSwitches - 1] = NumSwitchesStat.GetMeanStDevStErr();
             #endregion
 
             foreach (ObsBasedStat thisObs in IncidenceStats)
@@ -744,6 +771,15 @@ namespace APACElib
                 thisStatValues[0] = thisObs.GetMeanStDevStErr();
                 // concatinate 
                 arrRatioStatistics = SupportFunctions.ConcatJaggedArray(arrRatioStatistics, thisStatValues);
+            }
+            foreach (ObsBasedStat thisObs in InterventionUtilizationStats)
+            {
+                // name of this statistics
+                SupportFunctions.AddToEndOfArray(ref strInterventionStatistics, thisObs.Name);
+                double[][] thisStatValues = new double[1][];
+                thisStatValues[0] = thisObs.GetMeanStDevStErr();
+                // concatinate 
+                arrInterventionStatistics = SupportFunctions.ConcatJaggedArray(arrInterventionStatistics, thisStatValues);
             }
 
             GetIndvEpidemicOutcomes(ref strIterationOutcomes, ref arrIterationOutcomes);
@@ -779,12 +815,14 @@ namespace APACElib
             DALYs = new double[_nSim];
             NMBs = new double[_nSim];
             NHBs = new double[_nSim];
-            
+            NumOfSwitches = new double[_nSim];
+
             CostStat.Reset();
             AnnualCostStat.Reset();
             DALYStat.Reset();
             NMBStat.Reset();
             NHBStat.Reset();
+            NumSwitchesStat.Reset();
             TimeStat.Reset();
             TimeToSimulateAllEpidemics = 0;
         }
