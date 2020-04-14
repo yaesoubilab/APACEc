@@ -989,25 +989,28 @@ namespace APACElib
 
             // report and format the heading
             int offSimRep           = 0;
-            int offSimIncidence     = offSimRep + 1;            
-            int offSimPrevalence    = offSimIncidence + simIncidenceHeader.Length;
-            int OffSimIntrvn        = offSimPrevalence + simPrevalenceHeader.Length;
+            int offSimIncidence     = offSimRep + 1;
+            int OffSimIntrvn = offSimIncidence + simIncidenceHeader.Length;
+            int offSimPrevalence    = OffSimIntrvn + 1;
+           
 
-            int offObsRep           = OffSimIntrvn + 1;
+            int offObsRep           = offSimPrevalence + simPrevalenceHeader.Length;
             int offObsIncidence     = offObsRep + 1;
-            int offObsPrevalence    = offObsIncidence + obsIncidenceHeader.Length;
-            int offObsIntrvn        = offObsPrevalence + obsPrevalenceHeader.Length;
+            int offObsIntrvn = offObsIncidence + obsIncidenceHeader.Length;
+            int offObsPrevalence    = offObsIntrvn +1;
+           
 
             // replication 
             WriteToCell("Replication", "simulationOutput",          0, offSimRep);
             // incidence
             WriteToRow(simIncidenceHeader, "simulationOutput",      0, offSimIncidence);
             AddABorder("simulationOutput",                          0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
+            // action code
+            WriteToCell("Action Code", "simulationOutput", 0, OffSimIntrvn);
             // prevalence 
             WriteToRow(simPrevalenceHeader, "simulationOutput",     0, offSimPrevalence);
             AddABorder("simulationOutput",                          0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
-            // action code
-            WriteToCell("Action Code", "simulationOutput", 0, OffSimIntrvn);
+            
             AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
 
             // replication 
@@ -1015,12 +1018,12 @@ namespace APACElib
             // incidence
             WriteToRow(obsIncidenceHeader, "simulationOutput", 0, offObsIncidence);
             AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
+            // action code
+            WriteToCell("Obs: Action Code", "simulationOutput", 0, offObsIntrvn);
+            AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
             // prevalence 
             WriteToRow(obsPrevalenceHeader, "simulationOutput", 0, offObsPrevalence);
-            AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
-            // action code
-            WriteToCell("Action Code", "simulationOutput", 0, offObsIntrvn);
-            AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
+            AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);           
 
             // final formating
             AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Bottom);
@@ -1051,23 +1054,27 @@ namespace APACElib
 
             int colOfSimRepIndeces          = 1;
             int colOfSimIncidenceOutputs    = colOfSimRepIndeces + 1;
-            int colOfSimPrevalenceOutputs   = colOfSimIncidenceOutputs + simIncidenceOutputs.GetLength(1);
-            int colOfSimIntrvnCombination   = colOfSimPrevalenceOutputs + simPrevalenceOutputs.GetLength(1);
+            int colOfSimIntrvnCombination = colOfSimIncidenceOutputs + simIncidenceOutputs.GetLength(1);
+            int colOfSimPrevalenceOutputs   = colOfSimIntrvnCombination + 1;
+           
 
             WriteToMatrix(simRepIndeces,                finalRow + 1, colOfSimRepIndeces);
             WriteToMatrix(simIncidenceOutputs,          finalRow + 1, colOfSimIncidenceOutputs);
+            WriteToColumn(simIntrvnCombinationCodes, finalRow + 1, colOfSimIntrvnCombination);
             WriteToMatrix(simPrevalenceOutputs,         finalRow + 1, colOfSimPrevalenceOutputs);
-            WriteToColumn(simIntrvnCombinationCodes,    finalRow + 1, colOfSimIntrvnCombination);
+           
 
-            int colOfObsRepIndeces          = colOfSimIntrvnCombination + 1;
+            int colOfObsRepIndeces          = colOfSimPrevalenceOutputs + simPrevalenceOutputs.GetLength(1);
             int colOfObsIncidenceOutputs    = colOfObsRepIndeces + obsRepIndeces.GetLength(1);
-            int colOfObsPrevalenceOutputs   = colOfObsIncidenceOutputs + obsIncidenceOutputs.GetLength(1);
-            int colOfObsIntrvnCombination   = colOfObsPrevalenceOutputs + obsPrevalenceOutputs.GetLength(1);
+            int colOfObsIntrvnCombination = colOfObsIncidenceOutputs + obsIncidenceOutputs.GetLength(1);
+            int colOfObsPrevalenceOutputs   = colOfObsIntrvnCombination + 1;
+            
 
             WriteToMatrix(obsRepIndeces,                finalRow + 1, colOfObsRepIndeces);
             WriteToMatrix(obsIncidenceOutputs,          finalRow + 1, colOfObsIncidenceOutputs);
+            WriteToColumn(obsIntrvnCombinationCodes, finalRow + 1, colOfObsIntrvnCombination);
             WriteToMatrix(obsPrevalenceOutputs,         finalRow + 1, colOfObsPrevalenceOutputs);
-            WriteToColumn(obsIntrvnCombinationCodes,    finalRow + 1, colOfObsIntrvnCombination);
+            
             //base.AddABorder(finalRow + 1, colOfSimIncidenceOutputs + simIncidenceOutputs.GetLength(1), enumRangeDirection.DownEnd, enumBorder.Left);
 
         }
