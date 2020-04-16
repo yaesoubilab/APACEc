@@ -237,7 +237,7 @@ namespace APACElib
             }
 
             // if the sum of rates is equal to zero, nothing is happening to this class!
-            if (sumOfRates <= 0) return;
+            if (sumOfRates <= 0 || ClassStat.Prevalence==0) return;
 
             // find the probabilities of each process   
             // calculate the probability of not leaving the class
