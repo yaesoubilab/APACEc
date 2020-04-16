@@ -484,4 +484,72 @@ namespace APACElib
             ShouldBeProcessed = true;
         }
     }
+
+    // Class_Queue
+    public class Class_Queue : Class
+    {
+
+        private Parameter _parOfCapacity;
+        private Class_Normal _destinationClass;
+
+        public Class_Queue(int ID, string name)
+            : base(ID, name)
+        {
+        }
+
+        public void SetUp(
+            Parameter parOfCapacity,
+            Class_Normal destinationClass)
+        {
+            _parOfCapacity = parOfCapacity;
+            _destinationClass = destinationClass;
+
+            // store the id of the destination classes
+            _numOfMembersToDestClasses = new int[1];
+
+        }
+
+        // send members of this class out
+        public override void SendOutMembers(double deltaT, RNG rng)
+        {
+            // if number of members is zero, no member is departing
+            if (ClassStat.Prevalence <= 0) return;
+
+            // find the number of members sending to each class
+            if (_destinationClass.ClassStat.Prevalence < _parOfCapacity.Value)
+            {
+                _numOfMembersToDestClasses[0] = ClassStat.Prevalence;
+                // current number of members should be zero now            
+                ClassStat.Prevalence = 0;
+                MembersWaitingToDepart = true;
+            }            
+            else
+            {
+                _numOfMembersToDestClasses[0] = 0;
+                MembersWaitingToDepart = false;
+            }                        
+        }
+
+        // reset number of members sending to each destination class
+        public override void ResetNumOfMembersToDestClasses()
+        {
+            _numOfMembersToDestClasses = new int[1];
+            ClassStat.Prevalence = 0;
+            MembersWaitingToDepart = false;
+        }
+
+        // Reset statistics for another simulation run
+        public override void Reset()
+        {
+            ShouldBeProcessed = true;
+            ClassStat.Reset();
+        }
+
+        // add new members
+        public override void AddNewMembers(int numOfNewMembers)
+        {
+            ClassStat.Add(numOfNewMembers);
+            ShouldBeProcessed = true;
+        }
+    }
 }
