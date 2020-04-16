@@ -658,20 +658,6 @@ namespace APACElib
                             _classes.Add(thisSplittingClass);
                         }
                         break;
-                    case "Class: Queue":
-                        {
-                            // read settings
-                            int parIDOfCapacity = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.ParIDForProbOfSuccess));
-                            int destClassID = Convert.ToInt32(classesSheet.GetValue(rowIndex, (int)ExcelInterface.enumClassColumns.DestinationClassIDIfSuccess));
-
-                            // build the class
-                            Class_Queue thisQueueClass = new Class_Queue(classID, name);
-                            thisQueueClass.SetUp(_paramManager.Parameters[parIDOfCapacity], destClassID);
-
-                            // add class
-                            _classes.Add(thisQueueClass);
-                        }
-                        break;
                     case "Class: Resource Monitor":
                         {
                             // read settings
@@ -706,11 +692,6 @@ namespace APACElib
 
             }// end of for    
             
-            foreach (Class C in _classes.Where(c => c is Class_Queue))
-            {
-                int id = ((Class_Queue)C).ParIDOfDestinationClass;
-                ((Class_Queue)C).SetServerClass((Class_Normal)_classes[id]);
-            }
         }
 
         // set up class statistics and time series
