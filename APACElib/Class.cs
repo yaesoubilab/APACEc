@@ -219,12 +219,13 @@ namespace APACElib
                 else if (thisEvent is Event_Queue)
                 {
                     eventRates[eIndex] = 0;
-                    double capacity = ((Event_Queue)thisEvent).CapacityPar.Value;
+                    int capacity = (int)Math.Round(((Event_Queue)thisEvent).CapacityPar.Value);
                     int usage = ((Event_Queue)thisEvent).DestinationClass.ClassStat.Prevalence;
                     if (usage < capacity)
                     {
-                        _numOfMembersToDestClasses[eIndex] += (int)capacity - usage;
+                        _numOfMembersToDestClasses[eIndex] += Math.Min(ClassStat.Prevalence, capacity - usage);
                         ClassStat.Prevalence -= _numOfMembersToDestClasses[eIndex];
+                        MembersWaitingToDepart = true;
                     }
                 }
                 else
