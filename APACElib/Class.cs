@@ -216,6 +216,17 @@ namespace APACElib
                 // birth event does not affect the way members are leaving this class
                 if (thisEvent is Event_Birth)
                     eventRates[eIndex] = 0;
+                else if (thisEvent is Event_Queue)
+                {
+                    eventRates[eIndex] = 0;
+                    double capacity = ((Event_Queue)thisEvent).CapacityPar.Value;
+                    int usage = ((Event_Queue)thisEvent).DestinationClass.ClassStat.Prevalence;
+                    if (usage < capacity)
+                    {
+                        _numOfMembersToDestClasses[eIndex] += (int)capacity - usage;
+                        ClassStat.Prevalence -= _numOfMembersToDestClasses[eIndex];
+                    }
+                }
                 else
                 {
                     eventRates[eIndex] = thisEvent.Rate * deltaT;

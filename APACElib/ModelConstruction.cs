@@ -756,7 +756,7 @@ namespace APACElib
                             int IDOfRateParameter = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfRateParameter));
                             // create the event
                             Event_Birth thisEvent_Birth = new Event_Birth(name, ID, IDOfActivatingIntervention, _paramManager.Parameters[IDOfRateParameter], IDOfDestinationClass);
-                            this._events.Add(thisEvent_Birth);
+                            _events.Add(thisEvent_Birth);
                         }
                         break;
                     case "Event: Epidemic-Independent":
@@ -765,7 +765,7 @@ namespace APACElib
                             // create the process
                             Event_EpidemicIndependent thisEvent_EpidemicIndependent = new Event_EpidemicIndependent(
                                 name, ID, IDOfActivatingIntervention, _paramManager.Parameters[IDOfRateParameter], IDOfDestinationClass);
-                            this._events.Add(thisEvent_EpidemicIndependent);
+                            _events.Add(thisEvent_EpidemicIndependent);
                         }
                         break;
                     case "Event: Epidemic-Dependent":
@@ -773,13 +773,26 @@ namespace APACElib
                             int IDOfPathogenToGenerate = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfGeneratingPathogen));
                             // create the process
                             Event_EpidemicDependent thisEvent_EpidemicDependent = new Event_EpidemicDependent(name, ID, IDOfActivatingIntervention, IDOfPathogenToGenerate, IDOfDestinationClass);
-                            this._events.Add(thisEvent_EpidemicDependent);
+                            _events.Add(thisEvent_EpidemicDependent);
+                        }
+                        break;
+                    case "Event: Queue":
+                        {
+                            int IDOfRateParameter = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfRateParameter));
+                            Event_Queue thisEvent_Queue = new Event_Queue(name, ID, IDOfActivatingIntervention, _paramManager.Parameters[IDOfRateParameter], IDOfDestinationClass);
+                            _events.Add(thisEvent_Queue);
                         }
                         break;
                 }
                 #endregion
 
             } // end of for
+
+            // add destination class of queue events
+            foreach (Event e in _events.Where(e => e is Event_Queue))
+            {
+                ((Event_Queue)e).SetDestinationClass((Class_Normal)_classes[e.IDOfDestinationClass]);
+            }
         }
 
         // add interventions

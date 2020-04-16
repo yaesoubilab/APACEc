@@ -26,6 +26,7 @@ namespace APACElib
             Birth = 1,
             EpidemicDepedent = 2,
             EpidemicIndepedent = 3,
+            Queue = 4,
         }
 
         // Instantiation
@@ -101,4 +102,26 @@ namespace APACElib
 
         public override double Rate => _rateParam.Value;
     }   
+
+    public class Event_Queue : Event
+    {
+        public Class_Normal DestinationClass { get; private set; }
+        public Parameter CapacityPar { get; }
+
+        public Event_Queue(
+            string name,
+            int ID,
+            int IDOfActivatingIntervention,
+            Parameter rateParameter,
+            int IDOfDestinationClass)
+            : base(name, ID, IDOfActivatingIntervention, IDOfDestinationClass)
+        {
+            CapacityPar = rateParameter;
+        }
+
+        public void SetDestinationClass(Class_Normal destClass)
+        {
+            DestinationClass = destClass;
+        }
+    }
 }
