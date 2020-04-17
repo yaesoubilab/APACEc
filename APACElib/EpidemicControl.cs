@@ -453,7 +453,7 @@ namespace APACElib
 
         // setup dynamic policy related settings
         public void SetupDynamicPolicySettings
-            (ComputationLib.EnumQFunctionApproximationMethod qFunctionApproximationMethod, bool useEpidemicTimeAsFeature, int degreeOfPolynomialQFunction, double L2RegularizationPenalty)
+            (ComputationLib.EnumQFuncApproximationMethod qFunctionApproximationMethod, bool useEpidemicTimeAsFeature, int degreeOfPolynomialQFunction, double L2RegularizationPenalty)
         {
             UseEpidemicTimeAsFeature = useEpidemicTimeAsFeature;
             if (UseEpidemicTimeAsFeature)
@@ -566,7 +566,7 @@ namespace APACElib
         }
 
         // setup Q-functions with polynomial functions
-        public void SetupPolynomialQFunctions(EnumQFunctionApproximationMethod qFunctionApproximationMethod, int degreeOfPolynomialQFunction)
+        public void SetupPolynomialQFunctions(EnumQFuncApproximationMethod qFunctionApproximationMethod, int degreeOfPolynomialQFunction)
         {
             // int numOfFeatures = Features.Count;
             //_decisionMaker.SetUpQFunctionApproximationModel(

@@ -77,7 +77,7 @@ namespace APACElib
         public double[] RndSeedsGoodnessOfFit { get; set; }
         public int NumOfSimItrs { get; set; }
         public int NumOfSeedsToRead { get; set; }
-        public EnumQFunctionApproximationMethod QFunApxMethod { get; set; } = EnumQFunctionApproximationMethod.Q_Approximation;
+        public EnumQFuncApproximationMethod QFunApxMethod { get; set; } = EnumQFuncApproximationMethod.Q_Approx;
         public bool IfEpidemicTimeIsUsedAsFeature { get; set; }
         public int PastDecisionPeriodWithDecisionAsFeature { get; set; }
         public int DegreeOfPolynomialQFunction { get; set; }
@@ -234,13 +234,13 @@ namespace APACElib
             switch (strQFunctionApproximationMethod)
             {
                 case "Q-Approximation":
-                    QFunApxMethod = EnumQFunctionApproximationMethod.Q_Approximation;
+                    QFunApxMethod = EnumQFuncApproximationMethod.Q_Approx;
                     break;
                 case "Additive-Approximation":
-                    QFunApxMethod = EnumQFunctionApproximationMethod.A_Approximation;
+                    QFunApxMethod = EnumQFuncApproximationMethod.A_Approx;
                     break;
                 case "H-Approximation":
-                    QFunApxMethod = EnumQFunctionApproximationMethod.H_Approximation;
+                    QFunApxMethod = EnumQFuncApproximationMethod.H_Approx;
                     break;
             }
 

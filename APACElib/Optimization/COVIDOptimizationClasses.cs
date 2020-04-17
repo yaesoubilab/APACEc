@@ -148,7 +148,7 @@ namespace APACElib.Optimization
                 {
                     // update the policy parameters and record the penalty if any
                     // it multiplies the penalty by (wtp + 1) to account for the level of wtp in calcualting the penalty
-                    _fValues[x_index] += (wtp + 1) * Policy.UpdateParameters(
+                    _fValues[x_index] += Policy.UpdateParameters(  // (wtp + 1) * 
                         paramValues: xValues[x_index],
                         wtp: wtp,
                         checkFeasibility: x_index != 0);
