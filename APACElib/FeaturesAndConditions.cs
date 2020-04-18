@@ -109,7 +109,9 @@ namespace APACElib
         {
             IfEverSwitchedOff = 0,
             IfEverSwitchedOn = 1,
-            SwitchStatus = 2
+            SwitchStatus = 2,
+            TimeSinceTurnedOn = 3,
+            TimeSinceTurnedOff = 4
         }
 
         private Intervention _intervention; // pointer
@@ -127,6 +129,12 @@ namespace APACElib
                     break;
                 case "Swich Status":
                     _featureType = EnumFeatureType.SwitchStatus;
+                    break;
+                case "Time Since Turned On":
+                    _featureType = EnumFeatureType.TimeSinceTurnedOn;
+                    break;
+                case "Time Since Turned Off:":
+                    _featureType = EnumFeatureType.TimeSinceTurnedOff;
                     break;
                 default:
                     throw new Exception("Invalid value for feature type defined on intervention.");
@@ -151,6 +159,12 @@ namespace APACElib
                     break;
                 case EnumFeatureType.SwitchStatus:
                     Value = _intervention.OnOffStatus;
+                    break;
+                case EnumFeatureType.TimeSinceTurnedOn:
+                    Value = 0;
+                    break;
+                case EnumFeatureType.TimeSinceTurnedOff:
+                    Value = 0;
                     break;
             }
         }

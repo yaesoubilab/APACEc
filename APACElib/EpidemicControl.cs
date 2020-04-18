@@ -153,7 +153,7 @@ namespace APACElib
                         a.EpiTimeIndexToGoIntoEffect = epiTimeIndex + a.NumOfTimeIndeciesDelayedToGoIntoEffect;
                         a.EpiTimeIndexToTurnOff = int.MaxValue;
                         a.EpiTimeIndexLastTurnedOn = epiTimeIndex;
-                        a.EpiTimeIndexLastTurnedOff = int.MaxValue;
+                        a.EpiTimeIndexLastTurnedOff = null;
                     }
                     // if the intervention is turning off
                     else if (CurrentDecision[i] == 1 && newDecision[i] == 0)
@@ -194,7 +194,17 @@ namespace APACElib
                 // update the cost per unit of time for this action combination
                 if (newDecision[a.Index] == 1)
                 {
-                    CostOverThisDecisionPeriod += a.CostPerDecisionPeriod;
+                    if (a.InterestRate > 0)
+                    {
+                        if (a.IfEverTurnedOnBefore)
+                        {
+                            int iDecisionPeriodSinceTurnedOn = (epiTimeIndex - a.EpiTimeIndexLastTurnedOn.Value) / _nOfDeltaTsInADecisionInterval;
+                            CostOverThisDecisionPeriod += a.CostPerDecisionPeriod * Math.Pow(1 + a.InterestRate, iDecisionPeriodSinceTurnedOn);
+                        }
+                    }
+                    else
+                        CostOverThisDecisionPeriod += a.CostPerDecisionPeriod;
+
                     ++a.NumOfDecisionPeriodsUsedOver;
                 }
             }

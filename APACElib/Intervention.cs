@@ -43,6 +43,7 @@ namespace APACElib
         public double FixedCost { get; private set; }          // fixed cost to switch on
         public double CostPerDecisionPeriod { get; private set; }  // cost of using during a decision period
         public double PenaltyForSwitchingFromOnToOff { get; private set; }
+        public double InterestRate { get; private set; }    // to increase the cost of usage
 
         // availability
         public long TIndexBecomesAvailable { get; private set; }
@@ -52,6 +53,8 @@ namespace APACElib
         // usage statistics
         public bool IfEverTurnedOnBefore { get; set; } = false;
         public bool IfEverTurnedOffBefore { get; set; } = false;
+        public int? EpiTimeIndexLastTurnedOn { get; set; } = null;
+        public int? EpiTimeIndexLastTurnedOff { get; set; } = null;
         public int NumOfSwitchesOccured { get; set; }
         public int NumOfDecisionPeriodsUsedOver { get; set; }        
         
@@ -59,11 +62,8 @@ namespace APACElib
         public int ParIDDelayToGoIntoEffectOnceTurnedOn { get; set; }
         public int NumOfTimeIndeciesDelayedToGoIntoEffect { get; set; } = 0; // delay after turned on
 
-        //public int EpiTimeIndexToTurnOn { get; set; }
         public int EpiTimeIndexToGoIntoEffect { get; set; }
         public int EpiTimeIndexToTurnOff { get; set; }
-        public int EpiTimeIndexLastTurnedOn { get; set; }
-        public int EpiTimeIndexLastTurnedOff { get; set; }
         
         // Instantiation
         public Intervention(
@@ -88,11 +88,12 @@ namespace APACElib
         }
 
         // set up cost
-        public void SetUpCost(double fixedCost, double costPerDecisionPeriod, double penaltyForSwitchingFromOnToOff)
+        public void SetUpCost(double fixedCost, double costPerDecisionPeriod, double penaltyForSwitchingFromOnToOff, double interestRate)
         {
             FixedCost = fixedCost;
             CostPerDecisionPeriod = costPerDecisionPeriod;
             PenaltyForSwitchingFromOnToOff = penaltyForSwitchingFromOnToOff;
+            InterestRate = interestRate;
         }
 
         // find when should be turned off
@@ -122,15 +123,13 @@ namespace APACElib
         {
             IfEverTurnedOnBefore = false;
             IfEverTurnedOffBefore = false;
+            EpiTimeIndexLastTurnedOn = null;
+            EpiTimeIndexLastTurnedOff = null;
             NumOfSwitchesOccured = 0;
             NumOfDecisionPeriodsUsedOver = 0;
 
-            //EpiTimeIndexToTurnOn = int.MaxValue;
             EpiTimeIndexToTurnOff = int.MaxValue;
-            EpiTimeIndexToGoIntoEffect = int.MaxValue;
-            EpiTimeIndexLastTurnedOn = int.MaxValue;
-            EpiTimeIndexLastTurnedOff = int.MaxValue;
-        }
-        
+            EpiTimeIndexToGoIntoEffect = int.MaxValue;            
+        }        
     }
 }

@@ -93,25 +93,26 @@ namespace APACElib
 
             FixedCost = 12,
             CostPerUnitOfTime = 13,
-            PenaltyOfSwitchingFromOnToOff = 14,            
+            PenaltyOfSwitchingFromOnToOff = 14,       
+            InterestRate = 15,
 
-            OnOffSwitchSetting =16,                        
+            OnOffSwitchSetting =17,                        
 
-            PreDeterminedEmployment_SwitchValue = 18,
+            PreDeterminedEmployment_SwitchValue = 19,
 
-            PeriodicEmployment_Periodicity = 20,
-            PeriodicEmployment_Length = 21, 
+            PeriodicEmployment_Periodicity = 21,
+            PeriodicEmployment_Length = 22, 
 
-            ThresholdBased_ConditionIDToTurnOn = 23,
-            ThresholdBased_ConditionIDToTurnOff = 24,
+            ThresholdBased_ConditionIDToTurnOn = 24,
+            ThresholdBased_ConditionIDToTurnOff = 25,
 
-            IntervalBasedOptimizationSettings_AvailableUpToTime = 26,
-            IntervalBasedOptimizationSettings_MinNumOfDecisionPeriodsToUse = 27,
+            IntervalBasedOptimizationSettings_AvailableUpToTime = 27,
+            IntervalBasedOptimizationSettings_MinNumOfDecisionPeriodsToUse = 28,
 
-            SelectOnOffStatusAsFeature = 29,
-            PreviousObservationPeriodToObserveValue = 30,
-            UseNumOfDecisionPeriodEmployedAsFeature = 31,
-            RemainsOnOnceSwitchedOn = 32
+            SelectOnOffStatusAsFeature = 30,
+            PreviousObservationPeriodToObserveValue = 31,
+            UseNumOfDecisionPeriodEmployedAsFeature = 32,
+            RemainsOnOnceSwitchedOn = 33
         }
         public enum enumResourceColumns : int
         {

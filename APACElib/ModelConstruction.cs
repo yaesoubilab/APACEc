@@ -831,6 +831,10 @@ namespace APACElib
                 double fixedCost = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.FixedCost));
                 double costPerUnitOfTime = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.CostPerUnitOfTime));
                 double penaltyForSwitchingFromOnToOff = Convert.ToDouble(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.PenaltyOfSwitchingFromOnToOff));
+                var varInterestRate = interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.InterestRate);
+                double interestRate = 0;
+                if (varInterestRate != null)
+                    interestRate = Convert.ToDouble(varInterestRate);
 
                 // if type is default
                 if (type == EnumInterventionType.Default)
@@ -922,7 +926,7 @@ namespace APACElib
                     decisionRule: simDecisionRule);
 
                 // set up cost
-                thisIntervention.SetUpCost(fixedCost, costPerUnitOfTime, penaltyForSwitchingFromOnToOff);
+                thisIntervention.SetUpCost(fixedCost, costPerUnitOfTime, penaltyForSwitchingFromOnToOff, interestRate);
 
                 // add the intervention
                 _decisionMaker.AddAnIntervention(thisIntervention);
