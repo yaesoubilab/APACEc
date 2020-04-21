@@ -133,7 +133,7 @@ namespace APACElib
                 case "Time Since Turned On":
                     _featureType = EnumFeatureType.TimeSinceTurnedOn;
                     break;
-                case "Time Since Turned Off:":
+                case "Time Since Turned Off":
                     _featureType = EnumFeatureType.TimeSinceTurnedOff;
                     break;
                 default:
@@ -161,10 +161,10 @@ namespace APACElib
                     Value = _intervention.OnOffStatus;
                     break;
                 case EnumFeatureType.TimeSinceTurnedOn:
-                    Value = 0;
+                    Value = epiTimeIndex - _intervention.EpiTimeIndexLastTurnedOn;
                     break;
                 case EnumFeatureType.TimeSinceTurnedOff:
-                    Value = 0;
+                    Value = epiTimeIndex - _intervention.EpiTimeIndexLastTurnedOff;
                     break;
             }
         }
@@ -236,7 +236,6 @@ namespace APACElib
             _signs = SupportProcedures.ConvertToEnumSigns(strSigns);
             _thresholdValues = new double[_thresholdParams.Count()];
 
-            //  _thresholdValues = SupportProcedures.ConvertStringToDoubleArrray(strTheresholds);
             if (strConclusions == "And")
                 _andOr = EnumAndOr.And;
             else
