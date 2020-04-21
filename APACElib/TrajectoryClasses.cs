@@ -1209,6 +1209,7 @@ namespace APACElib
     {
         private List<Class> _classes; // pointer to classes
         private List<Event> _events;  // pointer to events
+        private int _nOfDeltaTsInUnitOfTime;
 
         // summation and ratio trajectories
         public List<SumTrajectory> _sumTrajs = new List<SumTrajectory>();
@@ -1234,12 +1235,13 @@ namespace APACElib
         public List<Feature> Features { set; get; } = new List<Feature>();
         public List<Condition> Conditions { set; get; } = new List<Condition>();   
 
-        public EpidemicHistory(List<Class> classes, List<Event> events, bool defaultIfSpreadDetected)
+        public EpidemicHistory(List<Class> classes, List<Event> events, bool defaultIfSpreadDetected, int nOfDeltaTsInUnitOfTime)
         {
             _classes = classes;
             _events = events;
             _defaultIfSpreadDetected = defaultIfSpreadDetected;
             IfSpreadDetected = defaultIfSpreadDetected;
+            _nOfDeltaTsInUnitOfTime = nOfDeltaTsInUnitOfTime;
         }
 
         public void SetupSimOutputTrajs(
@@ -1336,7 +1338,7 @@ namespace APACElib
 
             // update features
             foreach (Feature f in Features)
-                f.Update(epiTimeIndex);
+                f.Update(epiTimeIndex, _nOfDeltaTsInUnitOfTime);
 
             return ifFeasibleRangesViolated;
         }

@@ -25,7 +25,7 @@ namespace APACElib
             Max = double.MinValue;
         }
 
-        public abstract void Update(int epiTimeIndex);
+        public abstract void Update(int epiTimeIndex, int nOfDeltaTsInUnitOfTime);
         protected void UpdateMinMax()
         {
             if (Value > Max)
@@ -42,7 +42,7 @@ namespace APACElib
         {            
         }
 
-        public override void Update(int epiTimeIndex)
+        public override void Update(int epiTimeIndex, int nOfDeltaTsInUnitOfTim)
         {
             Value = epiTimeIndex;
             UpdateMinMax();
@@ -86,7 +86,7 @@ namespace APACElib
             _multiplierPar = multiplierPar;
         }
 
-        public override void Update(int epiTimeIndex)
+        public override void Update(int epiTimeIndex, int nOfDeltaTsInUnitOfTim)
         {
             switch (_featureType)
             {
@@ -147,7 +147,7 @@ namespace APACElib
             _intervention = intervention;
         }
 
-        public override void Update(int epiTimeIndex)
+        public override void Update(int epiTimeIndex, int nOfDeltaTsInUnitOfTime)
         {
             switch (_featureType)
             {
@@ -161,10 +161,10 @@ namespace APACElib
                     Value = _intervention.OnOffStatus;
                     break;
                 case EnumFeatureType.TimeSinceTurnedOn:
-                    Value = epiTimeIndex - _intervention.EpiTimeIndexLastTurnedOn;
+                    Value = (epiTimeIndex - _intervention.EpiTimeIndexLastTurnedOn)*nOfDeltaTsInUnitOfTime;
                     break;
                 case EnumFeatureType.TimeSinceTurnedOff:
-                    Value = epiTimeIndex - _intervention.EpiTimeIndexLastTurnedOff;
+                    Value = (epiTimeIndex - _intervention.EpiTimeIndexLastTurnedOff)*nOfDeltaTsInUnitOfTime;
                     break;
             }
         }

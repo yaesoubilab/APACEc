@@ -409,7 +409,7 @@ namespace APACElib
                 defaultIfSpreadDetected = false;
 
             // epidemic history
-            EpiHist = new EpidemicHistory(_classes, _events, defaultIfSpreadDetected);
+            EpiHist = new EpidemicHistory(_classes, _events, defaultIfSpreadDetected, (int)(1/_modelSets.DeltaT));
             // decision maker
             _decisionMaker = new DecisionMaker(
                 _modelSets.EpidemicTimeIndexToStartDecisionMaking,
