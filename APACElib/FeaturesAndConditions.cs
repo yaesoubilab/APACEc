@@ -25,7 +25,7 @@ namespace APACElib
             Max = double.MinValue;
         }
 
-        public abstract void Update(int epiTimeIndex, int nOfDeltaTsInUnitOfTime);
+        public abstract void Update(int epiTimeIndex, double deltaT);
         protected void UpdateMinMax()
         {
             if (Value > Max)
@@ -42,7 +42,7 @@ namespace APACElib
         {            
         }
 
-        public override void Update(int epiTimeIndex, int nOfDeltaTsInUnitOfTim)
+        public override void Update(int epiTimeIndex, double deltaT)
         {
             Value = epiTimeIndex;
             UpdateMinMax();
@@ -86,7 +86,7 @@ namespace APACElib
             _multiplierPar = multiplierPar;
         }
 
-        public override void Update(int epiTimeIndex, int nOfDeltaTsInUnitOfTim)
+        public override void Update(int epiTimeIndex, double deltaT)
         {
             switch (_featureType)
             {
@@ -147,7 +147,7 @@ namespace APACElib
             _intervention = intervention;
         }
 
-        public override void Update(int epiTimeIndex, int nOfDeltaTsInUnitOfTime)
+        public override void Update(int epiTimeIndex, double deltaT)
         {
             switch (_featureType)
             {
@@ -161,10 +161,10 @@ namespace APACElib
                     Value = _intervention.OnOffStatus;
                     break;
                 case EnumFeatureType.TimeSinceTurnedOn:
-                    Value = (epiTimeIndex - _intervention.EpiTimeIndexLastTurnedOn)*nOfDeltaTsInUnitOfTime;
+                    Value = (epiTimeIndex - _intervention.EpiTimeIndexLastTurnedOn)*deltaT;
                     break;
                 case EnumFeatureType.TimeSinceTurnedOff:
-                    Value = (epiTimeIndex - _intervention.EpiTimeIndexLastTurnedOff)*nOfDeltaTsInUnitOfTime;
+                    Value = (epiTimeIndex - _intervention.EpiTimeIndexLastTurnedOff)*deltaT;
                     break;
             }
         }
@@ -174,7 +174,7 @@ namespace APACElib
     {
         public int ID { get; }
         public string Name { get; }
-        public bool Value { get; protected set; }
+        public bool? Value { get; protected set; }
         public Condition(int id, string name)
         {
             ID = id;
@@ -265,7 +265,7 @@ namespace APACElib
 
         public override void Update(int epiTimeIndex, RNG rng)
         {
-            bool result = false;
+            bool? result = null;
 
             // update threshold values 
             if (_ifTresholdSetOutside == false)
@@ -278,7 +278,14 @@ namespace APACElib
             {
                 case EnumAndOr.And:
                     {
-                        result = true;  // all features hit thresholds
+                        for (int i = 0; i < _features.Count; i++)
+                        {
+                            if (_features[i].Value.HasValue)
+                            {
+                                result = true;  // all features hit thresholds
+                                break;
+                            }
+                        }
                         for (int i = 0; i < _features.Count; i++)
                         {
                             // if one does not 
@@ -289,12 +296,19 @@ namespace APACElib
                                 result = false;
                                 break;
                             }
-                        }
+                        }                        
                     }
                     break;
                 case EnumAndOr.Or:
                     {
-                        result = false; // no feature hits its threshold
+                        for (int i = 0; i < _features.Count; i++)
+                        {
+                            if (_features[i].Value.HasValue)
+                            {
+                                result = false;  // no feature hits its threshold
+                                break;
+                            }
+                        }
                         for (int i = 0; i < _features.Count; i++)
                         {
                             // if one is within
@@ -347,19 +361,26 @@ namespace APACElib
 
         public override void Update(int epiTimeIndex, RNG rng)
         {
-            bool results = false; 
+            bool? result = null; 
 
             switch (_andOr)
             {
                 case EnumAndOr.And:
                     {
-                        results = true;  // all conditions are satisifed
+                        for (int i = 0; i < _conditions.Count; i++)
+                        {
+                            if (_conditions[i].Value.HasValue)
+                            {
+                                result = true;  // all conditions are satisifed
+                                break;
+                            }
+                        }
                         for (int i = 0; i < _conditions.Count(); i++)
                         {
                             // if one conditions is not satisfied
-                            if (_conditions[i].Value == false)
+                            if (_conditions[i].Value.HasValue && _conditions[i].Value == false)
                             {
-                                results = false;
+                                result = false;
                                 break;
                             }
                         }
@@ -367,20 +388,27 @@ namespace APACElib
                     break;
                 case EnumAndOr.Or:
                     {
-                        results = false;  // no conditions is satisifed
+                        for (int i = 0; i < _conditions.Count; i++)
+                        {
+                            if (_conditions[i].Value.HasValue)
+                            {
+                                result = false;  // no conditions is satisifed
+                                break;
+                            }
+                        }                        
                         for (int i = 0; i < _conditions.Count(); i++)
                         {
                             // if one is satisifed
-                            if (_conditions[i].Value == true)
+                            if (_conditions[i].Value.HasValue && _conditions[i].Value == true)
                             {
-                                results = true;
+                                result = true;
                                 break;
                             }
                         }
                     }
                     break;
             }
-            Value = results;
+            Value = result;
         }
     }
 }

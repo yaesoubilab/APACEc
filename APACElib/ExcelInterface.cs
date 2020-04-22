@@ -1007,7 +1007,7 @@ namespace APACElib
             WriteToRow(simIncidenceHeader, "simulationOutput",      0, offSimIncidence);
             AddABorder("simulationOutput",                          0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
             // action code
-            WriteToCell("Action Code", "simulationOutput", 0, OffSimIntrvn);
+            WriteToCell("Code of Next Action", "simulationOutput", 0, OffSimIntrvn);
             // prevalence 
             WriteToRow(simPrevalenceHeader, "simulationOutput",     0, offSimPrevalence);
             AddABorder("simulationOutput",                          0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
@@ -1020,7 +1020,7 @@ namespace APACElib
             WriteToRow(obsIncidenceHeader, "simulationOutput", 0, offObsIncidence);
             AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
             // action code
-            WriteToCell("Obs: Action Code", "simulationOutput", 0, offObsIntrvn);
+            WriteToCell("Obs: Cost of Next Action", "simulationOutput", 0, offObsIntrvn);
             AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
             // prevalence 
             WriteToRow(obsPrevalenceHeader, "simulationOutput", 0, offObsPrevalence);

@@ -154,6 +154,10 @@ namespace APACElib
                 ifFeasibleRangesViolated = EpiHist.Update(_simTimeIndex, _epiTimeIndex, false, _rngNoise);
                 UpdateEpiTimeIndex();
 
+                // update features
+                foreach (Feature f in EpiHist.Features)
+                    f.Update(_epiTimeIndex, _modelSets.DeltaT);
+
                 // update cost and health outcomes
                 UpdateCostAndHealthOutcomes(false);
 
@@ -409,7 +413,7 @@ namespace APACElib
                 defaultIfSpreadDetected = false;
 
             // epidemic history
-            EpiHist = new EpidemicHistory(_classes, _events, defaultIfSpreadDetected, (int)(1/_modelSets.DeltaT));
+            EpiHist = new EpidemicHistory(_classes, _events, defaultIfSpreadDetected, _modelSets.DeltaT);
             // decision maker
             _decisionMaker = new DecisionMaker(
                 _modelSets.EpidemicTimeIndexToStartDecisionMaking,

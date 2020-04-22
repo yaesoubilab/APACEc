@@ -193,15 +193,17 @@ namespace APACElib
                     case "l":
                         signs[i] = EnumSign.l;
                         break;
-                    case "q":
+                    case "g":
                         signs[i] = EnumSign.q;
                         break;
                     case "le":
                         signs[i] = EnumSign.le;
                         break;
-                    case "qe":
+                    case "ge":
                         signs[i] = EnumSign.qe;
                         break;
+                    default:
+                        throw new System.ArgumentException("Invalid value for sign.");
                 }
             }
             return signs;
