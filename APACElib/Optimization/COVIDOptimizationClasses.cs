@@ -73,7 +73,7 @@ namespace APACElib.Optimization
         }
     }
 
-    public class COVIDPolicyIncidence : Policy
+    public class COVIDPolicyIncAndDInc : Policy
     {
         /// <summary>
         /// incidence threshold:            tau(wtp)   = tau0*exp(tau1 * wtp)
@@ -86,7 +86,7 @@ namespace APACElib.Optimization
         private double[] _paramValues;
         private double _scale;
 
-        public COVIDPolicyIncidence(double penalty, double wtpScale) : base(penalty)
+        public COVIDPolicyIncAndDInc(double penalty, double wtpScale) : base(penalty)
         {
             NOfPolicyParameters = 3;
             _scale = wtpScale;
@@ -128,6 +128,77 @@ namespace APACElib.Optimization
         }
     }
 
+    public class COVIDPolicyRtAndPrev : Policy
+    {
+        /// <summary>
+        /// 
+        /// R_t threshold under no social distancing:  r_off(wtp) = r_off_0 * exp(r_off_1 * wtp)
+        /// R_t threshold under social distancing:     r_on(wtp)  = r_ratio * r_off(wtp),    r_ratio in [0, 1]
+        /// Incidence threshold under no social distancing:  i_off(wtp) = i_off_0 * exp(i_off_1 * wtp)
+        /// Incidence threshold under social distancing:     i_on(wtp)  = i_ratio * i_off(wtp),  i_ratio in [0, inf]
+        /// 
+        /// parameter values = [r_off_0, r_off_1, r_ratio, i_off_0, i_off_1, i_ratio]
+        /// </summary>
+
+        enum Par { r_off_0, r_off_1, r_ratio, i_off_0, i_off_1, i_ratio }
+        private double[] _paramValues;
+        private double _scale;
+        private double _maxRatioOfROnToROff;
+
+        public COVIDPolicyRtAndPrev(double penalty, double wtpScale, double maxRatioOfROnToROff) : base(penalty)
+        {
+            NOfPolicyParameters = 6;
+            _scale = wtpScale;
+            _maxRatioOfROnToROff = maxRatioOfROnToROff;
+
+            // status quo parameter values: 
+            _paramValues = new double[6] { 100000, 0, 1, 1, 0, 1}; // large number so that social distancing is never triggered 
+            StatusQuoParamValues = Vector<double>.Build.Dense(_paramValues);
+        }
+
+        public override double UpdateParameters(Vector<double> paramValues, double wtp, bool checkFeasibility = true)
+        {
+            _paramValues = paramValues.ToArray();
+
+            double accumPenalty = 0;
+            if (checkFeasibility)
+            {
+                // check parameters of Rt
+                // r_off_0 should be greater than 0
+                accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.r_off_0], 0);
+                // r_off_1 should be less than 0
+                accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.r_off_1], 0);
+                // r_ratio should be between 0 and 1
+                accumPenalty += base.EnsureFeasibility(ref _paramValues[(int)Par.r_ratio], 0, _maxRatioOfROnToROff);
+
+                // check parameters of %I
+                // i_off_0 should be greater than 0
+                accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.i_off_0], 0);
+                // i_off_1 should be less than 0
+                accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.i_off_1], 0);
+                // i_ratio should be greater than 0
+                accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.i_ratio], 0);
+            }
+            return accumPenalty;
+        }
+
+        public double[] GetThresholdsToTurnOn(double wtp)
+        {
+            double r_off = _paramValues[(int)Par.r_off_0] * Math.Exp(wtp * _paramValues[(int)Par.r_off_1] / _scale);
+            double i_off = _paramValues[(int)Par.i_off_0] * Math.Exp(wtp * _paramValues[(int)Par.i_off_1] / _scale);
+
+            return new double[2] { r_off, i_off };
+        }
+        public double[] GetThresholdsToTurnOff(double wtp)
+        {
+            double[] r_off_i_off = GetThresholdsToTurnOn(wtp);
+            double r_on = r_off_i_off[0] * _paramValues[(int)Par.r_ratio];
+            double i_on = r_off_i_off[1] * _paramValues[(int)Par.i_ratio];
+
+            return new double[2] { r_on, i_on };
+        }
+    }
+
     public class COVIDSimModel : SimModel
     {
         /// <summary>
@@ -143,11 +214,11 @@ namespace APACElib.Optimization
         private Vector<double> _DfValues; // Df at the current value of policy parameters 
         private int _nSimsPerOptItr; 
 
-        public COVIDPolicyIncidence Policy { get; private set; }
+        public COVIDPolicyRtAndPrev Policy { get; private set; }
         public EpidemicModeller EpiModeller { get; private set; } // epi modeller to estimate derivatives of f
 
         public COVIDSimModel(int id, ExcelInterface excelInterface, ModelSettings modelSets,
-            List<ModelInstruction> listModelInstr, double[] wtps, COVIDPolicyIncidence policy)
+            List<ModelInstruction> listModelInstr, double[] wtps, COVIDPolicyRtAndPrev policy)
         {
             _seed = id;
             _nSimsPerOptItr = modelSets.OptmzSets.NOfSimsPerOptItr;
@@ -208,16 +279,17 @@ namespace APACElib.Optimization
                         wtp: wtp,
                         checkFeasibility: x_index != 0);
 
-                    // find thresholds (tau and theta) for this wtp
-                    double[] thresholds = Policy.GetThresholdForIncidenceAndChangeInIncidence(wtp);
+                    // find thresholds for this wtp
+                    double[] thresholdsToOn = Policy.GetThresholdsToTurnOn(wtp);
+                    double[] thresholdsToOff = Policy.GetThresholdsToTurnOff(wtp);
 
                     // update the threshold for the epidemic at index epi_i
                     for (int sim_i = 0; sim_i < _nSimsPerOptItr; sim_i++)
                     {
-                        ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].DecisionMaker.Conditions[4])
-                            .UpdateThresholds(thresholds); //new double[1] { incidence }
-                        ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].DecisionMaker.Conditions[5])
-                                .UpdateThresholds(thresholds);
+                        ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].DecisionMaker.Conditions[6])
+                            .UpdateThresholds(thresholdsToOn); //new double[1] { incidence }
+                        ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].DecisionMaker.Conditions[7])
+                                .UpdateThresholds(thresholdsToOff);
                     }
                     epi_i++;
                 }
@@ -298,9 +370,10 @@ namespace APACElib.Optimization
                 modelSets: ModelSets,
                 listModelInstr: ListModelInstr,
                 wtps: ModelSets.OptmzSets.WTPs,
-                policy: new COVIDPolicyIncidence(
+                policy: new COVIDPolicyRtAndPrev(
                     penalty: ModelSets.OptmzSets.Penalty,
-                    wtpScale: scale));
+                    wtpScale: scale,
+                    maxRatioOfROnToROff: 0.5));
         }
     }
 }
