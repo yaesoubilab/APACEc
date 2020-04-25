@@ -164,8 +164,8 @@ namespace APACElib.Optimization
             if (checkFeasibility)
             {
                 // check parameters of Rt
-                // r_off_0 should be greater than 0
-                accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.r_off_0], 0);
+                // r_off_0 should be greater than 1
+                accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.r_off_0], 1);
                 // r_off_1 should be less than 0
                 accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.r_off_1], 0);
                 // r_ratio should be between 0 and 1
