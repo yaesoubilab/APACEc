@@ -168,6 +168,8 @@ namespace APACElib.Optimization
                 accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.r_off_0], 1);
                 // r_off_1 should be less than 0
                 accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.r_off_1], 0);
+                // r_off_1 should be small enough so that r_off >= 1
+                accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.r_off_1], Math.Log(1/ _paramValues[(int)Par.r_off_0])/wtp);
                 // r_ratio should be between 0 and 1
                 accumPenalty += base.EnsureFeasibility(ref _paramValues[(int)Par.r_ratio], 0, _maxRatioOfROnToROff);
 
