@@ -1020,7 +1020,7 @@ namespace APACElib
             WriteToRow(obsIncidenceHeader, "simulationOutput", 0, offObsIncidence);
             AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
             // action code
-            WriteToCell("Obs: Cost of Next Action", "simulationOutput", 0, offObsIntrvn);
+            WriteToCell("Obs: Code of Next Action", "simulationOutput", 0, offObsIntrvn);
             AddABorder("simulationOutput", 0, 0, enumRangeDirection.RightEnd, enumBorder.Right);
             // prevalence 
             WriteToRow(obsPrevalenceHeader, "simulationOutput", 0, offObsPrevalence);
