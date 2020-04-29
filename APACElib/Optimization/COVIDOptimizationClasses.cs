@@ -152,7 +152,7 @@ namespace APACElib.Optimization
             _maxRatioOfROnToROff = maxRatioOfROnToROff;
 
             // status quo parameter values: 
-            _paramValues = new double[6] { 100000, 0, 1, 1, 0, 1}; // large number so that social distancing is never triggered 
+            _paramValues = new double[6] { 100000, 0, 1, 100000, 0, 1}; // large number so that social distancing is never triggered 
             StatusQuoParamValues = Vector<double>.Build.Dense(_paramValues);
         }
 
@@ -187,7 +187,7 @@ namespace APACElib.Optimization
         public double[] GetThresholdsToTurnOn(double wtp)
         {
             double r_off = _paramValues[(int)Par.r_off_0] * Math.Exp(wtp * _paramValues[(int)Par.r_off_1] / _scale);
-            double i_off = _paramValues[(int)Par.i_off_0] * Math.Exp(wtp * _paramValues[(int)Par.i_off_1] / _scale);
+            double i_off = _paramValues[(int)Par.i_off_0] * Math.Exp(wtp * _paramValues[(int)Par.i_off_1] / _scale)/100000;
 
             return new double[2] { r_off, i_off };
         }
