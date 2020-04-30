@@ -8,7 +8,64 @@ using MathNet.Numerics.LinearAlgebra;
 
 namespace APACElib.Optimization
 {
-    public class COVIDPolicyI : Policy
+    public abstract class COVIDPolicyI : Policy
+    {
+        protected double[] _paramValues;
+
+        public COVIDPolicyI(double penalty) : base(penalty)
+        {
+        }
+
+        public abstract double[] GetThresholdToTurnOn(double wtp);
+        public abstract double[] GetThresholdToTurnOff(double wtp);
+    }
+
+    public class COVIDPolicyISingleWTP : COVIDPolicyI
+    {
+        /// <summary>
+        /// prevalence threshold to turn on: tau0
+        /// prevalence threshod to turn off: tau1
+        /// parameter values = [tau0, tau1]
+        /// </summary>
+
+        enum Par { tau0, tau1 }        
+        private double _maxI;
+
+        public COVIDPolicyISingleWTP(double penalty, double maxI) : base(penalty)
+        {
+            NOfPolicyParameters = 2;
+            _maxI = maxI;
+            // status quo parameter values: 
+            _paramValues = new double[2] { 100000, 0, }; // large number so that social distancing is never triggered 
+            StatusQuoParamValues = Vector<double>.Build.Dense(_paramValues);
+        }
+
+        public override double UpdateParameters(Vector<double> paramValues, double wtp, bool checkFeasibility = true)
+        {
+            _paramValues = paramValues.ToArray();
+
+            double accumPenalty = 0;
+            if (checkFeasibility)
+            {
+                // tau0 should be greater than 0
+                accumPenalty += base.EnsureFeasibility(ref _paramValues[(int)Par.tau0], 0, _maxI);
+                // tau1 should be greater than 0
+                accumPenalty += base.EnsureFeasibility(ref _paramValues[(int)Par.tau1], 0, _maxI);
+            }
+            return accumPenalty;
+        }
+        public override double[] GetThresholdToTurnOn(double wtp)
+        {
+            return new double[1] { _paramValues[(int)Par.tau0] / 100000 };
+        }
+        public override double[] GetThresholdToTurnOff(double wtp)
+        {
+            return new double[1] { _paramValues[(int)Par.tau1] / 100000 };
+        }
+
+    }
+
+    public class COVIDPolicyIRangeOfWTP : COVIDPolicyI
     {
         /// <summary>
         /// prevalence threshold to turn on: tau(wtp)   = tau0*exp(tau1 * wtp)
@@ -18,10 +75,9 @@ namespace APACElib.Optimization
         /// </summary>
 
         enum Par { tau0, tau1, rho }
-        private double[] _paramValues;
         private double _scale;
 
-        public COVIDPolicyI(double penalty, double wtpScale) : base(penalty)
+        public COVIDPolicyIRangeOfWTP(double penalty, double wtpScale) : base(penalty)
         {
             NOfPolicyParameters = 3;
             _scale = wtpScale;
@@ -46,11 +102,11 @@ namespace APACElib.Optimization
             }
             return accumPenalty;
         }
-        public double[] GetThresholdToTurnOn(double wtp)
+        public override double[] GetThresholdToTurnOn(double wtp)
         {
             return new double[1] { _paramValues[(int)Par.tau0] * Math.Exp(wtp * _paramValues[(int)Par.tau1] / _scale) / 100000};
         }
-        public double[] GetThresholdToTurnOff(double wtp)
+        public  override double[] GetThresholdToTurnOff(double wtp)
         {
             return new double[1] { GetThresholdToTurnOn(wtp)[0] * _paramValues[(int)Par.rho] };
         }
@@ -451,9 +507,11 @@ namespace APACElib.Optimization
                 modelSets: ModelSets,
                 listModelInstr: ListModelInstr,
                 wtps: ModelSets.OptmzSets.WTPs,
-                policy: new COVIDPolicyI(
+                policy: new COVIDPolicyISingleWTP(
                     penalty: ModelSets.OptmzSets.Penalty,
-                    wtpScale: scale ));
+                    maxI: 20000));
+                    //wtpScale: scale )
+                    
         }
     }
 }
