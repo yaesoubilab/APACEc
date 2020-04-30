@@ -8,6 +8,54 @@ using MathNet.Numerics.LinearAlgebra;
 
 namespace APACElib.Optimization
 {
+    public class COVIDPolicyI : Policy
+    {
+        /// <summary>
+        /// prevalence threshold to turn on: tau(wtp)   = tau0*exp(tau1 * wtp)
+        /// multiplier:                     rho   
+        /// prevalence threshod to turn off: theta(wtp) = tau(wtp) * rho
+        /// parameter values = [tau0, tau1, rho]
+        /// </summary>
+
+        enum Par { tau0, tau1, rho }
+        private double[] _paramValues;
+        private double _scale;
+
+        public COVIDPolicyI(double penalty, double wtpScale) : base(penalty)
+        {
+            NOfPolicyParameters = 3;
+            _scale = wtpScale;
+            // status quo parameter values: 
+            _paramValues = new double[3] { 100000, 0, 1 }; // large number so that social distancing is never triggered 
+            StatusQuoParamValues = Vector<double>.Build.Dense(_paramValues);
+        }
+
+        public override double UpdateParameters(Vector<double> paramValues, double wtp, bool checkFeasibility = true)
+        {
+            _paramValues = paramValues.ToArray();
+
+            double accumPenalty = 0;
+            if (checkFeasibility)
+            {
+                // tau0 should be greater than 0
+                accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.tau0], 0);
+                // tau1 should be less than 0
+                accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.tau1], 0);
+                // r_on_0 should be between 0 and 1
+                accumPenalty += base.EnsureFeasibility(ref _paramValues[(int)Par.rho], 0, 1);
+            }
+            return accumPenalty;
+        }
+        public double[] GetThresholdToTurnOn(double wtp)
+        {
+            return new double[1] { _paramValues[(int)Par.tau0] * Math.Exp(wtp * _paramValues[(int)Par.tau1] / _scale) / 100000};
+        }
+        public double[] GetThresholdToTurnOff(double wtp)
+        {
+            return new double[1] { GetThresholdToTurnOn(wtp)[0] * _paramValues[(int)Par.rho] };
+        }
+    }
+
     public class COVIDPolicyRt : Policy
     {
         /// <summary>
@@ -218,11 +266,11 @@ namespace APACElib.Optimization
         private Vector<double> _DfValues; // Df at the current value of policy parameters 
         private int _nSimsPerOptItr; 
 
-        public COVIDPolicyRt Policy { get; private set; }
+        public Policy Policy { get; private set; }
         public EpidemicModeller EpiModeller { get; private set; } // epi modeller to estimate derivatives of f
 
         public COVIDSimModel(int id, ExcelInterface excelInterface, ModelSettings modelSets,
-            List<ModelInstruction> listModelInstr, double[] wtps, COVIDPolicyRt policy)
+            List<ModelInstruction> listModelInstr, double[] wtps, Policy policy)
         {
             _seed = id;
             _nSimsPerOptItr = modelSets.OptmzSets.NOfSimsPerOptItr;
@@ -284,23 +332,46 @@ namespace APACElib.Optimization
                         checkFeasibility: x_index != 0);
 
                     // find thresholds for this wtp
-                    //double[] thresholdsToOn = Policy.GetThresholdsToTurnOn(wtp);
-                    //double[] thresholdsToOff = Policy.GetThresholdsToTurnOff(wtp);
-                    double r1 = Policy.GetThresholdOff(wtp);
-                    double r2 = Policy.GetThresholdOn(wtp);
-
-                    // update the threshold for the epidemic at index epi_i
-                    for (int sim_i = 0; sim_i < _nSimsPerOptItr; sim_i++)
+                    if (Policy is COVIDPolicyRtAndPrev)
                     {
-                        //((Condition_OnFeatures)EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].DecisionMaker.Conditions[6])
-                        //    .UpdateThresholds(thresholdsToOn); //new double[1] { incidence }
-                        //((Condition_OnFeatures)EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].DecisionMaker.Conditions[7])
-                        //        .UpdateThresholds(thresholdsToOff);
-                        ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].DecisionMaker.Conditions[0])
-                            .UpdateThresholds(new double[1] { r1 } ); //new double[1] { incidence }
-                        ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].DecisionMaker.Conditions[1])
-                                .UpdateThresholds(new double[1] { r2 });
+                        double[] thresholdsToOn = ((COVIDPolicyRtAndPrev)Policy).GetThresholdsToTurnOn(wtp);
+                        double[] thresholdsToOff = ((COVIDPolicyRtAndPrev)Policy).GetThresholdsToTurnOff(wtp);
+                        // update the threshold for the epidemic at index epi_i
+                        for (int sim_i = 0; sim_i < _nSimsPerOptItr; sim_i++)
+                        {
+                            ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].DecisionMaker.Conditions[6])
+                                .UpdateThresholds(thresholdsToOn); 
+                            ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].DecisionMaker.Conditions[7])
+                                    .UpdateThresholds(thresholdsToOff);
+                        }
                     }
+                    else if (Policy is COVIDPolicyRt)
+                    {
+                        double r1 = ((COVIDPolicyRt)Policy).GetThresholdOff(wtp);
+                        double r2 = ((COVIDPolicyRt)Policy).GetThresholdOn(wtp);
+                        // update the threshold for the epidemic at index epi_i
+                        for (int sim_i = 0; sim_i < _nSimsPerOptItr; sim_i++)
+                        {
+                            ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].DecisionMaker.Conditions[0])
+                                .UpdateThresholds(new double[1] { r1 }); 
+                            ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].DecisionMaker.Conditions[1])
+                                    .UpdateThresholds(new double[1] { r2 });
+                        }
+                    }
+                    else if (Policy is COVIDPolicyI)
+                    {
+                        for (int sim_i = 0; sim_i < _nSimsPerOptItr; sim_i++)
+                        {
+                            double[] thresholdToOn = ((COVIDPolicyI)Policy).GetThresholdToTurnOn(wtp);
+                            double[] thresholdToOff = ((COVIDPolicyI)Policy).GetThresholdToTurnOff(wtp);
+                            ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].DecisionMaker.Conditions[2])
+                                .UpdateThresholds(thresholdToOn);
+                            ((Condition_OnFeatures)EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].DecisionMaker.Conditions[3])
+                                    .UpdateThresholds(thresholdToOff);
+                        }
+                    }
+
+                   
                     epi_i++;
                 }
             }
@@ -380,10 +451,9 @@ namespace APACElib.Optimization
                 modelSets: ModelSets,
                 listModelInstr: ListModelInstr,
                 wtps: ModelSets.OptmzSets.WTPs,
-                policy: new COVIDPolicyRt(
+                policy: new COVIDPolicyI(
                     penalty: ModelSets.OptmzSets.Penalty,
-                    wtpScale: scale,
-                    maxRatioOfROnToROff: 1));
+                    wtpScale: scale ));
         }
     }
 }
