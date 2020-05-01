@@ -171,10 +171,13 @@ namespace APACElib
                 _modelSettings.SimRNDSeedsSource = EnumSimRNDSeedsSource.RandomUnweighted;
 
             COVIDOptimizer optimizer =
-                new COVIDOptimizer(_excelInterface, _modelSettings, _listModelInstr);
+                new COVIDOptimizer(_excelInterface, _modelSettings, _listModelInstr, COVIDOptimizer.EnumPolicyType.RtSingleWTP);
+
             optimizer.Minimize(_modelSettings.OptmzSets.XDigits);
 
             ExcelIntface.ReportOptimization(optimizer.Summary);
+
+            //optimizer.OptimalParamValues;
         }
         
         // optimize the dynamic policy
