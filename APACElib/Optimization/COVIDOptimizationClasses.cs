@@ -579,7 +579,7 @@ namespace APACElib.Optimization
                 case EnumPolicyType.RtSingleWTP:
                     policy = new COVIDPolicyRtSingleWTP(
                         penalty: ModelSets.OptmzSets.Penalty,
-                        maxR: 5);
+                        maxR: 4);
                     break;
                 default:
                     throw new System.ArgumentException("Invalid value for policy type.");
