@@ -48,6 +48,7 @@ namespace APACElib
         private bool _thereAreClassesWithEradicationCondition = false;
         public bool StoppedDueToEradication { get; private set; }
         public int SeedProducedAcceptibleTraj { get; private set; }
+        public double LengthOfEpidemic { get; private set; }
         public int SeedsDiscarded { get; private set; }
 
         public Epidemic(int id)
@@ -98,6 +99,7 @@ namespace APACElib
                 {
                     acceptableTrajFound = true;
                     SeedProducedAcceptibleTraj = seed;
+                    LengthOfEpidemic = _epiTimeIndex * _modelSets.DeltaT;
                 }
                 else
                 {

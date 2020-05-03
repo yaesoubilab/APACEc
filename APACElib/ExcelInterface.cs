@@ -224,6 +224,7 @@ namespace APACElib
             NHB = 4,
             NMB = 5,
             NumOfSwitches = 6,
+            LengthOfEpidemic = 7,
         }       
         public enum enumObservationsColumns : int
         {
@@ -1136,6 +1137,9 @@ namespace APACElib
             base.FormatNumber(
                 rowIndex + (int)EnumSimStatsRows.NumOfSwitches - 1, (int)enumSimulationStatisticsColumns.Mean, ExcelInteractor.enumRangeDirection.RightEnd, 
                 "#,##0.0");
+            base.FormatNumber(
+                rowIndex + (int)EnumSimStatsRows.LengthOfEpidemic - 1, (int)enumSimulationStatisticsColumns.Mean, ExcelInteractor.enumRangeDirection.RightEnd,
+                "#,##0.00");
 
             // report class and summation statistics
             rowIndex = base.LastRowWithDataInThisColumn((int)enumSimulationStatisticsColumns.Name + 1) + 2;
