@@ -215,7 +215,28 @@ namespace APACElib
             {
                 // birth event does not affect the way members are leaving this class
                 if (thisEvent is Event_Birth || thisEvent is Event_Poisson)
+                {
                     eventRates[eIndex] = 0;
+                    int numOfBirths = 0;
+                    if (thisEvent.Rate == 0)
+                        numOfBirths = 0;
+                    else
+                    {
+                        double poissonRate = 0;
+                        if (thisEvent is Event_Birth)
+                            poissonRate = ClassStat.Prevalence * thisEvent.Rate * deltaT;
+                        else
+                            poissonRate = thisEvent.Rate * deltaT;
+
+                        // get a sample on the number of births
+                        numOfBirths = new Poisson("Birth", poissonRate).SampleDiscrete(rng);
+                    }
+                    // record the number of members out of this process
+                    thisEvent.MembersOutOverPastDeltaT = numOfBirths;
+                    // find the number of members to the destination class
+                    _numOfMembersToDestClasses[eIndex] += numOfBirths;
+
+                }
                 else if (thisEvent is Event_Queue)
                 {
                     eventRates[eIndex] = 0;
@@ -236,8 +257,9 @@ namespace APACElib
                 ++ eIndex;
             }
 
+            
             // if the sum of rates is equal to zero, nothing is happening to this class!
-            if (sumOfRates <= 0 || ClassStat.Prevalence==0) return;
+            if (sumOfRates <= 0 || ClassStat.Prevalence == 0) return;
 
             // find the probabilities of each process   
             // calculate the probability of not leaving the class
@@ -257,24 +279,7 @@ namespace APACElib
                 // if this is a birth process
                 if (thisProcess is Event_Birth || thisProcess is Event_Poisson)
                 {
-                    int numOfBirths = 0;
-                    if (thisProcess.Rate == 0)
-                        numOfBirths = 0;
-                    else
-                    {
-                        double poissonRate = 0;
-                        if (thisProcess is Event_Birth)
-                            poissonRate = ClassStat.Prevalence * thisProcess.Rate * deltaT;
-                        else
-                            poissonRate = thisProcess.Rate * deltaT;
-
-                        // get a sample on the number of births
-                        numOfBirths = new Poisson("Birth", poissonRate).SampleDiscrete(rng);
-                    }
-                    // record the number of members out of this process
-                    thisProcess.MembersOutOverPastDeltaT = numOfBirths;
-                    // find the number of members to the destination class
-                    _numOfMembersToDestClasses[eIndex] += numOfBirths;
+                    // already processed
                 }
                 // if this is not a birth process
                 else
