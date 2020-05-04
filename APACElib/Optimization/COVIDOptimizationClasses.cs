@@ -573,7 +573,7 @@ namespace APACElib.Optimization
                 case EnumPolicyType.ISingleWTP:
                     policy = new COVIDPolicyISingleWTP(
                         penalty: ModelSets.OptmzSets.Penalty,
-                        maxI: 20000);
+                        maxI: 25000);
                     break;
 
                 case EnumPolicyType.RtSingleWTP:
