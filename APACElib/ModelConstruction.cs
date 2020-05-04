@@ -759,6 +759,14 @@ namespace APACElib
                             _events.Add(thisEvent_Birth);
                         }
                         break;
+                    case "Event: Poisson":
+                        {
+                            int IDOfRateParameter = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfRateParameter));
+                            // create the event
+                            Event_Poisson thisEvent_Birth = new Event_Poisson(name, ID, IDOfActivatingIntervention, _paramManager.Parameters[IDOfRateParameter], IDOfDestinationClass);
+                            _events.Add(thisEvent_Birth);
+                        }
+                        break;
                     case "Event: Epidemic-Independent":
                         {
                             int IDOfRateParameter = Convert.ToInt32(eventSheet.GetValue(rowIndex, (int)ExcelInterface.enumEventColumns.IDOfRateParameter));

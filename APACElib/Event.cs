@@ -27,6 +27,7 @@ namespace APACElib
             EpidemicDepedent = 2,
             EpidemicIndepedent = 3,
             Queue = 4,
+            Poisson = 5,
         }
 
         // Instantiation
@@ -52,6 +53,23 @@ namespace APACElib
             Parameter rateParameter, 
             int IDOfDestinationClass)
             : base(name, ID, IDOfActivatingIntervention,IDOfDestinationClass)
+        {
+            _rateParam = rateParameter;
+        }
+
+        public override double Rate => _rateParam.Value;
+    }
+
+    public class Event_Poisson : Event
+    {
+        // Instantiation
+        public Event_Poisson(
+            string name,
+            int ID,
+            int IDOfActivatingIntervention,
+            Parameter rateParameter,
+            int IDOfDestinationClass)
+            : base(name, ID, IDOfActivatingIntervention, IDOfDestinationClass)
         {
             _rateParam = rateParameter;
         }

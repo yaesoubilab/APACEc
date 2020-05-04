@@ -200,7 +200,7 @@ namespace APACElib
         public override void SendOutMembers(double deltaT, RNG rng)
         {
             // if number of members is zero, no member is departing
-            if (ClassStat.Prevalence<= 0)
+            if (ClassStat.Prevalence <= 0)
                 return;
 
             int eIndex = 0;
@@ -214,7 +214,7 @@ namespace APACElib
             foreach (Event thisEvent in _activeEvents)
             {
                 // birth event does not affect the way members are leaving this class
-                if (thisEvent is Event_Birth)
+                if (thisEvent is Event_Birth || thisEvent is Event_Poisson)
                     eventRates[eIndex] = 0;
                 else if (thisEvent is Event_Queue)
                 {
@@ -255,15 +255,21 @@ namespace APACElib
             foreach (Event thisProcess in _activeEvents)
             {
                 // if this is a birth process
-                if (thisProcess is Event_Birth)
+                if (thisProcess is Event_Birth || thisProcess is Event_Poisson)
                 {
                     int numOfBirths = 0;
                     if (thisProcess.Rate == 0)
                         numOfBirths = 0;
                     else
                     {
+                        double poissonRate = 0;
+                        if (thisProcess is Event_Birth)
+                            poissonRate = ClassStat.Prevalence * thisProcess.Rate * deltaT;
+                        else
+                            poissonRate = thisProcess.Rate * deltaT;
+
                         // get a sample on the number of births
-                        numOfBirths = new Poisson("Birth", ClassStat.Prevalence * thisProcess.Rate * deltaT).SampleDiscrete(rng);
+                        numOfBirths = new Poisson("Birth", poissonRate).SampleDiscrete(rng);
                     }
                     // record the number of members out of this process
                     thisProcess.MembersOutOverPastDeltaT = numOfBirths;
