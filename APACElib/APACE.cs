@@ -713,18 +713,29 @@ namespace APACElib
         private void ReportTrajsAndSimStats(EpidemicModeller epiModeller)
         {
             // first find the strings of past action combinations
-            string[] strSimActionCombinations = null;
+
+            string[] strSimActionCombinations = new string[epiModeller.SimSummary.SimSummaryTrajs.TrajsSimIntrvCombinations.Length];
+            int i = 0;
             foreach (int[] thisActionCombination in epiModeller.SimSummary.SimSummaryTrajs.TrajsSimIntrvCombinations)
-                SupportFunctions.AddToEndOfArray(
-                    ref strSimActionCombinations, 
-                    SupportFunctions.ConvertArrayToString(thisActionCombination,",")
-                    );
-            string[] strObsActionCombinations = null;
+                strSimActionCombinations[i++] = SupportFunctions.ConvertArrayToString(thisActionCombination, ",");
+
+            i = 0;
+            string[] strObsActionCombinations = new string[epiModeller.SimSummary.SimSummaryTrajs.TrajsObsIntrvCombinations.Length];
             foreach (int[] thisActionCombination in epiModeller.SimSummary.SimSummaryTrajs.TrajsObsIntrvCombinations)
-                SupportFunctions.AddToEndOfArray(
-                    ref strObsActionCombinations,
-                    SupportFunctions.ConvertArrayToString(thisActionCombination, ",")
-                    );
+                strObsActionCombinations[i++] = SupportFunctions.ConvertArrayToString(thisActionCombination, ",");
+
+            //string[] strSimActionCombinations = null;
+            //foreach (int[] thisActionCombination in epiModeller.SimSummary.SimSummaryTrajs.TrajsSimIntrvCombinations)
+            //    SupportFunctions.AddToEndOfArray(
+            //        ref strSimActionCombinations, 
+            //        SupportFunctions.ConvertArrayToString(thisActionCombination,",")
+            //        );
+            //string[] strObsActionCombinations = null;
+            //foreach (int[] thisActionCombination in epiModeller.SimSummary.SimSummaryTrajs.TrajsObsIntrvCombinations)
+            //    SupportFunctions.AddToEndOfArray(
+            //        ref strObsActionCombinations,
+            //        SupportFunctions.ConvertArrayToString(thisActionCombination, ",")
+            //        );
 
             // report trajectories
             SimSummaryTrajs s = epiModeller.SimSummary.SimSummaryTrajs;
