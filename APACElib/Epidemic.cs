@@ -205,7 +205,7 @@ namespace APACElib
                 _simTimeIndex += 1;                
 
                 // check if stopping rules are satisfied 
-                if (_epiTimeIndex >= timeIndexToStop || StoppedDueToEradication == true)
+                if (_simTimeIndex >= timeIndexToStop || StoppedDueToEradication == true)
                 {
                     toStop = true;
                     
