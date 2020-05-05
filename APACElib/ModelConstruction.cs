@@ -41,7 +41,8 @@ namespace APACElib
 
     public class ModelSettings
     {
-        public OptimizationSettings OptmzSets { get; private set;}
+        public SimulationOptimizationSettings SimOptmzSets { get; private set;}
+        public ADPSettings ADPSets { get; private set; }
         public ModelSheets Sheets { get; private set; }
 
         private double[][,] _baseContactMatrices = new double[0][,]; //[pathogen ID][group i, group j]
@@ -62,6 +63,7 @@ namespace APACElib
         public double AnnualDiscountRate { get; set; }
         public double DeltaTDiscountRate { get; set; }
         public double WTPForHealth { get; set; }
+        public EnumObjectiveFunction ObjectiveFunction { get; set; }
 
         public int NumOfPrevalenceOutputsToReport { get; set; }
         public int NumOfIncidenceOutputsToReport { get; set; }
@@ -77,38 +79,16 @@ namespace APACElib
         public double[] RndSeedsGoodnessOfFit { get; set; }
         public int NumOfSimItrs { get; set; }
         public int NumOfSeedsToRead { get; set; }
-        public EnumQFuncApproximationMethod QFunApxMethod { get; set; } = EnumQFuncApproximationMethod.Q_Approx;
-        public bool IfEpidemicTimeIsUsedAsFeature { get; set; }
-        public int PastDecisionPeriodWithDecisionAsFeature { get; set; }
-        public int DegreeOfPolynomialQFunction { get; set; }
-        public double L2RegularizationPenalty { get; set; }
-        public int NumberOfHiddenNeurons { get; set; }
-        public double[] QFunctionCoefficients { get; set; }
-        public double[] QFunctionCoefficientsInitialValues { get; set; }
-        public EnumObjectiveFunction ObjectiveFunction { get; set; }
-        public int NumOfSimRunsToBackPropogate { get; set; }
+        
+        //public EnumStaticPolicyOptimizationMethod StaticPolicyOptimizationMethod { get; set; }
+        //public int NumOfIterationsToOptimizeStaticPolicies { get; set; }
+        //public int NumOfSimsInEachIterationForStaticPolicyOpt { get; set; }
+        //public int DegreeOfPolyFunctionForStochasticApproximation { get; set; }
+        //public double IntervalBasedPolicy_lastTimeToUseIntervention { get; set; }
+        //public int IntervalBasedPolicy_numOfDecisionPeriodsToUse { get; set; }
+        //public int ThresholdBasedPolicy_MaximumNumOfDecisionPeriodsToUse { get; set; }
+        //public int ThresholdBasedPolicy_MaximumValueOfThresholds { get; set; }
 
-        public double HarmonicRule_a { get; set; }
-        public double HarmonicRule_a_min { get; set; }
-        public double HarmonicRule_a_max { get; set; }
-        public double HarmonicRule_a_step { get; set; }
-        public double EpsilonGreedy_beta { get; set; }
-        public double EpsilonGreedy_delta { get; set; }
-        public double EpsilonGreedy_beta_min { get; set; }
-        public double EpsilonGreedy_beta_max { get; set; }
-        public double EpsilonGreedy_beta_step { get; set; }
-        public int NumOfADPIterations { get; set; }
-        public int NumOfIntervalsToDescretizeFeatures { get; set; }
-        public int NumOfPrespecifiedRNDSeedsToUse { get; set; }
-        public double[][] AdpParameterDesigns { get; set; }
-        public EnumStaticPolicyOptimizationMethod StaticPolicyOptimizationMethod { get; set; }
-        public int NumOfIterationsToOptimizeStaticPolicies { get; set; }
-        public int NumOfSimsInEachIterationForStaticPolicyOpt { get; set; }
-        public int DegreeOfPolyFunctionForStochasticApproximation { get; set; }
-        public double IntervalBasedPolicy_lastTimeToUseIntervention { get; set; }
-        public int IntervalBasedPolicy_numOfDecisionPeriodsToUse { get; set; }
-        public int ThresholdBasedPolicy_MaximumNumOfDecisionPeriodsToUse { get; set; }
-        public int ThresholdBasedPolicy_MaximumValueOfThresholds { get; set; }
         public int[][] PrespecifiedSequenceOfInterventions { get; set; }
         public double[,] MatrixOfObservationsAndLikelihoodParams { get; set; }
         public int NumOfTrajsInParallelForCalibr { get; set; }
@@ -125,8 +105,11 @@ namespace APACElib
                 case EnumModelUse.Simulation:
                     nModels = NumOfSimItrs;
                     break;
-                case EnumModelUse.Optimization:
+                case EnumModelUse.SimOptimization:
                     nModels = 1; // this is determined based on how many parameters the policy has
+                    break;
+                case EnumModelUse.ADPOptimization:
+                    nModels = 1;
                     break;
                 case EnumModelUse.Calibration:
                     nModels = NumOfTrajsInParallelForCalibr;
@@ -148,10 +131,10 @@ namespace APACElib
                     ModelUse = EnumModelUse.Calibration;
                     break;
                 case ExcelInterface.enumWhatToDo.OptimizeTheDynamicPolicy:
-                    ModelUse = EnumModelUse.Optimization;
+                    ModelUse = EnumModelUse.ADPOptimization;
                     break;
                 case ExcelInterface.enumWhatToDo.Optimize:
-                    ModelUse = EnumModelUse.Optimization;
+                    ModelUse = EnumModelUse.SimOptimization;
                     break;
                 case ExcelInterface.enumWhatToDo.RunExperiments:
                     ModelUse = EnumModelUse.Simulation;
@@ -184,9 +167,10 @@ namespace APACElib
             AnnualDiscountRate = excelInterface.GetAnnualInterestRate();
             DeltaTDiscountRate = AnnualDiscountRate * DeltaT;
             WTPForHealth = excelInterface.GetWTPForHealth();
+            ObjectiveFunction = excelInterface.GetObjectiveFunction();
 
             // read RND seeds if necessary
-            if (ModelUse == EnumModelUse.Simulation || ModelUse == EnumModelUse.Optimization)
+            if (ModelUse == EnumModelUse.Simulation || ModelUse == EnumModelUse.SimOptimization || ModelUse == EnumModelUse.ADPOptimization)
             {
                 switch (SimRNDSeedsSource)
                 {
@@ -205,8 +189,10 @@ namespace APACElib
                 }
             }
 
-            if (ModelUse == EnumModelUse.Optimization)
-                OptmzSets = new OptimizationSettings(ref excelInterface);
+            if (ModelUse == EnumModelUse.SimOptimization)
+                SimOptmzSets = new SimulationOptimizationSettings(ref excelInterface);
+            else if (ModelUse == EnumModelUse.ADPOptimization)
+                ADPSets = new ADPSettings(ref excelInterface);
 
             // read sheets
             Sheets = new ModelSheets();
@@ -222,51 +208,10 @@ namespace APACElib
                 ReadPastActions(ref excelInterface);
         }
 
-        // read optimization settings
-        //public void ReadOptimizationSettings(ref ExcelInterface excelInterface)
-        //{
-            
-        //}
         // read feature and approximation related settings
         public void ReadADPOptimizationSettings(ref ExcelInterface excelInterface)
         {
-            string strQFunctionApproximationMethod = excelInterface.GetQFunctionApproximationMethod();
-            switch (strQFunctionApproximationMethod)
-            {
-                case "Q-Approximation":
-                    QFunApxMethod = EnumQFuncApproximationMethod.Q_Approx;
-                    break;
-                case "Additive-Approximation":
-                    QFunApxMethod = EnumQFuncApproximationMethod.A_Approx;
-                    break;
-                case "H-Approximation":
-                    QFunApxMethod = EnumQFuncApproximationMethod.H_Approx;
-                    break;
-            }
-
-            IfEpidemicTimeIsUsedAsFeature = excelInterface.GetIfEpidemicTimeIsUsedAsFeature();
-            PastDecisionPeriodWithDecisionAsFeature = excelInterface.GetPastDecisionPeriodWithDecisionAsFeature();
-            DegreeOfPolynomialQFunction = excelInterface.GetDegreeOfPolynomialQFunction();
-            L2RegularizationPenalty = excelInterface.GetL2RegularizationPenalty();
-            NumberOfHiddenNeurons = excelInterface.GetNumOfHiddenNeurons();
-
-            ObjectiveFunction = excelInterface.GetObjectiveFunction();
-            NumOfADPIterations = excelInterface.GetNumOfADPIterations();
-            NumOfSimRunsToBackPropogate = excelInterface.GetNumOfSimulationRunsToBackPropogate();
-            NumOfPrespecifiedRNDSeedsToUse = excelInterface.GetNumOfPrespecifiedRNDSeedsToUse();
-            HarmonicRule_a = excelInterface.GetHarmonicRule_a();
-            EpsilonGreedy_beta = excelInterface.GetEpsilonGreedy_beta();
-            EpsilonGreedy_delta = excelInterface.GetEpsilonGreedy_delta();
-
-            NumOfIntervalsToDescretizeFeatures = excelInterface.GetnumOfIntervalsToDescretizeFeatures();
-
-            HarmonicRule_a_min = excelInterface.GetHarmonicRule_a_min();
-            HarmonicRule_a_max = excelInterface.GetHarmonicRule_a_max();
-            HarmonicRule_a_step = excelInterface.GetHarmonicRule_a_step();
-
-            EpsilonGreedy_beta_min = excelInterface.GetEpsilonGreedy_beta_min();
-            EpsilonGreedy_beta_max = excelInterface.GetEpsilonGreedy_beta_max();
-            EpsilonGreedy_beta_step = excelInterface.GetEpsilonGreedy_beta_step();
+            
         }
 
         // read the contact matrices
@@ -296,8 +241,8 @@ namespace APACElib
         // read q-function coefficient initial values
         public void ReadQFunctionCoefficientsInitialValues(ref ExcelInterface excelInterface, int numOfFeatures)
         {
-            QFunctionCoefficientsInitialValues =
-               excelInterface.GetQFunctionCoefficientsInitialValues(numOfFeatures);
+            //QFunctionCoefficientsInitialValues =
+            //   excelInterface.GetQFunctionCoefficientsInitialValues(numOfFeatures);
         }
 
         // set up ADP parameter designs
@@ -333,7 +278,7 @@ namespace APACElib
         }
     }
 
-    public class OptimizationSettings
+    public class SimulationOptimizationSettings
     {
         public int NOfItrs { get; }
         public int NOfSimsPerOptItr { get; }
@@ -349,7 +294,7 @@ namespace APACElib
         public double[] WTPs { get; }
         public double Penalty { get; }
 
-        public OptimizationSettings(ref ExcelInterface excelInterface)
+        public SimulationOptimizationSettings(ref ExcelInterface excelInterface)
         {            
             NOfItrs = (int)(double)excelInterface.GetCellValue("General Settings", "numOfOptIterations");
             NOfSimsPerOptItr = (int)(double)excelInterface.GetCellValue("General Settings", "nOfSimPerOptIteration"); 
@@ -378,7 +323,114 @@ namespace APACElib
             Penalty = (double)excelInterface.GetCellValue("General Settings", "penalty");
         }
     }
-    
+
+    public class ADPSettings
+    {
+        public EnumQFuncApproximationMethod QFunApxMethod { get; set; } = EnumQFuncApproximationMethod.Q_Approx;
+        public bool IfEpidemicTimeIsUsedAsFeature { get; set; }
+        public int PastDecisionPeriodWithDecisionAsFeature { get; set; }
+        public int DegreeOfPolynomialQFunction { get; set; }
+        public double L2RegularizationPenalty { get; set; }
+        public int NumberOfHiddenNeurons { get; set; }
+        public double[] QFunctionCoefficients { get; set; }
+        public double[] QFunctionCoefficientsInitialValues { get; set; }
+        
+        public int NumOfSimRunsToBackPropogate { get; set; }
+
+        public double HarmonicRule_a { get; set; }
+        public double HarmonicRule_a_min { get; set; }
+        public double HarmonicRule_a_max { get; set; }
+        public double HarmonicRule_a_step { get; set; }
+        public double EpsilonGreedy_beta { get; set; }
+        public double EpsilonGreedy_delta { get; set; }
+        public double EpsilonGreedy_beta_min { get; set; }
+        public double EpsilonGreedy_beta_max { get; set; }
+        public double EpsilonGreedy_beta_step { get; set; }
+        public int NumOfADPIterations { get; set; }
+        public int NumOfIntervalsToDescretizeFeatures { get; set; }
+        public int NumOfPrespecifiedRNDSeedsToUse { get; set; }
+        public double[][] AdpParameterDesigns { get; set; }
+
+        public ADPSettings(ref ExcelInterface excelInterface)
+        {
+            string strQFunctionApproximationMethod = excelInterface.GetQFunctionApproximationMethod();
+            switch (strQFunctionApproximationMethod)
+            {
+                case "Q-Approximation":
+                    QFunApxMethod = EnumQFuncApproximationMethod.Q_Approx;
+                    break;
+                case "Additive-Approximation":
+                    QFunApxMethod = EnumQFuncApproximationMethod.A_Approx;
+                    break;
+                case "H-Approximation":
+                    QFunApxMethod = EnumQFuncApproximationMethod.H_Approx;
+                    break;
+            }
+
+            IfEpidemicTimeIsUsedAsFeature = excelInterface.GetIfEpidemicTimeIsUsedAsFeature();
+            PastDecisionPeriodWithDecisionAsFeature = excelInterface.GetPastDecisionPeriodWithDecisionAsFeature();
+            DegreeOfPolynomialQFunction = excelInterface.GetDegreeOfPolynomialQFunction();
+            L2RegularizationPenalty = excelInterface.GetL2RegularizationPenalty();
+            NumberOfHiddenNeurons = excelInterface.GetNumOfHiddenNeurons();
+
+            
+            NumOfADPIterations = excelInterface.GetNumOfADPIterations();
+            NumOfSimRunsToBackPropogate = excelInterface.GetNumOfSimulationRunsToBackPropogate();
+            NumOfPrespecifiedRNDSeedsToUse = excelInterface.GetNumOfPrespecifiedRNDSeedsToUse();
+            HarmonicRule_a = excelInterface.GetHarmonicRule_a();
+            EpsilonGreedy_beta = excelInterface.GetEpsilonGreedy_beta();
+            EpsilonGreedy_delta = excelInterface.GetEpsilonGreedy_delta();
+
+            NumOfIntervalsToDescretizeFeatures = excelInterface.GetnumOfIntervalsToDescretizeFeatures();
+
+            HarmonicRule_a_min = excelInterface.GetHarmonicRule_a_min();
+            HarmonicRule_a_max = excelInterface.GetHarmonicRule_a_max();
+            HarmonicRule_a_step = excelInterface.GetHarmonicRule_a_step();
+
+            EpsilonGreedy_beta_min = excelInterface.GetEpsilonGreedy_beta_min();
+            EpsilonGreedy_beta_max = excelInterface.GetEpsilonGreedy_beta_max();
+            EpsilonGreedy_beta_step = excelInterface.GetEpsilonGreedy_beta_step();
+
+
+
+
+
+
+
+
+
+
+
+
+
+            //NOfItrs = (int)(double)excelInterface.GetCellValue("General Settings", "numOfOptIterations");
+            //NOfSimsPerOptItr = (int)(double)excelInterface.GetCellValue("General Settings", "nOfSimPerOptIteration");
+            //NOfLastItrsToAverage = (int)(double)excelInterface.GetCellValue("General Settings", "numOfLastOptmItrsToAve");
+
+            //string strX0 = excelInterface.GetCellValue("General Settings", "initialX").ToString();
+            //X0 = Array.ConvertAll(strX0.Split(','), Convert.ToDouble);
+
+            //string strXScale = excelInterface.GetCellValue("General Settings", "xScale").ToString();
+            //XScale = Array.ConvertAll(strXScale.Split(','), Convert.ToDouble);
+
+            //IfExportResults = SupportFunctions.ConvertYesNoToBool(excelInterface.GetCellValue("General Settings", "ifExportOptResults").ToString());
+            //XDigits = (int)(double)excelInterface.GetCellValue("General Settings", "optXDigits");
+
+            //string str_a0s = excelInterface.GetCellValue("General Settings", "stepSize_GH_a0s").ToString();
+            //StepSize_GH_a0s = Array.ConvertAll(str_a0s.Split(','), Convert.ToDouble);
+            //string str_bs = excelInterface.GetCellValue("General Settings", "stepSize_GH_bs").ToString();
+            //StepSize_GH_bs = Array.ConvertAll(str_bs.Split(','), Convert.ToDouble);
+
+            //string strCs = excelInterface.GetCellValue("General Settings", "derivativeStep").ToString();
+            //DerivativeStep_cs = Array.ConvertAll(strCs.Split(','), Convert.ToDouble);
+
+            //string strWTPs = excelInterface.GetCellValue("General Settings", "wtps").ToString();
+            //WTPs = Array.ConvertAll(strWTPs.Split(','), Convert.ToDouble);
+
+            //Penalty = (double)excelInterface.GetCellValue("General Settings", "penalty");
+        }
+    }
+
     public class ModelInstruction
     {
         protected ModelSettings _modelSets;
