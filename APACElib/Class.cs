@@ -235,6 +235,7 @@ namespace APACElib
                     thisEvent.MembersOutOverPastDeltaT = numOfBirths;
                     // find the number of members to the destination class
                     _numOfMembersToDestClasses[eIndex] += numOfBirths;
+                    MembersWaitingToDepart = true;
 
                 }
                 else if (thisEvent is Event_Queue)
