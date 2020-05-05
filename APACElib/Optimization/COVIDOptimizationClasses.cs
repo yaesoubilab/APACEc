@@ -434,7 +434,7 @@ namespace APACElib.Optimization
             List<ModelInstruction> listModelInstr, double[] wtps, Policy policy)
         {
             _seed = id;
-            _nSimsPerOptItr = modelSets.OptmzSets.NOfSimsPerOptItr;
+            _nSimsPerOptItr = modelSets.SimOptmzSets.NOfSimsPerOptItr;
             Policy = policy;
             _wtps = wtps;
 
@@ -627,25 +627,25 @@ namespace APACElib.Optimization
         protected override SimModel GetASimModel(int epiID)
         {
 
-            double scale = (ModelSets.OptmzSets.WTPs[0] + ModelSets.OptmzSets.WTPs.Last()) / 2;
+            double scale = (ModelSets.SimOptmzSets.WTPs[0] + ModelSets.SimOptmzSets.WTPs.Last()) / 2;
 
             Policy policy;
             switch (PolicyType)
             {
                 case EnumPolicyType.ISingleWTP:
                     policy = new COVIDPolicyISingleWTP(
-                        penalty: ModelSets.OptmzSets.Penalty,
+                        penalty: ModelSets.SimOptmzSets.Penalty,
                         maxI: 25000);
                     break;
 
                 case EnumPolicyType.RtSingleWTP:
                     policy = new COVIDPolicyRtSingleWTP(
-                        penalty: ModelSets.OptmzSets.Penalty,
+                        penalty: ModelSets.SimOptmzSets.Penalty,
                         maxR: 4);
                     break;
                 case EnumPolicyType.RtISingleWTP:
                     policy = new COVIDPolicyRtISingleWTP(
-                        penalty: ModelSets.OptmzSets.Penalty,
+                        penalty: ModelSets.SimOptmzSets.Penalty,
                         maxR: 4, maxI: 25000);
                     break;
                 default:
@@ -657,7 +657,7 @@ namespace APACElib.Optimization
                 excelInterface: EexcelInterface,
                 modelSets: ModelSets,
                 listModelInstr: ListModelInstr,
-                wtps: ModelSets.OptmzSets.WTPs,
+                wtps: ModelSets.SimOptmzSets.WTPs,
                 policy: policy);
                     //wtpScale: scale )
                     

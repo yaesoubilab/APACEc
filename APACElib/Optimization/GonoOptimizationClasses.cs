@@ -354,8 +354,8 @@ namespace APACElib.Optimization
                 excelInterface: EexcelInterface,
                 modelSets: ModelSets,
                 listModelInstr: ListModelInstr,
-                wtps: ModelSets.OptmzSets.WTPs,
-                policy: new PolicyExponential(ModelSets.OptmzSets.Penalty));
+                wtps: ModelSets.SimOptmzSets.WTPs,
+                policy: new PolicyExponential(ModelSets.SimOptmzSets.Penalty));
         }
 
     }

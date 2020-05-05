@@ -159,7 +159,7 @@ namespace APACElib
 
             OptimizeGonohrrea_StructuredPolicy optimizer = 
                 new OptimizeGonohrrea_StructuredPolicy(_excelInterface, _modelSettings, _listModelInstr);
-            optimizer.Minimize(_modelSettings.OptmzSets.XDigits);
+            optimizer.Minimize(_modelSettings.SimOptmzSets.XDigits);
 
             ExcelIntface.ReportOptimization(optimizer.Summary);
         }
@@ -173,7 +173,7 @@ namespace APACElib
             COVIDOptimizer optimizer =
                 new COVIDOptimizer(_excelInterface, _modelSettings, _listModelInstr, COVIDOptimizer.EnumPolicyType.RtISingleWTP);
 
-            optimizer.Minimize(_modelSettings.OptmzSets.XDigits);
+            optimizer.Minimize(_modelSettings.SimOptmzSets.XDigits);
 
             ExcelIntface.ReportOptimization(optimizer.Summary);
 
@@ -194,11 +194,11 @@ namespace APACElib
             BuildAndOptimizeEachEpidemicModeller_DynamicPolicyOptimization(true, _modelSettings.EpidemicTimeIndexToStartDecisionMaking, 0);
 
             // single value for wtp for health
-            if (_modelSettings.OptmzSets.WTPs.Count() == 1)
+            if (_modelSettings.SimOptmzSets.WTPs.Count() == 1)
             {
                 double harmonicStep_a = 0, epsilonGreedy_beta = 0;
                 // find the optimal epidemic modeler
-                EpidemicModeller optimalEpidemicModeller = FindOptimalEpiModeller_DynamicPolicy(_modelSettings.OptmzSets.WTPs[0], ref harmonicStep_a, ref epsilonGreedy_beta);
+                EpidemicModeller optimalEpidemicModeller = FindOptimalEpiModeller_DynamicPolicy(_modelSettings.SimOptmzSets.WTPs[0], ref harmonicStep_a, ref epsilonGreedy_beta);
                 // report optimization result
                 ReportADPResultsForThisEpidemic(optimalEpidemicModeller, harmonicStep_a, epsilonGreedy_beta);
                 // report simulation result
@@ -357,11 +357,11 @@ namespace APACElib
             _listModelInstr = new List<ModelInstruction>();
             if (model == "Gonorrhea")
             {
-                if (_modelSettings.ModelUse == EnumModelUse.Optimization)
+                if (_modelSettings.ModelUse == EnumModelUse.SimOptimization)
                 {
                     // 2 for f and Df, and 2 * (number of policy parameters) for 2-direction derivatives 
                     //PolicyExponential.NOfPolicyParameters = 3;
-                    numOfEpidemics = _modelSettings.OptmzSets.WTPs.Count() * (2 + 2 * _modelSettings.OptmzSets.X0.Length); // PolicyExponential.NOfPolicyParameters);
+                    numOfEpidemics = _modelSettings.SimOptmzSets.WTPs.Count() * (2 + 2 * _modelSettings.SimOptmzSets.X0.Length); // PolicyExponential.NOfPolicyParameters);
                 }
                 for (int i = 0; i < numOfEpidemics; i++)
                     _listModelInstr.Add(new MSMGonoModel());
@@ -373,8 +373,8 @@ namespace APACElib
             }
             else
             {
-                if (_modelSettings.ModelUse == EnumModelUse.Optimization)
-                    numOfEpidemics = _modelSettings.OptmzSets.NOfSimsPerOptItr * (_modelSettings.OptmzSets.WTPs.Count() * (2 + 2 * _modelSettings.OptmzSets.X0.Length));
+                if (_modelSettings.ModelUse == EnumModelUse.SimOptimization)
+                    numOfEpidemics = _modelSettings.SimOptmzSets.NOfSimsPerOptItr * (_modelSettings.SimOptmzSets.WTPs.Count() * (2 + 2 * _modelSettings.SimOptmzSets.X0.Length));
 
                 for (int i = 0; i < numOfEpidemics; i++)
                     _listModelInstr.Add(new ModelInstruction());
@@ -400,14 +400,14 @@ namespace APACElib
             if (_modelSettings.UseParallelComputing == false)
             {
                 #region Use sequential computing
-                for (int epiID = 0; epiID < _modelSettings.AdpParameterDesigns.Length; epiID++)
+                for (int epiID = 0; epiID < _modelSettings.ADPSets.AdpParameterDesigns.Length; epiID++)
                 {
                     // build an epidemic model
                     EpidemicModeller thisEpidemicModeller
                         = GetAnEpidemicModellerForOptimizatingDynamicPolicies(epiID,
-                        _modelSettings.AdpParameterDesigns[epiID][(int)enumADPParameter.WTPForHealth],
-                        _modelSettings.AdpParameterDesigns[epiID][(int)enumADPParameter.HarmonicStepSize_a],
-                        _modelSettings.AdpParameterDesigns[epiID][(int)enumADPParameter.EpsilonGreedy_beta]);
+                        _modelSettings.ADPSets.AdpParameterDesigns[epiID][(int)enumADPParameter.WTPForHealth],
+                        _modelSettings.ADPSets.AdpParameterDesigns[epiID][(int)enumADPParameter.HarmonicStepSize_a],
+                        _modelSettings.ADPSets.AdpParameterDesigns[epiID][(int)enumADPParameter.EpsilonGreedy_beta]);
 
                     // update time to start decision making and storing outcomes
                     //thisEpidemicModeller.UpdateTheTimeToStartDecisionMakingAndWarmUpPeriod
@@ -433,14 +433,14 @@ namespace APACElib
                 Object thisLock = new Object();
                 var options = new ParallelOptions() { MaxDegreeOfParallelism = _modelSettings.MaxDegreeOfParallelism};
                 
-                Parallel.For(0, _modelSettings.AdpParameterDesigns.Length, options, epiID =>
+                Parallel.For(0, _modelSettings.ADPSets.AdpParameterDesigns.Length, options, epiID =>
                 {
                     // build an epidemic model
                     EpidemicModeller thisEpidemicModeller
                         = GetAnEpidemicModellerForOptimizatingDynamicPolicies(epiID,
-                        _modelSettings.AdpParameterDesigns[epiID][(int)enumADPParameter.WTPForHealth],
-                        _modelSettings.AdpParameterDesigns[epiID][(int)enumADPParameter.HarmonicStepSize_a],
-                        _modelSettings.AdpParameterDesigns[epiID][(int)enumADPParameter.EpsilonGreedy_beta]);
+                        _modelSettings.ADPSets.AdpParameterDesigns[epiID][(int)enumADPParameter.WTPForHealth],
+                        _modelSettings.ADPSets.AdpParameterDesigns[epiID][(int)enumADPParameter.HarmonicStepSize_a],
+                        _modelSettings.ADPSets.AdpParameterDesigns[epiID][(int)enumADPParameter.EpsilonGreedy_beta]);
 
                     // update time to start decision making and storing outcomes
                     //thisEpidemicModeller.UpdateTheTimeToStartDecisionMakingAndWarmUpPeriod
@@ -483,7 +483,7 @@ namespace APACElib
             // find the objective function of each epidemic modeler 
             foreach (EpidemicModeller thisEpiModeller in _epidemicModellers)
             {
-                if (Math.Abs(_modelSettings.AdpParameterDesigns[thisEpiModeller.ID][(int)enumADPParameter.WTPForHealth] - forThisWTPforHealth) 
+                if (Math.Abs(_modelSettings.ADPSets.AdpParameterDesigns[thisEpiModeller.ID][(int)enumADPParameter.WTPForHealth] - forThisWTPforHealth) 
                     < SupportProcedures.minimumWTPforHealth)
                 {
                     //mean = thisEpiModeller.GetObjectiveFunction_Mean(_modelSettings.ObjectiveFunction);
@@ -501,8 +501,8 @@ namespace APACElib
                 }
                 ++position;
             }
-            optHarmonicStep_a = _modelSettings.AdpParameterDesigns[IDOfOptimalEpiModeller][(int)enumADPParameter.HarmonicStepSize_a];
-            optEpsilonGreedy_beta = _modelSettings.AdpParameterDesigns[IDOfOptimalEpiModeller][(int)enumADPParameter.EpsilonGreedy_beta];
+            optHarmonicStep_a = _modelSettings.ADPSets.AdpParameterDesigns[IDOfOptimalEpiModeller][(int)enumADPParameter.HarmonicStepSize_a];
+            optEpsilonGreedy_beta = _modelSettings.ADPSets.AdpParameterDesigns[IDOfOptimalEpiModeller][(int)enumADPParameter.EpsilonGreedy_beta];
 
             return (EpidemicModeller)_epidemicModellers[positionOfOptimalEpiModeller];
         }
@@ -575,7 +575,7 @@ namespace APACElib
             _modelSettings.ReadQFunctionCoefficientsInitialValues(ref _excelInterface, _epidemicModeller.ModelInfo.NumOfFeatures);
            
             // set up ADP Iterations sheet
-            ExcelIntface.SetUpOptimizationOutput(_modelSettings.NumOfADPIterations* _modelSettings.NumOfSimRunsToBackPropogate);
+            ExcelIntface.SetUpOptimizationOutput(_modelSettings.ADPSets.NumOfADPIterations* _modelSettings.ADPSets.NumOfSimRunsToBackPropogate);
             // setup simulation output sheet
             SetupSimulationOutputSheet();
         }
@@ -872,7 +872,7 @@ namespace APACElib
             double[][] adpSASimulationOutcomes = new double[0][];
             double[][] adpSASimulationIterations = new double[0][];              
 
-            foreach (double thisWTPForHealth in _modelSettings.OptmzSets.WTPs)
+            foreach (double thisWTPForHealth in _modelSettings.SimOptmzSets.WTPs)
             {
                 // find the optimal static policy for this epidemic
                 optHarmonicStep_a = 0; 
@@ -962,7 +962,7 @@ namespace APACElib
             double[][] simulationOutcomes = new double[0][], simulationIterations = new double[0][];
             string[][] staticPolicies = new string[0][];
 
-            foreach (double thisWTPForHealth in _modelSettings.OptmzSets.WTPs)
+            foreach (double thisWTPForHealth in _modelSettings.SimOptmzSets.WTPs)
             {
                 // find the optimal static policy for this epidemic
                 EpidemicModeller thisEpiModeller = null;

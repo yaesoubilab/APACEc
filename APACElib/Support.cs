@@ -33,7 +33,8 @@ namespace APACElib
     {
         Simulation = 0,
         Calibration = 1,
-        Optimization = 2,
+        SimOptimization = 2,
+        ADPOptimization = 3,
     }
     public enum EnumObjectiveFunction : int
     {

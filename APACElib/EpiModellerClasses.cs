@@ -416,7 +416,7 @@ namespace APACElib
                             thisEpidemic.DecisionMaker.AddPrespecifiedDecisionsOverDecisionsPeriods(_modelSet.PrespecifiedSequenceOfInterventions);
                     }
                     break;
-                case EnumModelUse.Optimization:
+                case EnumModelUse.SimOptimization:
                     {
                         thisEpidemic.StoreEpiTrajsForExcelOutput = false;
                     }

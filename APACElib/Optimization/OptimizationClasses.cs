@@ -90,11 +90,11 @@ namespace APACElib.Optimization
 
             // initial values of policy parameters 
             // (this could be different from or the same as the status quo parameters)
-            double[] arrX0 = ModelSets.OptmzSets.X0;
+            double[] arrX0 = ModelSets.SimOptmzSets.X0;
             x0 = Vector<double>.Build.DenseOfArray(arrX0);
 
             // scale of policy parameters
-            double[] arrXScale = ModelSets.OptmzSets.XScale;
+            double[] arrXScale = ModelSets.SimOptmzSets.XScale;
             xScale = Vector<double>.Build.DenseOfArray(arrXScale);
         }
 
@@ -106,24 +106,24 @@ namespace APACElib.Optimization
             // build as many as a0's * b's * c0's
             int epiID = 0;
             List<SimModel> epiModels = new List<SimModel>();
-            foreach (double a0 in ModelSets.OptmzSets.StepSize_GH_a0s)
-                foreach (double b in ModelSets.OptmzSets.StepSize_GH_bs)
-                    foreach (double c0 in ModelSets.OptmzSets.DerivativeStep_cs)
+            foreach (double a0 in ModelSets.SimOptmzSets.StepSize_GH_a0s)
+                foreach (double b in ModelSets.SimOptmzSets.StepSize_GH_bs)
+                    foreach (double c0 in ModelSets.SimOptmzSets.DerivativeStep_cs)
                         epiModels.Add(GetASimModel(epiID++));
 
             // create a multi stochastic approximation object            
             // it runs the optimization algorithm for all combinations of (a0's, b's, c0's)
             MultipleStochasticApproximation multOptimizer = new MultipleStochasticApproximation(
                 simModels: epiModels,
-                stepSizeGH_a0s: ModelSets.OptmzSets.StepSize_GH_a0s,
-                stepSizeGH_bs: ModelSets.OptmzSets.StepSize_GH_bs,
-                stepSizeDf_cs: ModelSets.OptmzSets.DerivativeStep_cs
+                stepSizeGH_a0s: ModelSets.SimOptmzSets.StepSize_GH_a0s,
+                stepSizeGH_bs: ModelSets.SimOptmzSets.StepSize_GH_bs,
+                stepSizeDf_cs: ModelSets.SimOptmzSets.DerivativeStep_cs
                 );
 
             // minimize 
             multOptimizer.Minimize(
-                nItrs: ModelSets.OptmzSets.NOfItrs,
-                nLastItrsToAve: ModelSets.OptmzSets.NOfLastItrsToAverage,
+                nItrs: ModelSets.SimOptmzSets.NOfItrs,
+                nLastItrsToAve: ModelSets.SimOptmzSets.NOfLastItrsToAverage,
                 x0: x0,
                 xScale: xScale,
                 ifParallel: false, // combinations of (a0's, b's, c0's) will run sequentially 
@@ -131,7 +131,7 @@ namespace APACElib.Optimization
                 );
 
             // export results
-            if (ModelSets.OptmzSets.IfExportResults)
+            if (ModelSets.SimOptmzSets.IfExportResults)
                 multOptimizer.ExportResultsToCSV("");
 
             // store the summary of the optimization
