@@ -326,33 +326,27 @@ namespace APACElib
 
     public class ADPSettings
     {
-        public EnumQFuncApproximationMethod QFunApxMethod { get; set; } = EnumQFuncApproximationMethod.Q_Approx;
-        public bool IfEpidemicTimeIsUsedAsFeature { get; set; }
-        public int PastDecisionPeriodWithDecisionAsFeature { get; set; }
-        public int DegreeOfPolynomialQFunction { get; set; }
-        public double L2RegularizationPenalty { get; set; }
-        public int NumberOfHiddenNeurons { get; set; }
-        public double[] QFunctionCoefficients { get; set; }
-        public double[] QFunctionCoefficientsInitialValues { get; set; }
-        
-        public int NumOfSimRunsToBackPropogate { get; set; }
+        public int NOfItrs { get; }
+        public int NOfSimRunsToBackPropogate { get; }
+        public EnumQFuncApproximationMethod QFunApxMethod { get; }
 
-        public double HarmonicRule_a { get; set; }
-        public double HarmonicRule_a_min { get; set; }
-        public double HarmonicRule_a_max { get; set; }
-        public double HarmonicRule_a_step { get; set; }
-        public double EpsilonGreedy_beta { get; set; }
-        public double EpsilonGreedy_delta { get; set; }
-        public double EpsilonGreedy_beta_min { get; set; }
-        public double EpsilonGreedy_beta_max { get; set; }
-        public double EpsilonGreedy_beta_step { get; set; }
-        public int NumOfADPIterations { get; set; }
+        public int DegreeOfPolynomialQFunction { get; }
+        public double L2Reg { get; }
+
+        public double[] HarmonicLearning_bs { get; }
+        public double[] EpsilonGreedy_betas { get; }
+
+        
+        // ------------------
+        public double[] QFunctionCoefficients { get; set; }
+        public double[] QFunctionCoefficientsInitialValues { get; set; }              
         public int NumOfIntervalsToDescretizeFeatures { get; set; }
-        public int NumOfPrespecifiedRNDSeedsToUse { get; set; }
         public double[][] AdpParameterDesigns { get; set; }
 
         public ADPSettings(ref ExcelInterface excelInterface)
         {
+            NOfItrs = excelInterface.GetNumOfADPIterations();
+            NOfSimRunsToBackPropogate = excelInterface.GetNumOfSimulationRunsToBackPropogate();
             string strQFunctionApproximationMethod = excelInterface.GetQFunctionApproximationMethod();
             switch (strQFunctionApproximationMethod)
             {
@@ -365,69 +359,26 @@ namespace APACElib
                 case "H-Approximation":
                     QFunApxMethod = EnumQFuncApproximationMethod.H_Approx;
                     break;
+                default:
+                    throw new System.ArgumentException("Invalid value for q-function approximation method.");
             }
 
-            IfEpidemicTimeIsUsedAsFeature = excelInterface.GetIfEpidemicTimeIsUsedAsFeature();
-            PastDecisionPeriodWithDecisionAsFeature = excelInterface.GetPastDecisionPeriodWithDecisionAsFeature();
             DegreeOfPolynomialQFunction = excelInterface.GetDegreeOfPolynomialQFunction();
-            L2RegularizationPenalty = excelInterface.GetL2RegularizationPenalty();
-            NumberOfHiddenNeurons = excelInterface.GetNumOfHiddenNeurons();
+            L2Reg = excelInterface.GetL2RegularizationPenalty();
 
-            
-            NumOfADPIterations = excelInterface.GetNumOfADPIterations();
-            NumOfSimRunsToBackPropogate = excelInterface.GetNumOfSimulationRunsToBackPropogate();
-            NumOfPrespecifiedRNDSeedsToUse = excelInterface.GetNumOfPrespecifiedRNDSeedsToUse();
-            HarmonicRule_a = excelInterface.GetHarmonicRule_a();
-            EpsilonGreedy_beta = excelInterface.GetEpsilonGreedy_beta();
-            EpsilonGreedy_delta = excelInterface.GetEpsilonGreedy_delta();
+            string str_bs = excelInterface.GetCellValue("General Settings", "ADPHarmonicBs").ToString();
+            HarmonicLearning_bs = Array.ConvertAll(str_bs.Split(','), Convert.ToDouble);
+
+            string str_betas = excelInterface.GetCellValue("General Settings", "epsilonGreedyBetas").ToString();
+            EpsilonGreedy_betas = Array.ConvertAll(str_betas.Split(','), Convert.ToDouble);
+
+
+            //--------------------
+
 
             NumOfIntervalsToDescretizeFeatures = excelInterface.GetnumOfIntervalsToDescretizeFeatures();
 
-            HarmonicRule_a_min = excelInterface.GetHarmonicRule_a_min();
-            HarmonicRule_a_max = excelInterface.GetHarmonicRule_a_max();
-            HarmonicRule_a_step = excelInterface.GetHarmonicRule_a_step();
 
-            EpsilonGreedy_beta_min = excelInterface.GetEpsilonGreedy_beta_min();
-            EpsilonGreedy_beta_max = excelInterface.GetEpsilonGreedy_beta_max();
-            EpsilonGreedy_beta_step = excelInterface.GetEpsilonGreedy_beta_step();
-
-
-
-
-
-
-
-
-
-
-
-
-
-            //NOfItrs = (int)(double)excelInterface.GetCellValue("General Settings", "numOfOptIterations");
-            //NOfSimsPerOptItr = (int)(double)excelInterface.GetCellValue("General Settings", "nOfSimPerOptIteration");
-            //NOfLastItrsToAverage = (int)(double)excelInterface.GetCellValue("General Settings", "numOfLastOptmItrsToAve");
-
-            //string strX0 = excelInterface.GetCellValue("General Settings", "initialX").ToString();
-            //X0 = Array.ConvertAll(strX0.Split(','), Convert.ToDouble);
-
-            //string strXScale = excelInterface.GetCellValue("General Settings", "xScale").ToString();
-            //XScale = Array.ConvertAll(strXScale.Split(','), Convert.ToDouble);
-
-            //IfExportResults = SupportFunctions.ConvertYesNoToBool(excelInterface.GetCellValue("General Settings", "ifExportOptResults").ToString());
-            //XDigits = (int)(double)excelInterface.GetCellValue("General Settings", "optXDigits");
-
-            //string str_a0s = excelInterface.GetCellValue("General Settings", "stepSize_GH_a0s").ToString();
-            //StepSize_GH_a0s = Array.ConvertAll(str_a0s.Split(','), Convert.ToDouble);
-            //string str_bs = excelInterface.GetCellValue("General Settings", "stepSize_GH_bs").ToString();
-            //StepSize_GH_bs = Array.ConvertAll(str_bs.Split(','), Convert.ToDouble);
-
-            //string strCs = excelInterface.GetCellValue("General Settings", "derivativeStep").ToString();
-            //DerivativeStep_cs = Array.ConvertAll(strCs.Split(','), Convert.ToDouble);
-
-            //string strWTPs = excelInterface.GetCellValue("General Settings", "wtps").ToString();
-            //WTPs = Array.ConvertAll(strWTPs.Split(','), Convert.ToDouble);
-
-            //Penalty = (double)excelInterface.GetCellValue("General Settings", "penalty");
         }
     }
 

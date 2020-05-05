@@ -575,7 +575,7 @@ namespace APACElib
             _modelSettings.ReadQFunctionCoefficientsInitialValues(ref _excelInterface, _epidemicModeller.ModelInfo.NumOfFeatures);
            
             // set up ADP Iterations sheet
-            ExcelIntface.SetUpOptimizationOutput(_modelSettings.ADPSets.NumOfADPIterations* _modelSettings.ADPSets.NumOfSimRunsToBackPropogate);
+            ExcelIntface.SetUpOptimizationOutput(_modelSettings.ADPSets.NOfItrs* _modelSettings.ADPSets.NOfSimRunsToBackPropogate);
             // setup simulation output sheet
             SetupSimulationOutputSheet();
         }
