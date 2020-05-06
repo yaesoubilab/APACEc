@@ -16,7 +16,13 @@ namespace APACElib
     }
 
     public abstract class DecisionRule
-    {        
+    {
+        protected int _defaultSwitchValue;
+        public DecisionRule(int defaultSwtichValue)
+        {
+            _defaultSwitchValue = defaultSwtichValue;
+        }
+
         public virtual int GetSwitchStatus(int currentSwitchStatus, int epiTimeIndex) { return 0; }
     }
 
@@ -25,7 +31,7 @@ namespace APACElib
     {
         private int _switchValue = 0;
 
-        public DecionRule_Predetermined(int predeterminedSwitchValue)
+        public DecionRule_Predetermined(int predeterminedSwitchValue): base(predeterminedSwitchValue)
         {
             _switchValue = predeterminedSwitchValue;
         }
@@ -44,7 +50,7 @@ namespace APACElib
         private int _conditionIDToTurnOff;
 
         public DecisionRule_ConditionBased(
-            List<Condition> conditions, int conditionIDToTurnOn, int conditionIDToTurnOff)
+            List<Condition> conditions, int conditionIDToTurnOn, int conditionIDToTurnOff, int defaultSwtichValue): base (defaultSwtichValue)
         {
             _conditions = conditions;
             _conditionIDToTurnOn = conditionIDToTurnOn;
@@ -55,11 +61,20 @@ namespace APACElib
         {
             int value = currentSwitchStatus;
             // if to turn on
-            if (currentSwitchStatus == 0 && _conditions[_conditionIDToTurnOn].Value.HasValue && _conditions[_conditionIDToTurnOn].Value==true)
-                value = 1;
-            // if to turn off
-            else if (currentSwitchStatus == 1 && _conditions[_conditionIDToTurnOff].Value.HasValue && _conditions[_conditionIDToTurnOff].Value==true)
-                value = 0;
+            if (currentSwitchStatus == 0)
+            {
+                if (_conditions[_conditionIDToTurnOn].Value.HasValue)
+                    value = _conditions[_conditionIDToTurnOn].Value.Value ? 1 : 0;
+                else
+                    value = _defaultSwitchValue;
+            }
+            else if (currentSwitchStatus == 1)
+            {
+                if (_conditions[_conditionIDToTurnOff].Value.HasValue)
+                    value = _conditions[_conditionIDToTurnOff].Value.Value ? 0 : 1;
+                else
+                    value = _defaultSwitchValue;
+            }
 
             return value;
         }
@@ -71,7 +86,7 @@ namespace APACElib
         private int _frequency_nOfDcisionPeriods = 0;
         private int _duration_nOfDcisionPeriods = 0;
 
-        public DecionRule_Periodic(int frequency_nOfDcisionPeriods, int duration_nOfDcisionPeriods)
+        public DecionRule_Periodic(int frequency_nOfDcisionPeriods, int duration_nOfDcisionPeriods, int defaultSwtichValue): base(defaultSwtichValue)
         {
             _frequency_nOfDcisionPeriods = frequency_nOfDcisionPeriods;
             _duration_nOfDcisionPeriods = duration_nOfDcisionPeriods;
@@ -84,7 +99,7 @@ namespace APACElib
         private int _timeIndexToTurnOn;
         private int _timeIndexToTurnOff;
 
-        public DecionRule_IntervalBased(int timeIndexToTurnOn, int timeIndexToTurnOff)
+        public DecionRule_IntervalBased(int timeIndexToTurnOn, int timeIndexToTurnOff, int defaultSwtichValue): base(defaultSwtichValue)
         {
             _timeIndexToTurnOn = timeIndexToTurnOn;
             _timeIndexToTurnOff = timeIndexToTurnOff;
@@ -94,7 +109,7 @@ namespace APACElib
     // dynamic decision rule 
     public class DecionRule_Dynamic : DecisionRule
     {
-        public DecionRule_Dynamic()
+        public DecionRule_Dynamic(int defaultSwtichValue): base (defaultSwtichValue)
         {
         }
     }

@@ -1689,7 +1689,8 @@ namespace APACElib
                         simDecisionRule = new DecisionRule_ConditionBased(
                             conditions: _epiHist.Conditions,
                             conditionIDToTurnOn: (deci == 0) ? conditionIDToTurnOn : (conditionIDToTurnOn + regionID + 1),
-                            conditionIDToTurnOff: (deci == 0) ? conditionIDToTurnOff : (conditionIDToTurnOff + regionID + 1));
+                            conditionIDToTurnOff: (deci == 0) ? conditionIDToTurnOff : (conditionIDToTurnOff + regionID + 1),
+                            defaultSwtichValue: 0);
 
                     // intervention
                     _decisionMaker.AddAnIntervention(

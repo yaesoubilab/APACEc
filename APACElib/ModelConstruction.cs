@@ -945,7 +945,7 @@ namespace APACElib
                         {
                             int conditionIDToTurnOn = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_ConditionIDToTurnOn));
                             int conditionIDToTurnOff = Convert.ToInt32(interventionsSheet.GetValue(rowIndex, (int)ExcelInterface.enumInterventionColumns.ThresholdBased_ConditionIDToTurnOff));
-                            simDecisionRule = new DecisionRule_ConditionBased(_epiHist.Conditions, conditionIDToTurnOn, conditionIDToTurnOff);
+                            simDecisionRule = new DecisionRule_ConditionBased(_epiHist.Conditions, conditionIDToTurnOn, conditionIDToTurnOff, switchStatus);
                         }
                         break;
                     case EnumDecisionRule.IntervalBased:
