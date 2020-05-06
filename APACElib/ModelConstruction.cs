@@ -208,11 +208,6 @@ namespace APACElib
                 ReadPastActions(ref excelInterface);
         }
 
-        // read feature and approximation related settings
-        public void ReadADPOptimizationSettings(ref ExcelInterface excelInterface)
-        {
-            
-        }
 
         // read the contact matrices
         public void ReadContactMatrices(ref ExcelInterface excelInterface, int numOfInterventionsAffectingContactPattern)

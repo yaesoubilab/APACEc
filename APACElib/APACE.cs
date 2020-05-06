@@ -183,9 +183,6 @@ namespace APACElib
         // optimize the dynamic policy
         private void OptimizeTheDynamicPolicy()
         {
-            // read optimization settings
-            _modelSettings.ReadADPOptimizationSettings(ref _excelInterface);
-
             // initialize dynamic policy optimization
             InitializeDynamicPolicyOptimization();
             // set up ADP parameter designs
@@ -213,26 +210,7 @@ namespace APACElib
             // report computation time
             ReportADPComputationTimes();
         }       
-        // optimize the static policy
-        private void OptimizeTheStaticPolicy()
-        {
-            // read optimization settings
-            _modelSettings.ReadADPOptimizationSettings(ref _excelInterface);
-
-            ArrayList staticPolicyDesigns = new ArrayList();
-            // build a temp modeler to find the available decisions
-            EpidemicModeller tempEpidemicModeller = new EpidemicModeller(0, _excelInterface, _modelSettings, _listModelInstr);
-
-            // get interval-based static policy designs
-            //staticPolicyDesigns = tempEpidemicModeller.GetIntervalBasedStaticPoliciesDesigns();
-
-            // evaluate the defined interval-based static policies
-            //BuildAndSimulateEpidemicModellersToEvaluateIntervalBasedStaticPolicies
-                // (staticPolicyDesigns, 0);
-
-            // report static policy optimization
-            ReportStaticPolicyOptimizationResults(staticPolicyDesigns);
-        }        
+              
 
         // run experiments
         private void RunExperiments()
@@ -507,44 +485,7 @@ namespace APACElib
             return (EpidemicModeller)_epidemicModellers[positionOfOptimalEpiModeller];
         }
         
-        // find the epidemic modeler with optimal static policy - full factorial is used to evaluate static policies
-        private EpidemicModeller FindOptimalEpiModeller_StaticPolicyEvaluatedUsingFullFacturial
-            (ArrayList staticPolicyParameterDesigns, double forThisWTPforHealth,
-            ref int interventionCombinationBode, ref double[] optimalStartTimes, ref int[] optimalNumOfDecisionPeriodsToUse)
-        {
-            //double maxMean = double.MinValue;
-            //double maxLowerBound = double.MinValue;
-            //double maxUpperBound = double.MinValue;
-            //double mean, lowerBound, upperBound;
-
-            forThisWTPforHealth = Math.Max(forThisWTPforHealth, SupportProcedures.minimumWTPforHealth);
-            
-            // find the objective function of each epidemic modeler 
-            int IDOfOptimalEpiModeller = 0;
-            int position = 0, positionOfOptimalEpiModeller = 0;
-            foreach (EpidemicModeller thisEpiModeller in _epidemicModellers)
-            {
-                //mean = thisEpiModeller.GetObjectiveFunction_Mean(_modelSettings.ObjectiveFunction, forThisWTPforHealth);
-                //lowerBound = thisEpiModeller.GetObjectiveFunction_LowerBound(_modelSettings.ObjectiveFunction, forThisWTPforHealth, 0.05);
-                //upperBound = thisEpiModeller.GetObjectiveFunction_UpperBound(_modelSettings.ObjectiveFunction, forThisWTPforHealth, 0.05);
-                //if ((mean >= maxMean && lowerBound >= maxLowerBound)
-                //    || (mean < maxMean && upperBound > maxMean && lowerBound > maxLowerBound))
-                //{
-                //    maxMean = mean;
-                //    maxLowerBound = lowerBound;
-                //    maxUpperBound = upperBound;
-                //    IDOfOptimalEpiModeller = thisEpiModeller.ID;
-                //    positionOfOptimalEpiModeller = position;
-                //}
-                ++position;
-            }
-            // find the optimal policy (assuming that only interval-based policies are considered) 
-            interventionCombinationBode = ((IntervalBasedStaticPolicy)staticPolicyParameterDesigns[IDOfOptimalEpiModeller]).InterventionCombinationCode;
-            optimalStartTimes = ((IntervalBasedStaticPolicy)staticPolicyParameterDesigns[IDOfOptimalEpiModeller]).TimeToUseInterventions;
-            optimalNumOfDecisionPeriodsToUse = ((IntervalBasedStaticPolicy)staticPolicyParameterDesigns[IDOfOptimalEpiModeller]).NumOfDecisionPointsToUseInterventions;
-
-            return (EpidemicModeller)_epidemicModellers[positionOfOptimalEpiModeller];
-        }        
+        
        
         // initialize dynamic policy optimization
         private void InitializeDynamicPolicyOptimization()
@@ -951,73 +892,7 @@ namespace APACElib
             // report
             ExcelIntface.ReportADPComputationTimes(measures, statistics);
         }
-        // report static optimization results
-        public void ReportStaticPolicyOptimizationResults(ArrayList staticPolicyParameterDesigns)
-        {
-            int interventionCombinationCode = 0;
-            double[] optimalStartTimes = new double[0];
-            int[] optimalNumOfDecisionPeriodsToUse = new int[0];
-
-            double[] wtp = new double[0];
-            double[][] simulationOutcomes = new double[0][], simulationIterations = new double[0][];
-            string[][] staticPolicies = new string[0][];
-
-            foreach (double thisWTPForHealth in _modelSettings.SimOptmzSets.WTPs)
-            {
-                // find the optimal static policy for this epidemic
-                EpidemicModeller thisEpiModeller = null;
-
-                thisEpiModeller = FindOptimalEpiModeller_StaticPolicyEvaluatedUsingFullFacturial
-                                        (staticPolicyParameterDesigns, thisWTPForHealth, ref interventionCombinationCode, ref optimalStartTimes, ref optimalNumOfDecisionPeriodsToUse);
-                
-                // read static policy
-                string[] thisStaticPolicy = new string[3];
-                thisStaticPolicy[0] = SupportFunctions.ConvertArrayToString(SupportFunctions.ConvertToBase2FromBase10(interventionCombinationCode, optimalStartTimes.Length), ",");
-                thisStaticPolicy[1] = SupportFunctions.ConvertArrayToString(optimalStartTimes, ",");
-                thisStaticPolicy[2] = SupportFunctions.ConvertArrayToString(optimalNumOfDecisionPeriodsToUse, ",");
-
-                // concatenate
-                SupportFunctions.AddToEndOfArray(ref wtp, thisWTPForHealth);
-                staticPolicies = SupportFunctions.ConcatJaggedArray(staticPolicies, thisStaticPolicy);
-
-                // concatenate simulation outcomes
-                //simulationOutcomes = SupportFunctions.ConcatJaggedArray(simulationOutcomes, ExtractSimulationOutcomes(thisEpiModeller, thisWTPForHealth));
-
-                // simulation iterations
-                double[][] thisSimulationIterations = new double[_modelSettings.NumOfSimItrs][];
-                for (int simItr = 0; simItr < _modelSettings.NumOfSimItrs; simItr++)
-                {
-                    thisSimulationIterations[simItr] = new double[5];
-                    thisSimulationIterations[simItr][(int)ExcelInterface.enumStaticPolicyOptimizationSimulationIterationsOffsets.wtpForHealth] = thisWTPForHealth;
-
-                    if (_modelSettings.ObjectiveFunction == EnumObjectiveFunction.MaximizeNHB)
-                        thisSimulationIterations[simItr][(int)ExcelInterface.enumStaticPolicyOptimizationSimulationIterationsOffsets.objectiveFunction]
-                            = -thisEpiModeller.SimSummary.DALYs[simItr] 
-                            - thisEpiModeller.SimSummary.Costs[simItr] / Math.Max(thisWTPForHealth, SupportProcedures.minimumWTPforHealth);
-                    else
-                        thisSimulationIterations[simItr][(int)ExcelInterface.enumStaticPolicyOptimizationSimulationIterationsOffsets.objectiveFunction]
-                            = -thisWTPForHealth * thisEpiModeller.SimSummary.DALYs[simItr] 
-                            - thisEpiModeller.SimSummary.Costs[simItr];
-                    thisSimulationIterations[simItr][(int)ExcelInterface.enumStaticPolicyOptimizationSimulationIterationsOffsets.health]
-                        = thisEpiModeller.SimSummary.DALYs[simItr];
-                    thisSimulationIterations[simItr][(int)ExcelInterface.enumStaticPolicyOptimizationSimulationIterationsOffsets.cost]
-                        = thisEpiModeller.SimSummary.Costs[simItr];
-                    thisSimulationIterations[simItr][(int)ExcelInterface.enumStaticPolicyOptimizationSimulationIterationsOffsets.annualCost]
-                        = thisEpiModeller.SimSummary.AnnualCosts[simItr];
-                }
-                // concatenate
-                simulationIterations = SupportFunctions.ConcatJaggedArray(simulationIterations, thisSimulationIterations);
-                
-            }
-
-            // report
-            ExcelIntface.ReportStaticPolicyOptimization( wtp, 
-                SupportFunctions.ConvertJaggedArrayToRegularArray(staticPolicies, 3),
-                SupportFunctions.ConvertJaggedArrayToRegularArray(simulationOutcomes, 6),
-                SupportFunctions.ConvertJaggedArrayToRegularArray(simulationIterations, 5),
-                _modelSettings.ObjectiveFunction);
-
-        }
+        
         #endregion
     }
 }
