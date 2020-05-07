@@ -208,20 +208,6 @@ namespace APACElib.Optimization
                 // r_on_0 should be between 0 and 1
                 accumPenalty += base.EnsureFeasibility(ref _paramValues[(int)Par.r_on_0], 0, _maxRatioOfROnToROff);
 
-
-                //// t_on should be less than 5 at any wtp value
-                //accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.t_off_0], 5 / Math.Exp(wtp * _paramValues[(int)Par.t_off_1]));
-
-                //// t_off should be greateer than t_on 
-                //accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.t_on_0], _paramValues[(int)Par.t_off_0]);
-
-                //accumPenalty += base.EnsureLessThan(
-                //    ref _paramValues[(int)Par.t_on_1],
-                //    _paramValues[(int)Par.t_off_1] + (1/wtp) * Math.Log(_paramValues[(int)Par.t_off_0]/ _paramValues[(int)Par.t_on_0])
-                //    );
-
-                //if (_paramValues[(int)Par.t_on_1] > 0 )
-                //    throw new System.ArgumentException("Parameter cannot be null", "original");
             }
             return accumPenalty;
         }
@@ -282,7 +268,6 @@ namespace APACElib.Optimization
             return new double[2] { _paramValues[(int)Par.R], _paramValues[(int)Par.I] / 100000 };
         }
     }
-
 
     public class COVIDPolicyIncAndDInc : Policy
     {
@@ -611,8 +596,9 @@ namespace APACElib.Optimization
         public enum EnumPolicyType
         {
             ISingleWTP = 0,
-            RtSingleWTP = 1,
-            RtISingleWTP = 2,
+            FtSingleWTP = 1,
+            RtSingleWTP = 2,
+            RtISingleWTP = 3,
                 
         }
         public EnumPolicyType PolicyType { get; }
