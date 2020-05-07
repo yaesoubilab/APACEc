@@ -171,7 +171,9 @@ namespace APACElib
                 _modelSettings.SimRNDSeedsSource = EnumSimRNDSeedsSource.RandomUnweighted;
 
             COVIDOptimizer optimizer =
-                new COVIDOptimizer(_excelInterface, _modelSettings, _listModelInstr, COVIDOptimizer.EnumPolicyType.RtSingleWTP);
+                new COVIDOptimizer(
+                    _excelInterface, _modelSettings, _listModelInstr, 
+                    COVIDOptimizer.EnumPolicyType.FtSingleWTP);
 
             optimizer.Minimize(_modelSettings.SimOptmzSets.XDigits);
 
