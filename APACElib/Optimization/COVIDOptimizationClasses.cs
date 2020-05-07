@@ -110,7 +110,18 @@ namespace APACElib.Optimization
         }
     }
 
-    public class COVIDPolicyFtSingleWTP: COVIDPolicyI
+    public abstract class COVIDPolicyFt : Policy
+    {
+        protected double[] _paramValues;
+
+        public COVIDPolicyFt(double penalty) : base(penalty)
+        {
+        }
+        public abstract double GetThresholdToTurnOn(double wtp);
+        public abstract double GetThresholdToTurnOff(double wtp);
+    }
+
+    public class COVIDPolicyFtSingleWTP: COVIDPolicyFt
     {
         /// <summary>
         /// threshold to turn on: tau0
@@ -151,6 +162,54 @@ namespace APACElib.Optimization
         public override double GetThresholdToTurnOff(double wtp)
         {
             return  _paramValues[(int)Par.tau1];
+        }
+    }
+
+    public class COVIDPolicyFtRangeOfWTP : COVIDPolicyFt
+    {
+        /// <summary>
+        /// prevalence threshold to turn on: tau(wtp)   = on0*exp(on1 * wtp)
+        /// prevalence threshold to turn off: theta(wtp) = off0*exp(off1 * wtp)
+        /// parameter values = [tau0, tau1, rho]
+        /// </summary>
+
+        enum Par { on0, on1, off0, off1 }
+        private double _scale;
+
+        public COVIDPolicyFtRangeOfWTP(double penalty, double wtpScale) : base(penalty)
+        {
+            NOfPolicyParameters = 4;
+            _scale = wtpScale;
+            // status quo parameter values: 
+            _paramValues = new double[4] { 10e10, 0, 10e10, 0 }; // large number so that social distancing is never triggered 
+            StatusQuoParamValues = Vector<double>.Build.Dense(_paramValues);
+        }
+
+        public override double UpdateParameters(Vector<double> paramValues, double wtp, bool checkFeasibility = true)
+        {
+            _paramValues = paramValues.ToArray();
+
+            double accumPenalty = 0;
+            if (checkFeasibility)
+            {
+                // on0 should be greater than 0
+                accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.on0], 0);
+                // on1 should be less than 0
+                accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.on1], 0);
+                // off0 should be greater than 0
+                accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.off0], 0);
+                // off1 should be less than 0
+                accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.off1], 0);
+            }
+            return accumPenalty;
+        }
+        public override double GetThresholdToTurnOn(double wtp)
+        {
+            return _paramValues[(int)Par.on0] * Math.Exp(wtp * _paramValues[(int)Par.on1] / _scale);
+        }
+        public override double GetThresholdToTurnOff(double wtp)
+        {
+            return _paramValues[(int)Par.off0] * Math.Exp(wtp * _paramValues[(int)Par.off1] / _scale); ;
         }
     }
 
@@ -546,10 +605,10 @@ namespace APACElib.Optimization
                                     .UpdateThresholds(new double[1] { rToOff });
                         }
                     }
-                    else if (Policy is COVIDPolicyFtSingleWTP)
+                    else if (Policy is COVIDPolicyFt)
                     {
-                        double fToOn = ((COVIDPolicyFtSingleWTP)Policy).GetThresholdToTurnOn(wtp);
-                        double fToOff = ((COVIDPolicyFtSingleWTP)Policy).GetThresholdToTurnOff(wtp);
+                        double fToOn = ((COVIDPolicyFt)Policy).GetThresholdToTurnOn(wtp);
+                        double fToOff = ((COVIDPolicyFt)Policy).GetThresholdToTurnOff(wtp);
                         // update the threshold for the epidemic at index epi_i
                         for (int sim_i = 0; sim_i < _nSimsPerOptItr; sim_i++)
                         {
@@ -653,8 +712,9 @@ namespace APACElib.Optimization
         {
             ISingleWTP = 0,
             FtSingleWTP = 1,
-            RtSingleWTP = 2,
-            RtISingleWTP = 3,
+            FtRangeWTP = 2, 
+            RtSingleWTP = 3,
+            RtISingleWTP = 4,
                 
         }
         public EnumPolicyType PolicyType { get; }
@@ -683,6 +743,11 @@ namespace APACElib.Optimization
                     policy = new COVIDPolicyFtSingleWTP(
                         penalty: ModelSets.SimOptmzSets.Penalty,
                         maxF: 25000 * 500 / 100000);
+                    break;
+                case EnumPolicyType.FtRangeWTP:
+                    policy = new COVIDPolicyFtRangeOfWTP(
+                        penalty: ModelSets.SimOptmzSets.Penalty,
+                        wtpScale: scale);
                     break;
                 case EnumPolicyType.RtSingleWTP:
                     policy = new COVIDPolicyRtSingleWTP(

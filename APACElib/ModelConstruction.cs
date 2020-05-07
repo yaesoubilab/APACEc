@@ -190,9 +190,15 @@ namespace APACElib
             }
 
             if (ModelUse == EnumModelUse.SimOptimization)
+            {
                 SimOptmzSets = new SimulationOptimizationSettings(ref excelInterface);
+                IfShowSimulatedTrajs = false;
+            }
             else if (ModelUse == EnumModelUse.ADPOptimization)
+            {
                 ADPSets = new ADPSettings(ref excelInterface);
+                IfShowSimulatedTrajs = false;
+            }
 
             // read sheets
             Sheets = new ModelSheets();

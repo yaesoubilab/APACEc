@@ -173,7 +173,7 @@ namespace APACElib
             COVIDOptimizer optimizer =
                 new COVIDOptimizer(
                     _excelInterface, _modelSettings, _listModelInstr, 
-                    COVIDOptimizer.EnumPolicyType.FtSingleWTP);
+                    COVIDOptimizer.EnumPolicyType.FtRangeWTP);
 
             optimizer.Minimize(_modelSettings.SimOptmzSets.XDigits);
 
