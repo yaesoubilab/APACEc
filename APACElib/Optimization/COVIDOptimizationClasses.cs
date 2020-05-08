@@ -170,10 +170,10 @@ namespace APACElib.Optimization
         /// <summary>
         /// prevalence threshold to turn on: tau(wtp)   = on0*exp(on1 * wtp)
         /// prevalence threshold to turn off: theta(wtp) = off0*exp(off1 * wtp)
-        /// parameter values = [tau0, tau1, rho]
+        /// parameter values = [ln(on0), on1, ln(off0), off0]
         /// </summary>
 
-        enum Par { on0, on1, off0, off1 }
+        enum Par { lnOn0, on1, lnOff0, off1 }
         private double _scale;
 
         public COVIDPolicyFtRangeOfWTP(double penalty, double wtpScale) : base(penalty)
@@ -181,7 +181,7 @@ namespace APACElib.Optimization
             NOfPolicyParameters = 4;
             _scale = wtpScale;
             // status quo parameter values: 
-            _paramValues = new double[4] { 10e10, 0, 10e10, 0 }; // large number so that social distancing is never triggered 
+            _paramValues = new double[4] { 12, 0, 12, 0 }; // large number so that social distancing is never triggered 
             StatusQuoParamValues = Vector<double>.Build.Dense(_paramValues);
         }
 
@@ -193,11 +193,11 @@ namespace APACElib.Optimization
             if (checkFeasibility)
             {
                 // on0 should be greater than 0
-                accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.on0], 0);
+                accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.lnOn0], 0);
                 // on1 should be less than 0
                 accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.on1], 0);
                 // off0 should be greater than 0
-                accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.off0], 0);
+                accumPenalty += base.EnsureGreaterThan(ref _paramValues[(int)Par.lnOff0], 0);
                 // off1 should be less than 0
                 accumPenalty += base.EnsureLessThan(ref _paramValues[(int)Par.off1], 0);
             }
@@ -205,11 +205,11 @@ namespace APACElib.Optimization
         }
         public override double GetThresholdToTurnOn(double wtp)
         {
-            return _paramValues[(int)Par.on0] * Math.Exp(wtp * _paramValues[(int)Par.on1] / _scale);
+            return Math.Exp(_paramValues[(int)Par.lnOn0] + wtp * _paramValues[(int)Par.on1] / _scale);
         }
         public override double GetThresholdToTurnOff(double wtp)
         {
-            return _paramValues[(int)Par.off0] * Math.Exp(wtp * _paramValues[(int)Par.off1] / _scale); ;
+            return Math.Exp(_paramValues[(int)Par.lnOff0] * wtp * _paramValues[(int)Par.off1] / _scale); ;
         }
     }
 
