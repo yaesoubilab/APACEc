@@ -209,7 +209,7 @@ namespace APACElib.Optimization
         }
         public override double GetThresholdToTurnOff(double wtp)
         {
-            return Math.Exp(_paramValues[(int)Par.lnOff0] * wtp * _paramValues[(int)Par.off1] / _scale); ;
+            return Math.Exp(_paramValues[(int)Par.lnOff0] + wtp * _paramValues[(int)Par.off1] / _scale);
         }
     }
 
@@ -569,7 +569,7 @@ namespace APACElib.Optimization
             _fValues = new double[xValues.Count()];
             for (int x_index = 0; x_index < xValues.Count(); x_index++)
             {
-                foreach (int wtp in _wtps)
+                foreach (double wtp in _wtps)
                 {
                     // update the policy parameters and record the penalty if any
                     // it multiplies the penalty by (wtp + 1) to account for the level of wtp in calcualting the penalty
