@@ -536,7 +536,8 @@ namespace APACElib.Optimization
                                    // index = 0 -> f(current value of policy parameters)
                                    // index > 0 -> Df()
         private Vector<double> _DfValues; // Df at the current value of policy parameters 
-        private int _nSimsPerOptItr; 
+        private int _nSimsPerOptItr;
+        private EnumObjectiveFunction _objFuncDef;
 
         public Policy Policy { get; private set; }
         public EpidemicModeller EpiModeller { get; private set; } // epi modeller to estimate derivatives of f
@@ -546,6 +547,7 @@ namespace APACElib.Optimization
         {
             _seed = id;
             _nSimsPerOptItr = modelSets.SimOptmzSets.NOfSimsPerOptItr;
+            _objFuncDef = modelSets.ObjectiveFunction;
             Policy = policy;
             _wtps = wtps;
 
@@ -702,9 +704,14 @@ namespace APACElib.Optimization
                 {
                     for (int sim_i = 0; sim_i < _nSimsPerOptItr; sim_i++)
                     {
-                        _fValues[x_index] +=
-                        wtp * EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].EpidemicCostHealth.TotalDiscountedDALY
-                        + EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].EpidemicCostHealth.TotalDisountedCost;
+                        if (_objFuncDef == EnumObjectiveFunction.MaximizeNMB)
+                            _fValues[x_index] +=
+                                wtp * EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].EpidemicCostHealth.TotalDiscountedDALY
+                                + EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].EpidemicCostHealth.TotalDisountedCost;
+                        else
+                            _fValues[x_index] +=
+                                EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].EpidemicCostHealth.TotalDiscountedDALY
+                                + EpiModeller.Epidemics[epi_i * _nSimsPerOptItr + sim_i].EpidemicCostHealth.TotalDisountedCost / wtp;
                     }
                     epi_i++;
                 }
