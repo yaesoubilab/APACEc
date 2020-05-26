@@ -49,8 +49,8 @@ namespace APACElib.Optimization
             {
                 // tau0 should be greater than 0
                 accumPenalty += base.EnsureFeasibility(ref _paramValues[(int)Par.tau0], 0, _maxValue);
-                // tau1 should be greater than 0
-                accumPenalty += base.EnsureFeasibility(ref _paramValues[(int)Par.tau1], 0, _maxValue);
+                // tau1 should be greater than 0 but less than tau0
+                accumPenalty += base.EnsureFeasibility(ref _paramValues[(int)Par.tau1], 0, _paramValues[(int)Par.tau0]);
             }
             return accumPenalty;
         }
