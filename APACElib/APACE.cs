@@ -57,7 +57,8 @@ namespace APACElib
         public void Run(string model="None", RichTextBox textBox=null)
         {
             dt = DateTime.Now;
-            _statusBox = new StatusBox(textBox);
+            if (textBox!=null)
+                _statusBox = new StatusBox(textBox);
 
             // read model settings
             _modelSettings.ReadSettings(ref _excelInterface);
@@ -70,18 +71,22 @@ namespace APACElib
                 case ExcelInterface.enumWhatToDo.Simulate:
                     {
                         // simulate a policy
-                        _statusBox.AddText("Simulation started.");
+                        if (textBox != null)
+                            _statusBox.AddText("Simulation started.");
                         // Console.WriteLine(dt.ToString() + ": Simulating a policy.");
                         SimulateAPolicy();
-                        _statusBox.AddText("Simulation ended.");
+                        if (textBox != null)
+                            _statusBox.AddText("Simulation ended.");
                         break;
                     }
                 case ExcelInterface.enumWhatToDo.Calibrate:
                     {
                         // calibrate
-                        _statusBox.AddText("Calibration started.");
+                        if (textBox != null)
+                            _statusBox.AddText("Calibration started.");
                         Calibrate();
-                        _statusBox.AddText("Calibration ended.");
+                        if (textBox != null)
+                            _statusBox.AddText("Calibration ended.");
                         break;
                     }
                 case ExcelInterface.enumWhatToDo.OptimizeTheDynamicPolicy:
@@ -93,21 +98,24 @@ namespace APACElib
                 case ExcelInterface.enumWhatToDo.Optimize:
                     {
                         // optimize 
-                        _statusBox.AddText("Optimization started.");
+                        if (textBox != null)
+                            _statusBox.AddText("Optimization started.");
                         if (model == "Gonorrhea")
                             OptimizeGono();
                         else
                             OptimizeCOVID();
-
-                        _statusBox.AddText("Optimization ended.");
+                        if (textBox != null)
+                            _statusBox.AddText("Optimization ended.");
                         break;
                     }
                 case ExcelInterface.enumWhatToDo.RunExperiments:
                     {
                         // run experiments
-                        _statusBox.AddText("Running experiments started.");
+                        if (textBox != null)
+                            _statusBox.AddText("Running experiments started.");
                         RunExperiments();
-                        _statusBox.AddText("Running experiments ended.");
+                        if (textBox != null)
+                            _statusBox.AddText("Running experiments ended.");
                         break;
                     }                   
             }
