@@ -318,6 +318,14 @@ namespace APACElib
                             _classes.Add(ifResist);
                             _dicClasses[ifResist.Name] = classID++;
                         }
+
+            // add introduction of resistance to B
+            for (regionID = 0; regionID < regions.Count; regionID++)
+            {
+                Class_Normal Intro = Get_Introduction(id: classID, region: regions[regionID]);
+                _classes.Add(Intro);
+                _dicClasses[Intro.Name] = classID++;
+            }
         }
 
         protected void AddGonoEvents(List<string> regions)
@@ -334,6 +342,7 @@ namespace APACElib
             int screeningRate = _paramManager.Dic["Annual screening rate | " + regions[0]];
             int seekingTreatmentRate = _paramManager.Dic["Annual rate of seeking treatment (symptomatic)"];
             int seekingReTreatmentRate = _paramManager.Dic["Annual rate of retreatment"];
+            int introductionRate = _paramManager.Dic["Introduction rate of resistant to B | " + regions[0]];
 
             int idS = _dicClasses[regions[0] + " | S"];
             int idDeath = _dicClasses[regions[0] + " | Death"];
@@ -466,7 +475,7 @@ namespace APACElib
                             string treatmentProfile = resistOrFail + " | " + d.ToString() + " --> I | " + _infProfiles[inf];
                             string suffix = " | Tx_" + d.ToString() + " | W | " + _infProfiles[inf];
                             for (regionID = 0; regionID < n; regionID++)
-                            {                                
+                            {
                                 eventName = regions[regionID] + suffix;
                                 string destClassName = "";
 
@@ -609,6 +618,20 @@ namespace APACElib
                     _dicEvents[eventName] = id++;
                 }
             }
+
+            // introduction of resistance to B            
+            for (regionID = 0; regionID < n; regionID++)
+            {
+                eventName = "Introduction of resistance to B | " + regions[regionID];
+                _events.Add(new Event_Poisson(
+                            name: eventName,
+                            ID: id,
+                            IDOfActivatingIntervention: 0,
+                            rateParameter: _paramManager.Parameters[introductionRate + regionID],
+                            IDOfDestinationClass: _dicClasses[regions[0] + " | If Sym | G_B"])
+                        );
+                _dicEvents[eventName] = id++;
+            }
         }
 
         protected void AddGonoConnections(List<string> regions)
@@ -626,7 +649,9 @@ namespace APACElib
             int txB2 = _dicEvents[regions[0] + " | Tx_B2 | U | " + _infProfiles[0]];
             int txM2 = _dicEvents[regions[0] + " | Tx_M2 | U | " + _infProfiles[0]];
             int leaveSuccess = _dicEvents[regions[0] + " | Leaving Success with A1"];
+            int introRestB = _dicEvents[regions[0] + " | Introduction of resistance to B"];
             int success = _dicClasses[regions[0] + " | Success with A1"];
+            
 
             // ----------------
             // add events for S, I, W, U
@@ -656,7 +681,7 @@ namespace APACElib
                     }
                 }
                 // for I
-                else if (_classes[c].Name.StartsWith(regions[0] + " | I"))
+                else if (_classes[c].Name.StartsWith(regions[0] + " | I") && _classes[c].Name.Length == regions[0].Length + " | I".Length)
                 {
                     for (int regionID = 0; regionID < n; regionID++)
                     {
@@ -697,6 +722,17 @@ namespace APACElib
                         c++;
                     }
                     ++u;
+                }
+                else if (_classes[c].Name.StartsWith(regions[0] + " | Introduction of resistance to B"))
+                {
+                    for (int regionID = 0; regionID < n; regionID++)
+                    {
+                        C = (Class_Normal)_classes[c];
+                        // introduction of resistance to B
+                        C.AddAnEvent(_events[introRestB + regionID]);
+
+                        c++;
+                    }
                 }
                 else
                     c++;
@@ -1887,6 +1923,12 @@ namespace APACElib
                     thisClass: D,
                     showIncidence: false);
             return D;
+        }
+
+        private Class_Normal Get_Introduction(int id, string region)
+        {
+            Class_Normal Intro = new Class_Normal(id, region + " | Introduction of resistance to B");
+            return Intro;
         }
 
         private Class_Normal Get_I_W_U(int id, string region, int infProfileID, int rowIndexInContactMatrix,
