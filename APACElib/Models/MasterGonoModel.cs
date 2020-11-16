@@ -345,7 +345,7 @@ namespace APACElib
             int screeningRate = _paramManager.Dic["Annual screening rate | " + regions[0]];
             int seekingTreatmentRate = _paramManager.Dic["Annual rate of seeking treatment (symptomatic)"];
             int seekingReTreatmentRate = _paramManager.Dic["Annual rate of retreatment"];
-            int introductionRate = _paramManager.Dic["Introduction rate of resistant to B | " + regions[0]];
+            //int introductionRate = _paramManager.Dic["Introduction rate of resistant to B | " + regions[0]];
 
             int idS = _dicClasses[regions[0] + " | S"];
             int idDeath = _dicClasses[regions[0] + " | Death"];
@@ -684,7 +684,7 @@ namespace APACElib
                     }
                 }
                 // for I
-                else if (_classes[c].Name.StartsWith(regions[0] + " | I") && _classes[c].Name.Length == regions[0].Length + " | I".Length)
+                else if (_classes[c].Name.StartsWith(regions[0] + " | I ") )
                 {
                     for (int regionID = 0; regionID < n; regionID++)
                     {
