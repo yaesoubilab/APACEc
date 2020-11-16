@@ -1900,7 +1900,7 @@ namespace APACElib
                 rowIndexInContactMatrix: rowIndexInContactMatrix);
             SetupClassStatsAndTimeSeries(
                 thisClass: S,
-                showPrevalence: true);
+                showPrevalence: false);
             return S;
         }
 
@@ -1915,7 +1915,7 @@ namespace APACElib
                 rowIndexInContactMatrix: 0);
             SetupClassStatsAndTimeSeries(
                 thisClass: c,
-                showIncidence: true);
+                showIncidence: false);
             return c;
         }
 
