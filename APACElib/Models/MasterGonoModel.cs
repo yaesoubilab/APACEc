@@ -631,7 +631,7 @@ namespace APACElib
                             ID: id,
                             IDOfActivatingIntervention: 0,
                             rateParameter: _paramManager.Parameters[introductionRate + regionID],
-                            IDOfDestinationClass: _dicClasses[regions[0] + " | If Sym | G_B"])
+                            IDOfDestinationClass: _dicClasses[regions[regionID] + " | If Sym | G_B"])
                         );
                 _dicEvents[eventName] = id++;
             }
@@ -1960,7 +1960,7 @@ namespace APACElib
                 rowIndexInContactMatrix: rowIndexInContactMatrix);
             SetupClassStatsAndTimeSeries(
                 thisClass: C,
-                showPrevalence: (c == Comparts.I) ? false : false,
+                showPrevalence: (c == Comparts.I) ? true : false,
                 showIncidence: false // (c == Comparts.W) ? true : false
                 );
             return C;
