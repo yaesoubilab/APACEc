@@ -166,9 +166,9 @@ namespace APACElib.Models
             FeasibleRanges feasibleRanges = new FeasibleRanges();
             feasibleRanges.CheckFeasibiliyOfRegionalRates = false;
             feasibleRanges.CheckMinResistance = true;
-            feasibleRanges.Prevalencee = new double[2] { 0.01, 0.15 }; // { 0.001, 0.2 }
+            feasibleRanges.Prevalencee = new double[2] { 0.01, 0.1 }; // { 0.001, 0.2 }
             feasibleRanges.PercSymp = new double[2] { 0.5, 0.9 }; // { 0.5, 0.9 }
-            feasibleRanges.CaseRate = new double[2] { 0.01, 0.15 };
+            feasibleRanges.CaseRate = new double[2] { 0.01, 0.1 };
 
             double MIN = 0.001, MAX = 0.2;
             feasibleRanges.RegionalCaseRate = new List<double[]> {
