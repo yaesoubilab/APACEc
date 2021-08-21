@@ -33,7 +33,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="APACElib">
-      <HintPath>..\APACElib\bin\Release\APACElib.dll</HintPath>
+      <HintPath>..\APACElib\bin\Debug\APACElib.dll</HintPath>
     </Reference>
     <Reference Include="CSExcelInteractorLib, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
