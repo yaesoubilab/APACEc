@@ -164,7 +164,11 @@ namespace APACElib
 
             epi.LnL=0;
             foreach (LikelihoodTimeSeries L in _likelihoodTSs)
-                epi.LnL += L.LnLikelihood(epi.EpiHist.SumTrajs, epi.EpiHist.RatioTrajs);
+            {
+                double lnl = L.LnLikelihood(epi.EpiHist.SumTrajs, epi.EpiHist.RatioTrajs);
+                if (!double.IsNaN(lnl))
+                    epi.LnL += lnl;
+            }
         }
         
         public void AddCalibSummary(Epidemic epi)
@@ -488,7 +492,10 @@ namespace APACElib
                     ++n;
                     sumLnL += LnL;
                 }
-            return sumLnL / n;
+            if (n == 0)
+                return double.NaN;
+            else
+                return sumLnL / n;
         }
     }
 

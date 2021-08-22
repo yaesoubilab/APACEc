@@ -1052,6 +1052,12 @@ namespace APACElib
                         displayInSimOutput: true,
                         warmUpSimIndex: _modelSets.WarmUpPeriodSimTIndex,
                         nDeltaTInAPeriod: _modelSets.NumOfDeltaT_inSimOutputInterval);
+                    if (_modelSets.ModelUse == EnumModelUse.Calibration)
+                        prev.CalibInfo = new SpecialStatCalibrInfo(
+                            measureOfFit: "Likelihood",
+                            likelihoodFunction: "Binomial",
+                            likelihoodParam: "",
+                            ifCheckWithinFeasibleRange: false);
                     _epiHist.RatioTrajs.Add(prev);
                 }
             }
